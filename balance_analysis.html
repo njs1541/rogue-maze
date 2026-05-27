@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rogue-Maze: 밸런스 정밀 분석 및 비교분석 보고서</title>
+    <!-- 고급 폰트 적용 (Google Fonts) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ==========================================================================
+           1. Core Design System (Neon Dark Aesthetics)
+           ========================================================================== */
+        :root {
+            --bg-darker: #05060b;
+            --bg-dark: #090b11;
+            --bg-card: rgba(15, 18, 28, 0.75);
+            --border-neon-cyan: rgba(0, 240, 255, 0.2);
+            --border-neon-magenta: rgba(255, 0, 85, 0.2);
+            --border-neon-purple: rgba(176, 38, 255, 0.2);
+
+            --neon-cyan: #00f0ff;
+            --neon-magenta: #ff0055;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffdf00;
+
+            --text-primary: #f0f3fa;
+            --text-secondary: #90a0c0;
+            --text-muted: #5a6b8c;
+
+            --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.35);
+            --glow-magenta: 0 0 15px rgba(255, 0, 85, 0.35);
+            --glow-purple: 0 0 15px rgba(176, 38, 255, 0.35);
+            --glow-green: 0 0 15px rgba(57, 255, 20, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(176, 38, 255, 0.04) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(255, 0, 85, 0.04) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 스크롤바 커스터마이징 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1a2233;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        /* 레이아웃 구성 */
+        .wrapper {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 1rem;
+            position: relative;
+            background: linear-gradient(to bottom, #07090f, var(--bg-darker));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 3rem;
+            border-radius: 20px;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-purple), var(--neon-magenta), transparent);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        }
+
+        .header-tag {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.35em;
+            color: var(--neon-cyan);
+            text-shadow: var(--glow-cyan);
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 40%, #a5c0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+
+        .header-desc {
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        /* 탭 내비게이션 */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .tab-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-neon-cyan);
+            color: var(--text-secondary);
+            padding: 0.8rem 1.8rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            border-color: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--neon-cyan);
+            box-shadow: var(--glow-cyan), inset 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        .tab-btn.color-magenta.active {
+            background: rgba(255, 0, 85, 0.1);
+            border-color: var(--neon-magenta);
+            box-shadow: var(--glow-magenta), inset 0 0 10px rgba(255, 0, 85, 0.1);
+        }
+
+        .tab-btn.color-purple.active {
+            background: rgba(176, 38, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: var(--glow-purple), inset 0 0 10px rgba(176, 38, 255, 0.1);
+        }
+
+        /* 컨텐츠 섹션 */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 그리드 시스템 */
+        .grid-2x1 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2x1, .grid-3col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 카드 컴포넌트 */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+        }
+
+        .card.card-magenta::before {
+            background: linear-gradient(90deg, var(--neon-magenta), var(--neon-purple));
+        }
+
+        .card.card-green::before {
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+        }
+
+        .card.card-yellow::before {
+            background: linear-gradient(90deg, var(--neon-yellow), var(--neon-magenta));
+        }
+
+        .card-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .card-tag {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .card-tag.tag-magenta {
+            background: rgba(255, 0, 85, 0.1);
+            color: var(--neon-magenta);
+        }
+
+        .card-tag.tag-green {
+            background: rgba(57, 255, 20, 0.1);
+            color: var(--neon-green);
+        }
+
+        /* 텍스트 요소 */
+        p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        strong {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        /* 차트 감싸기 */
+        .chart-box {
+            background: rgba(4, 5, 8, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            height: 380px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 경고 상자 */
+        .alert-box {
+            border-radius: 10px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        .alert-danger {
+            background: rgba(255, 0, 85, 0.05);
+            border: 1px solid rgba(255, 0, 85, 0.2);
+            color: #fce4ec;
+        }
+
+        .alert-danger h4 {
+            color: var(--neon-magenta);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-warning {
+            background: rgba(255, 223, 0, 0.05);
+            border: 1px solid rgba(255, 223, 0, 0.2);
+            color: #fffde6;
+        }
+
+        .alert-warning h4 {
+            color: var(--neon-yellow);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-info {
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            color: #e0f8ff;
+        }
+
+        .alert-info h4 {
+            color: var(--neon-cyan);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* 테이블 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+            margin: 1rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 0.9rem 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        th {
+            font-weight: 800;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.02);
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+            color: #ffffff;
+        }
+
+        /* 스탯 메트릭 리스트 */
+        .metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 1rem;
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .metric-name {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-family: 'Fira Code', monospace;
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+
+        .metric-value.color-magenta {
+            color: var(--neon-magenta);
+        }
+
+        .metric-value.color-green {
+            color: var(--neon-green);
+        }
+
+        /* 아코디언 및 코드 영역 */
+        pre {
+            background: #040508;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #e0e6ed;
+            line-height: 1.5;
+            margin-top: 1rem;
+            position: relative;
+        }
+
+        pre::before {
+            content: 'PROPOSED PATCH';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #111622;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            border-bottom-left-radius: 8px;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .code-kw { color: #ff79c6; }
+        .code-cm { color: #6272a4; }
+        .code-str { color: #f1fa8c; }
+        .code-num { color: #bd93f9; }
+        .code-fn { color: #50fa7b; }
+
+        /* 리스트 기호 커스텀 */
+        ul {
+            list-style: none;
+            padding-left: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        ul li {
+            position: relative;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        ul li::before {
+            content: '■';
+            position: absolute;
+            left: -1.2rem;
+            color: var(--neon-cyan);
+            font-size: 0.7rem;
+            top: 0.2rem;
+        }
+
+        ul.li-magenta li::before {
+            color: var(--neon-magenta);
+        }
+
+        ul.li-green li::before {
+            color: var(--neon-green);
+        }
+
+        /* 밸런스 점수 매기기 */
+        .score-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: rgba(4, 5, 8, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            text-align: center;
+        }
+
+        .score-num {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .radar-box {
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <!-- 헤더 영역 -->
+        <header>
+            <span class="header-tag">Comprehensive Game Design & Balancer Report</span>
+            <h1>NEON ROGUE-MAZE 밸런스 종합 분석서</h1>
+            <p class="header-desc">
+                현재 개발된 <code>game.js</code>의 플레이어 빌드 카드, 성장 곡선, 몬스터 스케일링 데이터를 수학적 분석과 함께 시각화하고, 타 로그라이트 명작 게임들과의 비교분석을 통해 극단적 밸런스 이슈의 해결 패치를 제안합니다.
+            </p>
+        </header>
+
+        <!-- 탭 내비게이션 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('player-bal')">
+                <span>🛡️</span> 플레이어 성장 & 빌드 밸런스
+            </button>
+            <button class="tab-btn color-magenta" onclick="switchTab('monster-bal')">
+                <span>👾</span> 몬스터 스케일링 & 난이도 곡선
+            </button>
+            <button class="tab-btn color-purple" onclick="switchTab('compare-bal')">
+                <span>📊</span> 타 로그라이트 게임 비교분석
+            </button>
+        </div>
+
+        <!-- 탭 1: 플레이어 밸런스 -->
+        <section id="player-bal" class="tab-content active">
+            <div class="grid-2x1">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>⚔️</span> 플레이어 빌드 시너지와 DPS 스노우볼링</h2>
+                        <span class="card-tag">Player Balance</span>
+                    </div>
+                    <p>
+                        현재 플레이어는 <strong>힘(ATK), 지능/공속(aspd), 사거리(RNG), 회피(EVD), 최대체력(HP), 재생(REG), 운(LUK)</strong> 등 다채로운 스탯과 함께, 5의 배수 방마다 특수한 상위 카드로 <strong>멀티샷(multishot), 점사(burstCount), 관통, 유도(homing), 스플래시(splash), 검(sword), 디펜더 펫(pet)</strong>을 획득할 수 있습니다.
+                    </p>
+                    <p>
+                        분석 결과, 플레이어가 특정 카드 조합을 완성했을 때 발동하는 <strong>곱연산 빌드 시너지</strong>(Neon Bomber 1.8배, Neon Tempest 1.5배)와 무기 속성 변환(검기 투사체 관통 99개 동시 사출)이 기하급수적으로 중첩되면서, 후반부(80~100스테이지) 플레이어의 순간 폭발적인 DPS는 기계식 치트를 쓴 수준까지 스노우볼이 굴러갑니다.
+                    </p>
+                    <div class="alert-box alert-warning">
+                        <h4><span>⚠️</span> 플레이어 빌드의 결정적 밸런스 구멍 (3대 OP 요소)</h4>
+                        <ul>
+                            <li><strong>운(LUK) 스탯의 미친 스노우볼</strong>: LUK이 카드로 올라갈수록 <code>portalLuckBonus = monsterBonus * 0.02 + (this.player.luk - 1) * 0.12</code> 공식에 의해 EPIC/LEGENDARY 카드가 뽑힐 확률이 복리로 수렴합니다. LUK이 5 이상만 되어도 일반 등급 카드는 아예 안 나오며, 모든 보상이 최고 등급 카드로 도배됩니다.</li>
+                            <li><strong>회피율(EVD) 75% 캡의 절대 생존력</strong>: EVD가 75%에 이르게 되면, 4번의 피격 중 3번을 완전 무시하며 <code>DODGE</code> 잔상을 남깁니다. 초당 자연 체력 재생(REG)과 결합될 시 무적이 됩니다.</li>
+                            <li><strong>검기(Sword Blade) + 멀티샷 시너지의 광역 쓸어담기</strong>: 주무기 유형을 검(Sword)으로 융합하면 <code>pierce: 99</code>(무한 관통) 속성의 쾌검풍 투사체가 <code>multishot</code> 수만큼 부채꼴로 뿜어져 나갑니다. 부채꼴 퍼짐 각도 내의 모든 몬스터가 원샷에 녹아 전투가 극도로 단순화됩니다.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card card-yellow">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>⚡</span> 스탯/시너지 가중치</h2>
+                        <span class="card-tag tag-magenta">Metrics</span>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-row">
+                            <span class="metric-name">최고 등급 시너지 (Neon Bomber)</span>
+                            <span class="metric-value color-magenta">1.8배 곱산</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">검기 기본 피해 계수 (Sword Multiplier)</span>
+                            <span class="metric-value">1.2배 ~ 1.5배</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">검기 몬스터 관통력 (Sword Pierce)</span>
+                            <span class="metric-value color-green">99회 (무한)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">최대 회피율 제한 (EVD Cap)</span>
+                            <span class="metric-value">75.0%</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">드론 공격력 보정 계수 (Pet ATK Ratio)</span>
+                            <span class="metric-value">ATK * 0.25</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">초당 체력 회복 쿨타임 (REG Ratio)</span>
+                            <span class="metric-value color-green">60fps 상시 자연 회복</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 시너지 차트 분석 -->
+            <div class="card" style="margin-bottom: 2.5rem;">
+                <div class="card-header-flex">
+                    <h2 class="card-title"><span>📈</span> 플레이어 빌드 완성도에 따른 이론적 DPS 곡선</h2>
+                    <span class="card-tag">Interactive Simulation</span>
+                </div>
+                <div class="chart-box">
+                    <canvas id="playerDpsChart"></canvas>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.9rem;">
+                    * <strong>일반 빌드</strong>: 시너지 융합 없이 힘/공속 카드만 선별한 선형적인 성장 라인.<br>
+                    * <strong>시너지 빌드 (OP)</strong>: 멀티샷 + 유도 + 스플래시가 맞물리며 Neon Bomber 시너지를 터뜨리고 검기 난무로 무쌍을 찍는 초스노우볼 성장 라인. 50스테이지를 기점으로 기하급수적으로 폭발합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- 탭 2: 몬스터 밸런스 -->
+        <section id="monster-bal" class="tab-content">
+            <div class="grid-2x1">
+                <div class="card card-magenta">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>👾</span> 몬스터 스케일링의 극단적 인플레이션</h2>
+                        <span class="card-tag tag-magenta">Monster Balance</span>
+                    </div>
+                    <p>
+                        현재 몬스터의 능력치(HP, ATK, SPD)는 방 번호에 따른 <code>roomFactor = 1.0 + (roomNum - 1) * 0.05</code> 단리 증가와 5번 방마다 오르는 몬스터 등급 티어(tier)에 의해 이중 복합 스케일링됩니다.
+                    </p>
+                    <p>
+                        이중 연산 공식으로 인해, 후반부인 90~100스테이지에 들어서면 일반 몬스터들조차 <strong>공격력이 256</strong>, 최종 보스는 <strong>HP 7735, ATK 566</strong>이라는 초인플레이션 수치에 도달합니다.
+                    </p>
+                    <div class="alert-box alert-danger">
+                        <h4><span>💥</span> 몬스터 밸런스의 치명적 설계 오류 (유리 대포 현상)</h4>
+                        <p>
+                            플레이어의 최대 HP는 최고급 보상 카드를 모아도 200~300을 넘기 어려운데, 후반부 일반 적의 평타 1대 공격력은 256입니다. 이는 <strong>"스치기만 해도 즉사"</strong>하는 원샷 원킬 지옥을 형성합니다.
+                        </p>
+                        <p>
+                            플레이어가 만일 <strong>EVD 75%와 Homing/Splash Neon Bomber 시너지</strong>를 완성하지 못했다면(소위 '똥망 빌드'), 압도적인 체력을 지닌 보스(HP 7735)가 뿜는 부채꼴 즉사 탄막에 숨도 쉬지 못하고 비명횡사하게 됩니다. 반대로 사기 시너지를 맞추면 보스조차 5초 안에 녹이는 <strong>극단적 모 아니면 도</strong> 구조입니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>📊</span> 90~100 STAGE 몬스터 스펙</h2>
+                        <span class="card-tag">Staged Data</span>
+                    </div>
+                    <div class="metric-list">
+                        <div class="metric-row">
+                            <span class="metric-name">일반 몬스터 최고 체력 (HP)</span>
+                            <span class="metric-value color-magenta">994</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">일반 몬스터 최고 공격력 (ATK)</span>
+                            <span class="metric-value color-magenta">256 (플레이어 원샷 즉사)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">Chaser 몬스터 이동 속도 (SPD)</span>
+                            <span class="metric-value">4.3 px/f (대단히 빠름)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">최종 보스 체력 (Boss HP)</span>
+                            <span class="metric-value color-green">7,735</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">최종 보스 공격력 (Boss ATK)</span>
+                            <span class="metric-value color-magenta">566 (절대 즉사)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-name">방 1개 최대 적 소환량 (Method 3)</span>
+                            <span class="metric-value">최대 65마리</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 스케일링 곡선 차트 -->
+            <div class="card" style="margin-bottom: 2.5rem;">
+                <div class="card-header-flex">
+                    <h2 class="card-title"><span>📈</span> 1~100 스테이지 몬스터 스케일링 & 플레이어 적정 방어력 비교</h2>
+                    <span class="card-tag">Scaling Curves</span>
+                </div>
+                <div class="chart-box">
+                    <canvas id="monsterScalingChart"></canvas>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.9rem;">
+                    * <strong>몬스터 공격력</strong>: 50스테이지(공격력 87) 이후 기울기가 급격하게 솟아올라 100스테이지에서는 256에 달합니다.<br>
+                    * <strong>적정 플레이어 체력선</strong>: 몬스터의 1회 피격을 버티기 위해 플레이어가 확보해야 하는 이론적 HP 한계. 70스테이지 이후 괴리가 발생해 버티는 플레이가 원천 차단됩니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- 탭 3: 비교분석 -->
+        <section id="compare-bal" class="tab-content">
+            <div class="grid-2x1">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>🏆</span> 유사 로그라이트 3대장 명작과의 밸런스 비교</h2>
+                        <span class="card-tag">Competitive Analysis</span>
+                    </div>
+                    <p>
+                        로그라이트 및 Roguelike Bullet-Hell 장르의 전설적인 타이틀들과 <strong>네온 로그메이즈</strong>의 설계 구조 및 밸런스 팩터를 5개 주요 항목으로 비교분석했습니다.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>게임명</th>
+                                <th>성장 체감</th>
+                                <th>피지컬 난이도</th>
+                                <th>스탯 인플레이션</th>
+                                <th>빌드 시너지 깊이</th>
+                                <th>밸런스 안정성</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Vampire Survivors</strong></td>
+                                <td style="color:var(--neon-green)">★ 5.0 (압도적)</td>
+                                <td style="color:var(--text-muted)">★ 1.5 (매우 낮음)</td>
+                                <td>완만함 (30분 한계)</td>
+                                <td>조합식 중심</td>
+                                <td style="color:var(--neon-green)">대단히 안정적</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Enter the Gungeon</strong></td>
+                                <td>★ 3.0 (도구 보강)</td>
+                                <td style="color:var(--neon-magenta)">★ 4.8 (피지컬 지옥)</td>
+                                <td>없음 (하트 한계제)</td>
+                                <td>총기 복합 시너지</td>
+                                <td style="color:var(--neon-green)">피지컬 축 기반 조화</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Brotato</strong></td>
+                                <td>★ 4.5 (다양성)</td>
+                                <td>★ 3.0 (무빙 강조)</td>
+                                <td>중간 (웨이브 제한)</td>
+                                <td style="color:var(--neon-green)">★ 4.5 (매우 다양)</td>
+                                <td>하드캡 및 점감률 적용</td>
+                            </tr>
+                            <tr style="background: rgba(0, 240, 255, 0.05);">
+                                <td><strong>Neon Rogue-Maze</strong></td>
+                                <td>★ 4.0 (화려함)</td>
+                                <td>★ 3.5 (탄막 회피)</td>
+                                <td style="color:var(--neon-magenta)">극단적 (10배 이상)</td>
+                                <td>곱산 시너지 (강력)</td>
+                                <td style="color:var(--neon-magenta)">불안정 (유리 대포)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 1rem;">
+                        <strong>핵심 시사점:</strong> 명작 게임들은 빌드의 강력한 쾌감을 보증하면서도 <strong>스탯 하드캡(Brotato 회피 60% 제한, Gungeon 고정 데미지 등)</strong>이나 <strong>몬스터 체력/데미지의 스펙 한계선</strong>을 뚜렷이 둡니다. 현재 네온 로그메이즈는 이러한 브레이크가 없어 후반부 억까 난이도를 연출합니다.
+                    </p>
+                </div>
+
+                <div class="card card-magenta">
+                    <div class="card-header-flex">
+                        <h2 class="card-title"><span>🎯</span> 밸런스 5대 레이더 맵</h2>
+                        <span class="card-tag tag-magenta">Radar Radar</span>
+                    </div>
+                    <div class="radar-box">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 종합 진단 및 최종 밸런스 솔루션 코드 패치 방안 -->
+            <div class="card card-green" style="margin-bottom: 2.5rem;">
+                <div class="card-header-flex">
+                    <h2 class="card-title"><span>🛠️</span> 밸런스 복원 및 시스템 개선 솔루션 제안</h2>
+                    <span class="card-tag tag-green">Solution Code Patch</span>
+                </div>
+                <p>
+                    네온 로그메이즈의 원초적인 컨트롤 재미와 쾌감 넘치는 네온 탄막 액션을 100스테이지까지 조화롭게 살려내기 위해, 수치 점감 및 스케일링 상한선을 적용하는 <strong>3가지 코드 패치 솔루션</strong>을 제안합니다.
+                </p>
+                <div class="alert-box alert-info">
+                    <h4><span>💡</span> 핵심 패치 방향 3가지</h4>
+                    <ul>
+                        <li><strong>1. 몬스터 공격력 스케일링 공식 수정 (단리 상한선 적용)</strong>: <code>roomFactor</code>가 5%씩 무한 상승하던 것을, 스테이지 후반부에는 점진적으로 스케일링이 누그러지도록 로그(Log)형 증가 또는 80% 한계 성장 캡을 씌웁니다.</li>
+                        <li><strong>2. 플레이어 회피율 EVD 및 운 LUK 소프트 캡(점감 방식) 전환</strong>: 카드를 집을수록 무조건 더해지던 복리 덧셈 방식에서, 스탯이 올라갈수록 실질 효율이 줄어드는 체감 수렴 공식을 도입합니다. (회피 최대 55% 캡)</li>
+                        <li><strong>3. 하이브리드 검기 사정거리 및 관통 횟수 캡 씌우기</strong>: 검기 투사체의 관통 횟수를 99회에서 <code>burstCount</code> 및 <code>aspd</code>에 비례하여 최대 3~6회로 차등 캡 제한을 두어 "검기 한 발로 방 쓸어담기" 억까를 방어합니다.</li>
+                    </ul>
+                </div>
+
+                <h3 style="color:#ffffff; font-weight:800; font-size:1.1rem; margin-top:1.5rem;">추천 개선 스케일링 코드 (game.js 반영 가이드)</h3>
+                <pre>
+<span class="code-cm">// 1. 몬스터 능력치 이중 상승을 조율하는 안전 스케일링 공식 (Monster 클래스 적용)</span>
+<span class="code-kw">let</span> roomFactor = <span class="code-num">1.0</span> + Math.log10(roomNum) * <span class="code-num">1.5</span>; <span class="code-cm">// 무한 5% 단리에서 로그 스케일링으로 변경</span>
+<span class="code-kw">this</span>.atk = Math.ceil((<span class="code-num">5</span> + (tier - <span class="code-num">1</span>) * <span class="code-num">1.5</span>) * roomFactor); <span class="code-cm">// 100스테이지 기준 공격력 256 -> 78 수준으로 안정화</span>
+
+<span class="code-cm">// 2. 플레이어 회피율 EVD 점감 효과 공식 (applyRewardCard 메서드 적용)</span>
+<span class="code-kw">case</span> <span class="code-str">'evd'</span>:
+    <span class="code-cm">// 복리 덧셈에서 '한계 효용 체감 공식' 적용 (최대 50% 수렴 캡)</span>
+    p.evd = p.evd + card.effectValue * (<span class="code-num">0.5</span> - p.evd); 
+    <span class="code-kw">break</span>;
+
+<span class="code-cm">// 3. 검기(Sword Wave) 융합 투사체 관통 캡 제한 (slashWeapon 메서드 적용)</span>
+<span class="code-kw">this</span>.bullets.push(<span class="code-kw">new</span> Bullet(<span class="code-kw">this</span>.player.x, <span class="code-kw">this</span>.player.y, vx, vy, swordDmg, <span class="code-num">true</span>, {
+    pierce: Math.min(<span class="code-num">4</span>, <span class="code-kw">this</span>.player.pierceCount + <span class="code-num">1</span>), <span class="code-cm">// 무한 99회 관통에서 최대 4~5회 관통 캡 적용</span>
+    homing: <span class="code-kw">this</span>.player.homing,
+    splash: <span class="code-kw">this</span>.player.splashRadius,
+    color: <span class="code-str">'#b026ff'</span>,
+    radius: <span class="code-num">5</span>
+}));
+                </pre>
+            </div>
+        </section>
+    </div>
+
+    <!-- 스크립트: 탭 전환 및 Chart.js 초기화 -->
+    <script>
+        // 탭 전환 엔진
+        function switchTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const btns = document.querySelectorAll('.tab-btn');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            
+            // 현재 클릭한 버튼에 active 추가
+            const activeBtn = Array.from(btns).find(btn => btn.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        // 1. 플레이어 DPS 시뮬레이션 차트
+        const dpsCtx = document.getElementById('playerDpsChart').getContext('2d');
+        new Chart(dpsCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 10}, (_, i) => (i+1)*10), // 10, 20... 100 STAGE
+                datasets: [{
+                    label: '일반 스탯 빌드 (DPS)',
+                    data: [15, 30, 45, 60, 80, 100, 125, 150, 185, 220],
+                    borderColor: '#00f0ff',
+                    backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                    borderWidth: 2,
+                    tension: 0.2
+                }, {
+                    label: '시너지 OP 빌드 (Neon Bomber + 검기)',
+                    data: [15, 45, 110, 280, 650, 1400, 2900, 5800, 11000, 22000],
+                    borderColor: '#ff0055',
+                    backgroundColor: 'rgba(255, 0, 85, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#90a0c0', font: { family: 'Outfit' } } }
+                },
+                scales: {
+                    x: { ticks: { color: '#5a6b8c' }, grid: { color: 'rgba(255, 255, 255, 0.02)' } },
+                    y: { 
+                        type: 'logarithmic', // 기하급수 성장 표현을 위한 로그 스케일
+                        ticks: { color: '#5a6b8c' }, 
+                        grid: { color: 'rgba(255, 255, 255, 0.02)' } 
+                    }
+                }
+            }
+        });
+
+        // 2. 몬스터 공격력 vs 플레이어 방어력 곡선 차트
+        const monsterCtx = document.getElementById('monsterScalingChart').getContext('2d');
+        new Chart(monsterCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 20}, (_, i) => (i+1)*5), // 5, 10... 100 STAGE
+                datasets: [{
+                    label: '몬스터 공격력 (ATK 인플레이션)',
+                    data: [5, 12, 22, 33, 47, 59, 75, 87, 108, 124, 142, 161, 178, 192, 210, 225, 238, 245, 252, 256],
+                    borderColor: '#ff0055',
+                    borderWidth: 3,
+                    tension: 0.2
+                }, {
+                    label: '적정 플레이어 권장 HP 한계',
+                    data: [100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 250, 260, 270, 275, 280, 285, 288, 290, 292, 295],
+                    borderColor: '#39ff14',
+                    borderDash: [5, 5],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#90a0c0', font: { family: 'Outfit' } } }
+                },
+                scales: {
+                    x: { ticks: { color: '#5a6b8c' }, grid: { color: 'rgba(255, 255, 255, 0.02)' } },
+                    y: { ticks: { color: '#5a6b8c' }, grid: { color: 'rgba(255, 255, 255, 0.02)' } }
+                }
+            }
+        });
+
+        // 3. 로그라이트 명작 게임 다차원 레이더 차트
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['성장 쾌감', '컨트롤 피지컬 요구도', '스탯 인플레이션', '시너지 빌드 깊이', '전반적 밸런스 안정성'],
+                datasets: [{
+                    label: 'Enter the Gungeon',
+                    data: [60, 95, 10, 80, 90],
+                    borderColor: '#bd93f9',
+                    backgroundColor: 'rgba(189, 147, 249, 0.1)',
+                    borderWidth: 2
+                }, {
+                    label: 'Brotato',
+                    data: [90, 70, 50, 90, 85],
+                    borderColor: '#ffdf00',
+                    backgroundColor: 'rgba(255, 223, 0, 0.1)',
+                    borderWidth: 2
+                }, {
+                    label: 'Neon Rogue-Maze (현재)',
+                    data: [85, 80, 98, 85, 30],
+                    borderColor: '#00f0ff',
+                    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#90a0c0', font: { family: 'Outfit' } } }
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        pointLabels: { color: '#90a0c0', font: { family: 'Outfit', size: 11 } },
+                        ticks: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

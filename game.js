@@ -270,7 +270,13 @@ class Bullet {
     }
 
     update(monsters) {
-        this.life--;
+        // [수정] 시간 왜곡 시 적 탄환 75% 감속 적용
+        let timeScale = 1.0;
+        if (!this.isPlayerBullet && window.gameEngine && window.gameEngine.timeDilationActive) {
+            timeScale = 0.25; // 75% 느려짐
+        }
+
+        this.life -= timeScale;
 
         // 유도탄 로직: 가장 가까운 적을 감지하여 실시간 유도 비행
         if (this.isPlayerBullet && this.homing && monsters.length > 0) {
@@ -301,8 +307,8 @@ class Bullet {
             }
         }
 
-        this.x += this.vx;
-        this.y += this.vy;
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
     }
 
     draw(ctx) {
@@ -457,6 +463,7 @@ class Player {
         this.luk = 1.0;         // 운 (보상 가중 확률)
         this.mp = 0;            // 마력 (특수기 충전율)
         this.maxMp = 100;
+        this.magicType = 'explosion'; // [추가] 마법 기술 유형 ('explosion': 광역 폭발, 'timeWarp': 시간 왜곡)
         
         // 신규 추가 스탯
         this.hpRegen = 0.0;     // 초당 체력 회복량
@@ -621,13 +628,14 @@ class Monster {
         this.tier = tier; // 5개 방마다 증가하는 단계 (1, 2, 3...)
         this.roomNum = roomNum;
         
-        let roomFactor = 1.0 + (roomNum - 1) * 0.05;
+        // [수정] 몬스터 이중 복합 인플레이션을 완화하는 로그(Log) 스케일링 공식 도입
+        let roomFactor = 1.0 + Math.log10(roomNum) * 1.5;
 
         // 티어별 기본 체력과 속도, 데미지 스케일링 설정
-        this.maxHp = Math.ceil((15 + (tier - 1) * 8) * roomFactor);
+        this.maxHp = Math.ceil((15 + (tier - 1) * 4) * roomFactor); // 체력 증가율 합리적으로 완화
         this.hp = this.maxHp;
-        this.atk = Math.ceil((5 + (tier - 1) * 2) * roomFactor);
-        this.speed = 1.2 + Math.min(1.5, (tier - 1) * 0.15);
+        this.atk = Math.ceil((5 + (tier - 1) * 1.5) * roomFactor); // 공격력 인플레이션 해결
+        this.speed = 1.2 + Math.min(1.2, (tier - 1) * 0.1);
         this.scoreValue = tier; // 잡았을 때 기여도
         
         // 엘리트 몬스터 기믹용 속성 정의
@@ -707,16 +715,22 @@ class Monster {
     }
 
     update(player, bullets) {
+        // [수정] 전역 시간 왜곡(불릿 타임) 적용 배율 계산
+        let timeScale = 1.0;
+        if (window.gameEngine && window.gameEngine.timeDilationActive) {
+            timeScale = 0.25; // 75% 시간 감속 (몬스터의 액션이 매우 느려짐)
+        }
+
         if (this.flashTimer > 0) this.flashTimer--;
 
-        // 디버프 타이머 차감
-        if (this.statusEffects.slow > 0) this.statusEffects.slow--;
-        if (this.statusEffects.vulnerability > 0) this.statusEffects.vulnerability--;
-        if (this.statusEffects.shock > 0) this.statusEffects.shock--;
+        // 디버프 타이머 차감 (시간 감속 반영)
+        if (this.statusEffects.slow > 0) this.statusEffects.slow -= timeScale;
+        if (this.statusEffects.vulnerability > 0) this.statusEffects.vulnerability -= timeScale;
+        if (this.statusEffects.shock > 0) this.statusEffects.shock -= timeScale;
 
-        // 넉백 감쇠 처리
-        this.x += this.knockbackX;
-        this.y += this.knockbackY;
+        // 넉백 감쇠 처리 및 이동도 시간 지연 영향 받음
+        this.x += this.knockbackX * timeScale;
+        this.y += this.knockbackY * timeScale;
         this.knockbackX *= 0.85;
         this.knockbackY *= 0.85;
 
@@ -736,9 +750,9 @@ class Monster {
         let angle = Math.atan2(dy, dx);
 
         // Slow (감속) 상태에 따른 실제 이동 속도 연산
-        let activeSpeed = this.speed;
+        let activeSpeed = this.speed * timeScale;
         if (this.statusEffects.slow > 0) {
-            activeSpeed *= 0.6; // 40% 속도 감소
+            activeSpeed *= 0.6; // 40% 속도 추가 감소
         }
 
         if (this.isBoss) {
@@ -748,7 +762,7 @@ class Monster {
                 this.y += Math.sin(angle) * activeSpeed;
             }
             
-            this.shootCooldown--;
+            this.shootCooldown -= timeScale; // 쿨타임 감소도 시간 왜곡 영향을 받음
             if (this.shootCooldown <= 0) {
                 this.shootCooldown = 90 - Math.min(40, this.tier * 3);
                 // 3방향 부채꼴 탄환 발사
@@ -779,9 +793,9 @@ class Monster {
         } 
         else if (this.type === 'chaser') {
             // 빠른 추적 및 주기적으로 대시 돌진
-            this.dashCooldown--;
+            this.dashCooldown -= timeScale;
             if (this.dashCooldown <= 0 && dist < 220) {
-                // 대시 발동: 넉백처럼 플레이어 방향으로 순간 폭발적 가속도
+                // 대시 발동: 넉백처럼 플레이어 방향으로 순간 폭발적 가속도 (시간 왜곡 반영)
                 this.knockbackX = Math.cos(angle) * 7;
                 this.knockbackY = Math.sin(angle) * 7;
                 this.dashCooldown = 120 + Math.random() * 60; // 2~3초 쿨타임
@@ -807,7 +821,7 @@ class Monster {
             }
 
             // 사격 메커니즘
-            this.shootCooldown--;
+            this.shootCooldown -= timeScale;
             if (this.shootCooldown <= 0) {
                 this.shootCooldown = 100 + Math.random() * 60;
                 let vx = Math.cos(angle) * 3.5;
@@ -1062,6 +1076,8 @@ class GameEngine {
         this.isEliteRoom = false;
         this.lastEnteredPortalClass = 'low';
         
+        this.timeDilationActive = false; // [추가] 시간 왜곡(지연) 마법 활성화 플래그
+        
         this.initInputEvents();
         this.setupInitialRoom();
     }
@@ -1071,9 +1087,9 @@ class GameEngine {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
             
-            // Spacebar를 누르면 광역 마력 특수기 가동
+            // Spacebar를 누르면 마력 특수기 가동
             if (e.key === ' ' || e.code === 'Space') {
-                this.triggerMagicExplosion();
+                this.triggerMagicSkill();
             }
 
             // [테스트용 치트 핫키] P키: 모든 스탯 최강 강화 및 디펜더 펫 2기 소환
@@ -1162,6 +1178,8 @@ class GameEngine {
         // v0.3: 난이도/보상 시너지 기믹 속성 초기화
         this.isEliteRoom = false;
         this.lastEnteredPortalClass = 'low';
+        
+        this.timeDilationActive = false; // [추가] 시작 시 시간 왜곡 비활성화
 
         this.updateHUD();
         this.setupInitialRoom();
@@ -1498,45 +1516,68 @@ class GameEngine {
         }
     }
 
-    // 마력 풀 충전 시 발동 가능한 광역 마법 폭발 특수기
-    triggerMagicExplosion() {
-        if (this.player.mp < this.player.maxMp) return;
+    // 마력 풀 충전 시 발동 가능한 플레이어 장착 마법 특수기
+    triggerMagicSkill() {
+        if (this.player.magicType === 'explosion') {
+            if (this.player.mp < this.player.maxMp) return;
 
-        // 마력 소모 및 화면 초토화 흔들림
-        this.player.mp = 0;
-        this.shakeScreen(40, 10);
-        Sound.play('explosion');
+            // 마력 소모 및 화면 초토화 흔들림
+            this.player.mp = 0;
+            this.shakeScreen(40, 10);
+            Sound.play('explosion');
 
-        const explosionRadius = 180 + (this.player.atk * 1.5); // 데미지에 비례한 파괴 반경
-        const explosionDamage = this.player.atk * 3.5; // 폭발적 한방 피해량
+            const explosionRadius = 180 + (this.player.atk * 1.5); // 데미지에 비례한 파괴 반경
+            const explosionDamage = this.player.atk * 3.5; // 폭발적 한방 피해량
 
-        // 마법 네온 충격파 고리 파티클 생성
-        this.particles.push(new Particle(this.player.x, this.player.y, '#b026ff', explosionRadius, 0, 0, 45, 'explosionRing'));
+            // 마법 네온 충격파 고리 파티클 생성
+            this.particles.push(new Particle(this.player.x, this.player.y, '#b026ff', explosionRadius, 0, 0, 45, 'explosionRing'));
 
-        // 반경 내 모든 몬스터 피해 적용
-        for (let i = this.monsters.length - 1; i >= 0; i--) {
-            let m = this.monsters[i];
-            let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
-            if (dist < explosionRadius) {
-                let finalDmg = explosionDamage;
-                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
-                m.hp -= finalDmg;
-                m.flashTimer = 8;
-                // 플레이어 중심 바깥으로 강력한 넉백 기동
-                let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
-                m.knockbackX = Math.cos(angle) * 8;
-                m.knockbackY = Math.sin(angle) * 8;
-                
-                // 폭발 파티클 조각
-                for (let k = 0; k < 8; k++) {
-                    let spd = Math.random() * 5 + 2;
-                    this.particles.push(new Particle(m.x, m.y, '#b026ff', 3, Math.cos(angle + Math.random() - 0.5) * spd, Math.sin(angle + Math.random() - 0.5) * spd, 30));
+            // 반경 내 모든 몬스터 피해 적용
+            for (let i = this.monsters.length - 1; i >= 0; i--) {
+                let m = this.monsters[i];
+                let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                if (dist < explosionRadius) {
+                    let finalDmg = explosionDamage;
+                    if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                    m.hp -= finalDmg;
+                    m.flashTimer = 8;
+                    // 플레이어 중심 바깥으로 강력한 넉백 기동
+                    let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                    m.knockbackX = Math.cos(angle) * 8;
+                    m.knockbackY = Math.sin(angle) * 8;
+                    
+                    // 폭발 파티클 조각
+                    for (let k = 0; k < 8; k++) {
+                        let spd = Math.random() * 5 + 2;
+                        this.particles.push(new Particle(m.x, m.y, '#b026ff', 3, Math.cos(angle + Math.random() - 0.5) * spd, Math.sin(angle + Math.random() - 0.5) * spd, 30));
+                    }
                 }
             }
+            // 문 및 게이지 강제 갱신
+            this.updateHUD();
+        } 
+        else if (this.player.magicType === 'timeWarp') {
+            // 시간 왜곡 토글 처리
+            if (this.timeDilationActive) {
+                // 이미 활성화된 상태라면 수동 비활성화 (마나는 그대로 유지)
+                this.timeDilationActive = false;
+                this.showFloatingText("TIME FLOW RESTORED", this.player.x, this.player.y - 30, '#00f0ff');
+                Sound.play('powerup');
+            } else {
+                // 활성화 시도
+                if (this.player.mp < this.player.maxMp) {
+                    this.showFloatingText("NEED FULL MP", this.player.x, this.player.y - 20, '#ff0055');
+                    return;
+                }
+                
+                this.timeDilationActive = true;
+                this.shakeScreen(20, 4);
+                this.showFloatingText("🔮 TIME WARP ACTIVE", this.player.x, this.player.y - 30, '#b026ff');
+                
+                // 시간왜곡 발동 피드백 아르페지오 사운드 재생
+                Sound.play('victory');
+            }
         }
-
-        // 문 및 게이지 강제 갱신
-        this.updateHUD();
     }
 
     // [모델 C] 플레이어의 보상 카드 빌드 시너지를 감지해 대미지 곱연산 배율 및 텍스트/파편 효과 적용
@@ -1614,6 +1655,31 @@ class GameEngine {
     // 데이터 갱신 및 물리/충돌 검사 총괄
     update() {
         this.player.update();
+
+        // [추가] 시간 왜곡 마법 가동 시 마력(MP) 소모 및 파티클 기믹 처리
+        if (this.timeDilationActive) {
+            // 매 프레임 마력 감쇄 (약 5초간 유지: 100 MP / 300 프레임 = 프레임당 약 0.33)
+            this.player.mp = Math.max(0, this.player.mp - 0.33);
+            
+            // 시간 감속 공간에서 뿜어져 나오는 보랏빛 네온 공간 기믹 파티클
+            if (Math.random() < 0.2) {
+                let angle = Math.random() * Math.PI * 2;
+                let radius = Math.random() * 50 + 10;
+                let px = this.player.x + Math.cos(angle) * radius;
+                let py = this.player.y + Math.sin(angle) * radius;
+                this.particles.push(new Particle(
+                    px, py, 
+                    '#b026ff', 1.5, 
+                    -Math.cos(angle) * 0.4, -Math.sin(angle) * 0.4, 20, 'dust'
+                ));
+            }
+
+            if (this.player.mp <= 0) {
+                this.timeDilationActive = false;
+                this.showFloatingText("TIME FLOW RESTORED", this.player.x, this.player.y - 30, '#00f0ff');
+                Sound.play('powerup');
+            }
+        }
 
         // 펫(공전 드론) 업데이트 루프 실행
         for (let pet of this.pets) {
@@ -2098,7 +2164,8 @@ class GameEngine {
                 let vx = Math.cos(angle) * speed;
                 let vy = Math.sin(angle) * speed;
                 this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, swordDmg, true, {
-                    pierce: 99, // 몬스터 관통형 검기
+                    // [수정] 무제한 99회 관통에서 최대 5회 제한 캡으로 하향 패치 적용
+                    pierce: Math.min(5, this.player.pierceCount + 1), 
                     homing: this.player.homing,
                     splash: this.player.splashRadius,
                     color: '#b026ff',
@@ -2140,7 +2207,14 @@ class GameEngine {
         // 마력 MP 연산
         let mpPct = Math.max(0, (this.player.mp / this.player.maxMp) * 100);
         document.getElementById('mp-bar-fill').style.width = `${mpPct}%`;
-        document.getElementById('mp-text').innerText = this.player.mp >= this.player.maxMp ? "READY (SPACEBAR)" : `${Math.ceil(this.player.mp)} / ${this.player.maxMp}`;
+        
+        let mpTextStr = `${Math.ceil(this.player.mp)} / ${this.player.maxMp}`;
+        if (this.timeDilationActive) {
+            mpTextStr = "🔮 TIME WARPING...";
+        } else if (this.player.mp >= this.player.maxMp) {
+            mpTextStr = this.player.magicType === 'timeWarp' ? "🔮 WARP READY (SPACE)" : "READY (SPACEBAR)";
+        }
+        document.getElementById('mp-text').innerText = mpTextStr;
 
         // 세부 스탯 패널 텍스트 동기화
         document.getElementById('stat-atk').innerText = this.player.atk;
@@ -2241,7 +2315,8 @@ class GameEngine {
             { id: 'pierce', title: '관통 탄환 (Pierce)', icon: '💎', desc: '탄환이 몬스터에 맞고 소멸하지 않고 관통 횟수를 획득합니다.' },
             { id: 'homing', title: '유도 추적탄 (Homing)', icon: '🔮', desc: '탄환이 주변에서 가장 가까운 적을 유성처럼 유도 비행합니다.' },
             { id: 'splash', title: '스플래시 탄 (Splash)', icon: '💥', desc: '탄환 명중 지점에 네온 대폭발을 발생시켜 다수의 적을 몰살합니다.' },
-            { id: 'pet', title: '디펜더 펫 (PET) 동행', icon: '🤖', desc: '주위를 돌며 적 탄환을 막고 유도탄을 사격하는 디펜더 드론을 추가 소환합니다.' }
+            { id: 'pet', title: '디펜더 펫 (PET) 동행', icon: '🤖', desc: '주위를 돌며 적 탄환을 막고 유도탄을 사격하는 디펜더 드론을 추가 소환합니다.' },
+            { id: 'magic_timewarp', title: '시간 왜곡 마법 (Time Warp)', icon: '🔮', desc: '특수 마법을 마나 소모형 불릿타임 시간 왜곡으로 교체합니다.' }
         ];
 
         // 5의 배수 방을 클리어했을 때만 상위 카드(weaponCards)가 확정 등장하며 일반 방에선 statusCards만 등장!
@@ -2282,6 +2357,13 @@ class GameEngine {
             } else if (rand > 0.75) {
                 rarity = 'RARE';
                 multiplier = 1.4; // 1.6에서 1.4로 하향
+            }
+
+            // [시간 왜곡 레전더리 전용 처리] 
+            // 만약 추첨된 카드가 시간 왜곡인데 등급이 레전더리가 아니라면, 레전더리가 아닌 일반 무기 카드로 즉시 교체
+            if (item.id === 'magic_timewarp' && rarity !== 'LEGENDARY') {
+                const fallbackPool = weaponCards.filter(w => w.id !== 'magic_timewarp');
+                item = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
             }
 
             // 등급별 능력치 증가 수치 계산 바인딩
@@ -2370,6 +2452,9 @@ class GameEngine {
             case 'pet':
                 desc = `플레이어를 호위하며 적 탄환을 소멸시키고 유도 레이저를 사격하는 공전 드론을 추가 1기 소환합니다.`;
                 break;
+            case 'magic_timewarp':
+                desc = `특수기를 마력 소모형 불릿타임 시간 왜곡으로 영구 교체합니다. 5초간 시간이 75% 느리게 흐릅니다.`;
+                break;
         }
 
         return { value, desc, data };
@@ -2390,7 +2475,8 @@ class GameEngine {
                 p.ms += card.effectValue;
                 break;
             case 'evd':
-                p.evd = Math.min(0.75, p.evd + card.effectValue); // 회피율 최대 75% 캡 제한
+                // [수정] 복리 덧셈에서 '한계 효용 체감 공식' 적용 (EVD 최대 60% 수렴 캡으로 완화)
+                p.evd = p.evd + card.effectValue * (0.6 - p.evd);
                 break;
             case 'hp':
                 p.maxHp += card.effectValue;
@@ -2441,6 +2527,11 @@ class GameEngine {
                 let petAngle = this.pets.length * (Math.PI * 2 / 3);
                 let orbitRadius = 45 + Math.floor(this.pets.length / 3) * 15;
                 this.pets.push(new Pet(petAngle, orbitRadius));
+                break;
+            case 'magic_timewarp':
+                // [추가] 특수 마법 기술을 시간 왜곡으로 변경
+                p.magicType = 'timeWarp';
+                this.showFloatingText("TIME WARP UNLOCKED", p.x, p.y - 30, '#b026ff');
                 break;
         }
 
@@ -2506,10 +2597,16 @@ class GameEngine {
         this.ctx.fillStyle = '#05060a';
         this.ctx.fillRect(0, 0, 800, 600);
 
+        // [시각 효과] 시간 왜곡 작동 시 배경을 은은한 보랏빛 장막으로 덮음
+        if (this.timeDilationActive) {
+            this.ctx.fillStyle = 'rgba(176, 38, 255, 0.08)';
+            this.ctx.fillRect(0, 0, 800, 600);
+        }
+
         // 방 벽 테두리 네온 사각형 그리기 (#08090e 내부 필드 및 외부 마진벽)
         this.ctx.beginPath();
         this.ctx.rect(38, 38, 724, 524);
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.strokeStyle = this.timeDilationActive ? 'rgba(176, 38, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
         this.ctx.lineWidth = 4;
         this.ctx.stroke();
 
@@ -2517,7 +2614,13 @@ class GameEngine {
         this.ctx.rect(40, 40, 720, 520);
         this.ctx.fillStyle = '#08090e';
         this.ctx.fill();
-        this.ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
+        
+        // 시간 왜곡 시 벽 테두리가 보랏빛 네온으로 맥박치며 번쩍임
+        let wallStrokeColor = 'rgba(0, 240, 255, 0.1)';
+        if (this.timeDilationActive) {
+            wallStrokeColor = `rgba(176, 38, 255, ${0.35 + Math.sin(Date.now() * 0.007) * 0.15})`;
+        }
+        this.ctx.strokeStyle = wallStrokeColor;
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
