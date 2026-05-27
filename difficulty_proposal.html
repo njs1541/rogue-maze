@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rogue-Maze: 난이도 곡선 설계 제안 및 시뮬레이터</title>
+    <!-- Google Fonts 탑재 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           1. Core Design System & CSS Reset
+           ========================================================================== */
+        :root {
+            --bg-darker: #05060b;
+            --bg-dark: #090b11;
+            --bg-card: rgba(15, 18, 28, 0.7);
+            --border-neon-cyan: rgba(0, 240, 255, 0.25);
+            --border-neon-magenta: rgba(255, 0, 85, 0.25);
+
+            --neon-cyan: #00f0ff;
+            --neon-magenta: #ff0055;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffdf00;
+
+            --text-primary: #f0f3fa;
+            --text-secondary: #90a0c0;
+            --text-muted: #5a6b8c;
+
+            --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.4);
+            --glow-magenta: 0 0 15px rgba(255, 0, 85, 0.4);
+            --glow-purple: 0 0 15px rgba(176, 38, 255, 0.4);
+            --glow-green: 0 0 15px rgba(57, 255, 20, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.03) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(255, 0, 85, 0.03) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* 스크롤바 디자인 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1a2233;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        /* ==========================================================================
+           2. Layout Elements
+           ========================================================================== */
+        header {
+            padding: 3rem 2rem 2rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            background: linear-gradient(to bottom, #07090f, var(--bg-darker));
+            position: relative;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-magenta), transparent);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        .logo-tag {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: var(--neon-cyan);
+            text-shadow: var(--glow-cyan);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 30%, #a5c0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            max-width: 750px;
+            margin: 0 auto;
+            font-size: 1.05rem;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2.5rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2.5rem;
+        }
+
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ==========================================================================
+           3. Sidebar Navigation (Tabs Selector)
+           ========================================================================== */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .proposal-card-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-neon-cyan);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .proposal-card-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--neon-cyan);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .proposal-card-btn:hover {
+            background: rgba(20, 28, 45, 0.8);
+            border-color: var(--neon-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 240, 255, 0.05);
+        }
+
+        .proposal-card-btn.active {
+            background: rgba(20, 32, 55, 0.9);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1), inset 0 0 12px rgba(0, 240, 255, 0.05);
+        }
+
+        .proposal-card-btn.active::before {
+            transform: scaleY(1);
+        }
+
+        /* 카드별 포인트 컬러링 */
+        .proposal-card-btn.active.color-b::before {
+            background: var(--neon-magenta);
+        }
+
+        .proposal-card-btn.active.color-b {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.1);
+        }
+
+        .proposal-card-btn.active.color-c::before {
+            background: var(--neon-purple);
+        }
+
+        .proposal-card-btn.active.color-c {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 20px rgba(176, 38, 255, 0.1);
+        }
+
+        .proposal-card-btn.active.color-d::before {
+            background: var(--neon-green);
+        }
+
+        .proposal-card-btn.active.color-d {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.1);
+        }
+
+        .btn-tag {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            align-self: flex-start;
+        }
+
+        .tag-a {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .tag-b {
+            background: rgba(255, 0, 85, 0.1);
+            color: var(--neon-magenta);
+        }
+
+        .tag-c {
+            background: rgba(176, 38, 255, 0.1);
+            color: var(--neon-purple);
+        }
+
+        .tag-d {
+            background: rgba(57, 255, 20, 0.1);
+            color: var(--neon-green);
+        }
+
+        .btn-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .btn-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* ==========================================================================
+           4. Main Content Area & Dashboard
+           ========================================================================== */
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        /* 하이라이트 경계선 효과 */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 40%, transparent 60%, rgba(255, 255, 255, 0.02)) border-box;
+            pointer-events: none;
+        }
+
+        .card-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1rem;
+        }
+
+        .card-title-main {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* 캔버스 차트 감싸는 영역 */
+        .chart-container {
+            width: 100%;
+            height: 380px;
+            position: relative;
+            background: rgba(4, 5, 8, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 시뮬레이터 컨트롤 패널 */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .label-title {
+            color: var(--text-secondary);
+        }
+
+        .label-value {
+            color: var(--neon-cyan);
+            font-family: 'Fira Code', monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #161c2a;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            cursor: pointer;
+            box-shadow: var(--glow-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* 컬러별 슬라이더 테마 */
+        .color-theme-b input[type="range"]::-webkit-slider-thumb {
+            background: var(--neon-magenta);
+            box-shadow: var(--glow-magenta);
+        }
+
+        .color-theme-b .label-value {
+            color: var(--neon-magenta);
+        }
+
+        .color-theme-c input[type="range"]::-webkit-slider-thumb {
+            background: var(--neon-purple);
+            box-shadow: var(--glow-purple);
+        }
+
+        .color-theme-c .label-value {
+            color: var(--neon-purple);
+        }
+
+        .color-theme-d input[type="range"]::-webkit-slider-thumb {
+            background: var(--neon-green);
+            box-shadow: var(--glow-green);
+        }
+
+        .color-theme-d .label-value {
+            color: var(--neon-green);
+        }
+
+        /* ==========================================================================
+           5. Analysis & Content Formatting
+           ========================================================================== */
+        .content-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .markdown-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .markdown-section h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+            position: relative;
+            padding-left: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .markdown-section h3::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 70%;
+            background: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+            border-radius: 2px;
+        }
+
+        .color-theme-b h3::before {
+            background: var(--neon-magenta);
+            box-shadow: var(--glow-magenta);
+        }
+
+        .color-theme-c h3::before {
+            background: var(--neon-purple);
+            box-shadow: var(--glow-purple);
+        }
+
+        .color-theme-d h3::before {
+            background: var(--neon-green);
+            box-shadow: var(--glow-green);
+        }
+
+        /* 하이라이트 문장 상자 */
+        .alert-box {
+            background: rgba(0, 240, 255, 0.04);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            font-size: 0.95rem;
+            color: #d1ecf1;
+            position: relative;
+        }
+
+        .alert-box-b {
+            background: rgba(255, 0, 85, 0.04);
+            border-color: rgba(255, 0, 85, 0.15);
+            color: #f8d7da;
+        }
+
+        .alert-box-c {
+            background: rgba(176, 38, 255, 0.04);
+            border-color: rgba(176, 38, 255, 0.15);
+            color: #ebd3ff;
+        }
+
+        .alert-box-d {
+            background: rgba(57, 255, 20, 0.04);
+            border-color: rgba(57, 255, 20, 0.15);
+            color: #d4edda;
+        }
+
+        .alert-title {
+            font-weight: 800;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 800px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .experience-card {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .experience-header {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .experience-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 장단점 테이블 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+            margin: 0.5rem 0;
+        }
+
+        th,
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        th {
+            font-weight: 800;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 코드 하이라이터 블록 */
+        pre {
+            background: #040508;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #e0e6ed;
+            position: relative;
+        }
+
+        pre::before {
+            content: 'CODE IMPLEMENTATION';
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #111622;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            border-bottom-left-radius: 6px;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .code-keyword {
+            color: #ff79c6;
+        }
+
+        .code-comment {
+            color: #6272a4;
+        }
+
+        .code-string {
+            color: #f1fa8c;
+        }
+
+        .code-number {
+            color: #bd93f9;
+        }
+
+        .code-function {
+            color: #50fa7b;
+        }
+
+        /* ==========================================================================
+           6. Synergy Matrix Interactive Tool
+           ========================================================================== */
+        .synergy-matrix {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card-selector-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .card-chip {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 0.6rem;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .card-chip:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card-chip.selected {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--neon-cyan);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .color-theme-b .card-chip.selected {
+            background: rgba(255, 0, 85, 0.1);
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+        }
+
+        .color-theme-c .card-chip.selected {
+            background: rgba(176, 38, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(176, 38, 255, 0.2);
+        }
+
+        .color-theme-d .card-chip.selected {
+            background: rgba(57, 255, 20, 0.1);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+        }
+
+        .synergy-output-card {
+            background: rgba(4, 5, 8, 0.7);
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
+            text-align: center;
+        }
+
+        .synergy-gauge-outer {
+            width: 100%;
+            height: 10px;
+            background: #111520;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .synergy-gauge-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+            border-radius: 5px;
+            transition: width 0.4s ease;
+        }
+
+        .synergy-score-val {
+            font-size: 2.2rem;
+            font-weight: 900;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.05em;
+        }
+
+        .synergy-desc-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            max-width: 450px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 헤더 영역 -->
+    <header>
+        <span class="logo-tag">System Architecture Proposal</span>
+        <h1>Neon Rogue-Maze 난이도 조절 설계서</h1>
+        <p class="subtitle">
+            100개의 방을 극복해 탈출하는 네온 로그메이즈의 난이도 커브와 보상 획득 시너지에 관한 4가지 설계 모델 분석 및 시그널 시뮬레이터입니다.
+        </p>
+    </header>
+
+    <!-- 메인 대시보드 구조 -->
+    <div class="container">
+        <!-- 사이드바 설계안 탭 스위처 -->
+        <aside class="sidebar">
+            <button class="proposal-card-btn active" onclick="switchModel('A', this)">
+                <span class="btn-tag tag-a">모델 A (추천)</span>
+                <span class="btn-title">도전의 대가 (Risk vs Reward)</span>
+                <span class="btn-desc">쉬운 맵만 공략하면 후반에 지옥을 맛보고, 고난도를 뚫어온 자는 수월하게 클리어하는 구조.</span>
+            </button>
+
+            <button class="proposal-card-btn color-b" onclick="switchModel('B', this)">
+                <span class="btn-tag tag-b">모델 B</span>
+                <span class="btn-title">성장 스노우볼 (Hard Start)</span>
+                <span class="btn-desc">초반에는 지옥 같은 하드코어 난이도이지만, 보상이 쌓일수록 무쌍을 찍는 정통 로그라이크 구조.</span>
+            </button>
+
+            <button class="proposal-card-btn color-c" onclick="switchModel('C', this)">
+                <span class="btn-tag tag-c">모델 C</span>
+                <span class="btn-title">전략적 시너지 (Build Synergies)</span>
+                <span class="btn-desc">몬스터의 난이도는 정직하게 올라가며, 플레이어의 카드 연계성 빌드업에 따라 쾌감이 달라지는 빌드 중심형 구조.</span>
+            </button>
+
+            <button class="proposal-card-btn color-d" onclick="switchModel('D', this)">
+                <span class="btn-tag tag-d">모델 D (추가안)</span>
+                <span class="btn-title">동적 난이도 조절 (Adaptive DDA)</span>
+                <span class="btn-desc">플레이어의 클리어 타임, 남은 HP, 콤보 횟수에 연계되어 AI가 실시간으로 밸런스를 맞추는 유동적 구조.</span>
+            </button>
+        </aside>
+
+        <!-- 메인 분석 보드 -->
+        <main id="main-panel" class="color-theme-a">
+
+            <!-- 상단 시뮬레이터 및 차트 영역 -->
+            <div class="dashboard-grid">
+                <!-- 실시간 차트 카드 -->
+                <div class="card">
+                    <div class="card-header-flex">
+                        <div class="card-title-main" id="chart-title-node">
+                            📊 난이도 체감 및 전투력 시뮬레이션 곡선
+                        </div>
+                        <span
+                            style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; font-family: 'Fira Code', monospace;">1
+                            - 100 STAGE</span>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="curveCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- 시뮬레이터 컨트롤 패널 카드 -->
+                <div class="card">
+                    <div class="card-header-flex">
+                        <div class="card-title-main">
+                            ⚙️ 파라미터 튜닝
+                        </div>
+                    </div>
+
+                    <div class="control-panel" id="controls-node">
+                        <!-- 동적으로 스위칭될 컨트롤러 슬라이더들 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 하단 기획 리포트 및 구현 안내서 -->
+            <div class="card content-panel" id="report-node">
+                <!-- 동적으로 채워질 기획 분석 내용 -->
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+       7. Script - Simulation, Interaction and Chart Logic
+       ========================================================================== -->
+    <script>
+        // 현재 선택된 모델 상태 정보
+        let currentModel = 'A';
+
+        // 시뮬레이터 가변 물리 파라미터 객체
+        const params = {
+            A: {
+                selectedPath: 1, // 0: 쉬운 맵 중심, 1: 평균 맵 중심, 2: 어려운 맵 중심
+                scalingSlope: 1.5, // 후반 몬스터 성장 스케일
+            },
+            B: {
+                startingDiff: 8.0, // 초반 난이도 장벽 수준
+                growthExponent: 0.8, // 플레이어 성장 스노우볼 배율
+            },
+            C: {
+                buildSynergy: 20, // 빌드 시너지 완성도 %
+                monsterRamp: 1.2, // 몬스터 선형 스케일링 계수
+            },
+            D: {
+                playerSkill: 1, // 플레이어 조작 실력 피지컬 (0: 입문, 1: 숙련, 2: 갓핑거)
+                adaptationSpeed: 1.5, // DDA 조정 민감도
+            }
+        };
+
+        // 시너지 매트릭스 선택 카드 상태
+        let selectedSynergyCards = [];
+        const cardCombos = {
+            'multishot': { name: '멀티샷', type: 'weapon' },
+            'homing': { name: '유도 추적탄', type: 'effect' },
+            'splash': { name: '스플래시 폭발', type: 'effect' },
+            'aspd': { name: '지능(연사)', type: 'stat' },
+            'atk': { name: '힘(피해량)', type: 'stat' },
+            'sword': { name: '네온 검 융합', type: 'weapon' }
+        };
+
+        // HTML 요소 레퍼런스
+        const canvas = document.getElementById('curveCanvas');
+        const ctx = canvas.getContext('2d');
+        const controlsContainer = document.getElementById('controls-node');
+        const reportContainer = document.getElementById('report-node');
+        const mainPanel = document.getElementById('main-panel');
+
+        // 해상도 조절용 고해상도 픽셀 처리
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            drawSimulationCurve();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==========================================================================
+        // 8. 4가지 모델의 상세 기획 기사 DB
+        // ==========================================================================
+        const modelData = {
+            A: {
+                title: "모델 A: 도전의 대가 (High Risk, High Reward)",
+                tag: "tag-a",
+                themeClass: "color-theme-a",
+                summary: "플레이어가 매 스테이지 진입 시 선택한 몬스터 마릿수(난이도)에 비례해 플레이어의 최종 한계 화력이 폭증하거나 둔화됩니다. 쉬운 루트만 타고 도망가듯 생존한 플레이어는 최후의 80~100스테이지 보스 구간에서 압도적인 화력 부족으로 한계에 직면하게 되며, 지속적으로 하이리스크를 돌파해온 전사는 100스테이지 클리어를 달성할 수 있습니다.",
+                alertTitle: "모델 A의 핵심 설계 규칙",
+                alertText: "난이도 높은 문(몬스터 수 30마리 이상)을 지나가면 고등급(Epic, Legendary) 카드의 출연 확률이 제곱에 비례하여 증가하도록 가중치를 먹입니다. 반면 10마리 이하의 보금자리만 골라 간 경우, 획득한 카드들이 전부 Common 등급에 수렴하여 후반 몬스터 체력 성장을 따라갈 수 없게 설계합니다.",
+                controls: `
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">플레이어가 선택해온 평균 맵 등급</span>
+                            <span class="label-value" id="val-a-1">어려운 맵 중심</span>
+                        </div>
+                        <input type="range" min="0" max="2" value="2" step="1" oninput="updateParam('A', 'selectedPath', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">후반 몬스터 스케일링 가속 계수</span>
+                            <span class="label-value" id="val-a-2">1.5x</span>
+                        </div>
+                        <input type="range" min="1.0" max="2.5" value="1.5" step="0.1" oninput="updateParam('A', 'scalingSlope', this.value)">
+                    </div>
+                `,
+                ux: [
+                    {
+                        title: "😎 고난도 돌파형 플레이어의 카타르시스",
+                        text: "매번 몬스터 수 40~50마리가 쏟아지는 지옥을 아슬아슬하게 견뎌냈더니, 전설 등급 카드가 연속으로 나오며 부채꼴 5점사 유도 탄막 검 하이브리드 빌드가 연출됩니다. 90스테이지를 돌파할 때는 쏟아지는 적들을 한 방에 녹여버리며 '내가 엄청난 리스크를 짊어지고 키워낸 내 전사'의 웅장함을 느끼게 됩니다."
+                    },
+                    {
+                        title: "😱 안전 제일주의 플레이어의 참교육",
+                        text: "쉬운 맵(10마리 미만)만 골라 안전하게 70스테이지까지 다다랐습니다. 체력 손실은 거의 없었으나 카드 강화 수치가 너무 낮아 몬스터 하나를 죽이는데 한 세월이 걸립니다. 80스테이지에서 정예 몬스터 5마리가 나오자 넉백조차 안 되고 한 구석에 몰려 사방에서 찌그러지며 '아, 날로 먹으며 올라오면 안 되는구나'를 격렬히 깨달으며 새로운 회차를 결심하게 됩니다."
+                    }
+                ],
+                table: `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>메커니즘 항목</th>
+                                <th>장점 (PROS)</th>
+                                <th>단점 (CONS)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>도전 지향적 루트 설계</strong></td>
+                                <td>플레이어가 매 순간 주도적(Proactive)으로 리스크를 설계하여 몰입감이 비약적으로 상승함.</td>
+                                <td>초보 플레이어들이 초반에 쉬운 루트만 가다 후반 병목 구간에서 막힐 때 높은 피로도 유발 가능.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>성장 체감의 다양화</strong></td>
+                                <td>쉬운 빌드와 어려운 빌드의 성능 차이가 3배 이상 벌어져 로그라이크 고유의 빌딩 차별화가 확실함.</td>
+                                <td>일단 중간에 꼬여서 스탯 격차가 벌어지면 중간에 복구(Catch-up)할 수 있는 회복 기회가 다소 부족함.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `,
+                code: `
+<span class="code-comment">// game.js의 transitionToNextRoom 내부 보상 계산 수정 아이디어</span>
+<span class="code-keyword">const</span> multiplierPct = (monsterBonus * <span class="code-number">4</span>);
+<span class="code-comment">// 난이도가 극단적일 때 등급 버스팅 계수 제곱 가속화</span>
+<span class="code-keyword">let</span> exponentFactor = Math.pow(monsterBonus / <span class="code-number">20</span>, <span class="code-number">2.2</span>); 
+<span class="code-keyword">const</span> luckFactor = exponentFactor * <span class="code-number">0.15</span> + (<span class="code-keyword">this</span>.player.luk - <span class="code-number">1</span>) * <span class="code-number">0.2</span>;`
+            },
+            B: {
+                title: "모델 B: RPG식 성장 스노우볼 (Hard Start, Sweet Ending)",
+                tag: "tag-b",
+                themeClass: "color-theme-b",
+                summary: "전형적인 다크판타지 로그라이크 스탯 곡선을 표방합니다. 플레이어의 최초 1~25스테이지는 공격력, 스태미너, 회피율, 탄수 등이 절망적일 정도로 낮아 10마리만 나와도 엄청난 고전과 무빙 피지컬을 필요로 합니다. 하지만 스테이지 누적에 따라 보상 카드가 30장, 50장 쌓여가는 순간 스탯 조합 시너지가 급팽창하여 후반 80~100스테이지는 막강해진 화력으로 시원하게 무쌍하는 성장 지향형 디자인입니다.",
+                alertTitle: "모델 B의 핵심 설계 규칙",
+                alertText: "몬스터의 강함(HP/공격력)은 선형적으로 우상향(1.1배~2.5배)하는 반면, 플레이어의 스탯 카드는 등급 배율을 복리로 결합하거나 누적 시너지율을 지수 함수 형태로 적용합니다. 초반에는 적이 플레이어보다 월등히 강하지만, 50스테이지를 분기점으로 플레이어의 전투력 성장 각도가 몬스터의 상승 각도를 추월하도록 밸런싱합니다.",
+                controls: `
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">1스테이지 초기 체감 장벽</span>
+                            <span class="label-value" id="val-b-1">8.0 (지옥급)</span>
+                        </div>
+                        <input type="range" min="3.0" max="10.0" value="8.0" step="0.5" oninput="updateParam('B', 'startingDiff', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">스노우볼 성장 지수 배율</span>
+                            <span class="label-value" id="val-b-2">0.8</span>
+                        </div>
+                        <input type="range" min="0.4" max="1.5" value="0.8" step="0.05" oninput="updateParam('B', 'growthExponent', this.value)">
+                    </div>
+                `,
+                ux: [
+                    {
+                        title: "😥 초반의 아슬아슬한 극한 기동",
+                        text: "기본 총 한 발만 나가고, 3걸음 달렸더니 스태미너가 방전됩니다. 적들이 빠르게 기어올 때 벽과 포털 구석을 비집고 들어가며 한 발 한 발을 신중히 쏘아야 합니다. 10스테이지 보스만 만나도 손에 땀을 쥐는 스릴러 아케이드 게임을 하는 느낌을 받습니다."
+                    },
+                    {
+                        title: "🤩 중후반의 압도적 네온 대폭발 학살",
+                        text: "50스테이지를 넘어선 후, 획득한 카드만 40개가 넘어가면서 총알이 5방향으로 퍼져 나가고 탄환마다 적을 유도 추적하면서 근처에 닿으면 120px 반경 네온 폭발을 연속으로 일으킵니다. 사방에서 쏟아지는 수십 마리의 적이 내 근처에 도달하기도 전에 폭사하는 것을 보며 격렬한 도파민 분비와 성장 보상을 느낍니다."
+                    }
+                ],
+                table: `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>메커니즘 항목</th>
+                                <th>장점 (PROS)</th>
+                                <th>단점 (CONS)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>확실한 RPG 성장감</strong></td>
+                                <td>내가 강해졌다는 사실을 가시적이고 통쾌하게 인지할 수 있어 플레이 후반부 만족도가 매우 큼.</td>
+                                <td>초기 장벽이 너무 높아 15스테이지를 넘겨보기도 전에 뉴비 유저층이 전멸할 가능성이 농후함.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>무쌍 액션 쾌감</strong></td>
+                                <td>네온 그래픽의 시각적 파티클 폭탄이 연출되면서 게임의 그래픽적 액션이 최고조로 표현됨.</td>
+                                <td>후반부의 긴장감이 다소 맥빠질 수 있으며, 100스테이지 탈출 시 마지막 보스가 너무 힘없이 무너질 리스크 존재.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `,
+                code: `
+<span class="code-comment">// game.js의 Monster 스케일링 완화 및 플레이어 스탯 지수적 누적 적용</span>
+<span class="code-keyword">class</span> Monster {
+    constructor(x, y, tier) {
+        <span class="code-comment">// 스케일링을 완만한 지수 곡선으로 제어</span>
+        <span class="code-keyword">this</span>.maxHp = <span class="code-number">15</span> + Math.pow(tier - <span class="code-number">1</span>, <span class="code-number">1.2</span>) * <span class="code-number">5</span>;
+        <span class="code-keyword">this</span>.atk = <span class="code-number">5</span> + (tier - <span class="code-number">1</span>) * <span class="code-number">1.1</span>;
+    }
+}`
+            },
+            C: {
+                title: "모델 C: 전략적 빌드 시너지 (Strategic Build Synergies)",
+                tag: "tag-c",
+                themeClass: "color-theme-c",
+                summary: "몬스터의 강함은 정교하게 통제된 수학적 선형 우상향 곡선을 그립니다. 대신 플레이어의 낱개 스탯 업그레이드 수치는 크지 않은 대신, 카드들 간의 '조합(시너지)'이 완벽히 맞물렸을 때 시너지 승수 효과가 발생하여 극적으로 전투력이 치솟는 구조입니다. 뇌지컬과 기획 설계형 선택을 선호하는 매니아층에 큰 소구력을 지닙니다.",
+                alertTitle: "모델 C의 핵심 설계 규칙",
+                alertText: "단순히 ATK+5나 SPD+0.2만 올리면 후반 몬스터 체력 성장을 절반밖에 쫓아가지 못합니다. 하지만 '검(Sword)'과 '공격속도(aspd)', '회피(evd)' 카드를 결합하여 [질풍의 뇌신 검사 빌드]를 만들거나, '멀티샷(multishot)', '유도(homing)', '스플래시(splash)'를 결합한 [탄막 폭격기 빌드] 시너지 조합을 충족하면 공격 대미지에 1.5~2.5배의 추가 시너지 승수 보너스를 부여합니다.",
+                controls: `
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">플레이어가 구축한 카드 시너지 완성도</span>
+                            <span class="label-value" id="val-c-1">20%</span>
+                        </div>
+                        <input type="range" min="0" max="100" value="20" step="5" oninput="updateParam('C', 'buildSynergy', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">몬스터 기본 난이도 상승 속도</span>
+                            <span class="label-value" id="val-c-2">1.2x</span>
+                        </div>
+                        <input type="range" min="0.8" max="2.0" value="1.2" step="0.1" oninput="updateParam('C', 'monsterRamp', this.value)">
+                    </div>
+                `,
+                ux: [
+                    {
+                        title: "🧠 최적의 카드를 골라내는 지성형 전략 플레이",
+                        text: "단순히 데미지가 높다고 힘 카드를 누르는 것이 아니라, 내 빌드 시너지를 위해 공격 속도와 유도탄을 끝까지 기다립니다. 마침내 45스테이지에서 '스플래시 폭발' 카드를 획득하여 3가지 파츠 조합이 활성화되자, 전용 네온 시너지 버프 [NEON RUPTURE]가 터지며 탄환 피해량이 2.5배로 뛰어오릅니다. 내가 의도한 퍼즐을 완벽하게 맞췄다는 쾌감을 선사합니다."
+                    },
+                    {
+                        title: "😑 잡탕 빌드로 무너지는 피드백",
+                        text: "검도 쓰고 총도 쓰고, 회피도 올리고 힘도 올리는 등 주는 대로 다 주워 먹는 무지성 선택을 했습니다. 낱개 스탯은 골고루 높지만 시너지가 전혀 없어 시너지 증폭 계수가 0%입니다. 60스테이지에 도달하자 몬스터들의 체력이 너무 커서 기동력이 버거워지며 전략 설계의 필요성을 절실히 통감합니다."
+                    }
+                ],
+                table: `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>메커니즘 항목</th>
+                                <th>장점 (PROS)</th>
+                                <th>단점 (CONS)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>풍부한 전략성과 뇌지컬</strong></td>
+                                <td>선택의 가치가 엄청나게 커지며, 다회차 플레이 시 '이번엔 00빌드를 가보자'라는 리플레이 가치가 최고에 달함.</td>
+                                <td>공략 정보나 시너지 메커니즘을 모르는 라이트 유저들이 최적의 빌드를 찾지 못해 쉽게 포기할 수 있음.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>밸런싱의 용이함</strong></td>
+                                <td>적의 밸런스 테이블은 정직하게 유지해도 되므로 기획자가 스테이지별 적 스탯 기획을 정교히 제어 가능.</td>
+                                <td>시너지 버그나 특정 빌드 오버밸런스(사기 조합)가 발견될 시 밸런스가 한순간에 붕괴될 리스크 큼.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `,
+                code: `
+<span class="code-comment">// game.js의 applyRewardCard 및 Shoot에 추가할 카드 시너지 산출 아이디어</span>
+<span class="code-function">checkBuildSynergy</span>() {
+    <span class="code-keyword">let</span> multiplier = <span class="code-number">1.0</span>;
+    <span class="code-comment">// [탄막 폭격기 빌드] 멀티샷 + 유도 + 스플래시 조합 체크</span>
+    <span class="code-keyword">if</span> (<span class="code-keyword">this</span>.player.multishot >= <span class="code-number">3</span> && <span class="code-keyword">this</span>.player.homing && <span class="code-keyword">this</span>.player.splashRadius > <span class="code-number">0</span>) {
+        multiplier += <span class="code-number">1.5</span>; <span class="code-comment">// 대미지 150% 보너스 적용</span>
+    }
+    <span class="code-keyword">return</span> multiplier;
+}`
+            },
+            D: {
+                title: "모델 D: 유동적 적응형 난이도 (Dynamic DDA)",
+                tag: "tag-d",
+                themeClass: "color-theme-d",
+                summary: "플레이어가 느끼는 모든 인게임 퍼포먼스 지표를 실시간으로 모니터링하여, 적의 소환 방식 및 몬스터 스탯을 자동으로 유기적으로 미세 조정합니다. 갓핑거 유저가 무참히 적들을 도륙하고 있으면 문 위의 몬스터 수 기본치가 수 배로 뛰어오르고 대시 속도가 기하급수적으로 빨라져 팽팽한 혈투를 유도하며, 피격이 너무 잦아 체력이 바닥난 빈사 유저에겐 문들의 난이도를 낮춰주고 회복 카드를 스폰해주어 구사일생의 스릴을 만끽하게 합니다.",
+                alertTitle: "모델 D의 핵심 설계 규칙",
+                alertText: "플레이어의 최근 3개 방 [클리어 속도], [평균 콤보 수], [피격 손실 HP 비율]을 곱연산하여 '퍼포먼스 지수(Performance Rating)'를 0.5~2.5 스케일로 실시간 추출합니다. 이 수치가 높으면 몬스터 속도와 스폰 패턴이 즉각 지옥 난이도(Wave 타입 위주)로 강제 조정됩니다.",
+                controls: `
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">현재 플레이어 피지컬 레벨</span>
+                            <span class="label-value" id="val-d-1">숙련 플레이어</span>
+                        </div>
+                        <input type="range" min="0" max="2" value="1" step="1" oninput="updateParam('D', 'playerSkill', this.value)">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label-row">
+                            <span class="label-title">DDA 시스템 조정 민감도</span>
+                            <span class="label-value" id="val-d-2">1.5x</span>
+                        </div>
+                        <input type="range" min="0.5" max="3.0" value="1.5" step="0.1" oninput="updateParam('D', 'adaptationSpeed', this.value)">
+                    </div>
+                `,
+                ux: [
+                    {
+                        title: "🔥 아슬아슬하게 매 초 줄타기하는 팽팽함",
+                        text: "내 피지컬이 정말 뛰어나서 적들을 화려하게 유린하고 있는데, 게임이 쉬워지긴커녕 몬스터들이 눈이 충혈되어 대시 쿨타임이 절반으로 줄어들고 사방에서 탄막이 교차됩니다. 잠시도 방심할 수 없는 극한의 전투 몰입도에 가슴이 터질 듯한 레이싱 텐션을 유지합니다."
+                    },
+                    {
+                        title: "😌 던전의 보이지 않는 자비에 감동",
+                        text: "피격이 누적되어 피가 7%밖에 안 남았습니다. 다음 방 문들의 난이도 숫자가 일제히 '3', '4' 같은 엄청 낮은 한자리 수로 쪼그라들었습니다. 소수의 적을 조심히 소탕하자, 보상 카드로 영구 HP 증대와 전례 없는 대량 회복 카드가 제공되어 구사일생으로 부활에 성공합니다. 던전이 날 버리지 않았다는 감격과 깊은 애착을 가집니다."
+                    }
+                ],
+                table: `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>메커니즘 항목</th>
+                                <th>장점 (PROS)</th>
+                                <th>단점 (CONS)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>최고의 잔류율(Retention)</strong></td>
+                                <td>일방적인 불쾌감(갑작스러운 폭사)이 완벽히 예방되므로 라이트부터 하드코어까지 폭넓은 이탈 방지 효과.</td>
+                                <td>유저가 의도적으로 자살 직전까지 맞아서 쉬운 보상을 유도하는 등 어뷰징(Abusing)에 노출될 수 있음.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>실시간 팽팽한 텐션</strong></td>
+                                <td>게임을 잘하든 못하든 항상 '아슬아슬한 재미'의 황금 비율을 게임 엔진이 완벽히 인지하여 자동 조절함.</td>
+                                <td>플레이어 성장감이 몬스터의 맞춤형 강화에 희석되어 '내가 이렇게나 강해졌는데 왜 여전히 힘겹지?'라는 성취감 희석 위험.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `,
+                code: `
+<span class="code-comment">// game.js의 DDA 실시간 연산 적용 아이디어</span>
+<span class="code-function">calculatePerformanceRating</span>() {
+    <span class="code-keyword">let</span> healthFactor = <span class="code-keyword">this</span>.player.hp / <span class="code-keyword">this</span>.player.maxHp;
+    <span class="code-keyword">let</span> speedFactor = Math.min(<span class="code-number">2.0</span>, <span class="code-number">600</span> / (<span class="code-keyword">this</span>.roomClearTime || <span class="code-number">300</span>));
+    <span class="code-keyword">this</span>.ddaFactor = (<span class="code-number">1.0</span> - healthFactor) * <span class="code-number">0.5</span> + speedFactor * <span class="code-number">0.5</span>;
+    <span class="code-keyword">return</span> Math.max(<span class="code-number">0.6</span>, Math.min(<span class="code-number">2.2</span>, <span class="code-keyword">this</span>.ddaFactor));
+}`
+            }
+        };
+
+        // ==========================================================================
+        // 9. Interactive Synergy Tool Builder
+        // ==========================================================================
+        function buildSynergyMatrixHTML() {
+            return `
+            <div class="markdown-section" style="margin-top: 3rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem;">
+                <h3>🔮 인터랙티브 보상 시너지 매트릭스 도구</h3>
+                <p style="font-size:0.9rem; color:var(--text-secondary);">
+                    플레이어가 맵 클리어 보상으로 선택한 카드 조합을 클릭해 시너지가 완성되었을 때 전투력 뻥튀기 증폭 계수가 어떻게 계산되는지 직접 조합해 보세요!
+                </p>
+                <div class="synergy-matrix">
+                    <div class="card-selector-container">
+                        <div class="card-chip" data-id="multishot" onclick="toggleSynergyCard('multishot', this)">🏹 멀티샷</div>
+                        <div class="card-chip" data-id="homing" onclick="toggleSynergyCard('homing', this)">🔮 유도 추적탄</div>
+                        <div class="card-chip" data-id="splash" onclick="toggleSynergyCard('splash', this)">💥 스플래시 폭발</div>
+                        <div class="card-chip" data-id="aspd" onclick="toggleSynergyCard('aspd', this)">⚡ 지능(연사)</div>
+                        <div class="card-chip" data-id="atk" onclick="toggleSynergyCard('atk', this)">⚔️ 힘(공격력)</div>
+                        <div class="card-chip" data-id="sword" onclick="toggleSynergyCard('sword', this)">🪓 네온 검 융합</div>
+                    </div>
+                    <div class="synergy-output-card">
+                        <div style="font-size:0.75rem; font-weight:800; color:var(--text-muted); letter-spacing:0.1em;">CURRENT SYNERGY AMPLIFIER</div>
+                        <div class="synergy-score-val" id="synergy-val">1.0x</div>
+                        <div class="synergy-gauge-outer">
+                            <div class="synergy-gauge-inner" id="synergy-progress"></div>
+                        </div>
+                        <div class="synergy-desc-text" id="synergy-desc">카드를 선택해 시너지를 발동시키세요.</div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function toggleSynergyCard(id, element) {
+            const index = selectedSynergyCards.indexOf(id);
+            if (index > -1) {
+                selectedSynergyCards.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                selectedSynergyCards.push(id);
+                element.classList.add('selected');
+            }
+            calculateInteractiveSynergy();
+        }
+
+        function calculateInteractiveSynergy() {
+            let mult = 1.0;
+            let title = "시너지 없음";
+            let desc = "개별 카드 효과만 개별 적용 중입니다. 시너지가 없어 비효율적입니다.";
+
+            const has = (id) => selectedSynergyCards.includes(id);
+
+            // 1. 탄막 폭격기 빌드
+            if (has('multishot') && has('homing') && has('splash')) {
+                mult += 1.8;
+                title = "💥 [시너지] 네온 탄막 초토화 폭격기 빌드";
+                desc = "부채꼴 다중 탄환이 유도로 날아가 각각 스플래시 대폭발을 발생시킵니다! 잡몹 소탕력과 단일 딜링이 우주를 뚫어 피해 증폭 계수가 2.8배에 도달합니다.";
+            }
+            // 2. 질풍의 뇌신 하이브리드 검사
+            else if (has('sword') && has('aspd') && has('atk')) {
+                mult += 1.4;
+                title = "🪓 [시너지] 질풍의 마력 네온 검사 빌드";
+                desc = "초고속 연사력과 묵직한 근접 넉백 베기가 융합되어 검기 도달 범위가 비약적으로 넓어지며 근접 충돌 판정 대미지가 2.4배로 격상됩니다.";
+            }
+            // 3. 유도 칼날 폭풍
+            else if (has('sword') && has('homing')) {
+                mult += 0.6;
+                title = "🔮 [시너지] 차원 유도 춤추는 환영검 빌드";
+                desc = "검을 휘두를 때 검기가 적을 실시간 추적하여 뒤쪽에서 습격하는 암살형 몬스터들을 자동 방어합니다. 1.6배 피해 계수를 확보합니다.";
+            }
+            // 4. 화력 집중 점사
+            else if (has('multishot') && has('atk')) {
+                mult += 0.4;
+                title = "🏹 [시너지] 샷건 전탄 집중 화력 빌드";
+                desc = "가까운 거리에서 부채꼴 샷건을 전탄 명중시킬 시의 힘 스케일링 계수가 상승합니다. 단일 대미지 1.4배 보정을 얻습니다.";
+            }
+            else if (selectedSynergyCards.length > 0) {
+                desc = "카드가 추가되었으나 특별한 연계 시너지는 아직 완성되지 않았습니다. 다른 카드를 더 추가해 최적의 조합을 유도하세요.";
+            }
+
+            // UI 갱신
+            document.getElementById('synergy-val').innerText = `${mult.toFixed(1)}x`;
+            document.getElementById('synergy-desc').innerHTML = selectedSynergyCards.length > 0
+                ? `<strong>${title}</strong><br>${desc}`
+                : "카드를 선택해 시너지를 발동시키세요.";
+
+            // 게이지 바 갱신
+            const maxVal = 3.0;
+            const pct = Math.min(100, (mult / maxVal) * 100);
+            document.getElementById('synergy-progress').style.width = `${pct}%`;
+        }
+
+        // ==========================================================================
+        // 10. Dashboard Controller (Switch tabs & re-simulate)
+        // ==========================================================================
+        function switchModel(modelId, btnElement) {
+            currentModel = modelId;
+
+            // 액티브 클래스 순회 제거 후 재할당
+            document.querySelectorAll('.proposal-card-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // 테마 클래스 스위칭
+            mainPanel.className = modelData[modelId].themeClass;
+
+            // 타이틀 노드 변경
+            document.getElementById('chart-title-node').innerHTML = `📊 [${modelId}안] ${modelData[modelId].title} - 실시간 시뮬레이터`;
+
+            // 컨트롤러 채우기
+            controlsContainer.innerHTML = modelData[modelId].controls;
+
+            // 리포트 채우기
+            let reportHTML = `
+                <div class="markdown-section">
+                    <h3>💡 설계 개요</h3>
+                    <p style="font-size:1rem; color:var(--text-primary);">${modelData[modelId].summary}</p>
+                </div>
+                
+                <div class="alert-box ${modelId === 'A' ? '' : 'alert-box-' + modelId.toLowerCase()}">
+                    <div class="alert-title">
+                        🔔 ${modelData[modelId].alertTitle}
+                    </div>
+                    <p>${modelData[modelId].alertText}</p>
+                </div>
+
+                <div class="markdown-section">
+                    <h3>🎯 핵심 플레이어 경험 (Player Experience)</h3>
+                    <div class="grid-2col">
+                        <div class="experience-card">
+                            <div class="experience-header">${modelData[modelId].ux[0].title}</div>
+                            <div class="experience-text">${modelData[modelId].ux[0].text}</div>
+                        </div>
+                        <div class="experience-card">
+                            <div class="experience-header">${modelData[modelId].ux[1].title}</div>
+                            <div class="experience-text">${modelData[modelId].ux[1].text}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="markdown-section">
+                    <h3>⚖️ 장단점 정밀 대조표 (Pros & Cons)</h3>
+                    ${modelData[modelId].table}
+                </div>
+
+                <div class="markdown-section">
+                    <h3>🛠️ game.js 코드 수정 아이디어</h3>
+                    <p style="font-size:0.9rem; color:var(--text-secondary);">이 모델을 채택 시, 메인 코드에 수정 및 삽입해야 할 뼈대 핵심 알고리즘 가이드라인입니다.</p>
+                    <pre>${modelData[modelId].code}</pre>
+                </div>
+            `;
+
+            // 모델 C의 경우에만 인터랙티브 보상 시너지 매트릭스 도구를 추가 수록!
+            if (modelId === 'C') {
+                reportHTML += buildSynergyMatrixHTML();
+            }
+
+            reportContainer.innerHTML = reportHTML;
+
+            // 시너지 상태 초기화
+            selectedSynergyCards = [];
+
+            // 슬라이더 밸류 텍스트 싱크 맞추기
+            syncSliderTexts(modelId);
+
+            // 차트 재생성
+            resizeCanvas();
+        }
+
+        // 슬라이더 텍스트 실시간 반영 바인딩
+        function syncSliderTexts(modelId) {
+            if (modelId === 'A') {
+                const paths = ["쉬운 맵 중심 (Low Risk)", "평균 맵 중심 (Normal)", "어려운 맵 중심 (High Risk)"];
+                document.getElementById('val-a-1').innerText = paths[params.A.selectedPath];
+                document.getElementById('val-a-2').innerText = `${params.A.scalingSlope.toFixed(1)}x`;
+            } else if (modelId === 'B') {
+                document.getElementById('val-b-1').innerText = `${params.B.startingDiff.toFixed(1)} (지옥급)`;
+                document.getElementById('val-b-2').innerText = `${params.B.growthExponent.toFixed(2)}`;
+            } else if (modelId === 'C') {
+                document.getElementById('val-c-1').innerText = `${params.C.buildSynergy}%`;
+                document.getElementById('val-c-2').innerText = `${params.C.monsterRamp.toFixed(1)}x`;
+            } else if (modelId === 'D') {
+                const skills = ["입문/라이트 유저", "숙련 플레이어", "갓핑거/하드코어"];
+                document.getElementById('val-d-1').innerText = skills[params.D.playerSkill];
+                document.getElementById('val-d-2').innerText = `${params.D.adaptationSpeed.toFixed(1)}x`;
+            }
+        }
+
+        // 슬라이더 조작 시 매개변수 실시간 갱신 및 재드로잉
+        function updateParam(modelId, key, val) {
+            params[modelId][key] = parseFloat(val);
+            syncSliderTexts(modelId);
+            drawSimulationCurve();
+        }
+
+        // ==========================================================================
+        // 11. HTML5 Canvas 실시간 난이도 스케일러 렌더링 엔진
+        // ==========================================================================
+        function drawSimulationCurve() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 차트 테두리 여백 바인딩
+            const padding = { top: 40, right: 30, bottom: 40, left: 55 };
+            const chartW = w - padding.left - padding.right;
+            const chartH = h - padding.top - padding.bottom;
+
+            // 격자선(Grid System) 드로잉
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                // 가로 격자
+                let y = padding.top + (chartH / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(w - padding.right, y);
+                ctx.stroke();
+
+                // 세로 격자 (스테이지 표시)
+                let x = padding.left + (chartW / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, padding.top);
+                ctx.lineTo(x, h - padding.bottom);
+                ctx.stroke();
+            }
+
+            // 축 라벨 드로잉
+            ctx.fillStyle = varColor('--text-muted');
+            ctx.font = '800 10px "Outfit", sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+
+            // Y축 라벨
+            ctx.fillText("극도의 지옥", padding.left - 12, padding.top);
+            ctx.fillText("적당한 텐션", padding.left - 12, padding.top + chartH * 0.5);
+            ctx.fillText("매우 쉬움", padding.left - 12, padding.top + chartH);
+
+            // X축 라벨
+            ctx.textAlign = 'center';
+            ctx.fillText("1ST STG", padding.left, h - padding.bottom + 15);
+            ctx.fillText("20", padding.left + chartW * 0.2, h - padding.bottom + 15);
+            ctx.fillText("40", padding.left + chartW * 0.4, h - padding.bottom + 15);
+            ctx.fillText("60", padding.left + chartW * 0.6, h - padding.bottom + 15);
+            ctx.fillText("80", padding.left + chartW * 0.8, h - padding.bottom + 15);
+            ctx.fillText("100 STG (ESCAPE)", w - padding.right, h - padding.bottom + 15);
+
+            // 곡선 생성 연산
+            const monsterPoints = [];
+            const playerPoints = [];
+            const difficultyPoints = [];
+
+            for (let stage = 1; stage <= 100; stage++) {
+                let monsterPower = 0;
+                let playerPower = 0;
+                let perceivedDiff = 0;
+
+                const t = (stage - 1) / 99; // 0.0 ~ 1.0
+
+                if (currentModel === 'A') {
+                    // 모델 A: 리스크 대가 선택형
+                    const path = params.A.selectedPath; // 0: 쉬움, 1: 보통, 2: 어려움
+                    const slope = params.A.scalingSlope;
+
+                    // 몬스터는 선형보다 약간 급격하게 후반에 스케일링
+                    monsterPower = 10 + Math.pow(t, 1.8) * 80 * slope;
+
+                    // 플레이어는 선택한 패스 등급에 따라 성장이 결정
+                    if (path === 2) {
+                        // 어려운 맵 선택: 스탯이 엄청난 폭발을 이루어 후반에 몬스터 추월
+                        playerPower = 8 + Math.pow(t, 1.5) * 110;
+                    } else if (path === 1) {
+                        // 보통 맵 선택: 몬스터 성장과 거의 비슷하게 팽팽함
+                        playerPower = 8 + Math.pow(t, 1.6) * 75;
+                    } else {
+                        // 쉬운 맵 중심: 카드 등급이 형편없어 성장이 기어가다 후반 몬스터에 발림
+                        playerPower = 8 + Math.pow(t, 2.0) * 35;
+                    }
+
+                    // 체감 난이도 = 몬스터 전투력 - 플레이어 전투력 + 기본 밸런스 계수
+                    // 난이도 표현 범위를 차트 높이와 대칭
+                    perceivedDiff = (monsterPower / (playerPower + 2)) * 1.5;
+
+                } else if (currentModel === 'B') {
+                    // 모델 B: 성장 스노우볼
+                    const startDiff = params.B.startingDiff;
+                    const growExp = params.B.growthExponent;
+
+                    // 적들은 서서히 올라감
+                    monsterPower = 15 + t * 65;
+                    // 플레이어는 초반엔 극단적으로 개미 스케일, 중반 이후 시너지가 폭발(지수 가속)
+                    playerPower = 2 + Math.pow(t, 3.0 / (growExp + 0.1)) * 95;
+
+                    // 체감 난이도: 초반엔 무지막지하게 높다가 스노우볼이 굴러가는 중후반부에는 급강하
+                    perceivedDiff = (startDiff * (1 - t * 0.8)) * (monsterPower / (playerPower + 2)) * 0.3;
+
+                } else if (currentModel === 'C') {
+                    // 모델 C: 전략 시너지형
+                    const synergy = params.C.buildSynergy / 100; // 0.0 ~ 1.0
+                    const ramp = params.C.monsterRamp;
+
+                    // 적들의 전투력은 규칙적으로 우상향
+                    monsterPower = 10 + Math.pow(t, 1.3) * 70 * ramp;
+                    // 플레이어 전투력은 시너지률에 곱연산으로 폭등
+                    playerPower = 10 + t * 50 * (1.0 + synergy * 1.8);
+
+                    perceivedDiff = (monsterPower / (playerPower + 1)) * 1.6;
+
+                } else if (currentModel === 'D') {
+                    // 모델 D: 실시간 DDA
+                    const skill = params.D.playerSkill; // 0, 1, 2
+                    const speed = params.D.adaptationSpeed;
+
+                    // 갓핑거일수록 적들의 스펙이 미친듯이 날뜀 (상한선 돌파)
+                    monsterPower = 10 + t * 60 + (skill * 25 * t * speed);
+                    // 플레이어는 조작감과 보상에 의해 자연스럽게 올라감
+                    playerPower = 8 + t * 65;
+
+                    // 체감 난이도는 DDA에 의해 시종일관 팽팽한 일자선(균형선)에 가깝게 통제됨
+                    let baseLine = 0.5 - (skill * 0.05); // 실력이 좋을수록 갓핑거는 좀더 타이트한 텐션선
+                    perceivedDiff = baseLine + Math.sin(t * Math.PI * 3) * 0.06 * (3.5 - speed);
+                }
+
+                // 차트용 좌표 맵핑 함수 (0~100 스케일을 Chart Box 높이에 배치)
+                // 난이도는 낮을수록 차트 하단, 높을수록 상단에 그려짐
+                const mapX = padding.left + (stage - 1) * (chartW / 99);
+
+                // Y 축은 위가 0이므로 (1 - 비율) 처리
+                // 몬스터와 플레이어 전투력 맵핑 (최대치 120 기준)
+                const mapYMonster = padding.top + chartH * (1 - Math.min(120, monsterPower) / 120);
+                const mapYPlayer = padding.top + chartH * (1 - Math.min(120, playerPower) / 120);
+
+                // 체감 난이도 스케일 맵핑 (0.0 ~ 3.0 범위를 맵핑)
+                const mapYDiff = padding.top + chartH * (1 - Math.max(0, Math.min(3.0, perceivedDiff)) / 3.0);
+
+                monsterPoints.push({ x: mapX, y: mapYMonster });
+                playerPoints.push({ x: mapX, y: mapYPlayer });
+                difficultyPoints.push({ x: mapX, y: mapYDiff });
+            }
+
+            // 1. 플레이어 전투력 곡선 그리기 (네온 시안)
+            drawNeonLine(playerPoints, varColor('--neon-cyan'), 2.5, varColor('--glow-cyan'));
+            // 2. 몬스터 전투력 곡선 그리기 (네온 마젠타)
+            drawNeonLine(monsterPoints, varColor('--neon-magenta'), 2.5, varColor('--glow-magenta'));
+            // 3. 유저가 체감하는 난이도 곡선 (네온 옐로우/그린)
+            let diffColor = varColor('--neon-yellow');
+            if (currentModel === 'B') diffColor = varColor('--neon-magenta');
+            if (currentModel === 'C') diffColor = varColor('--neon-purple');
+            if (currentModel === 'D') diffColor = varColor('--neon-green');
+            drawNeonLine(difficultyPoints, diffColor, 4, '0 0 18px ' + diffColor, [4, 4]);
+
+            // 범례(Legend) 그리기
+            drawLegend(padding.left + 20, padding.top + 20, diffColor);
+        }
+
+        // 네온 빛 효과 선 드로잉 헬퍼
+        function drawNeonLine(points, color, width, glowStyle, dashPattern = null) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+
+            if (dashPattern) {
+                ctx.setLineDash(dashPattern);
+            }
+
+            // 그림자 블러로 광원 연출
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // CSS 변수 획득 헬퍼
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        // 범례 박스 렌더러
+        function drawLegend(x, y, diffColor) {
+            ctx.save();
+            ctx.font = '700 11px "Outfit", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            const items = [
+                { label: "⚡ 플레이어 누적 화력 (PLAYER STAT)", color: varColor('--neon-cyan') },
+                { label: "👾 몬스터 기본 공격력/HP (MONSTER STAT)", color: varColor('--neon-magenta') },
+                { label: "⚠️ 체감 난이도 (PERCEIVED DIFFICULTY)", color: diffColor, dashed: true }
+            ];
+
+            items.forEach((item, idx) => {
+                let curY = y + idx * 22;
+                ctx.beginPath();
+                ctx.moveTo(x, curY);
+                ctx.lineTo(x + 25, curY);
+                ctx.strokeStyle = item.color;
+                ctx.lineWidth = 3;
+                if (item.dashed) {
+                    ctx.setLineDash([3, 3]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.fillText(item.label, x + 35, curY);
+            });
+            ctx.restore();
+        }
+
+        // 초기 엔진 기동
+        document.addEventListener('DOMContentLoaded', () => {
+            switchModel('A', document.querySelector('.proposal-card-btn'));
+        });
+    </script>
+</body>
+
+</html>

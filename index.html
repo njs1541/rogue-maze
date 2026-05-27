@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rogue-Maze: 100 Rooms</title>
+    <!-- 고급 현대적인 타이포그래피 Google Font 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 상단 정보 HUD -->
+        <header id="hud-header">
+            <div class="hud-item">
+                <span class="label">ROOM</span>
+                <span id="room-counter" class="value text-glow-blue">1 / 100</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">SCORE</span>
+                <span id="score-counter" class="value text-glow-green">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">MONSTERS</span>
+                <span id="monster-counter" class="value text-glow-red">0 / 0</span>
+            </div>
+        </header>
+
+        <!-- 메인 게임 캔버스 -->
+        <div id="canvas-container">
+            <canvas id="game-canvas"></canvas>
+            
+            <!-- 조작 가이드 안내 (게임 시작 시 오버레이) -->
+            <div id="start-overlay" class="overlay-panel">
+                <h1 class="game-title text-glow-purple">NEON ROGUE-MAZE</h1>
+                <p class="game-subtitle">100개의 방을 돌파하여 미로를 탈출하세요!</p>
+                <div class="controls-guide">
+                    <div class="guide-item"><span>W A S D</span> 이동</div>
+                    <div class="guide-item"><span>Shift</span> 달리기 (스테미너 소소)</div>
+                    <div class="guide-item"><span>Mouse Move</span> 조준 (이등변삼각형 회전)</div>
+                    <div class="guide-item"><span>Mouse Left Click</span> 일반 공격 (연사)</div>
+                    <div class="guide-item"><span>Spacebar</span> 마력 특수기 (광역 폭발)</div>
+                </div>
+                <button id="start-btn" class="neon-btn">게임 시작</button>
+            </div>
+        </div>
+
+        <!-- 하단 플레이어 상태 및 스탯 패널 -->
+        <footer id="hud-footer">
+            <!-- 좌측: 플레이어 생명력, 스태미너, 마력 게이지 -->
+            <div id="player-bars">
+                <!-- HP Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">HP</span>
+                        <span id="hp-text">100 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hp-bar-fill" class="bar-fill hp-color"></div>
+                    </div>
+                </div>
+                <!-- Stamina Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">STAMINA</span>
+                        <span id="stamina-text">100 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="stamina-bar-fill" class="bar-fill stamina-color"></div>
+                    </div>
+                </div>
+                <!-- MP/Magic Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">MAGIC POWER</span>
+                        <span id="mp-text">0 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="mp-bar-fill" class="bar-fill mp-color"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측: 세부 능력치 정보 대시보드 -->
+            <div id="stats-dashboard">
+                <div class="stat-column">
+                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk" class="stat-value">10</span></div>
+                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd" class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms" class="stat-value">3.0</span></div>
+                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd" class="stat-value">5%</span></div>
+                </div>
+                <div class="stat-column">
+                    <div class="stat-row" title="보상 획득 행운율"><span class="stat-name">운 (LUK)</span><span id="stat-luk" class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
+                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span id="stat-bullets" class="stat-value">1 / 1</span></div>
+                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span id="stat-effects" class="stat-value">0 / X / X</span></div>
+                </div>
+            </div>
+        </footer>
+
+        <!-- 몬스터 소탕 후 나타나는 보상 카드 오버레이 (3택 1) -->
+        <div id="reward-overlay" class="hidden">
+            <div class="reward-title-container">
+                <h2 id="reward-header" class="text-glow-yellow">방 소탕 완료! 보상을 선택하세요</h2>
+                <p id="reward-multiplier" class="text-glow-blue">몬스터 처치 보너스: +0%</p>
+            </div>
+            <div class="card-container">
+                <!-- 카드 1 -->
+                <div class="reward-card" data-index="0">
+                    <div class="card-glow"></div>
+                    <div class="card-inner">
+                        <span class="card-rarity normal">COMMON</span>
+                        <div class="card-icon">⚔️</div>
+                        <h3 class="card-title">공격력 증가</h3>
+                        <p class="card-desc">기본 공격력이 2만큼 상승합니다.</p>
+                    </div>
+                </div>
+                <!-- 카드 2 -->
+                <div class="reward-card" data-index="1">
+                    <div class="card-glow"></div>
+                    <div class="card-inner">
+                        <span class="card-rarity rare">RARE</span>
+                        <div class="card-icon">⚡</div>
+                        <h3 class="card-title">유도탄 장착</h3>
+                        <p class="card-desc">탄환이 가장 가까운 적을 유도 추적합니다.</p>
+                    </div>
+                </div>
+                <!-- 카드 3 -->
+                <div class="reward-card" data-index="2">
+                    <div class="card-glow"></div>
+                    <div class="card-inner">
+                        <span class="card-rarity epic">EPIC</span>
+                        <div class="card-icon">💥</div>
+                        <h3 class="card-title">스플래시 범위 피해</h3>
+                        <p class="card-desc">탄환 명중 시 넓은 범위 폭발을 일으킵니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게임 오버 및 최종 클리어 모달 오버레이 -->
+        <div id="result-overlay" class="hidden">
+            <div class="result-box">
+                <h1 id="result-title" class="text-glow-red">GAME OVER</h1>
+                <p id="result-message">어두운 미로 속에서 쓰러졌습니다...</p>
+                
+                <div class="result-stats">
+                    <div class="res-row"><span>최종 도달 방:</span><span id="res-room" class="res-val">15 / 100</span></div>
+                    <div class="res-row"><span>누적 획득 점수:</span><span id="res-score" class="res-val text-glow-green">1540</span></div>
+                    <div class="res-row"><span>처치한 몬스터:</span><span id="res-kills" class="res-val text-glow-red">124</span></div>
+                    <div class="res-row"><span>최종 무기 상태:</span><span id="res-wpn" class="res-val text-glow-blue">검 + 총 (하이브리드)</span></div>
+                </div>
+
+                <button id="restart-btn" class="neon-btn">다시 도전하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
+    <script src="game.js"></script>
+</body>
+</html>
