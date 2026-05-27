@@ -267,13 +267,14 @@ class Bullet {
         this.homing = options.homing || false; // 유도 여부
         this.splash = options.splash || 0; // 스플래시 폭발 반경 (0 이면 스플래시 없음)
         this.life = options.life || 300; // 최대 유지 프레임
+        this.homingSpeed = options.homingSpeed || 0.08; // [추가] 유도탄 선회 각도 스피드 (강화 카드 연동)
     }
 
     update(monsters) {
         // [수정] 시간 왜곡 시 적 탄환 75% 감속 적용
         let timeScale = 1.0;
         if (!this.isPlayerBullet && window.gameEngine && window.gameEngine.timeDilationActive) {
-            timeScale = 0.25; // 75% 느려짐
+            timeScale = 0.1; // 90% 느려짐 (시간 왜곡 시 압도적 감속)
         }
 
         this.life -= timeScale;
@@ -295,12 +296,12 @@ class Bullet {
                 let targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
                 let currentAngle = Math.atan2(this.vy, this.vx);
                 
-                // 각도 보간 (매 프레임마다 약 5도씩 조준점 수정)
+                // 각도 보간 (매 프레임마다 약 5도씩 조준점 수정 - 강화 시 0.13로 향상)
                 let diff = targetAngle - currentAngle;
                 // 각도 차이 정규화 (-PI ~ PI)
                 diff = Math.atan2(Math.sin(diff), Math.cos(diff));
                 
-                let newAngle = currentAngle + diff * 0.08;
+                let newAngle = currentAngle + diff * this.homingSpeed;
                 let speed = Math.hypot(this.vx, this.vy);
                 this.vx = Math.cos(newAngle) * speed;
                 this.vy = Math.sin(newAngle) * speed;
@@ -391,8 +392,8 @@ class Pet {
             }
 
             if (closest) {
-                // 펫의 발사 공격력: 플레이어 힘(ATK) 스탯의 25% 비례 보정
-                let petAtk = Math.max(2.0, player.atk * 0.25);
+                // 펫의 발사 공격력: 플레이어 힘(ATK) 스탯의 25% 비례 보정 (드론 강화 연계 배율 연동)
+                let petAtk = Math.max(2.0, player.atk * 0.25) * player.petDmgUpgrade;
                 let targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
                 let fireSpeed = 5.0;
                 let vx = Math.cos(targetAngle) * fireSpeed;
@@ -401,6 +402,7 @@ class Pet {
                 // 유도 레이저 사출
                 bullets.push(new Bullet(this.x, this.y, vx, vy, petAtk, true, {
                     homing: true,
+                    homingSpeed: player.homingAngleSpeed, // 펫 탄환도 유도 강화 연동
                     color: this.color,
                     radius: 3,
                     life: 150
@@ -462,8 +464,15 @@ class Player {
         this.evd = 0.05;        // 민첩 (회피율 5%)
         this.luk = 1.0;         // 운 (보상 가중 확률)
         this.mp = 0;            // 마력 (특수기 충전율)
-        this.maxMp = 100;
         this.magicType = 'explosion'; // [추가] 마법 기술 유형 ('explosion': 광역 폭발, 'timeWarp': 시간 왜곡)
+        this.isStopped = false;       // [추가] 플레이어가 가만히 멈춰 서 있는지 감지하는 플래그
+        
+        // [추가] 장비 연계 강화 카드 전용 능력치 스케일링 보정 변수
+        this.swordDmgUpgrade = 1.0;   // 검기 추가 대미지 배율 (기본 1.0, 강화 시 1.4)
+        this.multishotArc = 0.45;     // 멀티샷 부채꼴 퍼짐각 (기본 0.45, 강화 시 0.55)
+        this.petDmgUpgrade = 1.0;     // 드론 레이저 대미지 배율 (기본 1.0, 강화 시 1.6)
+        this.splashDmgUpgrade = 0.7;  // 스플래시 대폭발 피해 비율 (기본 0.7, 강화 시 0.9)
+        this.homingAngleSpeed = 0.08; // 유도탄 추적 선회율 (기본 0.08, 강화 시 0.13)
         
         // 신규 추가 스탯
         this.hpRegen = 0.0;     // 초당 체력 회복량
@@ -493,8 +502,9 @@ class Player {
     }
 
     update() {
-        // 체력 자연 재생 (HP Regen) - 매 프레임별 치유 비율 반영 (초당 hpRegen 만큼)
-        if (this.hp < this.maxHp && this.hpRegen > 0) {
+        // [수정] 체력 자연 재생 (HP Regen) - 오직 전투 중이고, 플레이어가 가만히 서 있을 때에만 자연 치유 작동
+        let isCombat = window.gameEngine && (window.gameEngine.monsters.length > 0 || window.gameEngine.spawnQueue.length > 0);
+        if (this.hp < this.maxHp && this.hpRegen > 0 && isCombat && this.isStopped) {
             this.hp = Math.min(this.maxHp, this.hp + (this.hpRegen / 60));
         }
 
@@ -718,7 +728,7 @@ class Monster {
         // [수정] 전역 시간 왜곡(불릿 타임) 적용 배율 계산
         let timeScale = 1.0;
         if (window.gameEngine && window.gameEngine.timeDilationActive) {
-            timeScale = 0.25; // 75% 시간 감속 (몬스터의 액션이 매우 느려짐)
+            timeScale = 0.1; // 90% 시간 감속 (몬스터의 액션이 매우 느려짐)
         }
 
         if (this.flashTimer > 0) this.flashTimer--;
@@ -1020,6 +1030,52 @@ class RoomPortal {
 }
 
 // --------------------------------------------------------------------------
+// 6.5. 맵 클리어 힐링 물약 클래스 (Neon Healing Potion)
+// --------------------------------------------------------------------------
+class NeonPotion {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.color = '#39ff14'; // 네온 초록색
+        this.pulse = 0;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        this.pulse += 0.05;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.1;
+
+        // 반짝이는 외부 오라 구체
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(57, 255, 20, 0.15)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 내부 십자가 힐링 마크 렌더링
+        ctx.beginPath();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        // 가로 선
+        ctx.moveTo(-5, 0);
+        ctx.lineTo(5, 0);
+        // 세로 선
+        ctx.moveTo(0, -5);
+        ctx.lineTo(0, 5);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 class GameEngine {
@@ -1030,7 +1086,7 @@ class GameEngine {
         // 디자인 해상도 비율 800 * 600 고정 스케일링 설정
         this.canvas.width = 800;
         this.canvas.height = 600;
-
+ 
         // 키보드 마우스 입력 상태 변수
         this.keys = {};
         this.mouse = { x: 0, y: 0, isDown: false };
@@ -1048,6 +1104,7 @@ class GameEngine {
         this.bullets = [];
         this.particles = [];
         this.pets = [];
+        this.potions = []; // [추가] 맵 클리어 드롭 물약 엔티티 리스트
         
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
@@ -1167,6 +1224,7 @@ class GameEngine {
         this.bullets = [];
         this.particles = [];
         this.pets = [];
+        this.potions = []; // [추가] 물약 리스트 초기화
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
         
@@ -1366,6 +1424,7 @@ class GameEngine {
         // 탄환 전체 청소 및 기존 몬스터 삭제
         this.bullets = [];
         this.particles = [];
+        this.potions = []; // [추가] 방 이동 시 드롭된 물약 청소
 
         // 5번 방 주기마다 보스전 활성화 (5, 10, 15... 100)
         // 10의 배수는 무조건 보스방으로 기동!
@@ -1557,26 +1616,24 @@ class GameEngine {
             this.updateHUD();
         } 
         else if (this.player.magicType === 'timeWarp') {
-            // 시간 왜곡 토글 처리
+            // [수정] 이미 활성화된 상태라면 수동 비활성화 차단 (마나가 0이 될 때까지 강제 사용)
             if (this.timeDilationActive) {
-                // 이미 활성화된 상태라면 수동 비활성화 (마나는 그대로 유지)
-                this.timeDilationActive = false;
-                this.showFloatingText("TIME FLOW RESTORED", this.player.x, this.player.y - 30, '#00f0ff');
-                Sound.play('powerup');
-            } else {
-                // 활성화 시도
-                if (this.player.mp < this.player.maxMp) {
-                    this.showFloatingText("NEED FULL MP", this.player.x, this.player.y - 20, '#ff0055');
-                    return;
-                }
-                
-                this.timeDilationActive = true;
-                this.shakeScreen(20, 4);
-                this.showFloatingText("🔮 TIME WARP ACTIVE", this.player.x, this.player.y - 30, '#b026ff');
-                
-                // 시간왜곡 발동 피드백 아르페지오 사운드 재생
-                Sound.play('victory');
+                this.showFloatingText("CANNOT STOP WARP", this.player.x, this.player.y - 25, '#ff0055');
+                return;
             }
+
+            // 활성화 시도 (마력이 50% 이상일 때만 발동 가능)
+            if (this.player.mp < 50) {
+                this.showFloatingText("NEED 50+ MP", this.player.x, this.player.y - 20, '#ff0055');
+                return;
+            }
+            
+            this.timeDilationActive = true;
+            this.shakeScreen(25, 4);
+            this.showFloatingText("🔮 TIME WARP ACTIVE", this.player.x, this.player.y - 30, '#b026ff');
+            
+            // 시간왜곡 발동 피드백 아르페지오 사운드 재생
+            Sound.play('victory');
         }
     }
 
@@ -1658,8 +1715,8 @@ class GameEngine {
 
         // [추가] 시간 왜곡 마법 가동 시 마력(MP) 소모 및 파티클 기믹 처리
         if (this.timeDilationActive) {
-            // 매 프레임 마력 감쇄 (약 5초간 유지: 100 MP / 300 프레임 = 프레임당 약 0.33)
-            this.player.mp = Math.max(0, this.player.mp - 0.33);
+            // 매 프레임 마력 감쇄 (약 6초간 유지: 100 MP / 360 프레임 = 프레임당 약 0.278)
+            this.player.mp = Math.max(0, this.player.mp - 0.278);
             
             // 시간 감속 공간에서 뿜어져 나오는 보랏빛 네온 공간 기믹 파티클
             if (Math.random() < 0.2) {
@@ -1748,6 +1805,9 @@ class GameEngine {
         // 마우스 커서 각도에 맞춰 조준 각도 갱신
         let pMouseAngle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
         this.player.angle = pMouseAngle;
+
+        // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
+        this.player.isStopped = (dx === 0 && dy === 0);
 
         // 4. 주무기 격발 메커니즘 (마우스 클릭 시 사격)
         if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'dual')) {
@@ -1882,9 +1942,9 @@ class GameEngine {
 
                         Sound.play('hit');
 
-                        // 스플래시 범위 폭발 카드 속성 연산
+                        // 스플래시 범위 폭발 카드 속성 연산 (스플래시 대미지 강화 업그레이드 배율 연동)
                         if (b.splash > 0) {
-                            this.triggerBulletSplash(b.x, b.y, b.splash, b.damage * 0.7);
+                            this.triggerBulletSplash(b.x, b.y, b.splash, b.damage * this.player.splashDmgUpgrade);
                         }
 
                         // 스파크 파티클 생성
@@ -1935,6 +1995,11 @@ class GameEngine {
                 
                 // 안전 지대인 1스테이지 시작 방 제외, 전투 끝났을 때만 보상 지급
                 if (this.roomNum > 1 || this.kills > 0) {
+                    // [추가] 10% 확률로 맵 클리어 시 방 중앙(400, 300)에 힐링 물약 드롭
+                    if (Math.random() < 0.10) {
+                        this.potions.push(new NeonPotion(400, 300));
+                        this.showFloatingText("HEALING POTION DROPPED!", 400, 270, '#39ff14');
+                    }
                     this.triggerRewardSelector();
                 }
             }
@@ -1945,6 +2010,31 @@ class GameEngine {
                     this.transitionToNextRoom(p);
                     break;
                 }
+            }
+        }
+
+        // [추가] 힐링 물약 실시간 습득 충돌 검사
+        for (let i = this.potions.length - 1; i >= 0; i--) {
+            let pot = this.potions[i];
+            let potDist = Math.hypot(this.player.x - pot.x, this.player.y - pot.y);
+            if (potDist < this.player.radius + pot.radius) {
+                // 최대 체력의 10% 치유 처리
+                let healAmount = this.player.maxHp * 0.10;
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                
+                // 치유 성공 텍스트 및 효과음
+                this.showFloatingText(`HEAL +${Math.ceil(healAmount)}`, this.player.x, this.player.y - 25, '#39ff14');
+                Sound.play('powerup');
+                
+                // 경쾌한 네온 그린 스파크 파티클 폭발
+                for (let k = 0; k < 12; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 3 + 1;
+                    this.particles.push(new Particle(pot.x, pot.y, '#39ff14', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
+                }
+                
+                // 물약 소멸
+                this.potions.splice(i, 1);
             }
         }
 
@@ -2068,7 +2158,7 @@ class GameEngine {
         if (this.player.multishot === 1) {
             bulletsToLaunch.push(startAngle);
         } else {
-            let arcSpan = 0.45; // 부채꼴 퍼짐 각도 범위
+            let arcSpan = this.player.multishotArc; // 부채꼴 퍼짐 각도 범위 (강화 카드 연동)
             let step = arcSpan / (this.player.multishot - 1);
             for (let i = 0; i < this.player.multishot; i++) {
                 let targetAngle = startAngle - (arcSpan / 2) + (step * i);
@@ -2092,6 +2182,7 @@ class GameEngine {
                 this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                     pierce: this.player.pierceCount,
                     homing: this.player.homing,
+                    homingSpeed: this.player.homingAngleSpeed, // [추가] 유도 속도 선회율 연동
                     splash: this.player.splashRadius,
                     color: '#00f0ff',
                     radius: 4,
@@ -2148,7 +2239,7 @@ class GameEngine {
             if (this.player.multishot === 1) {
                 anglesToLaunch.push(startAngle);
             } else {
-                let arcSpan = 0.45; // 부채꼴 퍼짐 각도 범위
+                let arcSpan = this.player.multishotArc; // 부채꼴 퍼짐 각도 범위 (강화 카드 연동)
                 let step = arcSpan / (this.player.multishot - 1);
                 for (let i = 0; i < this.player.multishot; i++) {
                     let targetAngle = startAngle - (arcSpan / 2) + (step * i);
@@ -2157,7 +2248,7 @@ class GameEngine {
             }
 
             let synergyMult = this.checkBuildSynergy('sword');
-            let swordDmg = this.player.atk * 1.2 * synergyMult; // 검기 투사체 기본 피해 계수
+            let swordDmg = this.player.atk * 1.2 * synergyMult * this.player.swordDmgUpgrade; // 검기 투사체 기본 피해 계수 (예도 강화 연동)
 
             for (let angle of anglesToLaunch) {
                 let speed = 6.0;
@@ -2167,6 +2258,7 @@ class GameEngine {
                     // [수정] 무제한 99회 관통에서 최대 5회 제한 캡으로 하향 패치 적용
                     pierce: Math.min(5, this.player.pierceCount + 1), 
                     homing: this.player.homing,
+                    homingSpeed: this.player.homingAngleSpeed, // [추가] 유도 속도 캡 강화 연동
                     splash: this.player.splashRadius,
                     color: '#b026ff',
                     radius: 5
@@ -2321,11 +2413,31 @@ class GameEngine {
 
         // 5의 배수 방을 클리어했을 때만 상위 카드(weaponCards)가 확정 등장하며 일반 방에선 statusCards만 등장!
         const isWeaponReward = (this.roomNum % 5 === 0);
-        let pool = isWeaponReward ? weaponCards : statusCards;
+        let pool = isWeaponReward ? [...weaponCards] : [...statusCards];
+
+        // [덱빌딩식 강화 연계 적용] 5의 배수 무기 방일 때, 이미 보유 중인 장비 옵션에 연동된 강화 연계 카드 추가 주입
+        if (isWeaponReward) {
+            const p = this.player;
+            if (p.weaponType === 'sword' || p.weaponType === 'dual') {
+                pool.push({ id: 'upgrade_sword', title: '[강화] 쾌검술 연마', icon: '🪓', desc: '검기 대미지를 +40% 상향하고 검기 도달 리치 반경을 +10px 연장시킵니다.' });
+            }
+            if (p.multishot >= 2) {
+                pool.push({ id: 'upgrade_multishot', title: '[강화] 샷건 전탄 연마', icon: '🏹', desc: '멀티샷의 탄환수를 추가로 +1발 더 늘리고, 부채꼴 퍼짐각을 대폭 넓힙니다.' });
+            }
+            if (this.pets.length >= 1) {
+                pool.push({ id: 'upgrade_pet', title: '[강화] 드론 오버로드', icon: '🤖', desc: '드론의 유도 레이저 대미지를 플레이어 힘(ATK) 스탯의 40% 비례로 크게 늘립니다.' });
+            }
+            if (p.splashRadius > 0) {
+                pool.push({ id: 'upgrade_splash', title: '[강화] 연쇄 열화 폭발', icon: '💥', desc: '스플래시 대폭발 피해 비율을 90%로 대폭 상향하고 폭발 반경을 +15px 연장시킵니다.' });
+            }
+            if (p.homing) {
+                pool.push({ id: 'upgrade_homing', title: '[강화] 초정밀 유도 궤적', icon: '🔮', desc: '유도탄의 선회 회전각을 60% 향상시켜 더욱 급속한 유도 추적이 가능해집니다.' });
+            }
+        }
 
         // 3개의 유니크한 카드를 선별
         const chosenCards = [];
-        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        const shuffled = pool.sort(() => 0.5 - Math.random());
         const cardsToSelect = Math.min(3, shuffled.length);
 
         // 보상 등급 보정 (몬스터 처치량 비례 가중치 + 운 스탯 계수 추가)
@@ -2336,8 +2448,9 @@ class GameEngine {
             else if (this.lastEnteredPortalClass === 'mid') portalLuckBonus = 0.45;  // Rare, Epic 위주
             else portalLuckBonus = -0.15; // low 문으로 도망쳐 오면 Common, Rare 중심
         } else {
-            // 일반 방은 몬스터 스폰 수와 플레이어 LUK 스탯 가중치 합산
-            portalLuckBonus = monsterBonus * 0.02 + (this.player.luk - 1) * 0.12;
+            // 일반 방은 몬스터 스폰 수와 플레이어 LUK 스탯 가중치 합산 (LUK 소프트 캡 최대 4.0 제한 적용)
+            let cappedLuk = Math.min(4.0, this.player.luk);
+            portalLuckBonus = monsterBonus * 0.02 + (cappedLuk - 1) * 0.12;
         }
         
         for (let i = 0; i < cardsToSelect; i++) {
@@ -2453,7 +2566,22 @@ class GameEngine {
                 desc = `플레이어를 호위하며 적 탄환을 소멸시키고 유도 레이저를 사격하는 공전 드론을 추가 1기 소환합니다.`;
                 break;
             case 'magic_timewarp':
-                desc = `특수기를 마력 소모형 불릿타임 시간 왜곡으로 영구 교체합니다. 5초간 시간이 75% 느리게 흐릅니다.`;
+                desc = `특수기를 마력 소모형 불릿타임 시간 왜곡으로 영구 교체합니다. 약 6초간 시간이 90% 느리게 흐릅니다.`;
+                break;
+            case 'upgrade_sword':
+                desc = `검기의 대미지 배율을 +40% 상향시키고, 검풍 리치 타격 반경을 +10px 영구 연장합니다.`;
+                break;
+            case 'upgrade_multishot':
+                desc = `탄환 1발을 부채꼴 궤적에 영구 추가하고, 샷건 부채꼴 퍼짐 각도를 대폭 정교화하여 넓힙니다.`;
+                break;
+            case 'upgrade_pet':
+                desc = `소환된 모든 호위 드론의 탄환 피해량을 플레이어 공격력(ATK) 스탯의 40% 비례로 과부하 강화합니다.`;
+                break;
+            case 'upgrade_splash':
+                desc = `스플래시 대폭발의 피해 비율을 기존 70%에서 90%로 대폭 증폭하고 폭발 반경을 +15px 늘립니다.`;
+                break;
+            case 'upgrade_homing':
+                desc = `유도탄의 실시간 조준 선회 각도를 60% 향상시켜, 적으로 향하는 궤적이 급격하고 정교해집니다.`;
                 break;
         }
 
@@ -2532,6 +2660,34 @@ class GameEngine {
                 // [추가] 특수 마법 기술을 시간 왜곡으로 변경
                 p.magicType = 'timeWarp';
                 this.showFloatingText("TIME WARP UNLOCKED", p.x, p.y - 30, '#b026ff');
+                break;
+            case 'upgrade_sword':
+                // [강화] 검기 대미지 계수 +40% (1.0 -> 1.4) 및 리치 확장
+                p.swordDmgUpgrade = 1.4;
+                p.range += 10;
+                this.showFloatingText("SWORD UPGRADED (DMG +40%)", p.x, p.y - 30, '#b026ff');
+                break;
+            case 'upgrade_multishot':
+                // [강화] 멀티샷 1발 추가 및 부채꼴 퍼짐각 연마 (0.45 -> 0.55)
+                p.multishot += 1;
+                p.multishotArc = 0.55;
+                this.showFloatingText("SHOTGUN HONE (BULLET +1 / ARC WIDEN)", p.x, p.y - 30, '#b026ff');
+                break;
+            case 'upgrade_pet':
+                // [강화] 드론 레이저 비례 대미지 상향 (1.0 -> 1.6)
+                p.petDmgUpgrade = 1.6;
+                this.showFloatingText("DRONE OVERLOADED (DMG UP)", p.x, p.y - 30, '#39ff14');
+                break;
+            case 'upgrade_splash':
+                // [강화] 스플래시 연쇄 폭발 비율 상향 (0.7 -> 0.9) 및 폭발반경 +15px
+                p.splashDmgUpgrade = 0.9;
+                p.splashRadius += 15;
+                this.showFloatingText("SPLASH CATACLYSM (DMG 90%)", p.x, p.y - 30, '#ff0055');
+                break;
+            case 'upgrade_homing':
+                // [강화] 유도탄 회전 각도 60% 향상 (0.08 -> 0.13 선회율)
+                p.homingAngleSpeed = 0.13;
+                this.showFloatingText("HOMING PRECISION (STEERING UP)", p.x, p.y - 30, '#00f0ff');
                 break;
         }
 
@@ -2669,6 +2825,9 @@ class GameEngine {
 
         // 5.5. 플레이어 보조 펫 렌더링
         this.pets.forEach(pet => pet.draw(this.ctx));
+
+        // [추가] 힐링 Potion 물약 렌더링
+        this.potions.forEach(pot => pot.draw(this.ctx));
 
         // 6. 플레이어 렌더링
         this.player.draw(this.ctx);
