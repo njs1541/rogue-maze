@@ -318,6 +318,124 @@ class Bullet {
 }
 
 // --------------------------------------------------------------------------
+// 3.5. 플레이어 주변 공전 보조 펫/드론 클래스 (Defender Drone)
+// --------------------------------------------------------------------------
+class Pet {
+    constructor(angle = 0, orbitRadius = 45, color = '#39ff14') {
+        this.x = 0;
+        this.y = 0;
+        this.radius = 6;
+        this.angle = angle;
+        this.orbitRadius = orbitRadius;
+        this.orbitSpeed = 0.05; // 프레임당 회전각 (약 3도)
+        this.color = color;
+        
+        this.shootCooldown = 150; // 2.5초 공격 쿨타임
+    }
+
+    update(player, enemyBullets, monsters, bullets, particles) {
+        // 공전 좌표 갱신 (플레이어 기준 원형 회전)
+        this.angle += this.orbitSpeed;
+        this.x = player.x + Math.cos(this.angle) * this.orbitRadius;
+        this.y = player.y + Math.sin(this.angle) * this.orbitRadius;
+
+        // 펫이 날아가면서 만드는 귀여운 미세 네온 흔적 파티클
+        if (Math.random() < 0.15) {
+            particles.push(new Particle(
+                this.x, this.y, 
+                this.color, 1.5, 
+                -Math.cos(this.angle) * 0.2, -Math.sin(this.angle) * 0.2, 15, 'dust'
+            ));
+        }
+
+        // 적 탄환과의 충돌 검사 (탄환 소멸 방어막 기믹)
+        for (let i = enemyBullets.length - 1; i >= 0; i--) {
+            let b = enemyBullets[i];
+            if (!b.isPlayerBullet) {
+                let dist = Math.hypot(this.x - b.x, this.y - b.y);
+                if (dist < this.radius + b.radius) {
+                    // 탄환 제거
+                    enemyBullets.splice(i, 1);
+                    
+                    // 스파크 방패 파편 연출
+                    for (let k = 0; k < 4; k++) {
+                        let randAngle = Math.random() * Math.PI * 2;
+                        let pSpeed = Math.random() * 2 + 1;
+                        particles.push(new Particle(this.x, this.y, this.color, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12));
+                    }
+                    Sound.play('hit');
+                }
+            }
+        }
+
+        // 2.5초마다 가장 가까운 적에게 유도 레이저 탄환 사격
+        if (this.shootCooldown > 0) {
+            this.shootCooldown--;
+        } else if (monsters.length > 0) {
+            this.shootCooldown = 150; // 2.5초 쿨타임 리셋
+
+            let closest = null;
+            let minDist = Infinity;
+            for (let m of monsters) {
+                let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = m;
+                }
+            }
+
+            if (closest) {
+                // 펫의 발사 공격력: 플레이어 힘(ATK) 스탯의 25% 비례 보정
+                let petAtk = Math.max(2.0, player.atk * 0.25);
+                let targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                let fireSpeed = 5.0;
+                let vx = Math.cos(targetAngle) * fireSpeed;
+                let vy = Math.sin(targetAngle) * fireSpeed;
+
+                // 유도 레이저 사출
+                bullets.push(new Bullet(this.x, this.y, vx, vy, petAtk, true, {
+                    homing: true,
+                    color: this.color,
+                    radius: 3,
+                    life: 150
+                }));
+                
+                // 발사 스파크 조각
+                for (let k = 0; k < 3; k++) {
+                    let randAngle = targetAngle + Math.random() * 0.4 - 0.2;
+                    let pSpeed = Math.random() * 2 + 1;
+                    particles.push(new Particle(this.x, this.y, this.color, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 10));
+                }
+            }
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // 미래지향 네온 그린 드론 외곽 링
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(57, 255, 20, 0.25)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.0;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 드론 내부 광역 초정밀 동력 코어
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 4. 플레이어 클래스 (이등변 삼각형 조종 및 스탯)
 // --------------------------------------------------------------------------
 class Player {
@@ -339,6 +457,10 @@ class Player {
         this.luk = 1.0;         // 운 (보상 가중 확률)
         this.mp = 0;            // 마력 (특수기 충전율)
         this.maxMp = 100;
+        
+        // 신규 추가 스탯
+        this.hpRegen = 0.0;     // 초당 체력 회복량
+        this.range = 350;       // 투사체 사정거리 (기본 350px)
         
         // 무기 스탯
         this.weaponType = 'gun'; // 'gun', 'sword', 'dual' (보상 카드로 검 획득 시 진화)
@@ -364,6 +486,14 @@ class Player {
     }
 
     update() {
+        // 체력 자연 재생 (HP Regen) - 매 프레임별 치유 비율 반영 (초당 hpRegen 만큼)
+        if (this.hp < this.maxHp && this.hpRegen > 0) {
+            this.hp = Math.min(this.maxHp, this.hp + (this.hpRegen / 60));
+        }
+
+        // 검 베기 반경(slashRadius)과 사정거리(range) 및 스플래시 반경(splashRadius) 동적 연동 보정
+        this.slashRadius = 45 + (this.range - 350) * 0.2 + this.splashRadius;
+
         // 쿨타임 수치 매 프레임 감쇠 (60fps 기준)
         if (this.shootCooldown > 0) this.shootCooldown--;
         if (this.slashCooldown > 0) this.slashCooldown--;
@@ -485,15 +615,18 @@ class Player {
 // 5. 몬스터 클래스 (다양한 티어 및 AI)
 // --------------------------------------------------------------------------
 class Monster {
-    constructor(x, y, tier) {
+    constructor(x, y, tier, roomNum = 1) {
         this.x = x;
         this.y = y;
         this.tier = tier; // 5개 방마다 증가하는 단계 (1, 2, 3...)
+        this.roomNum = roomNum;
         
+        let roomFactor = 1.0 + (roomNum - 1) * 0.05;
+
         // 티어별 기본 체력과 속도, 데미지 스케일링 설정
-        this.maxHp = 15 + (tier - 1) * 8;
+        this.maxHp = Math.ceil((15 + (tier - 1) * 8) * roomFactor);
         this.hp = this.maxHp;
-        this.atk = 5 + (tier - 1) * 2;
+        this.atk = Math.ceil((5 + (tier - 1) * 2) * roomFactor);
         this.speed = 1.2 + Math.min(1.5, (tier - 1) * 0.15);
         this.scoreValue = tier; // 잡았을 때 기여도
         
@@ -539,6 +672,11 @@ class Monster {
         this.knockbackX = 0;
         this.knockbackY = 0;
         this.flashTimer = 0; // 피격 시 백색 플래시 타이머
+        this.statusEffects = {
+            slow: 0,
+            vulnerability: 0,
+            shock: 0
+        };
     }
 
     // 엘리트 속성 주입 메서드
@@ -557,9 +695,10 @@ class Monster {
     makeBoss(roomNum) {
         this.isBoss = true;
         this.radius = 35;
-        this.maxHp = 100 + roomNum * 12;
+        let roomFactor = 1.0 + (roomNum - 1) * 0.05;
+        this.maxHp = Math.ceil((100 + roomNum * 12) * roomFactor);
         this.hp = this.maxHp;
-        this.atk = 15 + roomNum * 0.8;
+        this.atk = Math.ceil((15 + roomNum * 0.8) * roomFactor);
         this.speed = 1.0 + Math.min(1.0, roomNum * 0.01);
         this.color = '#ff3300';
         this.glowColor = '#ff3300';
@@ -570,11 +709,25 @@ class Monster {
     update(player, bullets) {
         if (this.flashTimer > 0) this.flashTimer--;
 
+        // 디버프 타이머 차감
+        if (this.statusEffects.slow > 0) this.statusEffects.slow--;
+        if (this.statusEffects.vulnerability > 0) this.statusEffects.vulnerability--;
+        if (this.statusEffects.shock > 0) this.statusEffects.shock--;
+
         // 넉백 감쇠 처리
         this.x += this.knockbackX;
         this.y += this.knockbackY;
         this.knockbackX *= 0.85;
         this.knockbackY *= 0.85;
+
+        // Shock (Stun / 기절) 상태 시 이동 및 행동 불능 처리
+        if (this.statusEffects.shock > 0) {
+            // 행동 불가 상태에서도 넉백과 벽 충돌 처리는 적용
+            const wallMargin = 40;
+            this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
+            this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+            return;
+        }
 
         // 플레이어와의 거리 및 각도
         let dx = player.x - this.x;
@@ -582,11 +735,17 @@ class Monster {
         let dist = Math.hypot(dx, dy);
         let angle = Math.atan2(dy, dx);
 
+        // Slow (감속) 상태에 따른 실제 이동 속도 연산
+        let activeSpeed = this.speed;
+        if (this.statusEffects.slow > 0) {
+            activeSpeed *= 0.6; // 40% 속도 감소
+        }
+
         if (this.isBoss) {
             // 보스 AI: 플레이어를 천천히 추격하며 광역 탄막 발사
             if (dist > 100) {
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
+                this.x += Math.cos(angle) * activeSpeed;
+                this.y += Math.sin(angle) * activeSpeed;
             }
             
             this.shootCooldown--;
@@ -604,14 +763,19 @@ class Monster {
                 }
                 Sound.play('shoot');
             }
+
+            // 보스 이탈 방지 처리
+            const wallMargin = 40;
+            this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
+            this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
             return;
         }
 
         // 일반 몬스터 AI 제어
         if (this.type === 'normal') {
             // 무조건 플레이어 추적 이동
-            this.x += Math.cos(angle) * this.speed;
-            this.y += Math.sin(angle) * this.speed;
+            this.x += Math.cos(angle) * activeSpeed;
+            this.y += Math.sin(angle) * activeSpeed;
         } 
         else if (this.type === 'chaser') {
             // 빠른 추적 및 주기적으로 대시 돌진
@@ -622,24 +786,24 @@ class Monster {
                 this.knockbackY = Math.sin(angle) * 7;
                 this.dashCooldown = 120 + Math.random() * 60; // 2~3초 쿨타임
             } else {
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
+                this.x += Math.cos(angle) * activeSpeed;
+                this.y += Math.sin(angle) * activeSpeed;
             }
         } 
         else if (this.type === 'shooter') {
             // 플레이어와 거리 유지 (180 ~ 250px)
             if (dist > 220) {
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
+                this.x += Math.cos(angle) * activeSpeed;
+                this.y += Math.sin(angle) * activeSpeed;
             } else if (dist < 150) {
                 // 플레이어가 너무 가까우면 뒤로 도망침
-                this.x -= Math.cos(angle) * this.speed * 0.9;
-                this.y -= Math.sin(angle) * this.speed * 0.9;
+                this.x -= Math.cos(angle) * activeSpeed * 0.9;
+                this.y -= Math.sin(angle) * activeSpeed * 0.9;
             } else {
                 // 좌우 게걸음 회전 무빙 (단조로움 회피)
                 let sideAngle = angle + Math.PI / 2;
-                this.x += Math.cos(sideAngle) * this.speed * 0.5;
-                this.y += Math.sin(sideAngle) * this.speed * 0.5;
+                this.x += Math.cos(sideAngle) * activeSpeed * 0.5;
+                this.y += Math.sin(sideAngle) * activeSpeed * 0.5;
             }
 
             // 사격 메커니즘
@@ -652,9 +816,13 @@ class Monster {
                     color: '#b026ff',
                     radius: 5
                 }));
-                Sound.play('shoot');
             }
         }
+
+        // 맵 벽 경계선 제한 충돌 처리 (몬스터 맵 이탈 방지)
+        const wallMargin = 40;
+        this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
+        this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
     }
 
     draw(ctx) {
@@ -687,6 +855,43 @@ class Monster {
         ctx.arc(0, 0, this.isBoss ? 8 : 3, 0, Math.PI * 2);
         ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : this.color;
         ctx.fill();
+
+        // 디버프 상태이상 시각 오라 효과 렌더링
+        if (this.flashTimer <= 0) {
+            if (this.statusEffects.shock > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ffdf00'; // 노란색 스파크
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#ffdf00';
+                ctx.stroke();
+                ctx.restore();
+            }
+            if (this.statusEffects.slow > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 2, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00f0ff'; // 시안색 감속
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#00f0ff';
+                ctx.stroke();
+                ctx.restore();
+            }
+            if (this.statusEffects.vulnerability > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 3, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ff0055'; // 자홍색 약화
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff0055';
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
 
         ctx.restore();
     }
@@ -828,6 +1033,7 @@ class GameEngine {
         this.monsters = [];
         this.bullets = [];
         this.particles = [];
+        this.pets = [];
         
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
@@ -868,6 +1074,33 @@ class GameEngine {
             // Spacebar를 누르면 광역 마력 특수기 가동
             if (e.key === ' ' || e.code === 'Space') {
                 this.triggerMagicExplosion();
+            }
+
+            // [테스트용 치트 핫키] P키: 모든 스탯 최강 강화 및 디펜더 펫 2기 소환
+            if (e.key === 'p') {
+                this.player.atk += 10;
+                this.player.multishot += 3;
+                this.player.burstCount += 2;
+                this.player.range += 200;
+                this.player.hpRegen += 5.0;
+                this.player.weaponType = 'dual'; // 하이브리드 강제 설정
+
+                let petAngle1 = this.pets.length * (Math.PI * 2 / 3);
+                this.pets.push(new Pet(petAngle1, 45));
+                let petAngle2 = this.pets.length * (Math.PI * 2 / 3);
+                this.pets.push(new Pet(petAngle2, 60));
+
+                this.updateHUD();
+                this.showFloatingText("CHEAT: GOD BUILD ACTIVATED", this.player.x, this.player.y - 40, '#ffdf00');
+            }
+
+            // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
+            if (e.key === 'o') {
+                this.roomNum = 99;
+                this.monsters = [];
+                this.spawnQueue = [];
+                this.updateHUD();
+                this.showFloatingText("CHEAT: WARP TO ROOM 99", this.player.x, this.player.y - 40, '#ff3300');
             }
         });
 
@@ -917,6 +1150,7 @@ class GameEngine {
         this.monsters = [];
         this.bullets = [];
         this.particles = [];
+        this.pets = [];
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
         
@@ -1134,7 +1368,7 @@ class GameEngine {
         this.currentSpawnRemaining = 1;
         
         // 보스는 문이 아닌 중앙 부근에서 출현시킴
-        const boss = new Monster(400, 200, Math.floor(this.roomNum / 5));
+        const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
         boss.makeBoss(this.roomNum);
         this.monsters.push(boss);
 
@@ -1227,7 +1461,7 @@ class GameEngine {
                 
                 // 5개 방마다 몬스터 등급 티어 상승 계산식
                 let currentTier = Math.floor((this.roomNum - 1) / 5) + 1;
-                let enemy = new Monster(rx, ry, currentTier);
+                let enemy = new Monster(rx, ry, currentTier, this.roomNum);
 
                 // 강제 엘리트 몬스터 처리
                 if (currentPac.forceElite) {
@@ -1284,7 +1518,9 @@ class GameEngine {
             let m = this.monsters[i];
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
             if (dist < explosionRadius) {
-                m.hp -= explosionDamage;
+                let finalDmg = explosionDamage;
+                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                m.hp -= finalDmg;
                 m.flashTimer = 8;
                 // 플레이어 중심 바깥으로 강력한 넉백 기동
                 let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
@@ -1378,6 +1614,11 @@ class GameEngine {
     // 데이터 갱신 및 물리/충돌 검사 총괄
     update() {
         this.player.update();
+
+        // 펫(공전 드론) 업데이트 루프 실행
+        for (let pet of this.pets) {
+            pet.update(this.player, this.bullets, this.monsters, this.bullets, this.particles);
+        }
         
         // 1. 순차 스폰 실시간 연산
         this.processSpawnQueue();
@@ -1510,7 +1751,13 @@ class GameEngine {
                     if (Math.abs(angleDiff) < 1.1) {
                         // [모델 C] 칼 베기 시너지 곱연산 대미지 배율 적용
                         let synergyMult = this.checkBuildSynergy('sword');
-                        m.hp -= this.player.atk * 1.5 * synergyMult; // 칼은 50% 강력한 계수 피해
+                        
+                        // 검 베기 디버프 부여 (vulnerability: 4초간 25% 데미지 증폭)
+                        m.statusEffects.vulnerability = 240;
+
+                        let finalDmg = this.player.atk * 1.5 * synergyMult;
+                        if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                        m.hp -= finalDmg; // 칼은 50% 강력한 계수 피해
                         m.flashTimer = 5;
                         m.knockbackX = Math.cos(targetAngle) * 6; // 대폭 넉백
                         m.knockbackY = Math.sin(targetAngle) * 6;
@@ -1549,8 +1796,17 @@ class GameEngine {
                     let bDist = Math.hypot(m.x - b.x, m.y - b.y);
                     if (bDist < m.radius + b.radius) {
                         
-                        // 데미지 계산 및 백색 깜빡임 피드백
-                        m.hp -= b.damage;
+                        // 탄환 성격별 디버프 부여
+                        if (b.splash > 0) {
+                            m.statusEffects.shock = 60; // 기절 1초
+                        } else {
+                            m.statusEffects.slow = 180; // 감속 3초
+                        }
+
+                        // 데미지 계산 및 백색 깜빡임 피드백 (취약 데미지 증폭)
+                        let finalDmg = b.damage;
+                        if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                        m.hp -= finalDmg;
                         m.flashTimer = 5;
                         
                         // 넉백 발생
@@ -1717,7 +1973,12 @@ class GameEngine {
         for (let m of this.monsters) {
             let dist = Math.hypot(m.x - x, m.y - y);
             if (dist < radius + m.radius) {
-                m.hp -= damage;
+                // 스플래시 폭발에 의한 기절 상태 부여 (1초)
+                m.statusEffects.shock = 60;
+
+                let finalDmg = damage;
+                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                m.hp -= finalDmg;
                 m.flashTimer = 5;
                 
                 // 폭발 밀쳐냄 물리 적용
@@ -1760,13 +2021,15 @@ class GameEngine {
                 let speed = 7.0;
                 let vx = Math.cos(angle) * speed;
                 let vy = Math.sin(angle) * speed;
+                let bulletLife = this.player.range / speed;
                 
                 this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                     pierce: this.player.pierceCount,
                     homing: this.player.homing,
                     splash: this.player.splashRadius,
                     color: '#00f0ff',
-                    radius: 4
+                    radius: 4,
+                    life: bulletLife
                 }));
             }
             Sound.play('shoot');
@@ -1793,23 +2056,68 @@ class GameEngine {
         let cooldownFrames = Math.max(15, 50 / this.player.aspd);
         this.player.slashCooldown = cooldownFrames;
         
-        // 베기 작동 모션 트리거
-        this.player.isSlashActive = true;
-        this.player.slashTimer = 12; // 12프레임간 휘두름 호가 그려짐
-        this.player.slashAngle = this.player.angle;
-        
-        Sound.play('slash');
-        this.shakeScreen(5, 2.5);
+        let fireSlashPack = () => {
+            // 베기 작동 모션 트리거
+            this.player.isSlashActive = true;
+            this.player.slashTimer = 12; // 12프레임간 휘두름 호가 그려짐
+            this.player.slashAngle = this.player.angle;
+            
+            Sound.play('slash');
+            this.shakeScreen(5, 2.5);
 
-        // 검풍 베기 파티클
-        let sAngle = this.player.angle;
-        for (let i = -5; i <= 5; i++) {
-            let offset = sAngle + (i * 0.15);
-            let px = this.player.x + Math.cos(offset) * 25;
-            let py = this.player.y + Math.sin(offset) * 25;
-            let vx = Math.cos(offset) * 2;
-            let vy = Math.sin(offset) * 2;
-            this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+            // 검풍 베기 파티클
+            let sAngle = this.player.angle;
+            for (let i = -5; i <= 5; i++) {
+                let offset = sAngle + (i * 0.15);
+                let px = this.player.x + Math.cos(offset) * 25;
+                let py = this.player.y + Math.sin(offset) * 25;
+                let vx = Math.cos(offset) * 2;
+                let vy = Math.sin(offset) * 2;
+                this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+            }
+
+            // [보정 A] 멀티샷 부채꼴 검풍 사출
+            let startAngle = this.player.angle;
+            let anglesToLaunch = [];
+            if (this.player.multishot === 1) {
+                anglesToLaunch.push(startAngle);
+            } else {
+                let arcSpan = 0.45; // 부채꼴 퍼짐 각도 범위
+                let step = arcSpan / (this.player.multishot - 1);
+                for (let i = 0; i < this.player.multishot; i++) {
+                    let targetAngle = startAngle - (arcSpan / 2) + (step * i);
+                    anglesToLaunch.push(targetAngle);
+                }
+            }
+
+            let synergyMult = this.checkBuildSynergy('sword');
+            let swordDmg = this.player.atk * 1.2 * synergyMult; // 검기 투사체 기본 피해 계수
+
+            for (let angle of anglesToLaunch) {
+                let speed = 6.0;
+                let vx = Math.cos(angle) * speed;
+                let vy = Math.sin(angle) * speed;
+                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, swordDmg, true, {
+                    pierce: 99, // 몬스터 관통형 검기
+                    homing: this.player.homing,
+                    splash: this.player.splashRadius,
+                    color: '#b026ff',
+                    radius: 5
+                }));
+            }
+        };
+
+        // [보정 B] burstCount 횟수만큼 검을 시간차 연속 휘두름 (콤보 난무)
+        for (let b = 0; b < this.player.burstCount; b++) {
+            if (b === 0) {
+                fireSlashPack();
+            } else {
+                setTimeout(() => {
+                    if (this.isPlaying && this.player.isSlashActive) {
+                        fireSlashPack();
+                    }
+                }, b * 90);
+            }
         }
     }
 
@@ -1840,6 +2148,9 @@ class GameEngine {
         document.getElementById('stat-ms').innerText = this.player.ms.toFixed(1);
         document.getElementById('stat-evd').innerText = `${(this.player.evd * 100).toFixed(0)}%`;
         document.getElementById('stat-luk').innerText = this.player.luk.toFixed(1);
+        document.getElementById('stat-regen').innerText = `${this.player.hpRegen.toFixed(1)}/s`;
+        document.getElementById('stat-range').innerText = `${this.player.range}px`;
+        document.getElementById('stat-pets').innerText = `${this.pets.length}기`;
 
         // 무기 상태 출력
         let wpnStr = "총 (Gun)";
@@ -1917,7 +2228,9 @@ class GameEngine {
             { id: 'evd', title: '민첩 (EVD) 회피', icon: '🦅', desc: '몬스터 공격 회피율이 상승합니다.' },
             { id: 'hp', title: '체력 (HP) 증대', icon: '❤️', desc: '최대 체력을 늘리고, 현재 체력을 소량 치유합니다.' },
             { id: 'luk', title: '운 (LUK) 축복', icon: '🍀', desc: '다음 보상 시 고등급 카드가 나올 행운이 영구 축적됩니다.' },
-            { id: 'stamina', title: '스테미너 증폭', icon: '🔋', desc: '달릴 수 있는 최대 활력이 확장됩니다.' }
+            { id: 'stamina', title: '스테미너 증폭', icon: '🔋', desc: '달릴 수 있는 최대 활력이 확장됩니다.' },
+            { id: 'hpRegen', title: '체력 재생 (REGEN)', icon: '🩺', desc: '초당 체력 회복 능력을 부여합니다.' },
+            { id: 'range', title: '사거리 연장 (RNG)', icon: '🔭', desc: '탄환 사거리 및 검 베기 공격 반경을 연장시킵니다.' }
         ];
 
         // 무기 변화 및 투사체 궤적 상위 카드 풀
@@ -1927,7 +2240,8 @@ class GameEngine {
             { id: 'burst', title: '점사 (Burst Fire)', icon: '🔫', desc: '마우스 조준 방향으로 다다닥 연속 탄환을 연사합니다.' },
             { id: 'pierce', title: '관통 탄환 (Pierce)', icon: '💎', desc: '탄환이 몬스터에 맞고 소멸하지 않고 관통 횟수를 획득합니다.' },
             { id: 'homing', title: '유도 추적탄 (Homing)', icon: '🔮', desc: '탄환이 주변에서 가장 가까운 적을 유성처럼 유도 비행합니다.' },
-            { id: 'splash', title: '스플래시 탄 (Splash)', icon: '💥', desc: '탄환 명중 지점에 네온 대폭발을 발생시켜 다수의 적을 몰살합니다.' }
+            { id: 'splash', title: '스플래시 탄 (Splash)', icon: '💥', desc: '탄환 명중 지점에 네온 대폭발을 발생시켜 다수의 적을 몰살합니다.' },
+            { id: 'pet', title: '디펜더 펫 (PET) 동행', icon: '🤖', desc: '주위를 돌며 적 탄환을 막고 유도탄을 사격하는 디펜더 드론을 추가 소환합니다.' }
         ];
 
         // 5의 배수 방을 클리어했을 때만 상위 카드(weaponCards)가 확정 등장하며 일반 방에선 statusCards만 등장!
@@ -2045,6 +2359,17 @@ class GameEngine {
                 value = Math.ceil(25 + (15 * mult)); // 기본 35+20*mult에서 25+15*mult로 하향
                 desc = `탄환 명중 시 반경 ${value}px 범위에 대폭발을 일으켜 광역 데미지를 입힙니다.`;
                 break;
+            case 'hpRegen':
+                value = 0.5 * mult;
+                desc = `초당 체력 자연 재생량이 +${value.toFixed(2)} 만큼 영구 증가합니다.`;
+                break;
+            case 'range':
+                value = Math.ceil(40 * mult);
+                desc = `탄환 사거리 및 검의 리치(베기 반경)가 +${value}px 만큼 영구 상승합니다.`;
+                break;
+            case 'pet':
+                desc = `플레이어를 호위하며 적 탄환을 소멸시키고 유도 레이저를 사격하는 공전 드론을 추가 1기 소환합니다.`;
+                break;
         }
 
         return { value, desc, data };
@@ -2104,6 +2429,18 @@ class GameEngine {
             case 'splash':
                 p.splashRadius = Math.max(p.splashRadius, card.effectValue);
                 p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType;
+                break;
+            case 'hpRegen':
+                p.hpRegen += card.effectValue;
+                break;
+            case 'range':
+                p.range += card.effectValue;
+                break;
+            case 'pet':
+                // 디펜더 드론 소환 (3기 단위로 궤적을 120도씩 비틀고 궤도 층 확장)
+                let petAngle = this.pets.length * (Math.PI * 2 / 3);
+                let orbitRadius = 45 + Math.floor(this.pets.length / 3) * 15;
+                this.pets.push(new Pet(petAngle, orbitRadius));
                 break;
         }
 
@@ -2226,6 +2563,9 @@ class GameEngine {
 
         // 5. 몬스터 렌더링
         this.monsters.forEach(m => m.draw(this.ctx));
+
+        // 5.5. 플레이어 보조 펫 렌더링
+        this.pets.forEach(pet => pet.draw(this.ctx));
 
         // 6. 플레이어 렌더링
         this.player.draw(this.ctx);
