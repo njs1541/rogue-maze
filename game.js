@@ -182,6 +182,22 @@ const Sound = {
                 });
                 break;
             }
+            case 'coin': { // 코인 획득 효과음 (청아하고 가벼운 레트로 띠링 소리)
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5 (시)
+                osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6 (미)
+                
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+                break;
+            }
         }
     }
 };
@@ -255,6 +271,8 @@ class Bullet {
     constructor(x, y, vx, vy, damage, isPlayerBullet, options = {}) {
         this.x = x;
         this.y = y;
+        this.startX = x; // [추가] 사출 시작 위치 저장 (창끝 크리티컬 조준 계산용)
+        this.startY = y;
         this.vx = vx;
         this.vy = vy;
         this.radius = options.radius || 4;
@@ -268,6 +286,12 @@ class Bullet {
         this.splash = options.splash || 0; // 스플래시 폭발 반경 (0 이면 스플래시 없음)
         this.life = options.life || 300; // 최대 유지 프레임
         this.homingSpeed = options.homingSpeed || 0.08; // [추가] 유도탄 선회 각도 스피드 (강화 카드 연동)
+        this.isSpear = options.isSpear || false; // [추가] 창 찌르기 관통 투사체 여부
+        this.isLightning = options.isLightning || false; // [추가] 번개 마법 연쇄 벼락 여부
+        this.isFire = options.isFire || false; // 불마법 탄환 여부
+        this.isIce = options.isIce || false; // 얼음마법 탄환 여부
+        this.bounceCount = 0; // 도탄 튕긴 누적 횟수
+        this.bounceLimit = options.bounceLimit || 0; // 최대 허용 도탄 횟수
     }
 
     update(monsters) {
@@ -310,16 +334,87 @@ class Bullet {
 
         this.x += this.vx * timeScale;
         this.y += this.vy * timeScale;
+
+        // [W-03 총 도탄 물리 기믹 연산]
+        if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
+            const wallMargin = 40;
+            let collided = false;
+            
+            // 좌우 벽 충돌 감지
+            if (this.x < wallMargin + this.radius) {
+                this.x = wallMargin + this.radius;
+                this.vx = -this.vx;
+                collided = true;
+            } else if (this.x > 800 - wallMargin - this.radius) {
+                this.x = 800 - wallMargin - this.radius;
+                this.vx = -this.vx;
+                collided = true;
+            }
+            
+            // 상하 벽 충돌 감지
+            if (this.y < wallMargin + this.radius) {
+                this.y = wallMargin + this.radius;
+                this.vy = -this.vy;
+                collided = true;
+            } else if (this.y > 600 - wallMargin - this.radius) {
+                this.y = 600 - wallMargin - this.radius;
+                this.vy = -this.vy;
+                collided = true;
+            }
+            
+            // 튕겼을 때 데미지 +25% 가산 및 이펙트/효과음
+            if (collided) {
+                this.bounceCount++;
+                this.damage *= 1.25; // 25% 복리 증폭
+                Sound.play('dodge'); // 통통 튕기는 틱 레트로 효과음
+                
+                // 튕길 때 튀는 3개 노란 네온 스파크
+                if (window.gameEngine) {
+                    for (let k = 0; k < 3; k++) {
+                        let randAngle = Math.random() * Math.PI * 2;
+                        let pSpeed = Math.random() * 2 + 1;
+                        window.gameEngine.particles.push(new Particle(
+                            this.x, this.y, 
+                            this.color, 1.5, 
+                            Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
+                        ));
+                    }
+                    window.gameEngine.showFloatingText("BOUNCE! 💥", this.x, this.y - 15, '#ffdf00');
+                }
+            }
+        }
     }
 
     draw(ctx) {
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
-        ctx.fill();
+        if (this.isSpear) {
+            // [신규 기획] 창 투사체 전용 시안색 네온 마름모 창날 그래픽 렌더링
+            ctx.translate(this.x, this.y);
+            let angle = Math.atan2(this.vy, this.vx);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.moveTo(this.radius * 2.2, 0); // 날카로운 코
+            ctx.lineTo(0, -this.radius * 0.7); // 상단 깃
+            ctx.lineTo(-this.radius * 1.5, 0); // 뒤꽁무니
+            ctx.lineTo(0, this.radius * 0.7); // 하단 깃
+            ctx.closePath();
+            
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.35)';
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#00f0ff';
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.fill();
+        }
         ctx.restore();
     }
 }
@@ -464,8 +559,36 @@ class Player {
         this.evd = 0.05;        // 민첩 (회피율 5%)
         this.luk = 1.0;         // 운 (보상 가중 확률)
         this.mp = 0;            // 마력 (특수기 충전율)
+        this.maxMp = 100;       // [수정] 결함 1 해결을 위한 최대 마력 선언 추가!
         this.magicType = 'explosion'; // [추가] 마법 기술 유형 ('explosion': 광역 폭발, 'timeWarp': 시간 왜곡)
         this.isStopped = false;       // [추가] 플레이어가 가만히 멈춰 서 있는지 감지하는 플래그
+        
+        // [신규 기획] 코인 재화 및 퍼펙트 클리어 판정 변수
+        this.coins = 0;
+        this.perfectClearFlag = true;
+        this.lastHitTimer = 300; // 피격 무사고 프레임 트래킹 (기본 300프레임 = 5초 상태로 시작)
+        
+        // [신규 기획] 장비 10종의 현재 레벨 저장 (기본 0레벨, 최대 10레벨 마스터)
+        this.equipLevels = {
+            armor: 0,
+            boots: 0,
+            gloves: 0,
+            helm: 0,
+            necklace: 0,
+            ring_mp: 0,
+            ring_hp: 0,
+            ring_speed: 0,
+            ring_aspd: 0,
+            ring_evd: 0
+        };
+
+        // [신규] Phase 5 물리 기믹 및 초월 상태 변수 선언
+        this.hasThorns = false;
+        this.thornsFieldTimer = 0;
+        this.hasTrap = false;
+        this.whipSpeedStack = 0;
+        this.whipSpeedTimer = 0;
+        this.continuousShootTimer = 0;
         
         // [추가] 장비 연계 강화 카드 전용 능력치 스케일링 보정 변수
         this.swordDmgUpgrade = 1.0;   // 검기 추가 대미지 배율 (기본 1.0, 강화 시 1.4)
@@ -499,13 +622,101 @@ class Player {
         this.evadeAlpha = 0;
         this.evadeDirectionX = 0; // 회피 시 잔상이 노출될 X축 오프셋
         this.evadeDirectionY = 0; // 회피 시 잔상이 노출될 Y축 오프셋
+
+        this.runDuration = 0;       // [추가] 연속 Shift 달리기 시간
+        this.windScarActive = false; // [추가] Speed Ring 5레벨 달리기 공증 10% 플래그
+        this.supernovaTimer = 0;     // [추가] Speed Ring 10레벨 스치기 회피 성공 시 이속 50% 가속 타이머
+    }
+
+    // [신규] 채찍 버프 및 반지 오버리미트 감안한 최종 실효 공격 속도 산출
+    getEffectiveAspd() {
+        let baseAspd = this.aspd;
+        if (this.whipSpeedStack > 0) {
+            baseAspd += this.whipSpeedStack * 0.20; // 3중첩 시 최대 +60% 공속 상승
+        }
+        return baseAspd;
     }
 
     update() {
+        // [신규 기획] 피격 무사고 프레임 증가
+        this.lastHitTimer++;
+
+        // [W-01 가시 장막 오라] 3초(180프레임) 유지 중 주변 감속 및 잃은체력 10% 비례 매프레임 틱 피해
+        if (this.thornsFieldTimer > 0) {
+            this.thornsFieldTimer--;
+            const thornsRadius = 120;
+            if (window.gameEngine) {
+                let lossHp = this.maxHp - this.hp;
+                let auraDamagePerFrame = (lossHp * 0.10) / 60; // 초당 잃은 체력의 10%만큼 피해 (프레임당 분할)
+                
+                for (let m of window.gameEngine.monsters) {
+                    let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                    if (dist < thornsRadius + m.radius) {
+                        m.statusEffects.slow = Math.max(m.statusEffects.slow || 0, 10);
+                        if (auraDamagePerFrame > 0) {
+                            m.hp -= auraDamagePerFrame;
+                            if (Math.random() < 0.05) {
+                                m.flashTimer = 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // [W-02 채찍 견인 성공 버프] 3초 타이머 및 스택 감쇠
+        if (this.whipSpeedTimer > 0) {
+            this.whipSpeedTimer--;
+            if (this.whipSpeedTimer <= 0) {
+                this.whipSpeedStack = 0;
+            }
+        }
+
+        // [E-08 신규 구현] Speed Ring 10레벨 초월: 초신성 기동 50% 가속 타이머 차감 및 네온 황금색 오라 파티클
+        if (this.supernovaTimer > 0) {
+            this.supernovaTimer--;
+            if (Math.random() < 0.25 && window.gameEngine) {
+                window.gameEngine.particles.push(new Particle(this.x, this.y, '#ffdf00', 1.8, (Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8, 15, 'spark'));
+            }
+        }
+
+        // [E-08 신규 구현] Speed Ring 5레벨 돌파: 바람의 상처 연속 달리기 2초(120프레임) 유지 시 공격력 10% 증가 바람 오라 가동
+        let isMoving = !this.isStopped;
+        let isSprinting = isMoving && window.gameEngine && window.gameEngine.keys['shift'] && this.stamina > 3;
+
+        if (this.equipLevels.ring_speed >= 5 && isSprinting) {
+            this.runDuration++;
+            if (this.runDuration >= 120) { // 2초 연속 질주
+                if (!this.windScarActive && window.gameEngine) {
+                    window.gameEngine.showFloatingText("WIND SCAR ACTIVE! 🌪️ (+10% ATK)", this.x, this.y - 25, '#00f0ff');
+                }
+                this.windScarActive = true;
+            }
+        } else {
+            this.runDuration = 0;
+            this.windScarActive = false;
+        }
+
+        if (this.windScarActive && Math.random() < 0.15 && window.gameEngine) {
+            window.gameEngine.particles.push(new Particle(this.x, this.y, '#00f0ff', 1.5, (Math.random()-0.5)*0.4, (Math.random()-0.5)*0.4, 12, 'dust'));
+        }
+
         // [수정] 체력 자연 재생 (HP Regen) - 오직 전투 중이고, 플레이어가 가만히 서 있을 때에만 자연 치유 작동
         let isCombat = window.gameEngine && (window.gameEngine.monsters.length > 0 || window.gameEngine.spawnQueue.length > 0);
-        if (this.hp < this.maxHp && this.hpRegen > 0 && isCombat && this.isStopped) {
-            this.hp = Math.min(this.maxHp, this.hp + (this.hpRegen / 60));
+        let currentRegen = this.hpRegen;
+
+        // [신규 기획] Health Ring 10레벨 초월: 5초간 피격 무사고 시 REGEN 속도 3배 가속!
+        if (this.equipLevels.ring_hp === 10 && this.lastHitTimer >= 300) {
+            currentRegen *= 3;
+        }
+
+        if (this.hp < this.maxHp && currentRegen > 0 && isCombat && this.isStopped) {
+            this.hp = Math.min(this.maxHp, this.hp + (currentRegen / 60));
+        }
+
+        // [수정] MP 자연 재생 로직 주입 (MP 재생 반지 연동)
+        if (this.mp < this.maxMp && this.mpRegen > 0) {
+            this.mp = Math.min(this.maxMp, this.mp + (this.mpRegen / 60));
         }
 
         // 검 베기 반경(slashRadius)과 사정거리(range) 및 스플래시 반경(splashRadius) 동적 연동 보정
@@ -550,6 +761,21 @@ class Player {
 
     draw(ctx) {
         ctx.save();
+
+        // [W-01 가시 장막 필드 오라 비주얼 렌더링]
+        if (this.thornsFieldTimer > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 120, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 0, 170, ${0.12 + Math.sin(Date.now() * 0.009) * 0.06})`;
+            ctx.fillStyle = 'rgba(255, 0, 170, 0.03)';
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ff00aa';
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
 
         // 1. 회피 발동 중일 때 1.5px 밀려난 붉은색 잔상 실루엣 렌더링 (플레이어 뒤쪽에 위치시키기 위해 먼저 렌더링)
         if (this.evadeActive && this.evadeAlpha > 0) {
@@ -690,10 +916,14 @@ class Monster {
         this.knockbackX = 0;
         this.knockbackY = 0;
         this.flashTimer = 0; // 피격 시 백색 플래시 타이머
+        this.isFrozenActive = 0; // [신규] 얼음 동결 완전 정지 상태 타이머
         this.statusEffects = {
             slow: 0,
             vulnerability: 0,
-            shock: 0
+            shock: 0,
+            burn: 0,        // [신규] 화상 지속 시간 프레임
+            burnStack: 0,   // [신규] 화상 중첩 스택 (최대 5)
+            freeze: 0       // [신규] 빙결 게이지 축적율 (0 ~ 100)
         };
     }
 
@@ -731,12 +961,43 @@ class Monster {
             timeScale = 0.1; // 90% 시간 감속 (몬스터의 액션이 매우 느려짐)
         }
 
-        if (this.flashTimer > 0) this.flashTimer--;
-
         // 디버프 타이머 차감 (시간 감속 반영)
         if (this.statusEffects.slow > 0) this.statusEffects.slow -= timeScale;
         if (this.statusEffects.vulnerability > 0) this.statusEffects.vulnerability -= timeScale;
         if (this.statusEffects.shock > 0) this.statusEffects.shock -= timeScale;
+        if (this.statusEffects.freeze > 0) this.statusEffects.freeze -= timeScale * 0.5; // 빙결은 자연 상태에서 초당 30씩 서서히 감쇄
+        
+        // [신규] 화상(Burn) 도트 틱 연산 및 화염 스파크 연출
+        if (this.statusEffects.burn > 0) {
+            this.statusEffects.burn -= timeScale;
+            // 30프레임(0.5초)마다 중첩(burnStack) 비례 화상 피해 가동
+            if (Math.floor(this.statusEffects.burn) % 30 === 0) {
+                let burnDmg = 1.2 * (this.statusEffects.burnStack || 1);
+                this.hp -= burnDmg;
+                this.flashTimer = 3;
+                
+                if (window.gameEngine && Math.random() < 0.4) {
+                    window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff5e00', 1.8, (Math.random()-0.5)*0.8, -Math.random()*1.0, 15, 'spark'));
+                }
+            }
+            if (this.statusEffects.burn <= 0) {
+                this.statusEffects.burnStack = 0;
+            }
+        }
+
+        // [신규] 완전 동결(Frozen) 2.5초 기절 판정 및 정지 상태 타이머 감쇠
+        if (this.statusEffects.freeze >= 100) {
+            this.statusEffects.freeze = 0;
+            this.statusEffects.shock = Math.max(this.statusEffects.shock || 0, 150); // 2.5초 스턴
+            this.isFrozenActive = 150; // 2.5초 얼음껍질 렌더링 유지
+            if (window.gameEngine) {
+                window.gameEngine.showFloatingText("FROZEN! ❄️", this.x, this.y - 25, '#00f0ff');
+                Sound.play('hit');
+            }
+        }
+        if (this.isFrozenActive > 0) {
+            this.isFrozenActive -= timeScale;
+        }
 
         // 넉백 감쇠 처리 및 이동도 시간 지연 영향 받음
         this.x += this.knockbackX * timeScale;
@@ -763,6 +1024,10 @@ class Monster {
         let activeSpeed = this.speed * timeScale;
         if (this.statusEffects.slow > 0) {
             activeSpeed *= 0.6; // 40% 속도 추가 감소
+        }
+        if (this.statusEffects.freeze > 0) {
+            // [신규] 빙결 게이지 축적율에 따른 추가 비례 감속 (최대 50% 감속)
+            activeSpeed *= (1 - (this.statusEffects.freeze / 200));
         }
 
         if (this.isBoss) {
@@ -843,10 +1108,41 @@ class Monster {
             }
         }
 
-        // 맵 벽 경계선 제한 충돌 처리 (몬스터 맵 이탈 방지)
+        // 맵 벽 경계선 제한 충돌 처리 (몬스터 맵 이탈 방지) 및 창/넉백 벽꽝(Wall Slam) 판정 연동
         const wallMargin = 40;
+        let preX = this.x;
+        let preY = this.y;
         this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
         this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+
+        // 넉백 중 벽에 부딪혀 강제 위치 교정이 일어났는지 검사
+        let hasSlammedWall = false;
+        if ((this.x !== preX && Math.abs(this.knockbackX) > 2.5) || (this.y !== preY && Math.abs(this.knockbackY) > 2.5)) {
+            hasSlammedWall = true;
+        }
+
+        if (hasSlammedWall && !this.wallSlamCooldown) {
+            this.wallSlamCooldown = 30; // 0.5초 연속 격돌 방지 쿨다운
+            
+            // 넉백 벽꽝 대미지 (+100% 공격력 가산) 및 1.5초(90프레임) 마비 기절
+            let slamDmg = player.atk;
+            this.hp -= slamDmg;
+            this.flashTimer = 8;
+            this.statusEffects.shock = 90; // 1.5초 기절
+            
+            if (window.gameEngine) {
+                window.gameEngine.showFloatingText("WALLSLAM STUN! 💥", this.x, this.y - 25, '#ffdf00');
+                window.gameEngine.shakeScreen(10, 4.5);
+                
+                // 벽 충돌 네온 황금색 스파크 파편 연출
+                for (let k = 0; k < 8; k++) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 3 + 1.5;
+                    window.gameEngine.particles.push(new Particle(this.x, this.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
+                }
+            }
+        }
+        if (this.wallSlamCooldown > 0) this.wallSlamCooldown--;
     }
 
     draw(ctx) {
@@ -861,6 +1157,13 @@ class Monster {
             ctx.fillStyle = '#ffffff';
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#ffffff';
+        } else if (this.statusEffects.shock >= 120) {
+            // [W-08 시간 완전 정지 - 회색조 석상화 렌더링]
+            ctx.fillStyle = 'rgba(80, 80, 80, 0.45)';
+            ctx.strokeStyle = '#555555';
+            ctx.lineWidth = this.isBoss ? 4.0 : 2.0;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#333333';
         } else {
             ctx.fillStyle = this.isBoss ? 'rgba(255, 51, 0, 0.2)' : 'rgba(255, 0, 85, 0.15)';
             ctx.strokeStyle = this.color;
@@ -877,11 +1180,41 @@ class Monster {
         // 보스 또는 일반 몬스터의 안구/핵 네온 그래픽
         ctx.beginPath();
         ctx.arc(0, 0, this.isBoss ? 8 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : this.color;
+        ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : (this.statusEffects.shock >= 120 ? '#555555' : this.color);
         ctx.fill();
 
         // 디버프 상태이상 시각 오라 효과 렌더링
         if (this.flashTimer <= 0) {
+            // [신규] 화상(Burn) 이글거리는 오렌지 오라
+            if (this.statusEffects.burn > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 3 + Math.sin(Date.now() * 0.015) * 1.5, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ff5e00';
+                ctx.lineWidth = 2.0;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#ff5e00';
+                ctx.stroke();
+                ctx.restore();
+            }
+            // [신규] 동결(Frozen) 차가운 링 및 얼음 장막 바디 껍질
+            if (this.isFrozenActive > 0) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 3.0;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00f0ff';
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.32)';
+                ctx.fill();
+                ctx.restore();
+            }
+
             if (this.statusEffects.shock > 0) {
                 ctx.save();
                 ctx.beginPath();
@@ -932,6 +1265,7 @@ class RoomPortal {
         this.height = 18;
         this.active = true; // 현재 포털 활성화 상태 (전부 격퇴 시)
         this.difficultyClass = 'low'; // 'high', 'mid', 'low' 랭킹 등급 저장
+        this.portalType = 'stat'; // 'stat', 'weapon', 'equipment', 'shop' - 신규 특화 속성 추가
 
         // 방향별 좌표 바인딩
         if (direction === 'top') {
@@ -957,12 +1291,30 @@ class RoomPortal {
     draw(ctx) {
         ctx.save();
         
-        // 포털 네온 박스
+        // 포털 타입별 전용 네온 광채 컬러 정의 (잠김 상태는 일괄 붉은색)
+        let color = '#ff0055'; 
+        let bgStyle = 'rgba(255, 0, 85, 0.15)';
+        
+        if (this.active) {
+            if (this.portalType === 'stat') {
+                color = '#00f0ff'; // 청록색
+                bgStyle = 'rgba(0, 240, 255, 0.15)';
+            } else if (this.portalType === 'weapon') {
+                color = '#b026ff'; // 보라색
+                bgStyle = 'rgba(176, 38, 255, 0.15)';
+            } else if (this.portalType === 'equipment') {
+                color = '#ff6c00'; // 주황색
+                bgStyle = 'rgba(255, 108, 0, 0.15)';
+            } else if (this.portalType === 'shop') {
+                color = '#ffdf00'; // 노란색
+                bgStyle = 'rgba(255, 223, 0, 0.15)';
+            }
+        }
+        
+        // 포털 네온 박스 드로잉
         ctx.beginPath();
         ctx.rect(this.x, this.y, this.width, this.height);
-        
-        let color = this.active ? '#39ff14' : '#ff0055'; // 활성화 시 초록, 전투 중이면 잠겨서 빨강
-        ctx.fillStyle = this.active ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255, 0, 85, 0.15)';
+        ctx.fillStyle = bgStyle;
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.shadowBlur = 15;
@@ -989,6 +1341,33 @@ class RoomPortal {
 
         ctx.fillText(this.scoreValue, textX, textY);
 
+        // [신규 기획] 문 위에 전용 네온 아이콘 부유 홀로그램 렌더링
+        if (this.active) {
+            ctx.save();
+            ctx.font = '13px "Outfit", "Noto Sans KR"';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            let icon = '📊';
+            if (this.portalType === 'weapon') icon = '⚔️';
+            if (this.portalType === 'equipment') icon = '🛡️';
+            if (this.portalType === 'shop') icon = '🎰';
+
+            let iconX = this.x + this.width / 2;
+            let iconY = this.y + this.height / 2;
+            
+            if (this.direction === 'top') iconY += 16;
+            if (this.direction === 'bottom') iconY -= 16;
+            if (this.direction === 'left') iconX += 18;
+            if (this.direction === 'right') iconX -= 18;
+            
+            ctx.fillText(icon, iconX, iconY);
+            ctx.restore();
+        }
+
         // [엘리트 기믹] 다음 방이 5의 배수 방이고(10의 배수 보스방 제외), 포털 랭킹 등급이 '상' 또는 '중'인 경우 [ELITE] 마커 출력
         let nextRoomNum = window.gameEngine ? window.gameEngine.roomNum + 1 : 2;
         if (this.active && nextRoomNum % 5 === 0 && nextRoomNum % 10 !== 0) {
@@ -1002,10 +1381,11 @@ class RoomPortal {
                 let eliteX = this.x + this.width / 2;
                 let eliteY = this.y + this.height / 2;
                 
-                if (this.direction === 'top') eliteY += 14;
-                if (this.direction === 'bottom') eliteY -= 14;
-                if (this.direction === 'left') eliteX += 20;
-                if (this.direction === 'right') eliteX -= 20;
+                // 기존 아이콘 출력과의 마찰을 회피하기 위해 오프셋을 더 확장 적용
+                if (this.direction === 'top') eliteY += 28;
+                if (this.direction === 'bottom') eliteY -= 28;
+                if (this.direction === 'left') eliteX += 32;
+                if (this.direction === 'right') eliteX -= 32;
                 
                 ctx.fillText("[ELITE]", eliteX, eliteY);
                 ctx.restore();
@@ -1036,6 +1416,8 @@ class NeonPotion {
     constructor(x, y) {
         this.x = x;
         this.y = y;
+        this.vx = 0;
+        this.vy = 0;
         this.radius = 10;
         this.color = '#39ff14'; // 네온 초록색
         this.pulse = 0;
@@ -1076,6 +1458,380 @@ class NeonPotion {
 }
 
 // --------------------------------------------------------------------------
+// 6.5.5. 드롭된 황금 네온 코인 클래스 (Neon Coin)
+// --------------------------------------------------------------------------
+class NeonCoin {
+    constructor(x, y, amount = 1) {
+        this.x = x;
+        this.y = y;
+        // 사방으로 통통 튕기는 속도
+        let angle = Math.random() * Math.PI * 2;
+        let speed = Math.random() * 3 + 1;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        
+        this.radius = 6;
+        this.amount = amount;
+        this.color = '#ffdf00'; // 황금색 네온
+        this.pulse = Math.random() * 10;
+        this.friction = 0.95; // 통통 튕기고 정지하는 마찰력
+    }
+
+    update(player, timeDilationActive) {
+        // 통통 튕기며 서서히 감속 처리 (바닥에 안착)
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+
+        // 벽 마진선 이탈 방지
+        const wallMargin = 40;
+        if (this.x < wallMargin + this.radius) { this.x = wallMargin + this.radius; this.vx = -this.vx; }
+        if (this.x > 800 - wallMargin - this.radius) { this.x = 800 - wallMargin - this.radius; this.vx = -this.vx; }
+        if (this.y < wallMargin + this.radius) { this.y = wallMargin + this.radius; this.vy = -this.vy; }
+        if (this.y > 600 - wallMargin - this.radius) { this.y = 600 - wallMargin - this.radius; this.vy = -this.vy; }
+
+        // 자석 물리 기믹 연산
+        let dist = Math.hypot(player.x - this.x, player.y - this.y);
+        let pullRadius = 70; // 평소 자석 반경 70px
+        
+        // 시간 왜곡 중일 때는 맵 전역(무한) 자석 블랙홀 발동!
+        if (timeDilationActive) {
+            pullRadius = 1000; 
+        }
+
+        if (dist < pullRadius) {
+            // 흡입 세기 계산 (시간 왜곡 시 엄청 빠른 흡입력 부여, 평소에는 적정 속도)
+            let pullForce = timeDilationActive ? 12.0 : 4.0;
+            // 거리 비례 가속
+            let angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+            this.vx += Math.cos(angleToPlayer) * pullForce * 0.15;
+            this.vy += Math.sin(angleToPlayer) * pullForce * 0.15;
+            // 속도 상한선 제한 (초광속 방지 및 자연스러움)
+            let currentSpeed = Math.hypot(this.vx, this.vy);
+            let maxSpeed = timeDilationActive ? 15.0 : 6.0;
+            if (currentSpeed > maxSpeed) {
+                this.vx = (this.vx / currentSpeed) * maxSpeed;
+                this.vy = (this.vy / currentSpeed) * maxSpeed;
+            }
+            // 마찰 무시하고 강력 흡입
+            this.friction = 1.0;
+        } else {
+            this.friction = 0.95;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        this.pulse += 0.08;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.15;
+
+        // 황금빛 글로우 원형 코인
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 223, 0, 0.2)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 코인 내부의 C 심볼 혹은 중앙 노랑 네온 코어
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * 0.4 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
+// 6.6. 네온 보상 상자 클래스 (Reward Chest)
+// --------------------------------------------------------------------------
+class RewardChest {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'stat', 'weapon', 'equipment'
+        this.width = 36;
+        this.height = 26;
+        this.color = type === 'stat' ? '#00f0ff' : (type === 'weapon' ? '#b026ff' : '#ff6c00');
+        this.pulse = 0;
+        this.active = true;
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.04;
+        let bounceY = Math.sin(this.pulse) * 4;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.05;
+        ctx.translate(0, bounceY);
+        
+        // 외부 발광 글로우 사각형
+        ctx.beginPath();
+        ctx.rect(-this.width/2 * scale, -this.height/2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = this.type === 'stat' ? 'rgba(0, 240, 255, 0.15)' : (this.type === 'weapon' ? 'rgba(176, 38, 255, 0.15)' : 'rgba(255, 108, 0, 0.15)');
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 뚜껑선 드로잉
+        ctx.beginPath();
+        ctx.moveTo(-this.width/2 * scale, -this.height/6 * scale);
+        ctx.lineTo(this.width/2 * scale, -this.height/6 * scale);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 자물쇠 네온 링 렌더링
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
+// 6.7. 네온 코인 상점 자판기 클래스 (Vending Machine Shop)
+// --------------------------------------------------------------------------
+class VendingMachine {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'stat', 'weapon', 'equipment'
+        this.width = 38;
+        this.height = 56;
+        this.color = type === 'stat' ? '#00f0ff' : (type === 'weapon' ? '#b026ff' : '#ff6c00');
+        this.purchaseCount = 0;
+        this.pulse = 0;
+        this.active = true;
+    }
+
+    getPrice() {
+        // 누적 구매 시마다 가격이 2배로 불어나는 인플레이션 딜레이 연산
+        return 40 * Math.pow(2, this.purchaseCount);
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.03;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.02;
+
+        // 메인 자판기 세로 박스 바디
+        ctx.beginPath();
+        ctx.rect(-this.width/2 * scale, -this.height/2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = 'rgba(8, 9, 14, 0.9)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 상단 네온 전광판 (자판기 속성 마크)
+        ctx.fillStyle = this.color;
+        ctx.font = '800 10px "Outfit"';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.type === 'equipment' ? 'EQUIP' : this.type.toUpperCase(), 0, -this.height/2 * scale + 14);
+
+        // 네온 조명 스크린 창
+        ctx.beginPath();
+        ctx.rect(-this.width/2 + 5, -this.height/2 + 20, this.width - 10, 16);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fill();
+
+        // 가격 표시 텍스트
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 9px "Outfit"';
+        ctx.textAlign = 'center';
+        ctx.fillText(`🪙 ${this.getPrice()}`, 0, -this.height/2 * scale + 31);
+
+        // 동전 주입구 및 반환구 데코레이션
+        ctx.beginPath();
+        ctx.rect(this.width/2 - 10, 8, 4, 8);
+        ctx.fillStyle = '#555555';
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
+// 6.8. 플레이어 설치형 함정 클래스 (Neon Trap Entities)
+// --------------------------------------------------------------------------
+class NeonTrap {
+    constructor(x, y, type, player) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'mine', 'laser_h' (가로 레이저), 'laser_v' (세로 레이저)
+        this.player = player;
+        this.radius = type === 'mine' ? 12 : 3;
+        this.active = true;
+        this.pulse = 0;
+        
+        if (type === 'laser_h') {
+            this.x1 = 40;
+            this.x2 = 760;
+            this.y1 = y;
+            this.y2 = y;
+        } else if (type === 'laser_v') {
+            this.x1 = x;
+            this.x2 = x;
+            this.y1 = 40;
+            this.y2 = 560;
+        }
+    }
+
+    update(monsters, game) {
+        if (!this.active) return;
+        this.pulse += 0.05;
+
+        if (this.type === 'mine') {
+            // 몬스터 충돌 감지
+            for (let m of monsters) {
+                let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                if (dist < m.radius + this.radius) {
+                    this.triggerMine(game);
+                    break;
+                }
+            }
+        } else {
+            // 레이저 트립와이어 충돌 감지
+            for (let m of monsters) {
+                let distToLaser = Infinity;
+                if (this.type === 'laser_h') {
+                    distToLaser = Math.abs(m.y - this.y);
+                } else {
+                    distToLaser = Math.abs(m.x - this.x);
+                }
+                
+                if (distToLaser < m.radius + 3) {
+                    this.triggerLaser(m, game);
+                    break;
+                }
+            }
+        }
+    }
+
+    triggerMine(game) {
+        this.active = false;
+        let splashRadius = 80;
+        let damage = this.player.atk * 1.5;
+        
+        game.showFloatingText("MINE DETONATED! 💥", this.x, this.y - 25, '#ffdf00');
+        game.shakeScreen(15, 5);
+        Sound.play('explosion');
+        
+        // 폭발 파티클
+        game.particles.push(new Particle(this.x, this.y, '#ffdf00', splashRadius, 0, 0, 30, 'explosionRing'));
+        for (let k = 0; k < 15; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 4 + 2;
+            game.particles.push(new Particle(this.x, this.y, '#ffdf00', 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
+        }
+
+        // 80px 내의 모든 적 기절 대폭발
+        for (let m of game.monsters) {
+            let dist = Math.hypot(m.x - this.x, m.y - this.y);
+            if (dist < splashRadius + m.radius) {
+                m.statusEffects.shock = 90; // 1.5초 기절
+                let finalDmg = damage;
+                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                m.hp -= finalDmg;
+                m.flashTimer = 8;
+                
+                // 강력 넉백
+                let pushAngle = Math.atan2(m.y - this.y, m.x - this.x);
+                m.knockbackX += Math.cos(pushAngle) * 5;
+                m.knockbackY += Math.sin(pushAngle) * 5;
+            }
+        }
+    }
+
+    triggerLaser(hitMonster, game) {
+        this.active = false;
+        game.showFloatingText("TRIPWIRE DETONATED! ⚡", hitMonster.x, hitMonster.y - 25, '#00f0ff');
+        game.shakeScreen(8, 3);
+        
+        // 체인 라이트닝 전류 마비 격발 (4회 전이, 100% 플레이어 atk 데미지)
+        game.triggerChainLightning(this.x, this.y, hitMonster, 4, this.player.atk * 1.0);
+        
+        // 번개 스파크
+        for (let k = 0; k < 8; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 3 + 1.5;
+            game.particles.push(new Particle(hitMonster.x, hitMonster.y, '#00f0ff', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15, 'spark'));
+        }
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        
+        if (this.type === 'mine') {
+            ctx.translate(this.x, this.y);
+            let scale = 1.0 + Math.sin(this.pulse) * 0.1;
+            
+            // 노란색 테두리 서클
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 223, 0, 0.2)';
+            ctx.strokeStyle = '#ffdf00';
+            ctx.lineWidth = 1.8;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ffdf00';
+            ctx.fill();
+            ctx.stroke();
+
+            // 지뢰의 빨간 뇌관 점
+            ctx.beginPath();
+            ctx.arc(0, 0, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff0055';
+            ctx.fill();
+        } else {
+            // 레이저 트립와이어
+            ctx.beginPath();
+            ctx.moveTo(this.x1, this.y1);
+            ctx.lineTo(this.x2, this.y2);
+            
+            let alpha = 0.45 + Math.sin(this.pulse) * 0.2;
+            ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f0ff';
+            ctx.stroke();
+            
+            // 레이저 시작 및 끝 양쪽 벽면 네온 노드
+            ctx.fillStyle = '#00f0ff';
+            ctx.beginPath();
+            ctx.arc(this.x1, this.y1, 4, 0, Math.PI * 2);
+            ctx.arc(this.x2, this.y2, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 class GameEngine {
@@ -1105,6 +1861,14 @@ class GameEngine {
         this.particles = [];
         this.pets = [];
         this.potions = []; // [추가] 맵 클리어 드롭 물약 엔티티 리스트
+        this.coinsList = []; // [W-08 신규 구현] 드롭 코인 엔티티 리스트
+        this.traps = [];   // [신규] 함정 엔티티 리스트
+        
+        // [신규 기획] 포털 특화 보상 및 상점 관리 리스트
+        this.currentRoomType = 'stat'; 
+        this.rewardChests = [];
+        this.vendingMachines = [];
+        this.vendingCooldown = 0;
         
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
@@ -1134,6 +1898,8 @@ class GameEngine {
         this.lastEnteredPortalClass = 'low';
         
         this.timeDilationActive = false; // [추가] 시간 왜곡(지연) 마법 활성화 플래그
+        this.timeWarpFreeCastActive = false; // [신규 기획] Mana Helm 5레벨 무료 지속 시간왜곡 체크용 플래그
+        this.hasRerolledThisRoom = false;   // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 리롤 트래킹 플래그
         
         this.initInputEvents();
         this.setupInitialRoom();
@@ -1225,6 +1991,15 @@ class GameEngine {
         this.particles = [];
         this.pets = [];
         this.potions = []; // [추가] 물약 리스트 초기화
+        this.coinsList = []; // [W-08 신규 구현] 코인 리스트 초기화
+        this.traps = [];   // [신규] 함정 리스트 초기화
+        
+        // [신규 기획] 보상 및 상점 리스트 리셋
+        this.currentRoomType = 'stat';
+        this.rewardChests = [];
+        this.vendingMachines = [];
+        this.vendingCooldown = 0;
+        
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
         
@@ -1260,6 +2035,16 @@ class GameEngine {
             new RoomPortal('right', this.getRandomScoreValue())
         ];
         
+        // [신규 기획] 포털 특화 유형 무작위 분배 (25% 확률로 스탯 1개가 상점 카드로 변경)
+        let types = ['stat', 'stat', 'weapon', 'equipment'];
+        if (Math.random() < 0.25) {
+            types[0] = 'shop';
+        }
+        types.sort(() => 0.5 - Math.random());
+        this.portals.forEach((p, idx) => {
+            p.portalType = types[idx];
+        });
+        
         // v0.3: 문 랭킹 랭크 부여
         this.rankPortals();
         
@@ -1267,6 +2052,7 @@ class GameEngine {
         this.portals.forEach(p => p.active = true);
         this.monsters = [];
         this.spawnQueue = [];
+        this.traps = []; // [신규] 함정 리스트 초기화
         
         // 콤보 리셋
         this.comboCount = 0;
@@ -1320,6 +2106,9 @@ class GameEngine {
 
     // 특정 문으로 입장했을 때의 방 전환 엔진
     transitionToNextRoom(portal) {
+        // [신규 기획] 현재 방의 유형을 방금 진입한 포털의 보상 유형으로 갱신!
+        this.currentRoomType = portal.portalType || 'stat';
+
         const scoreBonus = portal.scoreValue;
         this.score += scoreBonus; // 획득 점수 축적
         
@@ -1418,6 +2207,17 @@ class GameEngine {
             new RoomPortal('left', this.getRandomScoreValue()),
             new RoomPortal('right', this.getRandomScoreValue())
         ];
+        
+        // [신규 기획] 다음 방 포털 특화 유형 무작위 분배 (25% 확률로 상점 포털 대체 출현)
+        let types = ['stat', 'stat', 'weapon', 'equipment'];
+        if (Math.random() < 0.25) {
+            types[0] = 'shop';
+        }
+        types.sort(() => 0.5 - Math.random());
+        this.portals.forEach((p, idx) => {
+            p.portalType = types[idx];
+        });
+
         this.rankPortals(); // 등급 랭킹화
         this.portals.forEach(p => p.active = false);
 
@@ -1425,6 +2225,12 @@ class GameEngine {
         this.bullets = [];
         this.particles = [];
         this.potions = []; // [추가] 방 이동 시 드롭된 물약 청소
+        this.coinsList = []; // [W-08 신규 구현] 방 이동 시 코인 청소
+        this.rewardChests = []; // [추가] 이전 방 상자들 삭제
+        this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
+        this.traps = []; // [신규] 함정 리스트 청소
+        this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
+        this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
 
         // 5번 방 주기마다 보스전 활성화 (5, 10, 15... 100)
         // 10의 배수는 무조건 보스방으로 기동!
@@ -1580,8 +2386,17 @@ class GameEngine {
         if (this.player.magicType === 'explosion') {
             if (this.player.mp < this.player.maxMp) return;
 
+            // [신규 기획] Mana Helm 5레벨 돌파: 20% 확률로 마나 무료 시전!
+            let isFreeMana = false;
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                isFreeMana = true;
+                this.showFloatingText("FREE MANA CAST!", this.player.x, this.player.y - 30, '#00f0ff');
+            }
+
             // 마력 소모 및 화면 초토화 흔들림
-            this.player.mp = 0;
+            if (!isFreeMana) {
+                this.player.mp = 0;
+            }
             this.shakeScreen(40, 10);
             Sound.play('explosion');
 
@@ -1626,6 +2441,13 @@ class GameEngine {
             if (this.player.mp < 50) {
                 this.showFloatingText("NEED 50+ MP", this.player.x, this.player.y - 20, '#ff0055');
                 return;
+            }
+            
+            // [신규 기획] Mana Helm 5레벨 돌파: 20% 확률로 마나 무료 시전! (시간 왜곡 지속 소모 면제)
+            this.timeWarpFreeCastActive = false;
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                this.timeWarpFreeCastActive = true;
+                this.showFloatingText("FREE MANA WARP!", this.player.x, this.player.y - 30, '#00f0ff');
             }
             
             this.timeDilationActive = true;
@@ -1712,11 +2534,108 @@ class GameEngine {
     // 데이터 갱신 및 물리/충돌 검사 총괄
     update() {
         this.player.update();
+        if (this.vendingCooldown > 0) this.vendingCooldown--; // [신규 기획] 자판기 구매 쿨타임 매 프레임 감쇠
+
+        // 오버레이 활성화 체크
+        let isOverlayOpen = false;
+        const rewardOverlay = document.getElementById('reward-overlay');
+        const detailOverlay = document.getElementById('card-detail-overlay');
+        const shopOverlay = document.getElementById('shop-confirm-overlay');
+        const resultOverlay = document.getElementById('result-overlay');
+        const startOverlay = document.getElementById('start-overlay');
+        
+        if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
+            (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
+            (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
+            (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
+            (startOverlay && !startOverlay.classList.contains('hidden'))) {
+            isOverlayOpen = true;
+        }
+
+        // [W-10 함정설치 지뢰/레이저 주기적 드롭 및 설치]
+        if (this.player.hasTrap && !isOverlayOpen) {
+            // 지뢰 설치: 가만히 있지 않고 움직이는 동안 2초(120프레임) 마다 발밑에 매설
+            if (!this.player.isStopped) {
+                this.mineInstallTimer = (this.mineInstallTimer || 0) + 1;
+                if (this.mineInstallTimer >= 120) {
+                    this.mineInstallTimer = 0;
+                    this.traps.push(new NeonTrap(this.player.x, this.player.y, 'mine', this.player));
+                    this.showFloatingText("MINE PLACED! 🪤", this.player.x, this.player.y - 25, '#ffdf00');
+                }
+            } else {
+                this.mineInstallTimer = 0;
+            }
+
+            // 레이저 트립와이어 설치: 전투 중이고 몬스터가 있을 때 6초(360프레임) 마다 플레이어 위치 부근에 벽 가로지르도록 매설
+            if (this.monsters.length > 0 || this.spawnQueue.length > 0) {
+                this.laserInstallTimer = (this.laserInstallTimer || 0) + 1;
+                if (this.laserInstallTimer >= 360) {
+                    this.laserInstallTimer = 0;
+                    
+                    let type = Math.random() < 0.5 ? 'laser_h' : 'laser_v';
+                    let lx = this.player.x;
+                    let ly = this.player.y;
+                    
+                    // 벽 밖으로 삐져나가는 것 방지
+                    lx = Math.max(50, Math.min(750, lx));
+                    ly = Math.max(50, Math.min(550, ly));
+                    
+                    this.traps.push(new NeonTrap(lx, ly, type, this.player));
+                    this.showFloatingText("LASER WIRE SET! ⚡", this.player.x, this.player.y - 25, '#00f0ff');
+                }
+            } else {
+                this.laserInstallTimer = 0;
+            }
+        }
+
+        // 함정 실시간 물리 및 격발 검사 업데이트
+        for (let i = this.traps.length - 1; i >= 0; i--) {
+            let trap = this.traps[i];
+            trap.update(this.monsters, this);
+            if (!trap.active) {
+                this.traps.splice(i, 1);
+            }
+        }
+
+        // [E-09 공속 반지 10레벨 속사 초월 트래킹]
+        let canShoot = (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual');
+        if (this.mouse.isDown && canShoot && !isOverlayOpen) {
+            this.player.continuousShootTimer = (this.player.continuousShootTimer || 0) + 1;
+            
+            // 10레벨 초월 속사 연속 3초(180프레임) 돌파 시 노란 네온 파티클 오버라이드 격발
+            if (this.player.equipLevels.ring_aspd === 10 && this.player.continuousShootTimer >= 180) {
+                if (Math.random() < 0.35) {
+                    this.particles.push(new Particle(
+                        this.player.x + (Math.random() * 24 - 12),
+                        this.player.y + (Math.random() * 24 - 12),
+                        '#ffdf00', 1.8, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, 12, 'spark'
+                    ));
+                }
+                if (this.player.continuousShootTimer === 180) {
+                    this.showFloatingText("⚡ LIMIT OVER! ⚡", this.player.x, this.player.y - 35, '#ffdf00');
+                    Sound.play('victory');
+                }
+            }
+        } else {
+            this.player.continuousShootTimer = 0;
+        }
 
         // [추가] 시간 왜곡 마법 가동 시 마력(MP) 소모 및 파티클 기믹 처리
         if (this.timeDilationActive) {
             // 매 프레임 마력 감쇄 (약 6초간 유지: 100 MP / 360 프레임 = 프레임당 약 0.278)
-            this.player.mp = Math.max(0, this.player.mp - 0.278);
+            let mpDrain = 0.278;
+            
+            // [신규 기획] Mana Ring 10레벨 초월: 시간 왜곡 마나 유지비 50% 절감!
+            if (this.player.equipLevels.ring_mp === 10) {
+                mpDrain *= 0.5;
+            }
+            
+            // [신규 기획] Mana Helm 5레벨 돌파 무료 시전 적용 시 마나 감쇄 없음!
+            if (this.timeWarpFreeCastActive) {
+                mpDrain = 0;
+            }
+
+            this.player.mp = Math.max(0, this.player.mp - mpDrain);
             
             // 시간 감속 공간에서 뿜어져 나오는 보랏빛 네온 공간 기믹 파티클
             if (Math.random() < 0.2) {
@@ -1733,6 +2652,7 @@ class GameEngine {
 
             if (this.player.mp <= 0) {
                 this.timeDilationActive = false;
+                this.timeWarpFreeCastActive = false; // 무료 시전 비활성화
                 this.showFloatingText("TIME FLOW RESTORED", this.player.x, this.player.y - 30, '#00f0ff');
                 Sound.play('powerup');
             }
@@ -1757,10 +2677,13 @@ class GameEngine {
         // 3. 플레이어 이동 및 스태미너 가동 연산
         let dx = 0;
         let dy = 0;
-        if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
-        if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
-        if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
-        if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+
+        if (!isOverlayOpen) {
+            if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
+            if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
+            if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
+            if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+        }
 
         // 8방향 대각선 이동 시 루트2 정규화 속도 보정 적용
         if (dx !== 0 && dy !== 0) {
@@ -1770,6 +2693,10 @@ class GameEngine {
 
         // Shift 달리기 가속 및 스태미너 소모 물리 연산
         let currentSpeed = this.player.ms;
+        // [E-08 신규 구현] Speed Ring 10레벨 초월: 초신성 기동 50% 폭발적 가속 보정!
+        if (this.player.supernovaTimer > 0) {
+            currentSpeed *= 1.5;
+        }
         const isSprinting = this.keys['shift'] && this.player.stamina > 3 && (dx !== 0 || dy !== 0);
 
         if (isSprinting) {
@@ -1810,10 +2737,10 @@ class GameEngine {
         this.player.isStopped = (dx === 0 && dy === 0);
 
         // 4. 주무기 격발 메커니즘 (마우스 클릭 시 사격)
-        if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'dual')) {
             this.shootWeapon();
         }
-        if (this.mouse.isDown && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
             this.slashWeapon();
         }
 
@@ -1821,10 +2748,48 @@ class GameEngine {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             let b = this.bullets[i];
             b.update(this.monsters);
+
+            // [W-04 검 탄막 절단 기믹]
+            if (!b.isPlayerBullet && this.player.isSlashActive) {
+                let swordDist = Math.hypot(b.x - this.player.x, b.y - this.player.y);
+                if (swordDist < this.player.slashRadius + b.radius) {
+                    let targetAngle = Math.atan2(b.y - this.player.y, b.x - this.player.x);
+                    let angleDiff = Math.abs(targetAngle - this.player.slashAngle);
+                    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+                    
+                    if (Math.abs(angleDiff) < 1.1) {
+                        Sound.play('dodge'); // 튕김 금속 틱음
+                        for (let k = 0; k < 4; k++) {
+                            let randAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 1;
+                            this.particles.push(new Particle(b.x, b.y, '#b026ff', 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
+                        }
+                        this.showFloatingText("CUT! ⚔️", b.x, b.y - 15, '#b026ff');
+                        this.bullets.splice(i, 1);
+                        continue; // 탄환 소멸되었으므로 이후 로직 스킵
+                    }
+                }
+            }
             
             // 화면 밖으로 나가거나 수명이 다하면 소멸
             if (b.x < 35 || b.x > 765 || b.y < 35 || b.y > 565 || b.life <= 0) {
                 this.bullets.splice(i, 1);
+            }
+        }
+
+        // [W-08 시간 왜곡 마법의 석상화 기믹]
+        if (this.timeDilationActive) {
+            for (let m of this.monsters) {
+                // 매 프레임 1% 확률로 몬스터 시간 완전 정지 (2초=120프레임 기절)
+                if (Math.random() < 0.01) {
+                    m.statusEffects.shock = Math.max(m.statusEffects.shock || 0, 120);
+                    this.showFloatingText("TIME STOPPED! ⏳", m.x, m.y - 25, '#b026ff');
+                    
+                    // 정지 시 은은한 보라 파티클
+                    for (let k = 0; k < 3; k++) {
+                        this.particles.push(new Particle(m.x, m.y, '#b026ff', 2, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, 15, 'spark'));
+                    }
+                }
             }
         }
 
@@ -1881,12 +2846,54 @@ class GameEngine {
                         // 검 베기 디버프 부여 (vulnerability: 4초간 25% 데미지 증폭)
                         m.statusEffects.vulnerability = 240;
 
-                        let finalDmg = this.player.atk * 1.5 * synergyMult;
+                        // [신규 기획] Mana Helm 10레벨 초월: 마나가 100% 가득 찬 상태일 때 근접 공격 뎀증 25% 가산!
+                        let helmDmgBonus = 1.0;
+                        if (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) {
+                            helmDmgBonus = 1.25;
+                        }
+
+                        let finalDmg = this.player.atk * 1.5 * synergyMult * helmDmgBonus;
                         if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+
+                        // [신규] 근접 검 베기 물리 타격 시 동결(Frozen) 3배 파쇄 치명타 콤보 판정
+                        let hasShattered = false;
+                        if (m.isFrozenActive > 0) {
+                            if (Math.random() < 0.3) {
+                                finalDmg *= 3.0; // 3배 피해 폭증
+                                hasShattered = true;
+                                m.isFrozenActive = 0;
+                                m.statusEffects.shock = 0;
+                            }
+                        }
+
                         m.hp -= finalDmg; // 칼은 50% 강력한 계수 피해
                         m.flashTimer = 5;
                         m.knockbackX = Math.cos(targetAngle) * 6; // 대폭 넉백
                         m.knockbackY = Math.sin(targetAngle) * 6;
+
+                        if (hasShattered) {
+                            this.showFloatingText("❄️ FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
+                            this.shakeScreen(12, 5.0);
+                            Sound.play('explosion');
+                            
+                            // 은백색 파쇄 스파크 얼음 파편
+                            for (let k = 0; k < 12; k++) {
+                                let angle = Math.random() * Math.PI * 2;
+                                let speed = Math.random() * 4 + 2;
+                                this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
+                            }
+                        }
+                        
+                        // [신규 기획] Reach Gloves 10레벨 초월: 근접 타격 시 전방 충격파 방출!
+                        if (this.player.equipLevels.gloves === 10) {
+                            if (!m.hasShockwaveTriggeredThisFrame) {
+                                m.hasShockwaveTriggeredThisFrame = true;
+                                setTimeout(() => { m.hasShockwaveTriggeredThisFrame = false; }, 200); // 0.2초 쿨다운
+                                
+                                this.triggerBulletSplash(m.x, m.y, 65, this.player.atk * 0.40 * helmDmgBonus);
+                                this.showFloatingText("SHOCKWAVE!", m.x, m.y - 30, '#ffdf00');
+                            }
+                        }
                         
                         // [Spectral Blade 시너지: 검 베기 타격 시 25% 확률로 유도탄 1발 추가 사출]
                         if (synergyMult >= 1.3 && Math.random() < 0.25) {
@@ -1903,8 +2910,7 @@ class GameEngine {
                             let speed = Math.random() * 4 + 2;
                             this.particles.push(new Particle(m.x, m.y, '#b026ff', 2.5, Math.cos(targetAngle + Math.random() - 0.5) * speed, Math.sin(targetAngle + Math.random() - 0.5) * speed, 20));
                         }
-
-                        // 몬스터 처사 체크
+                         // 몬스터 처사 체크
                         if (m.hp <= 0) {
                             this.killMonster(m, i);
                             continue; // 이미 사망 처리되어 몬스터 루프 탈출
@@ -1922,23 +2928,119 @@ class GameEngine {
                     let bDist = Math.hypot(m.x - b.x, m.y - b.y);
                     if (bDist < m.radius + b.radius) {
                         
-                        // 탄환 성격별 디버프 부여
-                        if (b.splash > 0) {
-                            m.statusEffects.shock = 60; // 기절 1초
+                        // [W-02 채찍(Whip) 견인 및 그랩 물리 로직]
+                        if (b.isWhip) {
+                            let pullAngle = this.player.angle;
+                            let pullX = this.player.x + Math.cos(pullAngle) * 35;
+                            let pullY = this.player.y + Math.sin(pullAngle) * 35;
+                            
+                            m.x = pullX;
+                            m.y = pullY;
+                            
+                            // 맵 마진 이탈 방지 가두기
+                            const wallMargin = 40;
+                            m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
+                            m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                            
+                            // 1.5초 기절(90프레임) 및 백색 플래시
+                            m.statusEffects.shock = 90;
+                            m.flashTimer = 8;
+                            
+                            // 3초간 공속 +20% 상승 (최대 3중첩) 연계 버프
+                            this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
+                            this.player.whipSpeedTimer = 180; // 180프레임 = 3초
+                            
+                            this.showFloatingText(`GRAB PULL! ⛓️ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
+                            Sound.play('dodge');
+                            
+                            // 사슬 폭발 조각들
+                            for (let k = 0; k < 8; k++) {
+                                let angle = Math.random() * Math.PI * 2;
+                                let speed = Math.random() * 4 + 2;
+                                this.particles.push(new Particle(m.x, m.y, '#ff00aa', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15, 'spark'));
+                            }
+                            
+                            // 사슬 투사체 소멸
+                            this.bullets.splice(j, 1);
+                            
+                            // 데미지 가함
+                            m.hp -= b.damage;
+                            if (m.hp <= 0) {
+                                this.killMonster(m, i);
+                            }
+                            break; // 몬스터가 사망했거나 탄환이 소멸했으므로 충돌체크 루프 탈출
+                        }
+
+                        // [신규] 원소 탄환 성격별 디버프 부여
+                        if (b.isFire) {
+                            m.statusEffects.burn = 240; // 4초 지속 화상
+                            m.statusEffects.burnStack = Math.min(5, (m.statusEffects.burnStack || 0) + 1); // 화상 1중첩 가산
+                        } else if (b.isIce) {
+                            m.statusEffects.freeze = Math.min(100, (m.statusEffects.freeze || 0) + 25); // 빙결 축적율 +25%
                         } else {
-                            m.statusEffects.slow = 180; // 감속 3초
+                            if (b.splash > 0) {
+                                m.statusEffects.shock = 60; // 기절 1초
+                            } else {
+                                m.statusEffects.slow = 180; // 감속 3초
+                            }
                         }
 
                         // 데미지 계산 및 백색 깜빡임 피드백 (취약 데미지 증폭)
                         let finalDmg = b.damage;
+                        let isSpearTip = false;
+                        if (b.isSpear) {
+                            let flightDist = Math.hypot(b.x - b.startX, b.y - b.startY);
+                            // 사거리의 80% 이상에서 조준 찌르기 타격 시 2배 크리티컬
+                            if (flightDist >= this.player.range * 0.80) {
+                                finalDmg *= 2.0;
+                                isSpearTip = true;
+                            }
+                        }
+
                         if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+
+                        // [신규] 얼음 동결 완전 정지 상태 시 물리 무기 피격 콤보 판정 (3배 파쇄 피해)
+                        let hasShattered = false;
+                        if (m.isFrozenActive > 0 && !b.isLightning) {
+                            if (Math.random() < 0.3) {
+                                finalDmg *= 3.0; // 300% 피해 폭증
+                                hasShattered = true;
+                                m.isFrozenActive = 0;
+                                m.statusEffects.shock = 0;
+                            }
+                        }
+
                         m.hp -= finalDmg;
                         m.flashTimer = 5;
+
+                        if (hasShattered) {
+                            this.showFloatingText("❄️ FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
+                            this.shakeScreen(12, 5.0);
+                            Sound.play('explosion');
+                            
+                            // 은백색 파쇄 스파크 파편 사출
+                            for (let k = 0; k < 12; k++) {
+                                let angle = Math.random() * Math.PI * 2;
+                                let speed = Math.random() * 4 + 2;
+                                this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
+                            }
+                        }
+
+                        // [W-07 신규 구현] 번개 마법 탄환인 경우 체인 라이트닝(연쇄 벼락) 전이 발동
+                        if (b.isLightning) {
+                            this.triggerChainLightning(b.x, b.y, m, 4, b.damage * 0.85); // 4회 전이, 85% 감쇄 대미지
+                        }
                         
-                        // 넉백 발생
+                        // 넉백 발생 (창은 벽꽝을 유도하기 위해 강력한 넉백 7.5 가동)
                         let hitAngle = Math.atan2(m.y - b.y, m.x - b.x);
-                        m.knockbackX = Math.cos(hitAngle) * 2;
-                        m.knockbackY = Math.sin(hitAngle) * 2;
+                        let kbForce = b.isSpear ? 7.5 : 2.0;
+                        m.knockbackX = Math.cos(hitAngle) * kbForce;
+                        m.knockbackY = Math.sin(hitAngle) * kbForce;
+
+                        if (isSpearTip) {
+                            this.showFloatingText("⚡ SPEAR-TIP CRITICAL! ⚡", m.x, m.y - 35, '#00f0ff');
+                            this.shakeScreen(8, 3.8);
+                        }
 
                         Sound.play('hit');
 
@@ -1987,20 +3089,96 @@ class GameEngine {
             }
         }
 
-        // 8. 4개 문(포털) 진입 체크
+        // 8. 4개 문(포털) 진입 체크 및 보상 시스템 연동
         if (this.monsters.length === 0 && this.spawnQueue.length === 0) {
-            // 모든 적 소탕 시 문 개방(active) 및 보상 오버레이 띄우기 트리거
-            if (this.portals.length > 0 && !this.portals[0].active) {
-                this.portals.forEach(p => p.active = true);
-                
-                // 안전 지대인 1스테이지 시작 방 제외, 전투 끝났을 때만 보상 지급
-                if (this.roomNum > 1 || this.kills > 0) {
-                    // [추가] 10% 확률로 맵 클리어 시 방 중앙(400, 300)에 힐링 물약 드롭
-                    if (Math.random() < 0.10) {
-                        this.potions.push(new NeonPotion(400, 300));
-                        this.showFloatingText("HEALING POTION DROPPED!", 400, 270, '#39ff14');
+            // 모든 적 소탕 시점에 보상 스폰 (안전실인 1방 초기 시작 상태는 제외)
+            if (this.roomNum > 1 || this.kills > 0) {
+                // 아직 보상 오브젝트가 생성되지 않은 상태일 때 (방금 몬스터 격퇴 완료된 시점)
+                if (this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
+                    
+                    // A. 코인 정산 연산 (수정 2: 퍼펙트 보상 30% 하향 적용)
+                    let baseCoins = this.currentSpawnTotal * 2;
+                    let bonusCoins = 0;
+                    if (this.player.perfectClearFlag) {
+                        bonusCoins = Math.floor(baseCoins * 0.3); // 30% 보너스
                     }
-                    this.triggerRewardSelector();
+                    let totalGained = baseCoins + bonusCoins;
+                    // [W-08 신규 구현] 방 클리어 코인은 방 중앙(400, 300)에 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
+                    for (let k = 0; k < totalGained; k++) {
+                        this.coinsList.push(new NeonCoin(400, 300, 1));
+                    }
+
+                    // [수정] 결함 4: 상단 코인 영역 얼마+얼마 표기 및 시각적 맥동 이펙트 작렬!
+                    const coinCounter = document.getElementById('coin-counter');
+                    const coinGainPopup = document.getElementById('coin-gain-popup');
+                    const coinHudItem = coinCounter ? coinCounter.parentElement : null; // .hud-item
+
+                    if (coinGainPopup) {
+                        coinGainPopup.innerText = `+${totalGained}`;
+                        coinGainPopup.style.color = '#ffdf00';
+                        coinGainPopup.style.textShadow = '0 0 10px rgba(255, 223, 0, 0.8)';
+                        coinGainPopup.classList.remove('hidden');
+                        coinGainPopup.classList.remove('animate');
+                        // 리플로우 유도
+                        void coinGainPopup.offsetWidth;
+                        coinGainPopup.classList.add('animate');
+                    }
+
+                    if (coinHudItem) {
+                        coinHudItem.classList.remove('pulse');
+                        void coinHudItem.offsetWidth;
+                        coinHudItem.classList.add('pulse');
+                        setTimeout(() => {
+                            coinHudItem.classList.remove('pulse');
+                        }, 500);
+                    }
+                    
+                    // B. 안내 연출 최소화 (수정 1: 매번 뜨는 큰 팝업 피로도 방지를 위해 간결한 플로팅 텍스트 처리)
+                    if (this.player.perfectClearFlag) {
+                        this.showFloatingText(`+${totalGained} COINS (Perfect!)`, this.player.x, this.player.y - 30, '#ffdf00');
+                        Sound.play('coin');
+                    } else {
+                        this.showFloatingText(`+${totalGained} COINS`, this.player.x, this.player.y - 30, '#ffdf00');
+                        Sound.play('coin');
+                    }
+
+                    // C. 방 테마에 따른 보상 물리 스폰
+                    if (this.currentRoomType === 'shop') {
+                        // 자판기 타입 랜덤 배정 (스탯 60%, 무기 20%, 방어구 20%)
+                        let shopRand = Math.random();
+                        let machineType = 'stat';
+                        if (shopRand > 0.8) {
+                            machineType = 'equipment';
+                        } else if (shopRand > 0.6) {
+                            machineType = 'weapon';
+                        }
+                        
+                        this.vendingMachines.push(new VendingMachine(400, 300, machineType));
+                        this.showFloatingText("VENDING MACHINE ARRIVED!", 400, 240, '#ffdf00');
+                        
+                        // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭
+                        this.potions.push(new NeonPotion(400, 370));
+                        
+                        // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
+                        this.portals.forEach(p => p.active = true);
+                    } else {
+                        // 스탯, 무기, 방어구 중 해당 타입의 보상 상자 스폰
+                        this.rewardChests.push(new RewardChest(400, 300, this.currentRoomType));
+                        this.showFloatingText("REWARD CHEST ARRIVED!", 400, 240, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
+                    }
+
+                    // [신규 기획] 상자/자판기 스폰 시 화려한 네온 글로우 파티클 분수 격발 (30개)
+                    let spawnColor = this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : (this.currentRoomType === 'equipment' ? '#ff6c00' : '#ffdf00'));
+                    for (let k = 0; k < 30; k++) {
+                        let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5; // 하늘 위 방향 부채꼴 분수
+                        let pSpeed = Math.random() * 5 + 2.5;
+                        this.particles.push(new Particle(400, 300, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+                    }
+                }
+            } else {
+                // 1방 시작 안전실일 경우 즉시 개방
+                if (this.portals.length > 0 && !this.portals[0].active) {
+                    this.portals.forEach(p => p.active = true);
                 }
             }
 
@@ -2013,6 +3191,138 @@ class GameEngine {
             }
         }
 
+        // [신규 기획] 보상 상자(Reward Chest) 물리 충돌 검사
+        for (let i = this.rewardChests.length - 1; i >= 0; i--) {
+            let chest = this.rewardChests[i];
+            if (!chest.active) continue;
+            let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
+            if (dist < this.player.radius + 18) { // 상자 가로폭 충돌 반경 보정
+                chest.active = false;
+                
+                // 네온 파편 스파크 폭발 이펙트
+                for (let k = 0; k < 25; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 5 + 2;
+                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+                }
+                Sound.play('victory');
+                
+                // 3택1 카드 오버레이 트리거 해금
+                this.triggerRewardSelector();
+                
+                // 상자 삭제
+                this.rewardChests.splice(i, 1);
+            }
+        }
+
+        // [수정] 결함 3: 자판기 상점(Vending Machine) 물리 충돌 및 들이받기 구매 검사
+        for (let i = this.vendingMachines.length - 1; i >= 0; i--) {
+            let vm = this.vendingMachines[i];
+            if (!vm.active) continue;
+            let dist = Math.hypot(this.player.x - vm.x, this.player.y - vm.y);
+            if (dist < this.player.radius + 24) { // 자판기 물리 충돌 반경
+                if (this.vendingCooldown === 0) {
+                    let price = vm.getPrice();
+                    if (this.player.coins >= price) {
+                        let cards = this.generateRewardCardsData(this.currentSpawnTotal);
+                        if (cards.length > 0) {
+                            let chosenCard = cards[0]; // 1번째 슬롯 카드를 무작위 획득 배정
+                            
+                            this.player.coins -= price;
+                            vm.purchaseCount++;
+                            this.vendingCooldown = 60; // 1.0초 쿨다운으로 연사/중복 들이받기 방지
+                            
+                            Sound.play('powerup');
+                            
+                            // [수정] 결함 4: 자판기 구매 시 마이너스 코인 연출 상단 결합!
+                            const coinGainPopup = document.getElementById('coin-gain-popup');
+                            if (coinGainPopup) {
+                                coinGainPopup.innerText = `-${price}`;
+                                coinGainPopup.style.color = '#ff0055';
+                                coinGainPopup.style.textShadow = '0 0 10px rgba(255, 0, 85, 0.8)';
+                                coinGainPopup.classList.remove('hidden');
+                                coinGainPopup.classList.remove('animate');
+                                void coinGainPopup.offsetWidth;
+                                coinGainPopup.classList.add('animate');
+                            }
+                            
+                            // [수정] 결함 해결: 들이받는 즉시 플레이어를 자판기 정반대 방향으로 38px 물리적으로 팅겨나가게 밀어냄! (연속 자동 구매 예방)
+                            let bounceAngle = Math.atan2(this.player.y - vm.y, this.player.x - vm.x);
+                            this.player.x += Math.cos(bounceAngle) * 38;
+                            this.player.y += Math.sin(bounceAngle) * 38;
+                            
+                            // 맵 경계선 마진 밖으로 탈출하는 것을 방지하기 위해 플레이어 맵 가두기 보정 추가
+                            const wallMargin = 40;
+                            this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
+                            this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
+                            
+                            // 팅겨나갈 때 귀여운 튕김 스파크 6개 발생
+                            for (let k = 0; k < 6; k++) {
+                                let angle = bounceAngle + (Math.random() * 0.8 - 0.4);
+                                let speed = Math.random() * 3 + 1.5;
+                                this.particles.push(new Particle(this.player.x, this.player.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
+                            }
+                            Sound.play('dodge'); // 통 튕기는 회피 효과음 출력
+                            
+                            // 자판기 위에 카드 모양 퐁 날려보내기 파티클
+                            for (let k = 0; k < 15; k++) {
+                                let pAngle = -Math.PI/2 + (Math.random() - 0.5) * 1.2;
+                                let pSpeed = Math.random() * 4 + 2;
+                                this.particles.push(new Particle(vm.x, vm.y - 20, vm.color, 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
+                            }
+                            
+                            // [수정] 즉시 획득 대신 상점 구매 완료 오버레이 호출하여 유저 승인/확인 유도!
+                            this.triggerShopPurchaseConfirmation(chosenCard, vm.color);
+                        }
+                    } else {
+                        // 잔액 부족 알림
+                        this.vendingCooldown = 30;
+                        Sound.play('hit');
+                        this.showFloatingText(`NOT ENOUGH COIN (NEED 🪙${price})`, this.player.x, this.player.y - 30, '#ff0055');
+                    }
+                }
+            }
+        }
+
+
+        // [추가] 힐링 물약 자석 블랙홀 흡입 및 업데이트 물리 연산
+        for (let i = this.potions.length - 1; i >= 0; i--) {
+            let pot = this.potions[i];
+            
+            // 물약 생성자 속성 누락 대비 방어 코드
+            if (pot.vx === undefined) pot.vx = 0;
+            if (pot.vy === undefined) pot.vy = 0;
+            
+            let potDist = Math.hypot(this.player.x - pot.x, this.player.y - pot.y);
+            let pullRadius = 70; // 평소 자석 반경 70px
+            
+            if (this.timeDilationActive) {
+                pullRadius = 1000; // 시간 왜곡 시 초강력 블랙홀 흡입
+            }
+            
+            if (potDist < pullRadius) {
+                let pullForce = this.timeDilationActive ? 12.0 : 4.0;
+                let angleToPlayer = Math.atan2(this.player.y - pot.y, this.player.x - pot.x);
+                pot.vx += Math.cos(angleToPlayer) * pullForce * 0.15;
+                pot.vy += Math.sin(angleToPlayer) * pullForce * 0.15;
+                
+                let currentSpeed = Math.hypot(pot.vx, pot.vy);
+                let maxSpeed = this.timeDilationActive ? 15.0 : 6.0;
+                if (currentSpeed > maxSpeed) {
+                    pot.vx = (pot.vx / currentSpeed) * maxSpeed;
+                    pot.vy = (pot.vy / currentSpeed) * maxSpeed;
+                }
+                
+                pot.x += pot.vx;
+                pot.y += pot.vy;
+            } else {
+                pot.vx *= 0.95;
+                pot.vy *= 0.95;
+                pot.x += pot.vx;
+                pot.y += pot.vy;
+            }
+        }
+
         // [추가] 힐링 물약 실시간 습득 충돌 검사
         for (let i = this.potions.length - 1; i >= 0; i--) {
             let pot = this.potions[i];
@@ -2020,6 +3330,12 @@ class GameEngine {
             if (potDist < this.player.radius + pot.radius) {
                 // 최대 체력의 10% 치유 처리
                 let healAmount = this.player.maxHp * 0.10;
+                
+                // [신규 기획] Health Ring 5레벨 돌파: 힐 포션 치유 효율 50% 버프 적용!
+                if (this.player.equipLevels.ring_hp >= 5) {
+                    healAmount *= 1.5;
+                }
+                
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
                 
                 // 치유 성공 텍스트 및 효과음
@@ -2038,12 +3354,94 @@ class GameEngine {
             }
         }
 
+        // [W-08 신규 구현] 드롭 코인 실시간 업데이트 및 플레이어 습득 충돌 검사
+        for (let i = this.coinsList.length - 1; i >= 0; i--) {
+            let coin = this.coinsList[i];
+            
+            // 코인 물리 및 자석 이동 처리
+            coin.update(this.player, this.timeDilationActive);
+            
+            // 플레이어와 충돌 시 획득
+            let dist = Math.hypot(this.player.x - coin.x, this.player.y - coin.y);
+            if (dist < this.player.radius + coin.radius) {
+                this.player.coins += coin.amount;
+                
+                // 골드 획득 텍스트
+                this.showFloatingText(`+${coin.amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
+                Sound.play('coin');
+                
+                // 황금색 스파크 파티클 연출
+                for (let k = 0; k < 6; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 2 + 1;
+                    this.particles.push(new Particle(coin.x, coin.y, '#ffdf00', 1.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15));
+                }
+                
+                // [신규 기획] 실시간 코인 HUD 연출 트리거
+                const coinCounter = document.getElementById('coin-counter');
+                const coinGainPopup = document.getElementById('coin-gain-popup');
+                if (coinGainPopup) {
+                    coinGainPopup.innerText = `+${coin.amount}`;
+                    coinGainPopup.style.color = '#ffdf00';
+                    coinGainPopup.classList.remove('hidden');
+                    coinGainPopup.classList.remove('animate');
+                    void coinGainPopup.offsetWidth; // 리플로우
+                    coinGainPopup.classList.add('animate');
+                }
+                
+                // 코인 삭제
+                this.coinsList.splice(i, 1);
+            }
+        }
+
         // 게이지 바 텍스트 실시간 출력 동기화
         this.updateHUD();
     }
 
+    // [신규] W-05 불마법 화상 5중첩 사망 시 사방 연쇄 폭발 트리거
+    triggerFireExplosion(x, y) {
+        Sound.play('explosion');
+        // 불타는 붉은색 파티클 20개 사방으로 폭사
+        for (let k = 0; k < 20; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 4 + 1.5;
+            this.particles.push(new Particle(x, y, '#ff5e00', 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 25, 'spark'));
+        }
+        
+        const fireExplosionRadius = 120;
+        const fireExplosionDmg = this.player.atk * 1.8;
+        
+        this.showFloatingText("🔥 FIRE EXPLOSION! 🔥", x, y - 30, '#ff5e00');
+        this.shakeScreen(10, 4.0);
+        
+        // 사망 몬스터 주변 적들에게 연쇄 대폭발 데미지
+        for (let m of this.monsters) {
+            let dist = Math.hypot(m.x - x, m.y - y);
+            if (dist < fireExplosionRadius + m.radius) {
+                let finalDmg = fireExplosionDmg;
+                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                m.hp -= finalDmg;
+                m.flashTimer = 5;
+                
+                // 넉백 반사
+                let angle = Math.atan2(m.y - y, m.x - x);
+                m.knockbackX += Math.cos(angle) * 4.5;
+                m.knockbackY += Math.sin(angle) * 4.5;
+                
+                // 전이 화상 스택 1개 자동 축적
+                m.statusEffects.burn = 240; // 4초 지속
+                m.statusEffects.burnStack = Math.min(5, (m.statusEffects.burnStack || 0) + 1);
+            }
+        }
+    }
+
     // 몬스터 처치 성공
     killMonster(m, index) {
+        // [신규] 사망 시 화상 5중첩이면 연쇄 대폭발 트리거 작동
+        if (m.statusEffects && m.statusEffects.burnStack >= 5) {
+            this.triggerFireExplosion(m.x, m.y);
+        }
+
         this.monsters.splice(index, 1);
         this.kills++;
         this.comboCount++;
@@ -2055,7 +3453,35 @@ class GameEngine {
         // 몬스터 처치 시 마력(MP) 게이지 충전
         let mpGain = 4 + (this.player.luk * 0.5); // 운 스탯이 높을수록 마력 충전량 상승
         if (m.isElite) mpGain *= 5; // 엘리트 몬스터 처치 시 MP 충전량 5배!
+        
+        // [신규 기획] Mana Ring 5레벨 돌파: 처치 시 마나 3% 즉시 환급!
+        if (this.player.equipLevels.ring_mp >= 5) {
+            mpGain += this.player.maxMp * 0.03;
+        }
+        
         this.player.mp = Math.min(this.player.maxMp, this.player.mp + mpGain);
+
+        // [W-04 검 흡혈 베기 기믹]
+        if (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual') {
+            if (this.player.hp < this.player.maxHp) {
+                let healAmount = Math.max(1, (this.player.maxHp - this.player.hp) * 0.01);
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
+                this.showFloatingText(`LIFESTEAL +${Math.round(healAmount)} ❤️`, this.player.x, this.player.y - 30, '#ff0055');
+            }
+        }
+
+        // [W-08 신규 구현] 몬스터 처치 시 바닥에 황금 코인 드롭
+        let coinDropCount = m.isElite ? 8 : 2;
+        // Luck Amulet 5레벨 돌파 보너스 코인은 20개 드롭
+        if (m.isElite && this.player.equipLevels.necklace >= 5) {
+            coinDropCount += 20;
+            this.potions.push(new NeonPotion(m.x, m.y));
+            this.showFloatingText(`LUCKY DROP! 🪙`, m.x, m.y - 45, '#ffdf00');
+        }
+        
+        for (let k = 0; k < coinDropCount; k++) {
+            this.coinsList.push(new NeonCoin(m.x, m.y, 1));
+        }
 
         // 몬스터 사망 시 흩어지는 빛 파편 (엘리트는 2배 풍성)
         let particleCount = m.isElite ? 25 : 12;
@@ -2069,6 +3495,15 @@ class GameEngine {
         if (m.isElite) {
             this.showFloatingText("ELITE DEFEATED!", m.x, m.y - 25, '#39ff14');
             this.shakeScreen(15, 6.5);
+            
+            // [신규 기획] Luck Amulet 5레벨 돌파: 정예 처치 시 드롭 2배 (물약 추가 드롭 + 특별 코인 20개 환수)
+            if (this.player.equipLevels.necklace >= 5) {
+                this.potions.push(new NeonPotion(m.x, m.y));
+                let luckCoins = 20;
+                this.player.coins += luckCoins;
+                this.showFloatingText(`+${luckCoins} LUCKY COINS!`, m.x, m.y - 45, '#ffdf00');
+                Sound.play('coin');
+            }
         } else {
             this.shakeScreen(6, 3);
         }
@@ -2077,25 +3512,106 @@ class GameEngine {
         Sound.play('hit');
     }
 
-    // 플레이어 피격 연산 (회피 확률 연계)
+    // 플레이어 피격 연산 (회피 확률 연계 및 신규 장비 초월 마스터리 연계)
     damagePlayer(amount, fromX, fromY) {
+        // [신규 기획] Stamina Boots 10레벨 마스터리: 대시 중 완전 무적 회피 관통!
+        if (this.player.equipLevels.boots === 10 && this.keys['shift'] && this.player.stamina > 0) {
+            this.showFloatingText("INVISIBLE EVD", this.player.x, this.player.y - 20, '#39ff14');
+            return;
+        }
+
         // 민첩(evd) 스탯 기반으로 회피 성공 여부 판정
-        if (Math.random() < this.player.evd) {
+        let evdRate = this.player.evd;
+        // [신규 기획] Stamina Boots 5레벨 돌파: 대시 중 EVD 15% 추가 가산!
+        if (this.player.equipLevels.boots >= 5 && this.keys['shift'] && this.player.stamina > 0) {
+            evdRate += 0.15;
+        }
+
+        if (Math.random() < evdRate) {
             // 회피 대성공! 1~2px 붉은색 잔상 실루엣 및 DODGE 피드백 가동
             this.player.triggerEvade(fromX, fromY);
             
-            // "MISS / DODGE" 데미지 텍스트 팝업 이펙트 연출을 위한 가짜 파티클 생성
-            // 텍스트는 캔버스 렌더러에 직접 그리는 방식을 사용하므로 dodge 팝업 띄움
-            this.showFloatingText("DODGE", this.player.x, this.player.y - 20, '#ff0055');
+            // [신규 기획] Evasion Ring 5레벨 돌파: 회피 대성공 시 주변 적 1.5초간 기절 네온 섬광 작렬!
+            if (this.player.equipLevels.ring_evd >= 5) {
+                this.showFloatingText("PHANTOM STUN FLASH!", this.player.x, this.player.y - 35, '#ff0055');
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ff0055', 40, 0, 0, 20, 'explosionRing'));
+                for (let m of this.monsters) {
+                    let mDist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                    if (mDist < 120 + m.radius) {
+                        m.statusEffects.shock = 90; // 1.5초간 무력화 기절
+                    }
+                }
+            } else {
+                this.showFloatingText("DODGE", this.player.x, this.player.y - 20, '#ff0055');
+            }
+            
+            // [E-08 신규 구현] Speed Ring 10레벨 초월: 스치기 회피 성공 시 초신성 3초간 50% 폭발적 가속 활성화!
+            if (this.player.equipLevels.ring_speed === 10) {
+                this.player.supernovaTimer = 180;
+                this.showFloatingText("SUPERNOVA ACCEL! 🌟", this.player.x, this.player.y - 35, '#ffdf00');
+            }
             return;
         }
 
         // 회피에 실패하면 쉴드나 방어율(최대체력/200)을 감산하여 최종 데미지 적용
         // 힘(ATK) 스탯이나 방어 스탯에 의해 경감
+        this.player.perfectClearFlag = false; // [신규 기획] 실제로 데미지를 입으면 퍼펙트 클리어 플래그 해제!
+        this.player.lastHitTimer = 0;         // [신규 기획] 피격 당했으므로 무사고 타이머 리셋!
+        
         let defense = (this.player.maxHp - 100) * 0.15; // 최대 HP가 기본값 100보다 클수록 15% 방어력 감소율 획득
         let finalDamage = Math.max(1, amount - defense);
         
+        // [신규 기획] Plate Armor 5레벨 돌파: 체력 30% 이하일 때 최종 데미지 20% 영구 감산 보호!
+        if (this.player.equipLevels.armor >= 5 && (this.player.hp / this.player.maxHp) < 0.3) {
+            finalDamage *= 0.8;
+        }
+
         this.player.hp = Math.max(0, this.player.hp - finalDamage);
+        
+        // [W-01 가시 탱커 반사 기믹]
+        if (this.player.hasThorns) {
+            const thornsRadius = 120;
+            const reflectDamage = finalDamage; // 받은 대미지 100% 반사
+            
+            this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', thornsRadius, 0, 0, 20, 'explosionRing'));
+            this.player.thornsFieldTimer = 180; // 3초간 가시 장막 활성화
+
+            // 10% 확률 보복형 유도 가시 사출 (명중을 유발한 몬스터 좌표 방향)
+            if (Math.random() < 0.10) {
+                let angle = Math.atan2(fromY - this.player.y, fromX - this.player.x);
+                this.bullets.push(new Bullet(this.player.x, this.player.y, Math.cos(angle) * 7.0, Math.sin(angle) * 7.0, this.player.atk * 1.2, true, {
+                    homing: true,
+                    homingSpeed: 0.15,
+                    color: '#ff00aa',
+                    radius: 5,
+                    life: 120
+                }));
+                this.showFloatingText("THORN REVENGE! 🌵", this.player.x, this.player.y - 30, '#ff00aa');
+            }
+
+            // 반경 120px 내의 모든 적들에게 피해 배분/반사
+            for (let i = this.monsters.length - 1; i >= 0; i--) {
+                let m = this.monsters[i];
+                let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                if (dist < thornsRadius + m.radius) {
+                    let fDmg = reflectDamage;
+                    if (m.statusEffects.vulnerability > 0) fDmg *= 1.25;
+                    m.hp -= fDmg;
+                    m.flashTimer = 5;
+                    
+                    let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                    m.knockbackX += Math.cos(angle) * 3.5;
+                    m.knockbackY += Math.sin(angle) * 3.5;
+
+                    this.showFloatingText(`REFLECT -${Math.ceil(fDmg)}`, m.x, m.y - 20, '#ff00aa');
+                    
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+
         this.shakeScreen(15, 6);
         Sound.play('hit');
 
@@ -2106,9 +3622,18 @@ class GameEngine {
             this.particles.push(new Particle(this.player.x, this.player.y, '#ff0055', 2.5, Math.cos(angle) * speed, Math.sin(angle) * speed, 20));
         }
 
-        // 캐릭터 사망 시 게임오버
+        // 캐릭터 사망 시 게임오버 판정 분기
         if (this.player.hp <= 0) {
-            this.triggerGameOver();
+            // [신규 기획] Plate Armor 10레벨 초월 마스터리: 사망 직전 최대 체력의 50%로 1회 극적 부활!
+            if (this.player.equipLevels.armor === 10 && !this.player.resurrected) {
+                this.player.resurrected = true;
+                this.player.hp = this.player.maxHp * 0.5; // 50% 충전 부활
+                this.showFloatingText("GUARDIAN RESURRECTION ACTIVE! (+50% HP)", this.player.x, this.player.y - 30, '#ffdf00');
+                Sound.play('victory');
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ffdf00', 50, 0, 0, 30, 'explosionRing'));
+            } else {
+                this.triggerGameOver();
+            }
         }
     }
 
@@ -2145,14 +3670,137 @@ class GameEngine {
         }
     }
 
-    // 총탄 주무기 발사 메커니즘
+    // [W-07 신규 구현] 체인 라이트닝(연쇄 벼락) 전이 트리거
+    triggerChainLightning(startX, startY, currentEnemy, chainsLeft, damage) {
+        if (chainsLeft <= 0 || this.monsters.length === 0) return;
+        
+        // 전이 타격 노랑 네온 낙뢰 이펙트 파티클
+        for (let k = 0; k < 6; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 3 + 1;
+            this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
+        }
+        
+        // 주변 몬스터 중 가장 가까운 다른 몬스터 탐색 (번개 전이 거리 180px 제한)
+        let nextTarget = null;
+        let minDist = 180; // 최대 전이 거리
+        
+        for (let other of this.monsters) {
+            if (other === currentEnemy) continue;
+            let dist = Math.hypot(other.x - currentEnemy.x, other.y - currentEnemy.y);
+            if (dist < minDist) {
+                minDist = dist;
+                nextTarget = other;
+            }
+        }
+        
+        if (nextTarget) {
+            // 연쇄 번개 전류 와이어 시각 효과 파티클 (두 몬스터 사이에 선 형태로 5개 뿌림)
+            let dx = nextTarget.x - currentEnemy.x;
+            let dy = nextTarget.y - currentEnemy.y;
+            for (let i = 0; i <= 5; i++) {
+                let step = i / 5;
+                let px = currentEnemy.x + dx * step;
+                let py = currentEnemy.y + dy * step;
+                this.particles.push(new Particle(px, py, '#ffdf00', 1.8, 0, 0, 15, 'spark'));
+            }
+            
+            // 다음 타겟에게 감전 피해 및 0.75초 기절(Stun) 부여
+            let finalDmg = damage;
+            if (nextTarget.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+            nextTarget.hp -= finalDmg;
+            nextTarget.flashTimer = 5;
+            nextTarget.statusEffects.shock = Math.max(nextTarget.statusEffects.shock || 0, 45); // 감전 마비
+            
+            Sound.play('hit');
+            
+            // 몬스터 처사 체크
+            if (nextTarget.hp <= 0) {
+                let idx = this.monsters.indexOf(nextTarget);
+                if (idx !== -1) {
+                    this.killMonster(nextTarget, idx);
+                }
+            }
+            
+            // 재귀적으로 다음 전이 격발 (약 0.06초 후 전이되도록 지연 실행 연출)
+            setTimeout(() => {
+                if (this.isPlaying) {
+                    this.triggerChainLightning(currentEnemy.x, currentEnemy.y, nextTarget, chainsLeft - 1, damage * 0.85);
+                }
+            }, 60);
+        }
+    }
+
+    // 주무기 탄환 및 마법 격발 메커니즘
     shootWeapon() {
-        // 지능(aspd)에 연동한 연사 쿨타임 주기 (기본 초당 1.0번 공격 -> 60프레임 / aspd)
-        let cooldownFrames = Math.max(10, 60 / this.player.aspd);
+        let isLightning = this.player.weaponType === 'lightning';
+        let isFire = this.player.weaponType === 'fire';
+        let isIce = this.player.weaponType === 'ice';
+        let isWhip = this.player.weaponType === 'whip';
+        let isDual = this.player.weaponType === 'dual';
+        
+        // 번개/불/얼음 마법 격발 시 마력(MP) 소모 및 잔량 차단 체크
+        if (isLightning || isFire || isIce) {
+            let isFreeMana = false;
+            // Mana Helm 5레벨 돌파: 20% 확률 마나 소모 면제 무료 시전
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                isFreeMana = true;
+                this.showFloatingText("FREE MANA CAST! 🔮", this.player.x, this.player.y - 30, '#00f0ff');
+            }
+            
+            if (this.player.mp < 3.0 && !isFreeMana) {
+                this.player.shootCooldown = 25; // 발사 불능 대기 프레임
+                this.showFloatingText("NEED MP! 🔮", this.player.x, this.player.y - 25, '#ffdf00');
+                Sound.play('hit');
+                return;
+            }
+            
+            if (!isFreeMana) {
+                this.player.mp = Math.max(0, this.player.mp - 3.0);
+            }
+        }
+
+        // 지능(aspd) 및 채찍 버프가 감안된 실효 공격 속도 연산
+        let activeAspd = this.player.getEffectiveAspd();
+        let cooldownFrames = Math.max(10, 60 / activeAspd);
+        
+        // E-09 Haste Ring 5레벨 돌파: 시전 딜레이 15% 영구 단축
+        if (this.player.equipLevels.ring_aspd >= 5) {
+            cooldownFrames *= 0.85;
+        }
+
+        // E-09 Haste Ring 10레벨 초월: 3초 연속 사격 시 하한선 해제 (10 -> 3프레임)
+        if (this.player.equipLevels.ring_aspd === 10 && this.player.continuousShootTimer >= 180) {
+            cooldownFrames = 3;
+        }
+
         this.player.shootCooldown = cooldownFrames;
         
         let startAngle = this.player.angle;
         let bulletsToLaunch = [];
+
+        // [W-02 채찍(Whip) 전용 사출 물리 로직]
+        if (isWhip) {
+            let speed = 9.0;
+            let vx = Math.cos(startAngle) * speed;
+            let vy = Math.sin(startAngle) * speed;
+            let bulletLife = 200 / speed; // 그랩 사거리 약 200px
+            
+            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, this.player.atk * 0.75, true, {
+                color: '#ff00aa',
+                radius: 6,
+                life: bulletLife,
+                isWhip: true
+            }));
+            
+            Sound.play('slash');
+            
+            // 사슬 네온 조각들
+            for (let i = 0; i < 4; i++) {
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
+            }
+            return; // 채찍 쐈으므로 아래 총알 격발은 스킵
+        }
 
         // 멀티샷(multishot) 부채꼴 살상 각도 배치
         if (this.player.multishot === 1) {
@@ -2167,30 +3815,60 @@ class GameEngine {
         }
 
         // 점사(burstCount) 횟수에 따른 0.08초 간격 순차 격발 큐 설정
-        // 점사는 매끄럽게 프레임을 쪼개서 bullets list에 주입
         let fireBulletPack = () => {
             // [모델 C] 투사체 사격 시너지 곱연산 대미지 배율 산출
             let synergyMult = this.checkBuildSynergy('gun');
-            let finalDamage = this.player.atk * synergyMult; // 시너지 뻥튀기 반영!
+
+            // [신규 기획] Mana Helm 10레벨 초월: 마나가 100% 가득 찬 상태일 때 투사체 대미지 25% 가산!
+            let helmDmgBonus = 1.0;
+            if (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) {
+                helmDmgBonus = 1.25;
+            }
+
+            // [E-08 신규 구현] Speed Ring 5레벨 돌파: 바람의 상처 2초 달리기 유지 시 공증 10% 가산 보정
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+
+            let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus;
 
             for (let angle of bulletsToLaunch) {
-                let speed = 7.0;
+                // dual(치트) 상태일 때는 3종 마법탄과 일반탄을 섞어서 폭사!
+                let bulletIsLightning = isLightning;
+                let bulletIsFire = isFire;
+                let bulletIsIce = isIce;
+                
+                if (isDual) {
+                    let randType = Math.random();
+                    if (randType < 0.25) bulletIsLightning = true;
+                    else if (randType < 0.5) bulletIsFire = true;
+                    else if (randType < 0.75) bulletIsIce = true;
+                }
+
+                let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
                 let vx = Math.cos(angle) * speed;
                 let vy = Math.sin(angle) * speed;
                 let bulletLife = this.player.range / speed;
                 
+                let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
+                if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
+                    bulletRadius = 4.8;
+                }
+                
                 this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                    pierce: this.player.pierceCount,
+                    pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
                     homing: this.player.homing,
-                    homingSpeed: this.player.homingAngleSpeed, // [추가] 유도 속도 선회율 연동
-                    splash: this.player.splashRadius,
-                    color: '#00f0ff',
-                    radius: 4,
-                    life: bulletLife
+                    homingSpeed: this.player.homingAngleSpeed,
+                    splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
+                    color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
+                    radius: bulletRadius,
+                    life: bulletLife,
+                    isLightning: bulletIsLightning,
+                    isFire: bulletIsFire,
+                    isIce: bulletIsIce,
+                    bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? 3 : 0 // [W-03 총 도탄 옵션 연동]
                 }));
             }
             Sound.play('shoot');
-            this.shakeScreen(3, 1.2);
+            this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
         };
 
         // 점사 딜레이 실행
@@ -2207,33 +3885,50 @@ class GameEngine {
         }
     }
 
-    // 근접 검 베기 메커니즘
+    // 근접 검 베기 및 창 찌르기 메커니즘
     slashWeapon() {
-        // 공속 쿨타임 적용
-        let cooldownFrames = Math.max(15, 50 / this.player.aspd);
+        // 공속 쿨타임 적용 (창은 찌르기이므로 쿨타임을 미세하게 짧게 설정 - DPS 극대화)
+        let isSpear = this.player.weaponType === 'spear';
+        let baseCd = isSpear ? 40 : 50;
+        let cooldownFrames = Math.max(isSpear ? 12 : 15, baseCd / this.player.aspd);
         this.player.slashCooldown = cooldownFrames;
         
         let fireSlashPack = () => {
-            // 베기 작동 모션 트리거
-            this.player.isSlashActive = true;
-            this.player.slashTimer = 12; // 12프레임간 휘두름 호가 그려짐
-            this.player.slashAngle = this.player.angle;
-            
-            Sound.play('slash');
-            this.shakeScreen(5, 2.5);
+            if (isSpear) {
+                // 창 찌르기 파티클 (일직선상으로 뿜어져 나옴)
+                let sAngle = this.player.angle;
+                for (let i = 0; i < 6; i++) {
+                    let distOffset = i * 8;
+                    let px = this.player.x + Math.cos(sAngle) * distOffset;
+                    let py = this.player.y + Math.sin(sAngle) * distOffset;
+                    let vx = Math.cos(sAngle) * 3;
+                    let vy = Math.sin(sAngle) * 3;
+                    this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
+                }
+                Sound.play('slash');
+                this.shakeScreen(4, 1.8);
+            } else {
+                // 베기 작동 모션 트리거
+                this.player.isSlashActive = true;
+                this.player.slashTimer = 12; // 12프레임간 휘두름 호가 그려짐
+                this.player.slashAngle = this.player.angle;
+                
+                Sound.play('slash');
+                this.shakeScreen(5, 2.5);
 
-            // 검풍 베기 파티클
-            let sAngle = this.player.angle;
-            for (let i = -5; i <= 5; i++) {
-                let offset = sAngle + (i * 0.15);
-                let px = this.player.x + Math.cos(offset) * 25;
-                let py = this.player.y + Math.sin(offset) * 25;
-                let vx = Math.cos(offset) * 2;
-                let vy = Math.sin(offset) * 2;
-                this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+                // 검풍 베기 파티클
+                let sAngle = this.player.angle;
+                for (let i = -5; i <= 5; i++) {
+                    let offset = sAngle + (i * 0.15);
+                    let px = this.player.x + Math.cos(offset) * 25;
+                    let py = this.player.y + Math.sin(offset) * 25;
+                    let vx = Math.cos(offset) * 2;
+                    let vy = Math.sin(offset) * 2;
+                    this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+                }
             }
 
-            // [보정 A] 멀티샷 부채꼴 검풍 사출
+            // [보정 A] 멀티샷 부채꼴 검풍/창살 사출
             let startAngle = this.player.angle;
             let anglesToLaunch = [];
             if (this.player.multishot === 1) {
@@ -2248,31 +3943,40 @@ class GameEngine {
             }
 
             let synergyMult = this.checkBuildSynergy('sword');
-            let swordDmg = this.player.atk * 1.2 * synergyMult * this.player.swordDmgUpgrade; // 검기 투사체 기본 피해 계수 (예도 강화 연동)
+            
+            // [E-08 신규 구현] Speed Ring 5레벨 돌파: 바람의 상처 2초 달리기 유지 시 공증 10% 가산 보정
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+
+            // 검기 또는 창 찌르기 대미지 보정 (창은 한방 관통 찌르기이므로 데미지 배율 1.35)
+            let baseMult = isSpear ? 1.35 : 1.2;
+            let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
 
             for (let angle of anglesToLaunch) {
-                let speed = 6.0;
+                let speed = isSpear ? 10.0 : 6.0; // 창은 검기보다 날카롭고 민첩하게 10.0의 속도로 날아감
                 let vx = Math.cos(angle) * speed;
                 let vy = Math.sin(angle) * speed;
-                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, swordDmg, true, {
-                    // [수정] 무제한 99회 관통에서 최대 5회 제한 캡으로 하향 패치 적용
-                    pierce: Math.min(5, this.player.pierceCount + 1), 
+                
+                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
+                    // 창은 관통을 기본적으로 2회 가산 획득하여 시원하게 관통함
+                    pierce: Math.min(5, this.player.pierceCount + (isSpear ? 2 : 1)), 
                     homing: this.player.homing,
-                    homingSpeed: this.player.homingAngleSpeed, // [추가] 유도 속도 캡 강화 연동
+                    homingSpeed: this.player.homingAngleSpeed,
                     splash: this.player.splashRadius,
-                    color: '#b026ff',
-                    radius: 5
+                    color: isSpear ? '#00f0ff' : '#b026ff',
+                    radius: isSpear ? 6 : 5,
+                    isSpear: isSpear // 창 여부 설정 전달
                 }));
             }
         };
 
-        // [보정 B] burstCount 횟수만큼 검을 시간차 연속 휘두름 (콤보 난무)
+        // [보정 B] burstCount 횟수만큼 검/창을 시간차 연속 휘두름/찌름 (난무)
         for (let b = 0; b < this.player.burstCount; b++) {
             if (b === 0) {
                 fireSlashPack();
             } else {
                 setTimeout(() => {
-                    if (this.isPlaying && this.player.isSlashActive) {
+                    // 찌르기/베기 모션 중이면 격발
+                    if (this.isPlaying && (this.player.isSlashActive || isSpear)) {
                         fireSlashPack();
                     }
                 }, b * 90);
@@ -2280,11 +3984,15 @@ class GameEngine {
         }
     }
 
+
     // HUD 데이터 동기화 및 바 게이지 드로잉
     updateHUD() {
         document.getElementById('room-counter').innerText = `${this.roomNum} / 100`;
         document.getElementById('score-counter').innerText = this.score;
         document.getElementById('monster-counter').innerText = `${this.monsters.length} / ${this.currentSpawnTotal}`;
+        
+        // [신규 기획] 실시간 보유 네온 코인 동기화
+        document.getElementById('coin-counter').innerText = `🪙 ${this.player.coins || 0}`;
 
         // 생명력 HP 연산
         let hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
@@ -2321,7 +4029,11 @@ class GameEngine {
         // 무기 상태 출력
         let wpnStr = "총 (Gun)";
         if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
-        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 (Hybrid)";
+        if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
+        if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
+        if (this.player.weaponType === 'fire') wpnStr = "불마법 (Fire)";
+        if (this.player.weaponType === 'ice') wpnStr = "얼음마법 (Ice)";
+        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
         document.getElementById('stat-wpn').innerText = wpnStr;
 
         document.getElementById('stat-bullets').innerText = `${this.player.multishot} / ${this.player.burstCount}`;
@@ -2358,30 +4070,61 @@ class GameEngine {
 
         // 카드 슬롯을 빌드
         const cardContainers = document.querySelectorAll('.reward-card');
-        const cardsData = this.generateRewardCardsData(this.currentSpawnTotal);
+        let cardsData = this.generateRewardCardsData(this.currentSpawnTotal);
 
-        cardContainers.forEach((cardEl, idx) => {
-            const data = cardsData[idx];
-            if (!data) return; // 예외 방지
+        const renderCards = (dataList) => {
+            cardContainers.forEach((cardEl, idx) => {
+                const data = dataList[idx];
+                if (!data) return; // 예외 방지
 
-            cardEl.className = `reward-card card-${data.rarity.toLowerCase()}`;
-            
-            // 카드 엘리먼트 데이터 채우기
-            const rarityTag = cardEl.querySelector('.card-rarity');
-            rarityTag.className = `card-rarity ${data.rarity.toLowerCase()}`;
-            rarityTag.innerText = data.rarity;
+                cardEl.className = `reward-card card-${data.rarity.toLowerCase()}`;
+                
+                // 카드 엘리먼트 데이터 채우기
+                const rarityTag = cardEl.querySelector('.card-rarity');
+                rarityTag.className = `card-rarity ${data.rarity.toLowerCase()}`;
+                rarityTag.innerText = data.rarity;
 
-            cardEl.querySelector('.card-icon').innerText = data.icon;
-            cardEl.querySelector('.card-title').innerText = data.title;
-            cardEl.querySelector('.card-desc').innerText = data.desc;
+                cardEl.querySelector('.card-icon').innerText = data.icon;
+                cardEl.querySelector('.card-title').innerText = data.title;
+                cardEl.querySelector('.card-desc').innerText = data.desc;
 
-            // 기존 이벤트 핸들러 제거 후 새로 바인딩
-            cardEl.onclick = (e) => {
-                e.stopPropagation();
-                this.applyRewardCard(data);
-                overlay.classList.add('hidden');
-            };
-        });
+                // 기존 이벤트 핸들러 제거 후 새로 바인딩
+                cardEl.onclick = (e) => {
+                    e.stopPropagation();
+                    overlay.classList.add('hidden');
+                    
+                    // [수정] 결함 해결: 카드 클릭 즉시 버프 적용 및 포털 개방! (중복 스폰 버그 원천 봉쇄)
+                    this.applyRewardCard(data);
+                    
+                    // 대형 카드 획득 정보 확인 창 호출
+                    this.showAcquiredCardDetail(data);
+                };
+            });
+        };
+
+        renderCards(cardsData);
+
+        // [신규 기획] Luck Amulet 10레벨 초월 마스터리: 보상 1회 다시 굴리기(리롤) 버튼 연동
+        const rerollBtn = document.getElementById('reroll-btn');
+        if (rerollBtn) {
+            if (this.player.equipLevels.necklace === 10 && !this.hasRerolledThisRoom) {
+                rerollBtn.classList.remove('hidden');
+                rerollBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.hasRerolledThisRoom = true;
+                    rerollBtn.classList.add('hidden');
+                    
+                    // 새 보상 카드 추출 및 다시 렌더링
+                    cardsData = this.generateRewardCardsData(this.currentSpawnTotal);
+                    renderCards(cardsData);
+                    
+                    Sound.play('powerup');
+                    this.showFloatingText("DESTINY RE-ROLLED!", this.player.x, this.player.y - 35, '#ffdf00');
+                };
+            } else {
+                rerollBtn.classList.add('hidden');
+            }
+        }
     }
 
     // 몬스터 처치량 비례하여 등급 가중치 보정이 연동되는 랜덤 카드 데이터 3종 조각 생성
@@ -2402,6 +4145,13 @@ class GameEngine {
         // 무기 변화 및 투사체 궤적 상위 카드 풀
         const weaponCards = [
             { id: 'sword', title: '네온 검(Sword) 융합', icon: '🪓', desc: '주무기에 근접 베기 속성이 추가되어 검과 총 복합 액션이 발현됩니다.' },
+            { id: 'spear', title: '네온 창(Spear) 장착', icon: '🔱', desc: '직선상의 깊숙한 관통 찌르기로 적을 멀리 밀치고 벽 격돌 기절을 유도합니다.' },
+            { id: 'thorns', title: '네온 가시(Thorns) 장착', icon: '🌵', desc: '피격 대미지를 100% 주변 적에게 반사하고, 10% 확률로 보복 유도 가시를 쏘며, 피격 시 3초간 도발(가시 오라 장막) 필드를 활성화합니다.' },
+            { id: 'whip', title: '네온 채찍(Whip) 장착', icon: '🧣', desc: '직선 그랩 사슬을 사출하여 적을 발앞으로 강제 견인하고, 1.5초 기절 및 3초 공속 +20% 상승(최대 3중첩) 버프를 부여합니다.' },
+            { id: 'trap', title: '네온 함정(Trap) 설치', icon: '🪤', desc: '이동 흔적상에 2초 주기로 80px 기절 지뢰를 매설하고, 가로/세로 벽 사이에 전류 감전 레이저 트립와이어를 설치합니다.' },
+            { id: 'lightning', title: '네온 번개마법 (Lightning)', icon: '⚡', desc: '마나를 소모해 적들 사이를 연쇄 전이하며 단체 감전 기절을 주는 벼락을 발사합니다.' },
+            { id: 'fire', title: '네온 불마법 (Fire)', icon: '🔥', desc: '마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 연쇄 폭발을 일으키는 불꽃을 격발합니다.' },
+            { id: 'ice', title: '네온 얼음마법 (Ice)', icon: '❄️', desc: '마나(MP)를 소모해 적을 동결 정지시키며 동결된 적 타격 시 3배 파쇄 피해를 입칩니다.' },
             { id: 'multishot', title: '멀티샷 (Multi-Shot)', icon: '🏹', desc: '한 번 사격 시 부채꼴 형태로 다중 탄환이 뿜어져 나갑니다.' },
             { id: 'burst', title: '점사 (Burst Fire)', icon: '🔫', desc: '마우스 조준 방향으로 다다닥 연속 탄환을 연사합니다.' },
             { id: 'pierce', title: '관통 탄환 (Pierce)', icon: '💎', desc: '탄환이 몬스터에 맞고 소멸하지 않고 관통 횟수를 획득합니다.' },
@@ -2411,28 +4161,49 @@ class GameEngine {
             { id: 'magic_timewarp', title: '시간 왜곡 마법 (Time Warp)', icon: '🔮', desc: '특수 마법을 마나 소모형 불릿타임 시간 왜곡으로 교체합니다.' }
         ];
 
-        // 5의 배수 방을 클리어했을 때만 상위 카드(weaponCards)가 확정 등장하며 일반 방에선 statusCards만 등장!
-        const isWeaponReward = (this.roomNum % 5 === 0);
-        let pool = isWeaponReward ? [...weaponCards] : [...statusCards];
+        // [신규 기획] 장비 10종 보상 카드 풀
+        const equipmentCards = [
+            { id: 'equip_armor', title: '최대체력 갑옷', icon: '🛡️', desc: '최대 HP를 강화합니다. (5레벨: 뎀감 20%, 10레벨: 사망 시 부활)' },
+            { id: 'equip_boots', title: '최대스테미너 신발', icon: '🥾', desc: '최대 Stamina를 확장합니다. (5레벨: 대시 중 회피 15%, 10레벨: 무적 통과)' },
+            { id: 'equip_gloves', title: '공격범위 장갑', icon: '🧤', desc: '공격 물리 사거리를 확장합니다. (5레벨: 크기 20% 업, 10레벨: 충격파 발사)' },
+            { id: 'equip_helm', title: '최대마력 투구', icon: '🪖', desc: '최대 MP를 확장합니다. (5레벨: 20% 무료 스킬, 10레벨: MP 100% 시 공격력 25% 업)' },
+            { id: 'equip_necklace', title: '행운 목걸이', icon: '📿', desc: '카드 획득 행운(LUK)을 올립니다. (5레벨: 정예 자원 2배, 10레벨: 카드 리롤 기능 개방)' },
+            { id: 'equip_ring_mp', title: '마력회복 반지', icon: '💍', desc: '초당 마력 회복량을 강화합니다. (5레벨: 킬 시 마나 3% 환급, 10레벨: 특수기 유지비 50% 절감)' },
+            { id: 'equip_ring_hp', title: '체력회복 반지', icon: '💍', desc: '초당 체력 회복량을 강화합니다. (5레벨: 포션 효율 50% 업, 10레벨: 비피격 5초 시 재생 3배)' },
+            { id: 'equip_ring_speed', title: '이동속도 반지', icon: '💍', desc: '이동 속도를 올립니다. (5레벨: 달릴 때 공격력 10% 업, 10레벨: 초신성 기동)' },
+            { id: 'equip_ring_aspd', title: '공격속도 반지', icon: '💍', desc: '공격/연사 속도를 올립니다. (5레벨: 캐스팅 프레임 15% 단축, 10레벨: 공속 상한 해제)' },
+            { id: 'equip_ring_evd', title: '회피증가 반지', icon: '💍', desc: '회피 확률을 강화합니다. (5레벨: 회피 시 주변 기절 섬광, 10레벨: 회피 상한선 75% 확장)' }
+        ];
 
-        // [덱빌딩식 강화 연계 적용] 5의 배수 무기 방일 때, 이미 보유 중인 장비 옵션에 연동된 강화 연계 카드 추가 주입
-        if (isWeaponReward) {
+        // [신규 기획] 현재 방 유형(currentRoomType)에 맞춘 특화 보상 풀 배정
+        let pool = [];
+        let isSpecialReward = (this.currentRoomType === 'weapon' || this.currentRoomType === 'equipment');
+        
+        if (this.currentRoomType === 'weapon') {
+            pool = [...weaponCards];
+            
+            // 보유 상태에 따른 무기 강화 연계 시너지 카드 동적 해금 주입 (이미 최고 단계 획득 시 풀에서 배제)
             const p = this.player;
-            if (p.weaponType === 'sword' || p.weaponType === 'dual') {
+            if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.swordDmgUpgrade < 1.4) {
                 pool.push({ id: 'upgrade_sword', title: '[강화] 쾌검술 연마', icon: '🪓', desc: '검기 대미지를 +40% 상향하고 검기 도달 리치 반경을 +10px 연장시킵니다.' });
             }
-            if (p.multishot >= 2) {
+            if (p.multishot >= 2 && p.multishotArc < 0.55) {
                 pool.push({ id: 'upgrade_multishot', title: '[강화] 샷건 전탄 연마', icon: '🏹', desc: '멀티샷의 탄환수를 추가로 +1발 더 늘리고, 부채꼴 퍼짐각을 대폭 넓힙니다.' });
             }
-            if (this.pets.length >= 1) {
+            if (this.pets.length >= 1 && p.petDmgUpgrade < 1.6) {
                 pool.push({ id: 'upgrade_pet', title: '[강화] 드론 오버로드', icon: '🤖', desc: '드론의 유도 레이저 대미지를 플레이어 힘(ATK) 스탯의 40% 비례로 크게 늘립니다.' });
             }
-            if (p.splashRadius > 0) {
+            if (p.splashRadius > 0 && p.splashDmgUpgrade < 0.9) {
                 pool.push({ id: 'upgrade_splash', title: '[강화] 연쇄 열화 폭발', icon: '💥', desc: '스플래시 대폭발 피해 비율을 90%로 대폭 상향하고 폭발 반경을 +15px 연장시킵니다.' });
             }
-            if (p.homing) {
+            if (p.homing && p.homingAngleSpeed < 0.13) {
                 pool.push({ id: 'upgrade_homing', title: '[강화] 초정밀 유도 궤적', icon: '🔮', desc: '유도탄의 선회 회전각을 60% 향상시켜 더욱 급속한 유도 추적이 가능해집니다.' });
             }
+        } else if (this.currentRoomType === 'equipment') {
+            pool = [...equipmentCards];
+        } else {
+            // 기본은 스탯(stat) 카드 풀
+            pool = [...statusCards];
         }
 
         // 3개의 유니크한 카드를 선별
@@ -2442,15 +4213,20 @@ class GameEngine {
 
         // 보상 등급 보정 (몬스터 처치량 비례 가중치 + 운 스탯 계수 추가)
         let portalLuckBonus = 0;
-        if (isWeaponReward) {
-            // 모델 A 융합: 진입했던 포털 난이도 상/중/하에 따라 희귀도 고정 보정 대폭 차등화!
+        if (isSpecialReward) {
+            // 진입했던 포털 난이도 상/중/하에 따라 희귀도 고정 보정 대폭 차등화!
             if (this.lastEnteredPortalClass === 'high') portalLuckBonus = 0.9;      // Epic, Legendary 확정
             else if (this.lastEnteredPortalClass === 'mid') portalLuckBonus = 0.45;  // Rare, Epic 위주
             else portalLuckBonus = -0.15; // low 문으로 도망쳐 오면 Common, Rare 중심
         } else {
-            // 일반 방은 몬스터 스폰 수와 플레이어 LUK 스탯 가중치 합산 (LUK 소프트 캡 최대 4.0 제한 적용)
+            // 일반 스탯 방은 몬스터 스폰 수와 플레이어 LUK 스탯 가중치 합산 (LUK 소프트 캡 최대 4.0 제한 적용)
             let cappedLuk = Math.min(4.0, this.player.luk);
             portalLuckBonus = monsterBonus * 0.02 + (cappedLuk - 1) * 0.12;
+        }
+
+        // [신규 기획] 행운 목걸이 10레벨 초월: 리롤 성공 시 최소 Rare 등급 확정 추첨 보장 보정치 추가
+        if (this.player.equipLevels.necklace === 10 && this.hasRerolledThisRoom) {
+            portalLuckBonus += 0.8;
         }
         
         for (let i = 0; i < cardsToSelect; i++) {
@@ -2534,6 +4310,18 @@ class GameEngine {
             case 'sword':
                 desc = `주무기에 광역 반원 베기 모션(검)을 영구 장착합니다. (복합 하이브리드 공격 가능)`;
                 break;
+            case 'spear':
+                desc = `일직선상으로 멀리 관통 찌르기(창)를 장착합니다. 적 벽 격돌 기절 및 창끝 2배 크리가 추가됩니다.`;
+                break;
+            case 'lightning':
+                desc = `마나(MP)를 소모해 감전 기절을 거는 광역 연쇄 벼락 마법을 발사합니다.`;
+                break;
+            case 'fire':
+                desc = `마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 대폭발을 유도하는 화염 탄환을 발사합니다.`;
+                break;
+            case 'ice':
+                desc = `마나(MP)를 소모해 적의 속도를 늦추다 완전히 정지시키며, 동결된 적 타격 시 3배의 깨짐 파쇄 피해를 입힙니다.`;
+                break;
             case 'multishot':
                 // 상위 카드도 문 난이도 랭킹 계수(mult)의 보정을 연동받도록 설정!
                 value = Math.ceil((rarity === 'COMMON' ? 1 : (rarity === 'RARE' ? 2 : 3)) * (mult >= 2.0 ? 1.5 : 1.0));
@@ -2583,6 +4371,46 @@ class GameEngine {
             case 'upgrade_homing':
                 desc = `유도탄의 실시간 조준 선회 각도를 60% 향상시켜, 적으로 향하는 궤적이 급격하고 정교해집니다.`;
                 break;
+            case 'equip_armor':
+                value = Math.ceil(4 * mult);
+                desc = `최대 체력이 +${value} 상승합니다. (현재 레벨: ${this.player.equipLevels.armor} -> ${Math.min(10, this.player.equipLevels.armor + 1)})`;
+                break;
+            case 'equip_boots':
+                value = Math.ceil(4 * mult);
+                desc = `최대 스태미너가 +${value} 확장됩니다. (현재 레벨: ${this.player.equipLevels.boots} -> ${Math.min(10, this.player.equipLevels.boots + 1)})`;
+                break;
+            case 'equip_gloves':
+                value = Math.ceil(8 * mult);
+                desc = `공격 물리 사거리가 +${value}px 확장됩니다. (현재 레벨: ${this.player.equipLevels.gloves} -> ${Math.min(10, this.player.equipLevels.gloves + 1)})`;
+                break;
+            case 'equip_helm':
+                value = Math.ceil(8 * mult);
+                desc = `최대 마력(MP)이 +${value} 확장됩니다. (현재 레벨: ${this.player.equipLevels.helm} -> ${Math.min(10, this.player.equipLevels.helm + 1)})`;
+                break;
+            case 'equip_necklace':
+                value = 0.05 * mult;
+                desc = `카드 획득 행운(LUK)이 +${value.toFixed(2)} 올라갑니다. (현재 레벨: ${this.player.equipLevels.necklace} -> ${Math.min(10, this.player.equipLevels.necklace + 1)})`;
+                break;
+            case 'equip_ring_mp':
+                value = 0.3 * mult;
+                desc = `초당 마력 회복량이 +${value.toFixed(2)}/s 강화됩니다. (현재 레벨: ${this.player.equipLevels.ring_mp} -> ${Math.min(10, this.player.equipLevels.ring_mp + 1)})`;
+                break;
+            case 'equip_ring_hp':
+                value = 0.15 * mult;
+                desc = `초당 체력 회복량이 +${value.toFixed(2)}/s 강화됩니다. (현재 레벨: ${this.player.equipLevels.ring_hp} -> ${Math.min(10, this.player.equipLevels.ring_hp + 1)})`;
+                break;
+            case 'equip_ring_speed':
+                value = 0.015 * mult;
+                desc = `이동 속도가 +${(value * 100).toFixed(1)}% 상승합니다. (현재 레벨: ${this.player.equipLevels.ring_speed} -> ${Math.min(10, this.player.equipLevels.ring_speed + 1)})`;
+                break;
+            case 'equip_ring_aspd':
+                value = 0.02 * mult;
+                desc = `공격/연사 속도가 +${(value * 100).toFixed(1)}% 빨라집니다. (현재 레벨: ${this.player.equipLevels.ring_aspd} -> ${Math.min(10, this.player.equipLevels.ring_aspd + 1)})`;
+                break;
+            case 'equip_ring_evd':
+                value = 0.01 * mult;
+                desc = `피격 물리 회피율이 +${(value * 100).toFixed(0)}% 보강됩니다. (현재 레벨: ${this.player.equipLevels.ring_evd} -> ${Math.min(10, this.player.equipLevels.ring_evd + 1)})`;
+                break;
         }
 
         return { value, desc, data };
@@ -2603,8 +4431,9 @@ class GameEngine {
                 p.ms += card.effectValue;
                 break;
             case 'evd':
-                // [수정] 복리 덧셈에서 '한계 효용 체감 공식' 적용 (EVD 최대 60% 수렴 캡으로 완화)
-                p.evd = p.evd + card.effectValue * (0.6 - p.evd);
+                // [수정] Evasion Ring 10레벨 초월 시 회피 캡 75%, 그 외에는 60% 수렴 캡 동적 적용
+                let maxEvdLimit = p.equipLevels.ring_evd === 10 ? 0.75 : 0.6;
+                p.evd = p.evd + card.effectValue * (maxEvdLimit - p.evd);
                 break;
             case 'hp':
                 p.maxHp += card.effectValue;
@@ -2624,25 +4453,60 @@ class GameEngine {
                     p.weaponType = 'dual'; // 칼이 있었으면 하이브리드 검+총 융합!
                 }
                 break;
+            case 'spear':
+                if (p.weaponType === 'gun') {
+                    p.weaponType = 'spear'; // 총에서 창으로 변경
+                } else if (p.weaponType === 'spear') {
+                    p.weaponType = 'dual'; // 창이 있었으면 하이브리드 창+총 융합!
+                }
+                break;
+            case 'thorns':
+                p.hasThorns = true;
+                this.showFloatingText("THORNS UNLOCKED 🌵", p.x, p.y - 30, '#ff00aa');
+                break;
+            case 'whip':
+                if (p.weaponType === 'gun') {
+                    p.weaponType = 'whip'; // 총에서 채찍 변경
+                } else if (p.weaponType === 'whip') {
+                    p.weaponType = 'dual'; // 채찍 있었으면 하이브리드
+                }
+                this.showFloatingText("WHIP UNLOCKED 🧣", p.x, p.y - 30, '#ff00aa');
+                break;
+            case 'trap':
+                p.hasTrap = true;
+                this.showFloatingText("TRAPS UNLOCKED 🪤", p.x, p.y - 30, '#ffdf00');
+                break;
+            case 'lightning':
+                p.weaponType = 'lightning'; // 마법 번개무기 강제 장착
+                this.showFloatingText("⚡ LIGHTNING MAGIC UNLOCKED! ⚡", p.x, p.y - 30, '#ffdf00');
+                break;
+            case 'fire':
+                p.weaponType = 'fire'; // 불마법 장착
+                this.showFloatingText("🔥 FIRE MAGIC UNLOCKED! 🔥", p.x, p.y - 30, '#ff5e00');
+                break;
+            case 'ice':
+                p.weaponType = 'ice'; // 얼음마법 장착
+                this.showFloatingText("❄️ ICE MAGIC UNLOCKED! ❄️", p.x, p.y - 30, '#00f0ff');
+                break;
             case 'multishot':
                 p.multishot += card.effectValue;
-                p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType; // 총 사격 속성 강제 활성화
+                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType; // 총 사격 속성 강제 활성화
                 break;
             case 'burst':
                 p.burstCount += card.effectValue;
-                p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType;
+                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
                 break;
             case 'pierce':
                 p.pierceCount += card.effectValue;
-                p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType;
+                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
                 break;
             case 'homing':
                 p.homing = true;
-                p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType;
+                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
                 break;
             case 'splash':
                 p.splashRadius = Math.max(p.splashRadius, card.effectValue);
-                p.weaponType = p.weaponType === 'sword' ? 'dual' : p.weaponType;
+                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
                 break;
             case 'hpRegen':
                 p.hpRegen += card.effectValue;
@@ -2689,7 +4553,103 @@ class GameEngine {
                 p.homingAngleSpeed = 0.13;
                 this.showFloatingText("HOMING PRECISION (STEERING UP)", p.x, p.y - 30, '#00f0ff');
                 break;
+            case 'equip_armor':
+                p.equipLevels.armor = Math.min(10, p.equipLevels.armor + 1);
+                p.maxHp += card.effectValue;
+                p.hp = Math.min(p.maxHp, p.hp + card.effectValue);
+                if (p.equipLevels.armor === 5) {
+                    this.showFloatingText("ARMOR LV.5: STEEL WILL (20% DMG REDUCTION UNLOCKED)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.armor === 10) {
+                    this.showFloatingText("ARMOR MAX: GUARDIAN RESURRECTION ACTIVE", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_boots':
+                p.equipLevels.boots = Math.min(10, p.equipLevels.boots + 1);
+                p.maxStamina += card.effectValue;
+                p.stamina = p.maxStamina;
+                if (p.equipLevels.boots === 5) {
+                    this.showFloatingText("BOOTS LV.5: FEATHER DASH (+15% EVD DASH)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.boots === 10) {
+                    this.showFloatingText("BOOTS MAX: INVISIBLE TELEPORT DASH UNLOCKED", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_gloves':
+                p.equipLevels.gloves = Math.min(10, p.equipLevels.gloves + 1);
+                p.range += card.effectValue;
+                if (p.equipLevels.gloves === 5) {
+                    this.showFloatingText("GLOVES LV.5: OVERSIZED REACH (+20% SIZE)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.gloves === 10) {
+                    this.showFloatingText("GLOVES MAX: SHOCKWAVE EMISSION UNLOCKED", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_helm':
+                p.equipLevels.helm = Math.min(10, p.equipLevels.helm + 1);
+                p.maxMp += card.effectValue;
+                if (p.equipLevels.helm === 5) {
+                    this.showFloatingText("HELM LV.5: MANA REFLOW (20% FREE CAST)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.helm === 10) {
+                    this.showFloatingText("HELM MAX: WISDOM (+25% DMG AT 100% MP)", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_necklace':
+                p.equipLevels.necklace = Math.min(10, p.equipLevels.necklace + 1);
+                p.luk += card.effectValue;
+                if (p.equipLevels.necklace === 5) {
+                    this.showFloatingText("LUCK LV.5: GOLDEN ROAD (2X ELITE)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.necklace === 10) {
+                    this.showFloatingText("LUCK MAX: RE-ROLL DESTINY UNLOCKED", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_ring_mp':
+                p.equipLevels.ring_mp = Math.min(10, p.equipLevels.ring_mp + 1);
+                p.mpRegen = (p.mpRegen || 0) + card.effectValue;
+                if (p.equipLevels.ring_mp === 5) {
+                    this.showFloatingText("MANA RING LV.5: ENERGY CYCLE (+3% MP ON KILL)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.ring_mp === 10) {
+                    this.showFloatingText("MANA RING MAX: INFINITE CIRCLE (50% MP CUT)", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_ring_hp':
+                p.equipLevels.ring_hp = Math.min(10, p.equipLevels.ring_hp + 1);
+                p.hpRegen += card.effectValue;
+                if (p.equipLevels.ring_hp === 5) {
+                    this.showFloatingText("HP RING LV.5: LIFE BURST (+50% PORTION EFF)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.ring_hp === 10) {
+                    this.showFloatingText("HP RING MAX: AUTO REPAIR (3X REGEN UNLOCKED)", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_ring_speed':
+                p.equipLevels.ring_speed = Math.min(10, p.equipLevels.ring_speed + 1);
+                p.ms += card.effectValue * p.ms;
+                if (p.equipLevels.ring_speed === 5) {
+                    this.showFloatingText("SPEED RING LV.5: WIND SCAR (+10% MOVEMENT DMG)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.ring_speed === 10) {
+                    this.showFloatingText("SPEED RING MAX: HYPER SPEED MOTOR UNLOCKED", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_ring_aspd':
+                p.equipLevels.ring_aspd = Math.min(10, p.equipLevels.ring_aspd + 1);
+                p.aspd += card.effectValue;
+                if (p.equipLevels.ring_aspd === 5) {
+                    this.showFloatingText("ASPD RING LV.5: FAST SPELL (15% MOTION SPEED)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.ring_aspd === 10) {
+                    this.showFloatingText("ASPD RING MAX: OVERLIMIT INFINITE HASTE ACTIVE", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_ring_evd':
+                p.equipLevels.ring_evd = Math.min(10, p.equipLevels.ring_evd + 1);
+                let currentLimit = p.equipLevels.ring_evd === 10 ? 0.75 : 0.6;
+                p.evd = p.evd + card.effectValue * (currentLimit - p.evd); // 복리식 한계 효용 수렴 적용
+                if (p.equipLevels.ring_evd === 5) {
+                    this.showFloatingText("EVD RING LV.5: PHANTOM FLASH (DODGE -> STUN)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.ring_evd === 10) {
+                    this.showFloatingText("EVD RING MAX: GHOST WALKER (75% MAX EVD)", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
         }
+
+        // [신규 기획] 상자를 열어서 보상 카드 3택1 결정을 완수했으므로, 워프 포털을 활성화하여 진행을 뚫어줍니다!
+        this.portals.forEach(p => p.active = true);
 
         // HUD 및 사운드 발생
         this.updateHUD();
@@ -2729,7 +4689,9 @@ class GameEngine {
         
         let wpnStr = "총 (Gun)";
         if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
-        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 (하이브리드)";
+        if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
+        if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
+        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 (하이브리드)";
         document.getElementById('res-wpn').innerText = wpnStr;
 
         document.getElementById('result-overlay').classList.remove('hidden');
@@ -2829,6 +4791,16 @@ class GameEngine {
         // [추가] 힐링 Potion 물약 렌더링
         this.potions.forEach(pot => pot.draw(this.ctx));
 
+        // [W-08 신규 구현] 드롭된 네온 코인 렌더링
+        this.coinsList.forEach(coin => coin.draw(this.ctx));
+
+        // [신규 기획] 보상 상자 및 자판기 렌더링
+        this.rewardChests.forEach(chest => chest.draw(this.ctx));
+        this.vendingMachines.forEach(vm => vm.draw(this.ctx));
+
+        // [W-10 함정설치 함정 렌더링]
+        this.traps.forEach(trap => trap.draw(this.ctx));
+
         // 6. 플레이어 렌더링
         this.player.draw(this.ctx);
 
@@ -2873,6 +4845,92 @@ class GameEngine {
         }
 
         this.ctx.restore();
+    }
+
+    // [수정] 결함 2: 보상 획득 시 대형 카드 획득 정보 팝업 노출 및 아무데나 클릭 시 복귀
+    showAcquiredCardDetail(cardData) {
+        const detailOverlay = document.getElementById('card-detail-overlay');
+        const cardView = document.getElementById('detail-card-view');
+        const rarityTag = document.getElementById('detail-card-rarity');
+        const iconDiv = document.getElementById('detail-card-icon');
+        const titleH3 = document.getElementById('detail-card-title');
+        const descP = document.getElementById('detail-card-desc');
+
+        rarityTag.className = `card-rarity ${cardData.rarity.toLowerCase()}`;
+        rarityTag.innerText = cardData.rarity;
+
+        iconDiv.innerText = cardData.icon;
+        titleH3.innerText = cardData.title;
+        descP.innerText = cardData.desc;
+
+        // 등급별 네온 글로우 쉐도우 색상 설정
+        let glowColor = 'rgba(0, 240, 255, 0.3)';
+        if (cardData.rarity === 'RARE') glowColor = 'rgba(57, 255, 20, 0.4)';
+        if (cardData.rarity === 'EPIC') glowColor = 'rgba(176, 38, 255, 0.4)';
+        if (cardData.rarity === 'LEGENDARY') glowColor = 'rgba(255, 223, 0, 0.5)';
+        
+        cardView.style.setProperty('--card-shadow', `0 0 35px ${glowColor}`);
+        cardView.className = `reward-card large-card card-${cardData.rarity.toLowerCase()}`;
+
+        detailOverlay.classList.remove('hidden');
+
+        // 화면 아무 곳이나 클릭하면 닫히도록 이벤트 리스너 세팅
+        const closeHandler = () => {
+            detailOverlay.classList.add('hidden');
+            detailOverlay.removeEventListener('click', closeHandler);
+        };
+        
+        // 100ms 딜레이를 주어야 팝업을 연 클릭이 바로 버블링되어 닫히는 현상 방지
+        setTimeout(() => {
+            detailOverlay.addEventListener('click', closeHandler);
+        }, 100);
+    }
+
+    // [수정] 결함 3: 상점 상품 구매 들이받기 확인 팝업
+    triggerShopPurchaseConfirmation(cardData, themeColor) {
+        const shopOverlay = document.getElementById('shop-confirm-overlay');
+        const cardView = document.getElementById('shop-card-view');
+        const rarityTag = document.getElementById('shop-card-rarity');
+        const iconDiv = document.getElementById('shop-card-icon');
+        const titleH3 = document.getElementById('shop-card-title');
+        const descP = document.getElementById('shop-card-desc');
+        const confirmBtn = document.getElementById('shop-confirm-btn');
+
+        rarityTag.className = `card-rarity ${cardData.rarity.toLowerCase()}`;
+        rarityTag.innerText = cardData.rarity;
+
+        iconDiv.innerText = cardData.icon;
+        titleH3.innerText = cardData.title;
+        descP.innerText = cardData.desc;
+
+        // 네온 글로우 바인딩
+        cardView.style.setProperty('--card-shadow', `0 0 35px ${themeColor}`);
+        cardView.className = `reward-card large-card card-${cardData.rarity.toLowerCase()}`;
+
+        shopOverlay.classList.remove('hidden');
+
+        const handleConfirm = () => {
+            shopOverlay.classList.add('hidden');
+            
+            // 실제로 카드를 획득하여 버프 적용!
+            this.applyRewardCard(cardData);
+            
+            confirmBtn.removeEventListener('click', handleConfirm);
+            shopOverlay.removeEventListener('click', handleConfirm);
+        };
+
+        // 확인 버튼 클릭 시 수령
+        confirmBtn.onclick = (e) => {
+            e.stopPropagation();
+            handleConfirm();
+        };
+
+        // 오버레이 클릭 시 수령
+        setTimeout(() => {
+            shopOverlay.onclick = (e) => {
+                handleConfirm();
+            };
+        }, 100);
     }
 }
 

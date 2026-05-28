@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네온 로그라이크 - 습득 카드 도감 및 기획 분석</title>
+    <!-- 구글 폰트 적용 (Outfit & Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-darker: #05060a;
+            --bg-dark: #08090e;
+            --bg-card: #0f111a;
+            --border-neon: rgba(0, 240, 255, 0.15);
+            --neon-blue: #00f0ff;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-pink: #ff0055;
+            --neon-yellow: #ffdf00;
+            
+            --rarity-common: #8e9297;
+            --rarity-rare: #00f0ff;
+            --rarity-epic: #b026ff;
+            --rarity-legendary: #ffdf00;
+
+            --font-main: 'Noto Sans KR', sans-serif;
+            --font-title: 'Outfit', 'Noto Sans KR', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-darker);
+            color: #e2e8f0;
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: var(--font-title);
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.2);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* 등급 요약 바 */
+        .rarity-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot.common { background-color: var(--rarity-common); box-shadow: 0 0 8px var(--rarity-common); }
+        .dot.rare { background-color: var(--rarity-rare); box-shadow: 0 0 8px var(--rarity-rare); }
+        .dot.epic { background-color: var(--rarity-epic); box-shadow: 0 0 8px var(--rarity-epic); }
+        .dot.legendary { background-color: var(--rarity-legendary); box-shadow: 0 0 8px var(--rarity-legendary); }
+
+        /* 기획 가이드 라인 */
+        .planning-intro {
+            background: linear-gradient(135deg, rgba(176, 38, 255, 0.07) 0%, rgba(0, 240, 255, 0.07) 100%);
+            border: 1px solid rgba(176, 38, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .planning-intro h2 {
+            font-size: 1.3rem;
+            color: #fff;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .planning-intro ul {
+            list-style: none;
+            padding-left: 0.5rem;
+        }
+
+        .planning-intro li {
+            margin-bottom: 0.5rem;
+            position: relative;
+            padding-left: 1.2rem;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+        }
+
+        .planning-intro li::before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+            top: 2px;
+        }
+
+        /* 탭 내비게이션 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-family: var(--font-title);
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            outline: none;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+
+        .tab-btn.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1rem;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* 카드 그리드 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .card-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 개별 카드 디자인 */
+        .card-item {
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-item:hover {
+            transform: translateY(-5px);
+            border-color: var(--border-neon);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 240, 255, 0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-id {
+            font-family: var(--font-title);
+            font-size: 0.8rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card-id:hover {
+            background: var(--neon-blue);
+            color: var(--bg-darker);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .card-icon-wrap {
+            font-size: 1.8rem;
+            background: rgba(255, 255, 255, 0.03);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-title-wrap {
+            margin-bottom: 0.8rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-description {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            min-height: 40px;
+        }
+
+        /* 인게임 수치 로직 */
+        .card-math-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.6rem;
+            font-size: 0.8rem;
+            font-family: var(--font-title);
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .card-math-box strong {
+            color: var(--neon-blue);
+        }
+
+        /* 기획 고민 영역 */
+        .planning-box {
+            background: rgba(176, 38, 255, 0.03);
+            border-left: 3px solid var(--neon-purple);
+            padding: 0.8rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .planning-box strong {
+            color: #fff;
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* 알림 메시지 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--neon-blue);
+            color: #fff;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 240, 255, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 퀵 서치 및 필터 */
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 300px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .copy-list-btn {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(176, 38, 255, 0.3);
+        }
+
+        .copy-list-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(176, 38, 255, 0.5), 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        /* 기획 종합 토론 안내 */
+        .summary-discussion {
+            margin-top: 4rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .summary-discussion h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 8px rgba(176, 38, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.8rem;
+        }
+
+        .discussion-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .discussion-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .disc-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .disc-card h3 {
+            font-size: 1.15rem;
+            color: var(--neon-blue);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .disc-card p {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            margin-bottom: 0.8rem;
+        }
+
+        .disc-card ul {
+            list-style: none;
+            padding-left: 0.5rem;
+        }
+
+        .disc-card li {
+            margin-bottom: 0.5rem;
+            position: relative;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .disc-card li::before {
+            content: "•";
+            color: var(--neon-purple);
+            position: absolute;
+            left: 0;
+            font-size: 1.2rem;
+            top: -2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>NEON MAZE CARD BOOK</h1>
+        <p>게임 플레이 도중 획득 가능한 모든 카드 목록 및 기획 분석 가이드</p>
+        
+        <div class="rarity-legend">
+            <div class="legend-item"><div class="dot common"></div> COMMON (일반)</div>
+            <div class="legend-item"><div class="dot rare"></div> RARE (희귀)</div>
+            <div class="legend-item"><div class="dot epic"></div> EPIC (영웅)</div>
+            <div class="legend-item"><div class="dot legendary"></div> LEGENDARY (전설)</div>
+        </div>
+    </header>
+
+    <!-- 기획 길잡이 -->
+    <div class="planning-intro">
+        <h2>🛠️ 기획자님을 위한 가이드북 이용 팁!</h2>
+        <ul>
+            <li>각 카드의 고유 <strong>넘버링(예: S-01, W-04)</strong>을 클릭하면 해당 카드 번호가 즉시 클립보드에 복사됩니다.</li>
+            <li>복사한 번호를 개발자(AI)에게 <strong>"W-04 유도탄 카드를 다른 게임처럼 게이지 충전식으로 바꾸고 싶어"</strong> 등으로 간편하게 전달하실 수 있습니다.</li>
+            <li>우측 상단의 <strong>[📋 카드 리스트 전체 복사]</strong> 버튼을 누르면 피드백용 전체 넘버링 목록을 한눈에 볼 수 있는 텍스트가 복사됩니다.</li>
+            <li>각 카드 하단에 <strong>타 게임과의 클리셰 비교 및 이 게임만의 독특한 점</strong>을 분석하여 기획 결정에 도움을 드립니다.</li>
+        </ul>
+    </div>
+
+    <!-- 필터 및 검색 바 -->
+    <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="카드 이름 또는 설명 검색..." onkeyup="filterCards()">
+        <button class="copy-list-btn" onclick="copyCardListText()">📋 카드 리스트 전체 복사</button>
+    </div>
+
+    <!-- 탭 내비게이션 -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-status')">Status Cards (일반 스탯)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-weapon')">Weapon & Spec Cards (무기/특수)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-upgrade')">Synergy Upgrades (연계 강화)</button>
+    </div>
+
+    <!-- 1. 스탯 카드 탭 -->
+    <div id="tab-status" class="tab-content active">
+        <div class="card-grid" id="statusGrid">
+            
+            <!-- S-01 -->
+            <div class="card-item" data-title="힘 ATK 강화" data-desc="공격 피해량 상승">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-01')" title="클릭하여 복사">S-01</span>
+                        <div class="card-icon-wrap">⚔️</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">힘 (ATK) 강화</div>
+                    </div>
+                    <div class="card-description">플레이어의 기본 공격 피해량을 영구히 상승시킵니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        증가치 = Math.ceil(2 * 등급배율)<br>
+                        (Common: +2 | Rare: +3 | Epic: +4 | Legendary: +7)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    기존 로그라이크(뱀서 등)의 매우 대중적인 대미지 증가 스탯입니다. 단순 수치 합산 외에 특정 체력 이하일 때 대미지가 증폭되는 '광전사'식 차별화를 꾀할지 고민해 볼 수 있습니다.
+                </div>
+            </div>
+
+            <!-- S-02 -->
+            <div class="card-item" data-title="지능 SPD 강화" data-desc="연사 속도 칼 휘두르는 속도">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-02')" title="클릭하여 복사">S-02</span>
+                        <div class="card-icon-wrap">⚡</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">지능 (SPD) 강화</div>
+                    </div>
+                    <div class="card-description">총탄의 연사 주기 및 칼을 휘두르는 속도가 동시에 빨라집니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        연사속도 곱배율 = +0.12 * 등급배율<br>
+                        (Common: +12% | Rare: +17% | Epic: +24% | Legendary: +38%)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    스탯명을 '지능'으로 하였으나 효과는 '공격 속도'입니다. 마력(MP) 회복속도나 마법 공격력과 스탯명을 일치시킬지, 혹은 순수하게 공속(ASP)으로 명칭을 직관화할지 검토 대상입니다.
+                </div>
+            </div>
+
+            <!-- S-03 -->
+            <div class="card-item" data-title="민첩 MOV 기동" data-desc="이동 속도 증가">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-03')" title="클릭하여 복사">S-03</span>
+                        <div class="card-icon-wrap">🏃</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">민첩 (MOV) 기동</div>
+                    </div>
+                    <div class="card-description">플레이어의 기본 이동 속도가 영구히 증가합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        이동속도 가산치 = +0.25 * 등급배율<br>
+                        (Common: +0.25 | Rare: +0.35 | Epic: +0.50 | Legendary: +0.80)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    이동 속도가 너무 빠르면 좁은 미로에서 컨트롤이 빗나가 벽에 부딪히는 역체감이 올 수 있습니다. 대시 충전 속도나 이동 시 잔상 이펙트 추가 등의 시각적 만족도를 높이는 것도 좋습니다.
+                </div>
+            </div>
+
+            <!-- S-04 -->
+            <div class="card-item" data-title="민첩 EVD 회피" data-desc="공격 회피율 상승">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-04')" title="클릭하여 복사">S-04</span>
+                        <div class="card-icon-wrap">🦅</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">민첩 (EVD) 회피</div>
+                    </div>
+                    <div class="card-description">몬스터의 공격을 일정한 확률로 완전히 무효화(DODGE)합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        회피율 공식 = 회피율 + 증가치 * (0.6 - 회피율)<br>
+                        (※ 한계 효용 체감 공식 반영, 최대 60% 상한 제한)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    회피가 뜨면 붉은 실루엣 잔상이 남는 고급 연출이 있습니다. 기존 게임(RPG)의 무적 회피와 달리 '자동 확률 회피'이므로 지나치게 사기가 되지 않도록 한계 체감 공식이 잘 잡혀있습니다.
+                </div>
+            </div>
+
+            <!-- S-05 -->
+            <div class="card-item" data-title="체력 HP 증대" data-desc="최대 체력 증가 소량 치유">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-05')" title="클릭하여 복사">S-05</span>
+                        <div class="card-icon-wrap">❤️</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">체력 (HP) 증대</div>
+                    </div>
+                    <div class="card-description">최대 체력을 늘리고, 동시에 잃은 체력을 즉시 소량 치유합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        최대 HP = +15 * 등급배율 / 현재 HP 치유 = 증가치 * 1.5<br>
+                        (Common: +15 | Rare: +21 | Epic: +30 | Legendary: +48)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    체력을 늘림과 동시에 즉시 체력 회복(치유) 효과도 제공하여 생존용 위기 탈출 카드로 유용합니다. 최대 체력 비례 대미지 스킬 등이 생긴다면 시너지가 뛰어날 것입니다.
+                </div>
+            </div>
+
+            <!-- S-06 -->
+            <div class="card-item" data-title="운 LUK 축복" data-desc="고등급 카드 획득 행운 영구 축적">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-06')" title="클릭하여 복사">S-06</span>
+                        <div class="card-icon-wrap">🍀</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">운 (LUK) 축복</div>
+                    </div>
+                    <div class="card-description">다음 방 보상 시 고등급 카드가 등장할 확률을 영구적으로 보정합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        행운 계수 가산 = +0.15 * 등급배율<br>
+                        (Common: +0.15 | Rare: +0.21 | Epic: +0.30 | Legendary: +0.48)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    초반에 집을수록 후반 포텐셜이 터지는 전형적인 '성장형' 스탯입니다. 몬스터 소탕 보너스와 LUK의 복합 작용으로 등급 인플레이션이 심해지지 않도록 소프트 캡(최대 4.0)이 적용되어 있습니다.
+                </div>
+            </div>
+
+            <!-- S-07 -->
+            <div class="card-item" data-title="스테미너 증폭" data-desc="달릴 수 있는 최대 활력">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-07')" title="클릭하여 복사">S-07</span>
+                        <div class="card-icon-wrap">🔋</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">스테미너 증폭</div>
+                    </div>
+                    <div class="card-description">대시(Shift)를 더 오래 사용할 수 있도록 최대 기력을 확장합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        최대 스태미너 = +15 * 등급배율<br>
+                        (Common: +15 | Rare: +21 | Epic: +30 | Legendary: +48)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    미로라는 좁고 장애물이 많은 공간에서 대시의 의존도가 높습니다. 단순히 양을 늘리는 것 외에 대시 중 '무적 판정 프레임'을 주거나 대시로 벽을 뚫는 기믹 등 변칙 기획이 가능합니다.
+                </div>
+            </div>
+
+            <!-- S-08 -->
+            <div class="card-item" data-title="체력 재생 REGEN" data-desc="초당 체력 회복">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-08')" title="클릭하여 복사">S-08</span>
+                        <div class="card-icon-wrap">🩺</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">체력 재생 (REGEN)</div>
+                    </div>
+                    <div class="card-description">초당 잃은 체력을 지속적으로 스스로 회복하는 능력을 획득합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        초당 재생량 = +0.5 * 등급배율<br>
+                        (Common: +0.5/s | Rare: +0.7/s | Epic: +1.0/s | Legendary: +1.6/s)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    위급 상황에서 도망만 다녀도 체력을 복구할 수 있게 해주는 안전 지향형 카드입니다. 포션의 가치를 떨어뜨리지 않도록 재생 간격이나 밸런스를 조절할 필요가 있습니다.
+                </div>
+            </div>
+
+            <!-- S-09 -->
+            <div class="card-item" data-title="사거리 연장 RNG" data-desc="탄환 사거리 및 베기 반경">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('S-09')" title="클릭하여 복사">S-09</span>
+                        <div class="card-icon-wrap">🔭</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">사거리 연장 (RNG)</div>
+                    </div>
+                    <div class="card-description">총탄의 비행 사거리는 물론, 검 베기 공격의 리치(타격 반경)까지 동시에 늘립니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        공격 반경/사거리 = +40px * 등급배율<br>
+                        (Common: +40px | Rare: +56px | Epic: +80px | Legendary: +128px)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    근접 무기(검)를 선호하는 유저에게 검기 크기가 거대해지는 독창적인 쾌감을 선사합니다. 검 전용 및 총 전용 사거리를 이원화할지, 지금처럼 하이브리드로 통합 제공할지가 논점입니다.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. 무기 및 특수 카드 탭 -->
+    <div id="tab-weapon" class="tab-content">
+        <div class="card-grid" id="weaponGrid">
+            
+            <!-- W-01 -->
+            <div class="card-item" data-title="네온 검 융합" data-desc="근접 베기 속성 검과 총 복합 액션">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-01')" title="클릭하여 복사">W-01</span>
+                        <div class="card-icon-wrap">🪓</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">네온 검 (Sword) 융합</div>
+                    </div>
+                    <div class="card-description">기본 총 사격 외에 강력한 반원 형태의 검 베기 모션을 무기에 추가합니다. 칼과 총을 함께 쓰는 복합 하이브리드 액션이 완성됩니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        - 총에서 획득 시 -> 무기타입 'Sword'로 변경 (기본 근접)<br>
+                        - 이미 검일 때 획득 시 -> 무기타입 'Dual' (하이브리드 검기+총탄 동시 사출)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    대부분의 서바이벌 게임은 무기 슬롯이 분리되어 따로 공격이 나가지만, 이 게임은 <strong>'융합(하이브리드)'</strong>이라는 획기적인 방식으로 한 번 공격에 칼과 총이 동시에 격발됩니다. 매우 개성 넘치는 이 게임만의 유니크 세일링 포인트(USP)입니다.
+                </div>
+            </div>
+
+            <!-- W-02 -->
+            <div class="card-item" data-title="멀티샷 Multi-Shot" data-desc="부채꼴 형태로 다중 탄환 사격">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-02')" title="클릭하여 복사">W-02</span>
+                        <div class="card-icon-wrap">🏹</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">멀티샷 (Multi-Shot)</div>
+                    </div>
+                    <div class="card-description">한 번 발사할 때 전방 부채꼴 퍼짐 각도 궤적으로 다수의 탄환을 장착하여 뿜어냅니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        탄환 발사 수 = 기본수 + (기본 등급 증가량 * 난이도 보정)<br>
+                        (Common: +1발 | Rare: +2발 | Epic/Legendary: +3발 이상 배율 보정)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    전형적인 로그라이크의 샷건 형태 확장 카드입니다. 이 게임에서는 검풍(베기)에도 멀티샷 각도가 적용되어 다중 검기가 부채꼴로 날아갑니다! 근접 무기와의 연계 시너지가 기가 막히게 설계되어 있습니다.
+                </div>
+            </div>
+
+            <!-- W-03 -->
+            <div class="card-item" data-title="점사 Burst Fire" data-desc="마우스 조준 방향 연속 탄환 연사">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-03')" title="클릭하여 복사">W-03</span>
+                        <div class="card-icon-wrap">🔫</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">점사 (Burst Fire)</div>
+                    </div>
+                    <div class="card-description">클릭 1회당 아주 짧은 간격(0.09초)으로 다다닥 고속 연속 격발을 진행하여 폭발적인 단일 대상을 녹입니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        점사 횟수 = 기본수 + 등급 가중치 반영<br>
+                        (Common: +1회 | Rare: +2회 | Epic/Legendary: +3회 이상 배율 보정)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    연사(ASP)와는 결이 다른 격발 방식의 변경입니다. 한 번의 클릭 피로도를 줄여주면서 강한 단일 딜을 뿜어냅니다. 검을 장착하고 있을 때도 '연속 다중 콤보 베기' 형태로 매끄럽게 번역되어 작동합니다.
+                </div>
+            </div>
+
+            <!-- W-04 -->
+            <div class="card-item" data-title="관통 탄환 Pierce" data-desc="몬스터 관통 횟수 증가">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-04')" title="클릭하여 복사">W-04</span>
+                        <div class="card-icon-wrap">💎</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">관통 탄환 (Pierce)</div>
+                    </div>
+                    <div class="card-description">탄환이 적과 명중하더라도 즉시 소멸되지 않고, 다수의 적을 관통하여 직진합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        관통 횟수 = +1회 ~ +3회 가중치 적용<br>
+                        (검 무기 장착 시에는 기본 최대 관통 한계 5회 캡 적용)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    물량이 쌓이는 미로 구역에서 학살 쾌감을 주는 핵심 옵션입니다. 관통할 때마다 대미지가 15%씩 감소하는 페널티나 역으로 관통 시 대미지가 늘어나는 관통 증폭 기획으로 다변화가 가능합니다.
+                </div>
+            </div>
+
+            <!-- W-05 -->
+            <div class="card-item" data-title="유도 추적탄 Homing" data-desc="가장 가까운 적 유도 추적">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-05')" title="클릭하여 복사">W-05</span>
+                        <div class="card-icon-wrap">🔮</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">유도 추적탄 (Homing)</div>
+                    </div>
+                    <div class="card-description">사출된 네온 투사체가 근처에 가장 가까운 몬스터를 스스로 인식하고 비행 궤적을 급격히 선회하여 타격합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        - 유도 기능 (Homing) = True 활성화<br>
+                        - 선회 조준 속도(기본값) 연동
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    에임 조준 피로도를 완전히 해소시키는 치트키 같은 카드입니다. 벽이 많은 미로 찾기 게임 특성상 벽에 막히는 상황이 빈번하므로 '벽을 튕기는 도탄' 능력과 융합되면 기막힌 시너지를 낼 수 있습니다.
+                </div>
+            </div>
+
+            <!-- W-06 -->
+            <div class="card-item" data-title="스플래시 탄 Splash" data-desc="탄환 명중 시 반경px 범위 대폭발">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-06')" title="클릭하여 복사">W-06</span>
+                        <div class="card-icon-wrap">💥</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">스플래시 탄 (Splash)</div>
+                    </div>
+                    <div class="card-description">투사체 명중 시, 네온 폭발 이펙트와 함께 주변 반경 적들에게 강력한 범위형 스플래시 대미지를 가합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        폭발 반경 = Math.ceil(25 + 15 * 등급배율)<br>
+                        (※ 폭발 시 몬스터들을 1초간 기절(Stun)시키는 광역 제어 메커니즘 포함)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    단순한 광역 딜링을 넘어 <strong>'1초 기절(Stun)'</strong> 제어 효과가 포함되어 있어, 도망칠 공간을 벌어야 하는 하드코어 생존 미로에서 생존 가치가 극도로 높은 일체형 유틸리티 카드입니다.
+                </div>
+            </div>
+
+            <!-- W-07 -->
+            <div class="card-item" data-title="디펜더 펫 PET 동행" data-desc="적 탄환 소멸 유도 레이저 드론">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-07')" title="클릭하여 복사">W-07</span>
+                        <div class="card-icon-wrap">🤖</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">디펜더 펫 (PET) 동행</div>
+                    </div>
+                    <div class="card-description">플레이어의 궤도를 360도 공전하며 적의 발사체를 몸으로 소멸시키고, 주기적으로 유도 레이저를 발사하여 지원 사격하는 드론을 소환합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        - 드론 소환 (3기 단위로 궤적을 120도씩 교차 배치)<br>
+                        - 공전 궤도 반경 및 속도 연동
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    공격과 방어를 완벽히 담당하는 수호 드론입니다. 드론이 적 탄을 삭제해 주는 기능 덕분에 미로 복도형 좁은 지형에서 탄막 몬스터를 상대할 때 심리적인 안정감을 극대화해줍니다.
+                </div>
+            </div>
+
+            <!-- W-08 -->
+            <div class="card-item" data-title="시간 왜곡 마법 Time Warp" data-desc="특수기를 마력 소모형 시간 왜곡으로 교체">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-08')" title="클릭하여 복사">W-08</span>
+                        <div class="card-icon-wrap">🔮</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[전설] 시간 왜곡 (Time Warp)</div>
+                    </div>
+                    <div class="card-description">특수 마법 스킬(Spacebar)을 발동하여 6초간 전장 전체의 시간 흐름을 90% 둔화시키는 궁극의 장막을 생성합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        - 마나(MP) 충전 100 달성 시 스페이스바로 발동 가능<br>
+                        - 오직 <strong>LEGENDARY (전설)</strong> 등급으로만 추첨 등장하는 전용 특수 스킬
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    탄막 슈팅이나 고난도 액션 게임의 '불릿 타임'을 차용한 최상급 궁극기입니다. 몬스터들의 속도는 90% 느려지지만 플레이어와 플레이어의 탄속은 정상 속도로 날아가는 불공정 연출로 짜릿한 역전극을 제공합니다.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 3. 시너지 및 연계 강화 탭 -->
+    <div id="tab-upgrade" class="tab-content">
+        <div class="card-grid" id="upgradeGrid">
+            
+            <!-- U-01 -->
+            <div class="card-item" data-title="쾌검술 연마" data-desc="검기 대미지 배율 상향 리치 연장">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('U-01')" title="클릭하여 복사">U-01</span>
+                        <div class="card-icon-wrap">🪓</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[검 연계] 쾌검술 연마</div>
+                    </div>
+                    <div class="card-description">이미 검(Sword)을 습득하여 장착하고 있는 상태일 때 등장합니다. 검기 대미지를 폭발적으로 올리고 반경을 넓힙니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        검기 투사체 대미지 배율 = 1.0 -> 1.4배 (+40% 뻥튀기)<br>
+                        검기 도달 반경 = +10px 영구 가산
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    특정 장비를 소지했을 때만 보상 풀에 해금되는 <strong>'덱빌딩형 시너지 연계'</strong> 기획의 근간입니다. 검 빌드로 완전히 정착한 유저에게 확실한 대미지 피드백을 안겨줍니다.
+                </div>
+            </div>
+
+            <!-- U-02 -->
+            <div class="card-item" data-title="샷건 전탄 연마" data-desc="멀티샷 탄환수 추가 퍼짐각 넓힘">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('U-02')" title="클릭하여 복사">U-02</span>
+                        <div class="card-icon-wrap">🏹</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[멀티샷 연계] 샷건 전탄 연마</div>
+                    </div>
+                    <div class="card-description">멀티샷(Multi-Shot) 카드를 이미 2단계 이상 획득하여 다발 사격 형태가 완성되었을 때 등장하는 시너지 강화형입니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        부채꼴 탄환 발사수 = +1발 추가 장착<br>
+                        부채꼴 벌어짐 퍼짐각 범위 = 0.45 -> 0.55 상향
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    다탄 사격을 더욱 넓고 빽빽하게 뿜어내게 하여 화면을 네온 탄막으로 지배하게 만드는 시너지입니다. 넓은 각도로 분산된 탄막이 좁은 골목 미로에서 벽에 낭비되지 않도록 유도 기능과의 복합 융합을 유도합니다.
+                </div>
+            </div>
+
+            <!-- U-03 -->
+            <div class="card-item" data-title="드론 오버로드" data-desc="드론 유도 레이저 대미지 플레이어 공격력 비례">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('U-03')" title="클릭하여 복사">U-03</span>
+                        <div class="card-icon-wrap">🤖</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[드론 연계] 드론 오버로드</div>
+                    </div>
+                    <div class="card-description">수호 드론 펫(PET)을 최소 1기 이상 거느리고 다니는 '소환 빌드' 유저 전용으로 제공되는 한계 돌파 카드입니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        드론 탄환 레이저 대미지 = 플레이어 기본 ATK 공격력 스탯의 40% 비례 누적 연동
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    초반에 유용하지만 후반에 공격력이 뒤떨어지는 일반 소환물의 단점을 극복하기 위해, **'플레이어 공격력 계수 연동(Scale)'** 메커니즘을 차용했습니다. 이를 통해 후반 보스전에서도 펫이 핵심 딜러가 됩니다.
+                </div>
+            </div>
+
+            <!-- U-04 -->
+            <div class="card-item" data-title="연쇄 열화 폭발" data-desc="스플래시 대폭발 피해 비율 상향 폭발 반경 연장">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('U-04')" title="클릭하여 복사">U-04</span>
+                        <div class="card-icon-wrap">💥</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[폭발 연계] 연쇄 열화 폭발</div>
+                    </div>
+                    <div class="card-description">스플래시 탄(Splash) 능력을 이미 확보해 둔 광역 폭발 빌드 유저에게 해금되는 연계형 심화 카드입니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        스플래시 피해 비율 = 기존 70% -> 90%로 비약적 상향<br>
+                        스플래시 타격 반경 = +15px 연장
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    몬스터 1마리만 격파해도 전방 무리가 일시에 연쇄 소멸하는 쾌감을 유발합니다. 한 걸음 더 나아가 폭발에 휩쓸려 죽은 몬스터가 '추가 미니 폭발'을 일으키는 릴레이 연쇄 폭파 기믹을 기획해도 흥미로울 것입니다.
+                </div>
+            </div>
+
+            <!-- U-05 -->
+            <div class="card-item" data-title="초정밀 유도 궤적" data-desc="유도탄 실시간 조준 선회 각도 향상">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('U-05')" title="클릭하여 복사">U-05</span>
+                        <div class="card-icon-wrap">🔮</div>
+                    </div>
+                    <div class="card-title-wrap">
+                        <div class="card-title">[유도 연계] 초정밀 유도 궤적</div>
+                    </div>
+                    <div class="card-description">이미 유도 추적탄(Homing) 능력을 확보한 유저 전용 카드입니다. 유도탄의 조준 추적 회전각 한계를 대폭 넓혀 기동성을 마개조합니다.</div>
+                    <div class="card-math-box">
+                        ⚙️ <strong>인게임 연산식</strong><br>
+                        유도탄 선회 각도 스피드 = 0.08 -> 0.13 (+60% 선회율 물리 궤적 극대화)
+                    </div>
+                </div>
+                <div class="planning-box">
+                    <strong>⚖️ 기획 고민 포인트</strong>
+                    기존의 굼뜨던 유도 탄환이 칼바람처럼 날카롭고 급격한 직각 꺾기로 대상을 향하게 만듭니다. 유도 각이 올라갈수록 투사체의 미스가 제로에 수렴하게 되므로, 플레이어가 조준하지 않고 회피와 포지셔닝에만 집중하도록 만듭니다.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 기획 종합 토론 및 비교 분석 -->
+    <div class="summary-discussion">
+        <h2>🧐 타 게임과의 비교분석 & 개발자의 기획 토론 제안</h2>
+        <div class="discussion-grid">
+            <div class="disc-card">
+                <h3>🔄 타 게임과 비슷하게 가는 방향 (클리셰의 정석)</h3>
+                <p><strong>뱀파이어 서바이벌, 브로테이토 등 대중적인 메커니즘 차용</strong></p>
+                <ul>
+                    <li><strong>장점:</strong> 유저들이 직관적으로 시스템을 학습(Tutorial-free)할 수 있으며, 밸런스 검증이 이미 대중적으로 완료되어 안전합니다.</li>
+                    <li><strong>보안 기획안:</strong> 공격력, 공속, 사거리 등 기본 스탯의 단계를 고정하고, 5방마다 주는 '시너지 업그레이드'를 보강하여 기본 뼈대를 탄탄히 가져갑니다.</li>
+                    <li><strong>구현 제언:</strong> 스탯 카드들을 직관적인 수치로 다듬고, 덱빌딩의 무작위성(RNG)을 더욱 강화하여 매 회차 대중적인 세팅의 맛을 느끼도록 유도합니다.</li>
+                </ul>
+            </div>
+            <div class="disc-card">
+                <h3>🚀 독창적이고 다르게 설계하는 방향 (차별화 포인트)</h3>
+                <p><strong>하이브리드 액션 및 능동적인 기동 연동 시스템 강화</strong></p>
+                <ul>
+                    <li><strong>이 게임만의 유니크 포인트:</strong> 바로 <strong>'검과 총의 융합(하이브리드)'</strong> 및 <strong>'시간 왜곡(불릿 타임)'</strong>입니다. 보통의 로그라이크는 원거리/근거리를 아예 따로 사용하지만, 여기서는 검 공격에 총탄 발사가 통합 융합됩니다.</li>
+                    <li><strong>변칙 기획안:</strong> 카드 습득 시 스탯 보너스 외에 <strong>'패널티와 메리트'가 공존하는 변이 카드</strong>를 도입합니다. (예: 이동 속도를 30% 깎는 대신, 모든 대미지 2배 획득)</li>
+                    <li><strong>구현 제언:</strong> 미로 찾기 테마에 맞춰 <strong>"벽에 튕길 때 대미지가 증가하는 팅팅볼 탄환"</strong>이나 <strong>"벽을 베어 넘겨 길을 개척하는 파괴적인 네온 검"</strong> 등 지형 활용 기믹 카드를 추가해 보면 타 게임들과 완벽히 차별화될 것입니다!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 알림 토스트 -->
+<div class="toast" id="toast">복사 완료!</div>
+
+<script>
+    // 탭 전환 기능
+    function switchTab(evt, tabId) {
+        // 모든 탭 콘텐츠 숨기기
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        // 모든 탭 버튼 활성화 해제
+        const tabBtns = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < tabBtns.length; i++) {
+            tabBtns[i].classList.remove("active");
+        }
+
+        // 선택된 탭 콘텐츠 보이기 & 버튼 활성화
+        document.getElementById(tabId).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // 카드 개별 ID 복사 기능
+    function copyId(id) {
+        navigator.clipboard.writeText(id).then(() => {
+            showToast(`카드 고유 번호 [${id}] 복사 완료!`);
+        });
+    }
+
+    // 카드 목록 전체 텍스트 클립보드 복사
+    function copyCardListText() {
+        let text = `[네온 미로찾기 로그라이크 - 피드백용 카드 목록]\\n\\n`;
+        
+        text += `■ 1. 스탯 카드 (Status Cards)\\n`;
+        text += `S-01. 힘 (ATK) 강화 (⚔️)\\n`;
+        text += `S-02. 지능 (SPD) 강화 (⚡)\\n`;
+        text += `S-03. 민첩 (MOV) 기동 (🏃)\\n`;
+        text += `S-04. 민첩 (EVD) 회피 (🦅)\\n`;
+        text += `S-05. 체력 (HP) 증대 (❤️)\\n`;
+        text += `S-06. 운 (LUK) 축복 (🍀)\\n`;
+        text += `S-07. 스테미너 증폭 (🔋)\\n`;
+        text += `S-08. 체력 재생 (REGEN) (🩺)\\n`;
+        text += `S-09. 사거리 연장 (RNG) (🔭)\\n\\n`;
+
+        text += `■ 2. 무기 및 특수 카드 (Weapon & Spec Cards)\\n`;
+        text += `W-01. 네온 검 (Sword) 융합 (🪓)\\n`;
+        text += `W-02. 멀티샷 (Multi-Shot) (🏹)\\n`;
+        text += `W-03. 점사 (Burst Fire) (🔫)\\n`;
+        text += `W-04. 관통 탄환 (Pierce) (💎)\\n`;
+        text += `W-05. 유도 추적탄 (Homing) (🔮)\\n`;
+        text += `W-06. 스플래시 탄 (Splash) (💥)\\n`;
+        text += `W-07. 디펜더 펫 (PET) 동행 (🤖)\\n`;
+        text += `W-08. 시간 왜곡 (Time Warp) [전설] (🔮)\\n\\n`;
+
+        text += `■ 3. 시너지 및 연계 강화 카드 (Synergy Upgrades)\\n`;
+        text += `U-01. [검 연계] 쾌검술 연마 (🪓)\\n`;
+        text += `U-02. [멀티샷 연계] 샷건 전탄 연마 (🏹)\\n`;
+        text += `U-03. [드론 연계] 드론 오버로드 (🤖)\\n`;
+        text += `U-04. [폭발 연계] 연쇄 열화 폭발 (💥)\\n`;
+        text += `U-05. [유도 연계] 초정밀 유도 궤적 (🔮)\\n\\n`;
+        
+        text += `피드백 적는 란:\\n예) "W-05의 유도 방식을 변경해줘" 나 "U-02 샷건 전탄 연마에 특별 옵션을 추가해줘" 처럼 활용해보세요!`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("피드백 전달용 전체 카드 리스트 텍스트가 복사되었습니다!");
+        });
+    }
+
+    // 토스트 팝업 띄우기
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.classList.add("show");
+        
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2000);
+    }
+
+    // 카드 실시간 검색 및 필터링 기능
+    function filterCards() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toLowerCase();
+        const cards = document.getElementsByClassName("card-item");
+
+        for (let i = 0; i < cards.length; i++) {
+            const title = cards[i].getAttribute("data-title").toLowerCase();
+            const desc = cards[i].getAttribute("data-desc").toLowerCase();
+            
+            if (title.indexOf(filter) > -1 || desc.indexOf(filter) > -1) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

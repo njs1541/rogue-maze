@@ -24,6 +24,11 @@
                 <span class="label">MONSTERS</span>
                 <span id="monster-counter" class="value text-glow-red">0 / 0</span>
             </div>
+            <div class="hud-item" style="position: relative;">
+                <span class="label">COIN</span>
+                <span id="coin-counter" class="value text-glow-yellow">🪙 0</span>
+                <span id="coin-gain-popup" class="coin-gain-text hidden"></span>
+            </div>
         </header>
 
         <!-- 메인 게임 캔버스 -->
@@ -142,6 +147,8 @@
                     </div>
                 </div>
             </div>
+            <!-- [신규 기획] 행운 목걸이(Luck Amulet) 10레벨 초월: 보상 리롤 버튼 -->
+            <button id="reroll-btn" class="neon-btn hidden" style="margin-top: 25px; padding: 10px 30px; font-size: 1rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🎲 보상 다시 굴리기 (1회)</button>
         </div>
 
         <!-- 게임 오버 및 최종 클리어 모달 오버레이 -->
@@ -158,6 +165,41 @@
                 </div>
 
                 <button id="restart-btn" class="neon-btn">다시 도전하기</button>
+            </div>
+        </div>
+
+        <!-- 획득 보상 확인 모달 (결함 2 해결을 위한 대형 카드 확인 스크린) -->
+        <div id="card-detail-overlay" class="overlay-panel hidden">
+            <div class="detail-card-container">
+                <h2 class="text-glow-yellow">새로운 능력 획득!</h2>
+                <div id="detail-card-view" class="reward-card large-card">
+                    <div class="card-glow"></div>
+                    <div class="card-inner">
+                        <span id="detail-card-rarity" class="card-rarity normal">COMMON</span>
+                        <div id="detail-card-icon" class="card-icon">⚔️</div>
+                        <h3 id="detail-card-title" class="card-title">공격력 증가</h3>
+                        <p id="detail-card-desc" class="card-desc">기본 공격력이 2만큼 상승합니다.</p>
+                    </div>
+                </div>
+                <p class="click-to-close-text">화면 아무 곳이나 클릭하면 원래 게임으로 돌아갑니다.</p>
+            </div>
+        </div>
+
+        <!-- 상점 구매 확인 모달 (결함 3 해결을 위한 팝업 스크린) -->
+        <div id="shop-confirm-overlay" class="overlay-panel hidden">
+            <div class="detail-card-container">
+                <h2 class="text-glow-yellow">상점 아이템 구매 성공!</h2>
+                <div id="shop-card-view" class="reward-card large-card">
+                    <div class="card-glow"></div>
+                    <div class="card-inner">
+                        <span id="shop-card-rarity" class="card-rarity normal">COMMON</span>
+                        <div id="shop-card-icon" class="card-icon">🎁</div>
+                        <h3 id="shop-card-title" class="card-title">아이템 이름</h3>
+                        <p id="shop-card-desc" class="card-desc">아이템 설명</p>
+                    </div>
+                </div>
+                <p class="click-to-close-text">확인 버튼을 클릭하거나 화면을 클릭하여 상품을 수령하세요.</p>
+                <button id="shop-confirm-btn" class="neon-btn" style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.3); margin-top: 10px;">수령 완료</button>
             </div>
         </div>
     </div>

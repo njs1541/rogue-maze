@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,10 @@
     <!-- Google Fonts 탑재 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap"
+        rel="stylesheet">
+
     <style>
         /* Core Design System & CSS Reset */
         :root {
@@ -16,17 +19,17 @@
             --bg-dark: #090b11;
             --bg-card: rgba(15, 18, 28, 0.75);
             --border-neon: rgba(0, 240, 255, 0.2);
-            
+
             --neon-cyan: #00f0ff;
             --neon-magenta: #ff0055;
             --neon-purple: #b026ff;
             --neon-green: #39ff14;
             --neon-yellow: #ffdf00;
-            
+
             --text-primary: #f0f3fa;
             --text-secondary: #90a0c0;
             --text-muted: #5a6b8c;
-            
+
             --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.4);
             --glow-magenta: 0 0 15px rgba(255, 0, 85, 0.4);
             --glow-green: 0 0 15px rgba(57, 255, 20, 0.4);
@@ -44,7 +47,7 @@
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
-            background-image: 
+            background-image:
                 radial-gradient(at 100% 0%, rgba(176, 38, 255, 0.03) 0px, transparent 50%),
                 radial-gradient(at 0% 100%, rgba(0, 240, 255, 0.03) 0px, transparent 50%),
                 linear-gradient(rgba(255, 255, 255, 0.002) 1px, transparent 1px),
@@ -170,14 +173,32 @@
         }
 
         /* 노드별 마커 컬러 커스텀 */
-        .card-active { border-color: var(--neon-cyan); }
-        .card-active .timeline-marker { border-color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
-        
-        .card-stable-2 { border-color: var(--neon-purple); }
-        .card-stable-2 .timeline-marker { border-color: var(--neon-purple); box-shadow: var(--glow-purple); }
-        
-        .card-stable-1 { border-color: var(--neon-magenta); }
-        .card-stable-1 .timeline-marker { border-color: var(--neon-magenta); box-shadow: var(--glow-magenta); }
+        .card-active {
+            border-color: var(--neon-cyan);
+        }
+
+        .card-active .timeline-marker {
+            border-color: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .card-stable-2 {
+            border-color: var(--neon-purple);
+        }
+
+        .card-stable-2 .timeline-marker {
+            border-color: var(--neon-purple);
+            box-shadow: var(--glow-purple);
+        }
+
+        .card-stable-1 {
+            border-color: var(--neon-magenta);
+        }
+
+        .card-stable-1 .timeline-marker {
+            border-color: var(--neon-magenta);
+            box-shadow: var(--glow-magenta);
+        }
 
         /* 카드 헤더 정보 */
         .card-header {
@@ -207,9 +228,23 @@
             border-radius: 4px;
         }
 
-        .badge-active { background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
-        .badge-stable { background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3); }
-        .badge-magenta { background: rgba(255, 0, 85, 0.1); color: var(--neon-magenta); border: 1px solid rgba(255, 0, 85, 0.3); }
+        .badge-active {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .badge-stable {
+            background: rgba(176, 38, 255, 0.1);
+            color: var(--neon-purple);
+            border: 1px solid rgba(176, 38, 255, 0.3);
+        }
+
+        .badge-magenta {
+            background: rgba(255, 0, 85, 0.1);
+            color: var(--neon-magenta);
+            border: 1px solid rgba(255, 0, 85, 0.3);
+        }
 
         .date-text {
             font-size: 0.85rem;
@@ -256,8 +291,13 @@
             font-weight: bold;
         }
 
-        .card-stable-2 li::before { color: var(--neon-purple); }
-        .card-stable-1 li::before { color: var(--neon-magenta); }
+        .card-stable-2 li::before {
+            color: var(--neon-purple);
+        }
+
+        .card-stable-1 li::before {
+            color: var(--neon-magenta);
+        }
 
         li strong {
             color: #fff;
@@ -284,6 +324,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -295,17 +336,217 @@
     </header>
 
     <div class="container">
-        <!-- 수직 타임라인 지지선 -->
         <div class="timeline-line"></div>
 
-        <!-- v0.4 (밸런스 패치 및 특수 기믹 업데이트) -->
+        <!-- v0.9 (기존 무기군 핵심 유틸 고도화 빌드) -->
         <div class="timeline-card card-active">
             <div class="timeline-marker"></div>
-            
+
+            <div class="card-header">
+                <div class="version-title">
+                    🌀 v0.9
+                    <span class="badge badge-active" style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">기존 무기군 유틸 고도화 (Active)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🌀 총 도탄 기하학, 검 탄막 절단 및 흡혈, 시간 정지 & 블랙홀 코인 (Changelog v0.9)</div>
+                <ul>
+                    <li><strong>W-03: 총 (Neon Gun) - 벽면 도탄 기하 물리 및 복리 피해 증폭 구현:</strong>
+                        일반 투사체 사격 시 미로의 4대 외벽 경계선(40px 마진)과 접촉 시 입사각 대비 반사각으로 정확하게 통통 튕기는 도탄 물리 공식(좌우 vx 반전, 상하 vy 반전)을 적용했습니다. 도탄 시 경쾌한 틱 효과음과 스파크 파편 및 <code>BOUNCE! 💥</code> 플로팅 텍스트가 격발되며, 도탄될 때마다 탄환의 데미지가 <strong>+25% 복리로 폭증</strong>하여 미로 모퉁이 저격 플레이를 완성했습니다.
+                    </li>
+                    <li><strong>W-04: 검 (Neon Sword) - 적 탄막 절단 및 처사 흡혈 베기 구현:</strong>
+                        검을 휘두르는 반원 범위(slashAngle 기준 약 110도 부채꼴) 내에 들어온 <b>적의 탄환(투사체) 충돌을 실시간 감지하여 공중에서 격파 소멸</b>시키는 탄막 절단 물리 로직을 구축했습니다. 절단 시 금속 튕김음과 보랏빛 파편이 흩어집니다. 추가로 검 또는 창으로 몬스터 격살 시 잃은 체력의 1%(`Math.max(1, (maxHp - hp) * 0.01)`)만큼 체력을 즉시 회복하는 흡혈 베기 및 <code>LIFESTEAL ❤️</code> 플로팅 연출을 마쳤습니다.
+                    </li>
+                    <li><strong>W-08: 시간마법 (Time Magic) - 시간 완전 정지 석상화 & 코인/포션 블랙홀 자석 구현:</strong>
+                        시간 왜곡(지연) 마법이 가동되는 감속 영역 내에서, 매 프레임 1%의 극적인 확률로 몬스터의 시간이 완전히 굳어 기절하는 시간 완전 정지 메즈를 이식했습니다. 정지된 적은 비활성 <b>다크 고딕 그레이 석상화 컬러(Gothic Grey, `#555555`)</b>로 드로잉되어 극상의 시각적 동결감을 줍니다.
+                    </li>
+                    <li><strong>물리 코인 드롭(NeonCoin Entity) 및 무한 블랙홀 역장:</strong>
+                        몬스터 격살 및 방 클리어 시 골드가 즉시 충전되는 방식 대신, 황금색 네온 코인 엔티티(NeonCoin)가 바닥으로 직접 사방으로 통통 튕겨 드롭되는 물리 연산을 이식했습니다. 평소에는 근접 자석(70px)으로 흡수되며, <strong>시간 왜곡 가동 시 맵 전역의 코인과 힐 포션이 블랙홀처럼 캐릭터 가슴에 초광속으로 흡입</strong>되어 퐁퐁 터지는 통쾌한 획득 쾌감을 주입했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Bullet Bounce</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Bullet Deflection</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Time Statue</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Blackhole Magnet</span>
+            </div>
+        </div>
+
+        <!-- v0.8 (물리 병기 및 설치 함정 최종 실체화 빌드) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    ⚔️ v0.8
+                    <span class="badge badge-stable" style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">물리 병기 & 설치 함정 실체화 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">⚔️ 물리 병기 2종, 설치형 함정 및 Haste 반지 초월 마스터리 (Changelog v0.8)</div>
+                <ul>
+                    <li><strong>W-01: 가시 (Thorns - 탱커 반사 & 가시 장막) 구현:</strong>
+                        피격당하는 즉시 받은 최종 대미지를 120px 내 주변 적들에게 100% 분사하는 자홍색 충격파 오라(`explosionRing`)를 생성합니다. 10%의 확률로 보복성 유성 유도 가시(`homing=true`, `color=#ff00aa`) 1발을 격발 피격 몬스터에게 쏘며, 피격 시 3초간 플레이어 발밑에 이글거리는 자홍색 가시 장막 필드가 켜져 닿는 적들에게 매초 잃은 체력의 10% 비례 틱 피해와 40% 감속 디버프를 가해 도발(Aggro) 효과를 제공합니다.
+                    </li>
+                    <li><strong>W-02: 채찍 (Whip - 사슬 그랩 & 견인 가속) 구현:</strong>
+                        마우스 조준 방향으로 직선 사슬 그랩 탄환을 뿜어내며 명중 시 적을 플레이어 발앞 35px 전방으로 순식간에 강제 견인(Pulling)하고 1.5초 기절(Stun)을 가합니다. 맵 외벽 마진선 안전 가두기 물리 연산이 장착되어 있고, 견인 성공 시 3초간 공격 속도를 +20% 증가시키는 Haste 스택(최대 3중첩 시 +60%) 버프를 지급합니다.
+                    </li>
+                    <li><strong>W-10: 함정설치 (Trap - 바닥 지뢰 & 레이저 트립와이어) 구현:</strong>
+                        플레이어가 가만히 있지 않고 움직이는 동안 2초(120프레임)마다 바닥에 노란색 네온 지뢰를 매설합니다. 적 몬스터 접촉 시 80px 반경 기절 대폭발(`p.atk * 1.5` 광역 피해 및 1.5초 기절)을 일으킵니다. 더불어, 전투 중 6초마다 가장 가까운 벽과 벽 사이에 시안색 감전 레이저 트립와이어를 고정 가로지르게 설치하여 적 통과 터치 시 체인 라이트닝 연쇄 벼락(`p.atk * 1.0` 벼락 전이)을 격발시키고 사라집니다.
+                    </li>
+                    <li><strong>E-09: 공속 반지 (Haste Ring) 초월 마스터리 구현:</strong>
+                        5레벨 돌파 시 시전 딜레이(Casting Frame)를 15% 영구 단축시키는 유틸리티 공식을 주입했습니다. 10레벨 초월 상태로 3초(180프레임) 연속 쉬지 않고 마우스 속사 격발 시 연사 쿨다운 최저 하한 제한(10프레임 락)을 완전히 강제 해제하여 최저 3프레임 주기로 가공할 무한 속사를 퍼붓는 <strong>LIMIT OVER! ⚡ 오버드라이브 속사</strong>가 작렬합니다. 발동 중에는 황금빛 번개 스파크가 플레이어 주변에서 뿜어져 나옵니다.
+                    </li>
+                    <li><strong>보상 풀 매핑 및 스탯보드 동기화:</strong>
+                        카드 보상 풀(`weaponCards`) 및 `applyRewardCard`에 `thorns`, `whip`, `trap`을 매핑하고, 스탯보드 무기 형태명에 실시간 획득 무기가 노출되도록 완비했습니다. multishot 등에서 사격 속성 강제 활성화 시 `whip` 도 `dual`로 자동 전환되도록 세밀하게 연동했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Thorns Reflect</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Whip Chain Grab</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Neon Mines & Lasers</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Haste Limit Over</span>
+            </div>
+        </div>
+
+        <!-- v0.7 (유저 편의성 대폭 보강 & 4대 치명적 결함 완파 빌드) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🛡️ v0.7
+                    <span class="badge badge-stable" style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">안정성 & 편의성 대폭 보강 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🛠️ 4대 엔진 결함 완파, HUD 고도화 및 오버레이 이동 락 (Changelog v0.7)</div>
+                <ul>
+                    <li><strong>[결함 1] 마나량(maxMp) 초기화 누락 복구 및 무한 마법 차단:</strong>
+                        플레이어 생성자 내 `this.maxMp = 100` 변수 선언이 누락되어 MP 관련 연산이 `NaN`으로 깨지던 버그를 정밀 복원했습니다. 이로 인해 마나가 마이너스로 가도 무한 발사되던 현상을 차단하고 마나 부족 시 사격이 정지되도록 수정하였으며, MP 재생 반지 및 `mpRegen` 스탯과 동기화된 <strong>초당 마나 자연 재생 시스템</strong>을 온전히 주입했습니다.
+                    </li>
+                    <li><strong>[결함 2] 3택 1 카드 획득 대형 프리미엄 연출 추가 및 보상 중복 선택 완벽 차단:</strong>
+                        카드 획득 룰렛 추첨 시 어떤 카드를 얻었는지 명확하지 않던 피드백 한계를 완파했습니다. 카드를 선택하는 순간 화면 정중앙에 화려한 네온 글로우가 맥동하는 <strong>[대형 3D 카드 획득 모달]</strong>이 팝업되도록 설계했습니다. 또한 카드를 선택하는 즉시 백그라운드에서 스탯 버프 적용 및 포털 개방(active=true) 처리를 완료하여, 확인 팝업 대기 시간 동안 캔버스 엔진의 보상 상자 스폰기가 공백을 틈타 <strong>두 번째 보상 상자를 무한 중복 스폰하여 연속으로 보상을 얻을 수 있던 방 클리어 보상 2번 선택 결함을 완벽하게 원천 봉쇄</strong>했습니다.
+                    </li>
+                    <li><strong>[결함 3] 상점 자판기 이중 결제 방지 및 들이받기 물리 팅겨나감 넉백 이식:</strong>
+                        상점에서 들이받는 순간 코인만 빨려가며 어떤 스탯/장비 카드를 획득했는지 식별하기 어렵고, 보상 닫기 시 플레이어 좌표가 자판기에 여전히 닿아있어 오결제가 연속으로 나던 중대 결함을 해결했습니다. 자판기를 들이받는 즉시 <strong>플레이어를 자판기 반대 방향으로 38px 팅겨나가게 밀쳐내는 물리 넉백(Pushback) 반사 공식과 노란 불꽃 튕김 파티클 및 띠링 효과음</strong>을 적용하여 안전 영역으로 확실하게 고립 이탈시켰습니다. 그와 동시에 화면 중앙에 수령 대기 팝업이 연동되어, 유저가 구매한 스펙을 명확하게 인지하고 "수령 완료"를 클릭한 이후에만 안전하게 다음 구매에 임하도록 개선하여 100% 오결제를 영구 박멸했습니다.
+                    </li>
+                    <li><strong>[결함 4] 상단 HUD 실시간 코인 획득량(+얼마) 직관적 플로팅 연출 주입:</strong>
+                        방 청소 완료 후 획득한 코인이 상단 HUD 영역에서 식별하기 어렵던 연출을 고도화했습니다. 코인 획득 시 상단 COIN 텍스트 영역 우측에 <strong>황금빛으로 통통 튀며 날아가는 획득량 팝업(`+15` 등)</strong> 스팬 애니메이션을 주입하고, HUD 코인 아이템 박스 자체가 0.5초 동안 동적으로 들이닥치는 스케일 맥동(`pulse`) 트랜지션을 이식하여 탁월한 시인성과 쾌감을 구현했습니다. 상점 이용 시에는 자홍빛으로 차감량(`-40` 등)이 직관적으로 표기됩니다.
+                    </li>
+                    <li><strong>[오버레이 락] 보상/상점/시작/결과 화면 활성화 시 플레이어 이동(WASD) 완전 차단:</strong>
+                        3택 1 카드 오버레이, 대형 획득 카드 디테일 뷰, 상점 구매 확인 팝업, 게임 오버/클리어 및 스타트 대기 화면이 떠 있는 동안 플레이어가 캔버스 뒤에서 키보드 입력(`wasd`, 방향키)으로 임의 이동하던 현상을 차단했습니다. 오버레이 감지 시 이동 입력을 즉시 락(Lock) 무력화 처리하여, 예기치 않은 조작 오동작을 100% 영구 해결했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">MP Reset Fix</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Large Card modal</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Vending Confirm</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">HUD Coin Gain</span>
+            </div>
+        </div>
+
+        <!-- v0.6 (원소 마법 초월 시스템 구현) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🔮 v0.6
+                    <span class="badge badge-stable" style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">원소 마법 실체화 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🔥❄️ 원소 마법 초월 기믹 & 물리 연쇄 콤보 (Changelog v0.6)</div>
+                <ul>
+                    <li><strong>W-05: 불마법 (Fire Magic - 화상 & 연쇄 폭발) 완전 구현:</strong>
+                        명중 시 4초 지속되는 화상 스택(최대 5중첩)을 유도하고 중첩당 도트 대미지를 감산하는 원소 디버프 처리기를 적용했습니다. 화상 지속 중일 때는 몬스터 몸 주변에 활활 타오르는 오렌지색 불꽃 오라가 맥박치며, <strong>5중첩 상태에서 사망 시 주변 적을 붉은 스파크 분수로 휩쓸며 ATK 1.8배 광역 대미지 및 넉백</strong>을 가하고 화상 스택을 1개씩 전이시키는 연쇄 대폭발(`triggerFireExplosion`) 물리 기믹을 완비했습니다.
+                    </li>
+                    <li><strong>W-06: 얼음마법 (Ice Magic - 동결 & 물리 파쇄) 완전 구현:</strong>
+                        결정 탄환 명중 시 25%씩 축적되는 빙결 게이지 비례 몬스터 이속 감속(최대 50%)을 적용하고, 100% 도달 시 은백색 링 및 얼음 껍질 장막 연출과 함께 2.5초 완전 동결 기절(Frozen)을 가동합니다. 동결된 적에게 검 베기나 창 찌르기 및 일반 탄환 등 <strong>물리 속성 피격 시 30% 확률로 빙결이 깨지며 3배의 깨짐 파쇄 치명타 피해("FREEZE SHATTER! ❄️ 300% DMG")</strong>를 쏟아붓는 초월 물리 콤보 공식을 장착했습니다.
+                    </li>
+                    <li><strong>보상 카드 풀 & HUD 매핑 통합 연동:</strong>
+                        무기 보상 풀(`weaponCards`)에 `fire`와 `ice` 카드를 등록하고 `applyRewardCard` 및 `getCardSpecificEffect`에 보상 습득 매핑을 마쳤습니다. 스탯 보드 HUD 상에서 무기 장착 형태가 `불마법 (Fire)`, `얼음마법 (Ice)`으로 올바르게 연동되도록 매핑했습니다.
+                    </li>
+                    <li><strong>치트 신(God) 모드 3종 원소 융합 폭사 기동:</strong>
+                        치트 활성키(`P`키) 가동 후 복합 하이브리드(`dual`) 사격 시, 25% 확률로 시안색 번개탄, 주황색 불탄, 서리 얼음탄, 일반탄이 부채꼴로 폭포수처럼 쏟아져 나와 화상 중첩, 체인 라이트닝, 동결 기절 및 3배 물리 파쇄 콤보가 단 한 번의 사격으로 동시에 요동쳐 대폭발하는 극상의 검증 편의성을 장착했습니다.
+                    </li>
+                    <li><strong>스타일 광원 이펙트 보강:</strong>
+                        style.css 에 불마법의 고유 이글거리는 주황 광채를 보조하는 `.text-glow-orange` 클래스를 추가 완료했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Fire Explosion</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Freeze Shatter</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Elemental Homing</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Fusion Cheat</span>
+            </div>
+        </div>
+
+        <!-- v0.5 (초월 무기/장비 실체화 및 엔진 무결성 업데이트) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🔥 v0.5
+                    <span class="badge badge-stable" style="background: rgba(57, 255, 20, 0.1); color: var(--neon-green); border: 1px solid rgba(57, 255, 20, 0.3);">구현 완료 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-green);">⚔️ 초월 무기/장비 실체화 & 엔진 무결성 (Changelog v0.5)</div>
+                <ul>
+                    <li><strong>W-09: 창 (Spear - 관통 찌르기) 완벽 실체화:</strong> 일직선 관통 마름모꼴 네온 창살 투사체를 격발합니다. 사거리의 80% 이상 끝머리 타격 시 2배 크리티컬 대미지("SPEAR-TIP CRITICAL!"), 좁은 미로에서 적을 강력하게 밀쳐내어 경계 벽면 돌파 보정 시 1.5초 기절 및 100% 가산 대미지를 주는 <strong>넉백 벽꽝 기믹("WALLSLAM STUN! 💥")</strong>의 완벽한 물리 판정을 적용했습니다.</li>
+                    <li><strong>W-07: 번개마법 (Lightning Magic) 연쇄 벼락 이식:</strong> 시전 시 마력(MP) 3.0을 차단 소모하며, 벼락 투사체 명중 시 180px 반경 내의 주변 적 4명에게 60ms 시차 재귀 딜레이를 타고 연쇄 스파크가 전이되는 <strong>체인 라이트닝("triggerChainLightning")</strong>을 완벽 연동하고 감전 마비(Shock 45프레임) 디버프를 구현했습니다.</li>
+                    <li><strong>E-08: 이속 반지 (Speed Ring) 5/10 초월 특성 구현:</strong>
+                        질주(Shift)를 2초 이상 유지 시 "바람의 상처" 공격력 +10% 시안 오라 버프를 가동하고, 몬스터 스치기 회피(Dodge) 성공 시 3초간 이속 50%가 폭증하며 황금색 오라 파티클을 뿜는 <strong>초신성 기동("SUPERNOVA ACCEL! 🌟")</strong>을 완벽 연계했습니다.
+                    </li>
+                    <li><strong>인게임 핵심 논리 결함 & 성장 버그 3종 완파:</strong>
+                        회피 증가 반지 10레벨 초월 시 EVD 상한선 75% 유동 캡이 동적 분기되도록 안전 공식을 적용하고, 이미 최고 강화 단계에 도달한 무기 강화 카드들이 보상 풀에서 영구 배제되도록 필터링을 구축했습니다. 행운 목걸이 10레벨 초월 리롤 시 Common 등급이 배제되고 최저 Rare 등급 이상만 확정 스폰되도록 보정했습니다.
+                    </li>
+                    <li><strong>HUD 프리미엄 광원 애니메이션 & 오버레이 연출:</strong>
+                        HP/Stamina/MP 바에 맥동(`barPulse`) 및 유동 그라데이션(`flowLight`) 발광 CSS를 입히고, 3택 1 카드 오버레이에 0.1s~0.4s 딜레이를 둔 Y축 3D Flip 순차 개봉 연출을 이식하여 타격감을 높였습니다. 방 소탕 상자/자판기 스폰 타이밍에 하늘 방향으로 흩어지는 30개 네온 스파크 분수 이펙트를 결합했습니다.
+                    </li>
+                    <li><strong>엔진 치명적 런타임 결함 디버깅 (Syntax Error 복원):</strong>
+                        `game.js` 엔진의 `update()` 메서드 중간에 꼬여 기생하고 있던 `slashWeapon()` 선언부와 중괄호 괄호쌍 정렬 오차를 완전히 잡아내어 클래스 하단 빈 공간(3008라인)으로 격리 이동. 브라우저 먹통 오류를 완전히 해결하고 린팅 문법 무결성 100% 검증을 완수했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-green); border-color: rgba(57, 255, 20, 0.3);">Spear Wallslam</span>
+                <span class="tech-tag" style="color: var(--neon-green); border-color: rgba(57, 255, 20, 0.3);">Chain Lightning</span>
+                <span class="tech-tag" style="color: var(--neon-green); border-color: rgba(57, 255, 20, 0.3);">Supernova Accel</span>
+                <span class="tech-tag" style="color: var(--neon-green); border-color: rgba(57, 255, 20, 0.3);">Syntax Restored</span>
+            </div>
+        </div>
+
+        <!-- v0.4 (밸런스 패치 및 특수 기믹 업데이트) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
             <div class="card-header">
                 <div class="version-title">
                     🚀 v0.4
-                    <span class="badge badge-active">구현 완료 (Stable)</span>
+                    <span class="badge badge-stable">구현 완료 (Stable)</span>
                 </div>
                 <div class="date-text">2026-05-27 (완료)</div>
             </div>
@@ -313,10 +554,16 @@
             <div class="change-category">
                 <div class="category-title">🔮 시간 왜곡 마법 & 밸런스 튜닝 (Changelog v0.4)</div>
                 <ul>
-                    <li><strong>시간 왜곡 마법 (Time Warp) 완비:</strong> 5의 배수 방에서 전설(Legendary) 등급 당첨 시에만 등장하는 유니크 액티브 마법 추가. 발동 시 MP를 지속 소모(6초)하며 적 탄환과 몬스터 행동을 <strong>90% 감속(timeScale = 0.1)</strong>시키는 강력한 불릿타임 공간 구현.</li>
-                    <li><strong>덱빌딩식 장비 연계 강화 시스템:</strong> 5의 배수 무기 방에서 보유한 장비/옵션 상태에 연계되어 효과를 증폭시키는 5종의 [강화] 업그레이드 카드 풀 동적 주입 및 계수 연동.</li>
-                    <li><strong>스탯 복리 붕괴 방지 소프트 캡:</strong> 고등급 보상 폭주 억제를 위해 LUK 스탯 가중치를 최대 <strong>LUK = 4.0</strong>으로 제한하고, EVD(회피율) 중첩 시 한계 효용 수렴 공식(최대 60% 제한)을 도입하여 유리대포 현상 완화.</li>
-                    <li><strong>자연 재생 제약 및 힐링 포션 드롭:</strong> 자연 체력 재생은 오직 <strong>전투 중이고 가만히 서 있을 때만</strong> 가동하도록 조건화. 방 청소 완료 시 10% 확률로 <strong>네온 힐링 물약(최대 HP 10% 회복)</strong>이 방 중앙에 드롭되는 룰 추가 및 초록 스파크 이펙트 탑재.</li>
+                    <li><strong>시간 왜곡 마법 (Time Warp) 완비:</strong> 5의 배수 방에서 전설(Legendary) 등급 당첨 시에만 등장하는 유니크 액티브 마법 추가.
+                        발동 시 MP를 지속 소모(6초)하며 적 탄환과 몬스터 행동을 <strong>90% 감속(timeScale = 0.1)</strong>시키는 강력한 불릿타임 공간 구현.
+                    </li>
+                    <li><strong>덱빌딩식 장비 연계 강화 시스템:</strong> 5의 배수 무기 방에서 보유한 장비/옵션 상태에 연계되어 효과를 증폭시키는 5종의 [강화] 업그레이드 카드
+                        풀 동적 주입 및 계수 연동.</li>
+                    <li><strong>스탯 복리 붕괴 방지 소프트 캡:</strong> 고등급 보상 폭주 억제를 위해 LUK 스탯 가중치를 최대 <strong>LUK = 4.0</strong>으로
+                        제한하고, EVD(회피율) 중첩 시 한계 효용 수렴 공식(최대 60% 제한)을 도입하여 유리대포 현상 완화.</li>
+                    <li><strong>자연 재생 제약 및 힐링 포션 드롭:</strong> 자연 체력 재생은 오직 <strong>전투 중이고 가만히 서 있을 때만</strong> 가동하도록
+                        조건화. 방 청소 완료 시 10% 확률로 <strong>네온 힐링 물약(최대 HP 10% 회복)</strong>이 방 중앙에 드롭되는 룰 추가 및 초록 스파크 이펙트 탑재.
+                    </li>
                 </ul>
             </div>
 
@@ -331,7 +578,7 @@
         <!-- v0.3 (안정 빌드 반영) -->
         <div class="timeline-card card-stable-2">
             <div class="timeline-marker"></div>
-            
+
             <div class="card-header">
                 <div class="version-title">
                     🚀 v0.3
@@ -343,11 +590,16 @@
             <div class="change-category">
                 <div class="category-title">🛠️ 계획된 구현 목표 (Changelog v0.3)</div>
                 <ul>
-                    <li><strong>모델 C 기반 전략 빌드 시너지 시스템 탑재:</strong> 4가지 특수 세트 버프 시너지(탄막 폭격기, 뇌신 검사 등) 대미지 곱연산 공식 추가 및 인게임 시각 피드백 연출.</li>
-                    <li><strong>포털 랭킹 등급화 및 엘리트 드로잉:</strong> 포털 3곳의 난이도를 상/중/하(high, mid, low)로 실시간 등급화하고 5의 배수 진입 직전에 상/중 포털에 <strong>[ELITE]</strong> 캔버스 드로잉 추가.</li>
-                    <li><strong>엘리트 몬스터 출현 기믹:</strong> 1.5배 거대 크기, 맹독 파편 비산 피드백, 체력 3배, 공격력 2배, 처치 보상 5배의 전용 초록 네온 엘리트 몬스터 구현.</li>
-                    <li><strong>보상 시스템 전면 세분화:</strong> 일반 스테이지는 오직 캐릭터 기본 체질 카드(statusPool)만 스폰, 5/10의 배수 방은 상위 카드(weaponPool) 확정 스폰 및 탔던 문 난이도 비례 등급 보정(Epic/Legendary 확률 상승).</li>
-                    <li><strong>스탯 밸런스 튜닝:</strong> 화력 급상승 억제를 위해 공격력(+3 ➔ +2), 공속(+0.2 ➔ +0.12) 등 기본 스탯 상승폭을 미세하게 하향 튜닝.</li>
+                    <li><strong>모델 C 기반 전략 빌드 시너지 시스템 탑재:</strong> 4가지 특수 세트 버프 시너지(탄막 폭격기, 뇌신 검사 등) 대미지 곱연산 공식 추가 및 인게임
+                        시각 피드백 연출.</li>
+                    <li><strong>포털 랭킹 등급화 및 엘리트 드로잉:</strong> 포털 3곳의 난이도를 상/중/하(high, mid, low)로 실시간 등급화하고 5의 배수 진입 직전에
+                        상/중 포털에 <strong>[ELITE]</strong> 캔버스 드로잉 추가.</li>
+                    <li><strong>엘리트 몬스터 출현 기믹:</strong> 1.5배 거대 크기, 맹독 파편 비산 피드백, 체력 3배, 공격력 2배, 처치 보상 5배의 전용 초록 네온 엘리트
+                        몬스터 구현.</li>
+                    <li><strong>보상 시스템 전면 세분화:</strong> 일반 스테이지는 오직 캐릭터 기본 체질 카드(statusPool)만 스폰, 5/10의 배수 방은 상위
+                        카드(weaponPool) 확정 스폰 및 탔던 문 난이도 비례 등급 보정(Epic/Legendary 확률 상승).</li>
+                    <li><strong>스탯 밸런스 튜닝:</strong> 화력 급상승 억제를 위해 공격력(+3 ➔ +2), 공속(+0.2 ➔ +0.12) 등 기본 스탯 상승폭을 미세하게 하향
+                        튜닝.</li>
                 </ul>
             </div>
 
@@ -362,7 +614,7 @@
         <!-- v0.2 (이전 단계) -->
         <div class="timeline-card card-stable-2">
             <div class="timeline-marker"></div>
-            
+
             <div class="card-header">
                 <div class="version-title">
                     💎 v0.2
@@ -374,8 +626,10 @@
             <div class="change-category">
                 <div class="category-title">✨ 핵심 반영 사항 (Changelog v0.2)</div>
                 <ul>
-                    <li><strong>스폰 제어 3종 패턴 엔진 통합:</strong> 몬스터 10마리 누적 소환 시 스폰 속도가 지연되거나(방식 2), 전부 소탕할 때까지 다음 묶음 소환을 보류하는(방식 3) 등 전투 페이스 메이커 탑재.</li>
-                    <li><strong>Web Audio API 사음 합성 엔진:</strong> 별도의 오디오 파일 로드 없이 삼각파/사인파 노이즈 필터를 실시간 오실레이터로 합성하여 레트로 사운드(Laser Shoot, Slash, Dodge, Explosion, GameOver, Victory) 즉석 음향 지원.</li>
+                    <li><strong>스폰 제어 3종 패턴 엔진 통합:</strong> 몬스터 10마리 누적 소환 시 스폰 속도가 지연되거나(방식 2), 전부 소탕할 때까지 다음 묶음 소환을
+                        보류하는(방식 3) 등 전투 페이스 메이커 탑재.</li>
+                    <li><strong>Web Audio API 사음 합성 엔진:</strong> 별도의 오디오 파일 로드 없이 삼각파/사인파 노이즈 필터를 실시간 오실레이터로 합성하여 레트로
+                        사운드(Laser Shoot, Slash, Dodge, Explosion, GameOver, Victory) 즉석 음향 지원.</li>
                     <li><strong>마우스 커서 동기화:</strong> 이등변삼각형 모양 본체의 마우스 조향 회전 궤적 정확화 및 60fps 매끄러운 캔버스 리프레시 구현.</li>
                 </ul>
             </div>
@@ -390,7 +644,7 @@
         <!-- v0.1 (프로젝트 시작) -->
         <div class="timeline-card card-stable-1">
             <div class="timeline-marker"></div>
-            
+
             <div class="card-header">
                 <div class="version-title">
                     🔥 v0.1
@@ -418,4 +672,5 @@
     </div>
 
 </body>
+
 </html>

@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네온 로그라이크 - 신규 무기/장비 기획 마스터 플래너</title>
+    <!-- 구글 폰트 적용 (Outfit & Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-darker: #05060a;
+            --bg-dark: #08090e;
+            --bg-card: #0f111a;
+            --border-neon: rgba(0, 240, 255, 0.15);
+            --neon-blue: #00f0ff;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-pink: #ff0055;
+            --neon-yellow: #ffdf00;
+            --neon-orange: #ff5e00;
+            
+            --rarity-common: #8e9297;
+            --rarity-rare: #00f0ff;
+            --rarity-epic: #b026ff;
+            --rarity-legendary: #ffdf00;
+
+            --font-main: 'Noto Sans KR', sans-serif;
+            --font-title: 'Outfit', 'Noto Sans KR', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-darker);
+            color: #e2e8f0;
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-family: var(--font-title);
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(176, 38, 255, 0.2);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* 기획 길잡이 */
+        .planning-intro {
+            background: linear-gradient(135deg, rgba(176, 38, 255, 0.08) 0%, rgba(0, 240, 255, 0.08) 100%);
+            border: 1px solid rgba(176, 38, 255, 0.25);
+            border-radius: 12px;
+            padding: 1.8rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .planning-intro h2 {
+            font-size: 1.4rem;
+            color: #fff;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .planning-intro ul {
+            list-style: none;
+            padding-left: 0.5rem;
+        }
+
+        .planning-intro li {
+            margin-bottom: 0.6rem;
+            position: relative;
+            padding-left: 1.5rem;
+            color: #cbd5e1;
+            font-size: 0.98rem;
+        }
+
+        .planning-intro li::before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--neon-blue);
+        }
+
+        /* 100층 난이도 완화 추천 기획 대시보드 */
+        .level-100-solution {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, rgba(176, 38, 255, 0.1) 100%);
+            border: 2px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+        }
+
+        .level-100-solution h2 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        .solution-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .solution-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .solution-card {
+            background: rgba(8, 9, 14, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .solution-card:hover {
+            border-color: var(--neon-purple);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(176, 38, 255, 0.1);
+        }
+
+        .solution-card h3 {
+            font-size: 1.15rem;
+            color: var(--neon-yellow);
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .solution-card p {
+            font-size: 0.92rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        /* 탭 내비게이션 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-family: var(--font-title);
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            outline: none;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+
+        .tab-btn.active::after {
+            content: "";
+            position: absolute;
+            bottom: -1rem;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* 카드 그리드 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 개별 카드 디자인 */
+        .card-item {
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 1.8rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-item:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-neon);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 20px rgba(0, 240, 255, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-id {
+            font-family: var(--font-title);
+            font-size: 0.85rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card-id:hover {
+            background: var(--neon-blue);
+            color: var(--bg-darker);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .card-icon-wrap {
+            font-size: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-description {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.8rem;
+        }
+
+        /* 세부 옵션 & 밸런스 튜닝 박스 */
+        .option-section {
+            margin-bottom: 1.2rem;
+        }
+
+        .option-section h4 {
+            font-size: 0.95rem;
+            color: var(--neon-blue);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .option-list {
+            list-style: none;
+            padding-left: 0.2rem;
+        }
+
+        .option-list li {
+            font-size: 0.88rem;
+            color: #e2e8f0;
+            margin-bottom: 0.4rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .option-list li::before {
+            content: "🔹";
+            position: absolute;
+            left: 0;
+            font-size: 0.7rem;
+            top: 2px;
+        }
+
+        /* 5레벨/10레벨 돌파 효과 박스 */
+        .overload-box {
+            background: linear-gradient(135deg, rgba(255, 94, 0, 0.08) 0%, rgba(255, 223, 0, 0.05) 100%);
+            border: 1px solid rgba(255, 94, 0, 0.25);
+            border-radius: 8px;
+            padding: 0.9rem;
+            font-size: 0.88rem;
+            margin-top: auto;
+        }
+
+        .overload-box strong {
+            color: var(--neon-orange);
+            display: block;
+            margin-bottom: 0.4rem;
+            font-family: var(--font-title);
+            font-size: 0.95rem;
+            text-shadow: 0 0 5px rgba(255, 94, 0, 0.2);
+        }
+
+        .overload-box p {
+            margin-bottom: 0.3rem;
+            padding-left: 0.8rem;
+            position: relative;
+            color: #cbd5e1;
+        }
+
+        .overload-box p::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--neon-yellow);
+            font-weight: bold;
+        }
+
+        /* 알림 메시지 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--neon-blue);
+            color: #fff;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 240, 255, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 퀵 서치 및 필터 */
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 300px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .copy-list-btn {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(176, 38, 255, 0.3);
+        }
+
+        .copy-list-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(176, 38, 255, 0.5), 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        /* 기획 종합 토론 및 밸런스 제안 */
+        .summary-discussion {
+            margin-top: 4rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .summary-discussion h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 8px rgba(176, 38, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.8rem;
+        }
+
+        .discussion-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .discussion-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .disc-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .disc-card h3 {
+            font-size: 1.25rem;
+            color: var(--neon-blue);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .disc-card p {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            margin-bottom: 0.8rem;
+        }
+
+        .disc-card ul {
+            list-style: none;
+            padding-left: 0.5rem;
+        }
+
+        .disc-card li {
+            margin-bottom: 0.6rem;
+            position: relative;
+            padding-left: 1.2rem;
+            font-size: 0.92rem;
+            color: #cbd5e1;
+        }
+
+        .disc-card li::before {
+            content: "🔥";
+            position: absolute;
+            left: 0;
+            font-size: 0.9rem;
+            top: 2px;
+        }
+
+        .disc-card.light li::before {
+            content: "💡";
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>NEON MAZE BUILD PLANNER</h1>
+        <p>신규 무기 10종 & 장비 10종 시스템 고도화 및 밸런스 마스터 기획서</p>
+    </header>
+
+    <!-- 100층 도달을 위한 난이도 보정 대안 제안서 -->
+    <div class="level-100-solution">
+        <h2>🔑 100층 도달의 높은 장벽을 해소할 4대 성장/보상 추천 시스템</h2>
+        <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 1.5rem;">
+            단순히 1방 클리어 시 1카드를 고르는 식의 성장은 100층까지 가는 과정에서 <strong>선택 피로도 유발, 성장 곡선 한계, 렉 발생 및 밸런스 붕괴</strong>를 초래합니다. 
+            미로 찾기 테마의 탐험성과 핵앤슬래시의 쾌감을 동시에 보완하기 위한 아래의 강력한 우회/보강 추천 시스템을 제안합니다.
+        </p>
+        
+        <div class="solution-grid">
+            <!-- 1. 특화 문/방 시스템 -->
+            <div class="solution-card">
+                <h3>🚪 ① 하데스식 '특화 보상 문(포털)' 설계</h3>
+                <p>
+                    방을 클리어하고 다음 포털로 이동할 때, 문 위에 <strong>아이콘(상인, 보물상자, 카드, 숙련도)</strong>을 미리 띄워줍니다. 
+                    유저가 성장이 필요하면 [장비 방]을, 골드가 필요하면 [골드 방]을, 힐이 급하면 [상인 방]을 골라가게 하여 <strong>전략적 성장을 통한 체감 난이도 제어</strong>를 제공합니다.
+                </p>
+            </div>
+
+            <!-- 2. 상인 및 골드 시스템 -->
+            <div class="solution-card">
+                <h3>💰 ② 네온 코인 상인(Shop) 및 합성/분해 시스템</h3>
+                <p>
+                    적 처치 시 드롭되는 '네온 코인'을 화폐로 활용합니다. 
+                    10방마다 등장하는 <strong>안전지대의 상인</strong>에게서 원하는 장비/무기를 확정 구매하거나, 불필요한 장비를 분해하여 코인으로 환수하고 다른 장비의 숙련도를 대폭 올려 5/10 초월 레벨을 직접 저격할 수 있도록 설계해 난이도를 극복합니다.
+                </p>
+            </div>
+
+            <!-- 3. 미로의 탐험 요소 (비밀 방) -->
+            <div class="solution-card">
+                <h3>🗺️ ③ 미로 탐색 보상: 비밀 구역(Secret Wall) 및 상자</h3>
+                <p>
+                    미로의 막다른 길에 **숨겨진 황금 상자**를 배치하거나, 일반 공격(검/창)으로 파괴 가능한 **비밀 균열 벽**을 만듭니다. 
+                    미로를 꼼꼼하게 탐험한 플레이어는 방 보상 카드 외에 상자에서 '장비 다발'을 획득하여 난이도를 쉽게 무력화할 수 있어, 미로 본연의 탐색 재미와 난이도 조절을 완벽히 엮어냅니다.
+                </p>
+            </div>
+
+            <!-- 4. 영구 렐릭 및 세트 시너지 -->
+            <div class="solution-card">
+                <h3>결합 ④ 영구 보조 렐릭(Relic) & 세트 시너지 시스템</h3>
+                <p>
+                    수치만 올리는 카드와 별개로, 획득 시 영구 적용되는 **'세트 시너지 효과'**나 **'유물'**을 도입합니다. 
+                    예컨대 `체력갑옷`과 `체력반지`를 동시 소지하면 **[불멸의 자생]** 세트 효과가 켜져 '포션을 먹으면 주변 적을 광역 넉백'시키는 <strong>유틸리티 융합</strong>을 줍니다. 단순 딜찍누를 예방하는 가장 세련된 장치입니다.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기획 길잡이 -->
+    <div class="planning-intro">
+        <h2>🛠️ 신규 장비 및 무기 시스템 핵심 기획 요약</h2>
+        <ul>
+            <li><strong>무기 파워업 규칙</strong>: 무기 습득 시 공격력이 증가하며, 특정 무기 중복 습득 및 전용 강화 카드를 통해 아래 명시된 <strong>'개별 무기 옵션'</strong>을 최대치로 고도화합니다.</li>
+            <li><strong>장비 5/10 돌파 초월 규칙</strong>: 장비는 평소 미세한 스탯만 올려주지만, 중복 습득하여 <strong>5레벨(돌파) 및 10레벨(초월)</strong> 달성 시 전장의 판도를 바꾸는 '초월 특성'이 강제 발현됩니다.</li>
+            <li><strong>넘버링 간편 피드백</strong>: 각 카드의 ID <strong>넘버링(W-01 ~ W-10, E-01 ~ E-10)</strong>을 클릭하면 클립보드에 자동 복사되어 AI 개발자와 즉시 토론할 수 있습니다.</li>
+        </ul>
+    </div>
+
+    <!-- 필터 및 검색 바 -->
+    <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="무기/장비 또는 특성 검색..." onkeyup="filterCards()">
+        <button class="copy-list-btn" onclick="copyPlannerText()">📋 기획 목록 텍스트 전체 복사</button>
+    </div>
+
+    <!-- 탭 내비게이션 -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-weapons')">Weapons (무기 10종 & 세부 옵션)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-equipments')">Equipments (장비 10종 & 5/10 초월)</button>
+    </div>
+
+    <!-- 1. 무기 10종 탭 -->
+    <div id="tab-weapons" class="tab-content active">
+        <div class="card-grid" id="weaponsGrid">
+            
+            <!-- W-01: 가시 (반사데미지) -->
+            <div class="card-item" data-title="가시 반사데미지" data-desc="반사 데미지 증가, 데미지 감소, 반사거리 증가">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-01')" title="클릭하여 복사">W-01</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-pink);">🌵</div>
+                    </div>
+                    <div class="card-title">가시 (Thorns - 반사)</div>
+                    <div class="card-description">피격 시 적의 대미지를 강력한 충격파로 되돌려주고, 근접한 적을 자동으로 찌릅니다. 탱커 지향 빌드의 정석입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>반사 피해 증폭</strong>: 반사 대미지 계수를 플레이어 최대 방어력/체력에 비례하여 영구 증가</li>
+                            <li><strong>피해 경감 강철화</strong>: 공격을 반사할 때 플레이어가 입는 최종 피해량을 %로 고정 감소</li>
+                            <li><strong>방출 사거리 확장</strong>: 반사 충격파 방출 반경을 늘려 화면 끝 원거리 저격 몬스터까지 타격</li>
+                            <li><strong>[보완 기획] 보복 유도 가시</strong>: 반사 성공 시 10% 확률로 적에게 추적 유도 가시 탄환 사출</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 가시 - 한계 돌파 기믹 (추천)</strong>
+                    피격 시 잃은 체력의 10%만큼 주변 몬스터를 3.0초 동안 도발(Aggro)하는 '가시 장막' 필드를 캔버스에 생성합니다.
+                </div>
+            </div>
+
+            <!-- W-02: 채찍 (당겨오기) -->
+            <div class="card-item" data-title="채찍 당겨오기" data-desc="채찍 데미지 증가, 당겨오는 거리, 적 스턴 시간, 채찍 숫자">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-02')" title="클릭하여 복사">W-02</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-green);">🪢</div>
+                    </div>
+                    <div class="card-title">채찍 (Whip - 그랩)</div>
+                    <div class="card-description">전방의 적을 사슬 채찍으로 낚아채 내 발밑으로 당겨옵니다. 다른 무기(검/창)와의 콤보 연계에 특화되었습니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>채찍 살상력 증가</strong>: 채찍 휘두르기 자체 대미지를 상향하고 물리 타격 판정 보정</li>
+                            <li><strong>포획 사거리 확장</strong>: 채찍이 도달하는 직선 그랩 반경(길이)을 대폭 연장</li>
+                            <li><strong>충격 마비 기절</strong>: 당겨진 몬스터가 내 앞에 착지했을 때 걸리는 스턴(Stun) 시간을 증가</li>
+                            <li><strong>다중 채찍 갈래</strong>: 채찍 가닥을 늘려 전방 부채꼴 범위의 다수 적을 동시에 한데 묶어 그랩</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 채찍 - 한계 돌파 기믹 (추천)</strong>
+                    그랩에 성공할 때마다 플레이어의 공격 속도가 3초 동안 20% 상승(최대 3중첩)하여 즉시 '그랩 후 극딜' 연계를 유도합니다.
+                </div>
+            </div>
+
+            <!-- W-03: 총 -->
+            <div class="card-item" data-title="총" data-desc="데미지 증가, 팅기는 확율, 탄환의 갯수">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-03')" title="클릭하여 복사">W-03</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-blue);">🔫</div>
+                    </div>
+                    <div class="card-title">총 (Neon Gun)</div>
+                    <div class="card-description">가장 보편적인 원거리 사격 무기입니다. 빠른 연사력과 튕김 궤적으로 전장을 어지럽힙니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>총탄 파괴력 증폭</strong>: 대미지를 미세하게 늘리는 대신 장비 공격력 효율 100% 반영</li>
+                            <li><strong>도탄 물리 활성화</strong>: 탄환이 몬스터 혹은 '미로 벽면'에 튕겨 굴절 비행할 확률 대폭 향상</li>
+                            <li><strong>다탄화 격발</strong>: 한 번 사격 시 부채꼴 혹은 전방 배치되는 탄환의 기본 개수 대폭 증가</li>
+                            <li><strong>[보완 기획] 조준경 장착</strong>: 크리티컬(치명타) 확률 옵션을 추가하여 단일 대상 대미지 누적</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 총 - 한계 돌파 기믹 (추천)</strong>
+                    미로 벽면에 탄환이 튕길 때마다 탄환 대미지가 25% 복리로 증가하는 '도탄 마스터' 특성 부여.
+                </div>
+            </div>
+
+            <!-- W-04: 검 -->
+            <div class="card-item" data-title="검" data-desc="검 데미지 증가, 검 사정거리, 검 범위">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-04')" title="클릭하여 복사">W-04</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-purple);">⚔️</div>
+                    </div>
+                    <div class="card-title">검 (Neon Sword)</div>
+                    <div class="card-description">플레이어 주변 180도 부채꼴 반경을 시원하게 베어 넘기는 근접 타격 무기입니다. 탄막 지우기 성능이 탑재되어 있습니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>예도 연마 대미지</strong>: 베기 위력을 크게 올리고 방어도가 높은 엘리트 몬스터의 방어 관통</li>
+                            <li><strong>베기 리치 사거리</strong>: 검풍이 날아가는 물리 반경(px)을 시각적 이펙트와 동기화하여 늘림</li>
+                            <li><strong>살상 각도 범위 확장</strong>: 180도 베기 각도를 최대 270도, 나아가 360도 전방위 휠윈드로 회전 확장</li>
+                            <li><strong>[보완 기획] 탄막 절단</strong>: 베기 궤적에 닿은 적의 투사체를 파괴하여 소멸시키는 유틸성 부여</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 검 - 한계 돌파 기믹 (추천)</strong>
+                    검으로 적을 처치할 때마다 잃은 체력의 1%를 회복하는 '흡혈 베기' 특성 해금.
+                </div>
+            </div>
+
+            <!-- W-05: 불마법 -->
+            <div class="card-item" data-title="불마법" data-desc="마법 데미지, 수량증가, 소모 마나량 감소, 발사시간 감소, 불타는 확율">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-05')" title="클릭하여 복사">W-05</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-orange);">🔥</div>
+                    </div>
+                    <div class="card-title">불마법 (Fire Magic)</div>
+                    <div class="card-description">폭발적이고 파괴적인 지속 화염을 뿜어냅니다. 적을 불태워 지속적인 화상 대미지를 입히는 강력한 MP 기술입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>화염 극대화</strong>: 마법 기본 피해량 및 중첩되는 도트 화상(Burn) 대미지 비약적 상승</li>
+                            <li><strong>불화살 수량 증대</strong>: 한 번 시전 시 생성되어 날아가는 불꽃 투사체 폭사 수량 확장</li>
+                            <li><strong>고효율 연비 튜닝</strong>: 스킬 발동 시 요구되는 마나(MP) 소모 요구치를 영구 감소</li>
+                            <li><strong>화염 연사력 가속</strong>: 시전 딜레이(발사 시간 간격)를 크게 단축하여 속사 화염 유도</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 불마법 - 한계 돌파 기믹 (추천)</strong>
+                    화상 디버프가 5중첩 쌓인 적이 사망할 때, 주변 적들에게 번져나가는 화염 연쇄 폭발(Splash) 발동.
+                </div>
+            </div>
+
+            <!-- W-06: 얼음마법 -->
+            <div class="card-item" data-title="얼음마법" data-desc="마법 데미지, 수량증가, 소모 마나량 감소, 발사시간 감소, 얼어버리는 확율">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-06')" title="클릭하여 복사">W-06</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-blue);">❄️</div>
+                    </div>
+                    <div class="card-title">얼음마법 (Ice Magic)</div>
+                    <div class="card-description">적의 속도를 늦추고 얼어붙게 만듭니다. 안정적인 카이팅과 메즈(제어) 중심의 안전 지향형 마법입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>빙결 한파 대미지</strong>: 얼음 가시 탄환의 기본 대미지 및 한빙 파편의 추가 타격 추가</li>
+                            <li><strong>우박 낙하 수량</strong>: 쏟아지는 고드름/우박 투사체의 동시 소환 수량을 대폭 보강</li>
+                            <li><strong>마나 소모 가중치 경감</strong>: 마나 소모 비중을 낮춰 다른 마법과 콤보 연계 시 부담 완화</li>
+                            <li><strong>동결 확률 증대</strong>: 적의 이속을 깎다가 최종적으로 완전히 얼려 정지(Freeze)시키는 기절 확률 추가</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 얼음마법 - 한계 돌파 기믹 (추천)</strong>
+                    빙결 상태의 몬스터를 검이나 창 등의 물리 무기로 가격 시, 30% 확률로 얼음이 깨지며 3배의 치명타 피해.
+                </div>
+            </div>
+
+            <!-- W-07: 번개마법 -->
+            <div class="card-item" data-title="번개마법" data-desc="감전 범위, 번개 전이 범위, 마비 확율, 전이 횟수">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-07')" title="클릭하여 복사">W-07</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-yellow);">⚡</div>
+                    </div>
+                    <div class="card-title">번개마법 (Lightning Magic)</div>
+                    <div class="card-description">한 마리만 타격해도 주변 수많은 적들에게 전류가 타고 흘러 다수를 감전사시키는 도미노형 학살 무기입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>감전 살상 범위 확장</strong>: 최초 벼락이 떨어지는 원형 범위(Radius)를 가시적으로 크게 확장</li>
+                            <li><strong>연쇄 전이 사거리</strong>: 전이될 때 전류가 건너뛰는 몬스터 간 검색 한계 반경을 증가</li>
+                            <li><strong>전류 마비 마비화</strong>: 감전 상태가 발동된 적들이 일시적으로 부들부들 떨며 무력화되는 확률 추가</li>
+                            <li><strong>체인 링킹 횟수 추가</strong>: 한 번의 번개가 튕겨 타고 이동하는 몬스터의 총 연쇄 수(Chain Count) 증가</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 번개마법 - 한계 돌파 기믹 (추천)</strong>
+                    전이 횟수가 한계 도달 시, 마지막 대상 주변에 번개 3갈래가 동시 다발로 떨어지는 잔류 폭뢰 현상 유도.
+                </div>
+            </div>
+
+            <!-- W-08: 시간마법 -->
+            <div class="card-item" data-title="시간마법" data-desc="느려지는 시간, 쿨타임 감소, 완전히 시간 멈출 확율">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-08')" title="클릭하여 복사">W-08</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-purple);">🔮</div>
+                    </div>
+                    <div class="card-title">시간마법 (Time Magic)</div>
+                    <div class="card-description">자신을 제외한 온 우주와 몬스터들의 속도를 둔화시킵니다. 극소 확률로 완전 정지를 시키는 시공의 지배자 전설 카드입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>둔화 지속 확장</strong>: 불릿타임 시간 왜곡이 활성화되는 기본 지속시간(초)을 증가</li>
+                            <li><strong>가속 재충전 쿨타임</strong>: 시간왜곡의 대기 쿨다운 시간이나 마나 소모 비중을 대폭 단축</li>
+                            <li><strong>완전 시간 정지 (시정)</strong>: 공격 시 1% 미만의 극소 확률로 주변 몬스터가 3초간 아예 돌처럼 정지</li>
+                            <li><strong>[보완 기획] 잔상 가속</strong>: 시간마법 작동 중 플레이어의 이동 및 대시 속도가 역으로 2배로 가속</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 시간마법 - 한계 돌파 기믹 (추천)</strong>
+                    시간 왜곡이 유지되는 동안 맵 전체에 드롭된 경험치나 포션 아이템이 블랙홀처럼 플레이어에게 끌려옵니다.
+                </div>
+            </div>
+
+            <!-- W-09: 창 (Spear) -->
+            <div class="card-item" data-title="창" data-desc="검과 비슷하지만 직선 찌르기 관통 관통력">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-09')" title="클릭하여 복사">W-09</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-blue);">🔱</div>
+                    </div>
+                    <div class="card-title">창 (Spear - 관통 찌르기)</div>
+                    <div class="card-description"><strong>[신규 기획 보완]</strong> 넓게 베는 검과 완벽히 구분되는 <strong>'일직선상의 깊숙한 관통 찌르기'</strong>입니다. 거리 조절 카이팅에 극한으로 어울리는 대인 무기입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>직선 관통 리치 확장</strong>: 찌르기가 닿는 전방의 사거리를 좁고 길쭉하게 연장</li>
+                            <li><strong>물리 충격 넉백</strong>: 찔린 대상들이 일직선 상으로 플레이어로부터 멀리 넉백(Knockback)</li>
+                            <li><strong>창끝 치명타 (Spear-Tip)</strong>: 창 타격 반경의 가장 '끝머리'에 정밀히 조준 적중한 적에게 대미지 2배 증폭</li>
+                            <li><strong>다발 창살 사출</strong>: 찌르는 궤적을 3방향(좌, 우, 중앙) 부채꼴 창날 사출로 확장</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 창 - 한계 돌파 기믹 (추천)</strong>
+                    창 찌르기로 넉백되어 '미로 벽면'에 몬스터가 부딪힐 경우, '벽꽝' 판정으로 대미지 100% 가산 및 1.5초 기절.
+                </div>
+            </div>
+
+            <!-- W-10: 함정설치 -->
+            <div class="card-item" data-title="함정설치" data-desc="바닥에 설치하는 함정, 벽에 설치하는 함정, 벽과 벽 사이, 함정과 함정 사이">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('W-10')" title="클릭하여 복사">W-10</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-pink);">🪤</div>
+                    </div>
+                    <div class="card-title">함정설치 (Trap Specialist)</div>
+                    <div class="card-description"><strong>[신규 기획 보완]</strong> 미로라는 좁고 복잡한 특수한 지형의 메리트를 극대화하는 수동/자동 설치형 트랩 마스터 기믹입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>🎯 밸런스 고도화 및 세부 강화 옵션</h4>
+                        <ul class="option-list">
+                            <li><strong>바닥 함정 (지뢰)</strong>: 지나가던 몬스터가 밟으면 터져 기절 및 장판 피해 유도</li>
+                            <li><strong>벽면 가시/레이저 함정</strong>: 미로 벽면에 부착되어 주기적으로 전방을 가로지르는 광선 투사</li>
+                            <li><strong>벽과 벽 사이 함정 (바리케이드)</strong>: 마주보는 두 벽 사이에 트랩을 설치해 적의 진입을 영구 차단</li>
+                            <li><strong>함정 간 연쇄 와이어</strong>: 설치된 지뢰와 지뢰 사이에 <strong>레이저 트립와이어(선)</strong>가 활성화되어, 선을 밟은 적들이 연쇄 폭발을 일으키며 단체 폭사</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box">
+                    <strong>🔥 함정설치 - 한계 돌파 기믹 (추천)</strong>
+                    내가 밟아둔 바닥 함정 영역에 서 있는 동안 플레이어는 완전 무적 판정을 획득하는 '최후의 요새화' 활성화.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. 장비 10종 탭 -->
+    <div id="tab-equipments" class="tab-content">
+        <div class="card-grid" id="equipmentsGrid">
+            
+            <!-- E-01: 최대체력갑옷 -->
+            <div class="card-item" data-title="최대체력갑옷" data-desc="체력 갑옷 피격 데미지 감소 부활">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-01')" title="클릭하여 복사">E-01</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-pink);">🛡️</div>
+                    </div>
+                    <div class="card-title">최대체력 갑옷 (Plate Armor)</div>
+                    <div class="card-description">플레이어의 근본 체력을 보강해 주는 수호 갑옷입니다. 생존의 최전선을 받쳐줍니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>최대 체력(HP)을 레벨당 <strong>+4</strong>씩 안전하게 미세 강화합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-pink);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (강철 의지)</strong>: 현재 체력이 30% 미만으로 낙하할 경우, 들어오는 모든 피해량 20% 영구 감산 보호막 상시 제공</p>
+                    <p><strong>10레벨 달성시 (수호신의 가호)</strong>: 체력이 0에 도달하여 사망에 직면했을 때, 1회 부활(최대 체력의 50% 회복 상태로 기사회생)</p>
+                </div>
+            </div>
+
+            <!-- E-02: 최대스테미너신발 -->
+            <div class="card-item" data-title="최대스테미너신발" data-desc="스태미너 대시 회피 무적">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-02')" title="클릭하여 복사">E-02</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-green);">🥾</div>
+                    </div>
+                    <div class="card-title">최대스테미너 신발 (Stamina Boots)</div>
+                    <div class="card-description">미로에서 카이팅을 원활하게 돕는 활력용 부츠입니다. 기동성에 힘을 잔뜩 보탭니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>최대 기력(Stamina) 게이지의 최대 한계를 레벨당 <strong>+4</strong>씩 확장합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-green);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (가벼운 깃털)</strong>: 대시(Shift) 중 적 공격에 타격받을 경우, 물리 자동 회피율(EVD)이 즉시 15% 가산 적용</p>
+                    <p><strong>10레벨 달성시 (시공의 질주)</strong>: 대시 시전 시간 전체 프레임 중 0.25초 동안 완전 무적 및 몬스터/벽 통과 돌진 기동</p>
+                </div>
+            </div>
+
+            <!-- E-03: 공격범위장갑 -->
+            <div class="card-item" data-title="공격범위장갑" data-desc="공격 범위 투사체 크기 충격파">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-03')" title="클릭하여 복사">E-03</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-blue);">🧤</div>
+                    </div>
+                    <div class="card-title">공격범위 장갑 (Reach Gloves)</div>
+                    <div class="card-description">투사체의 크기와 근접 찌르기/베기의 반경을 확장시켜 안전거리 확보에 지대하게 기여합니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>모든 기본 공격의 물리 타격 범위 및 사거리를 레벨당 <strong>+8px</strong>씩 확장합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-blue);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (지배적 리치)</strong>: 원거리 총탄 투사체의 히트박스(물리 크기)가 20% 거대화되어 명중 편의성 극대화</p>
+                    <p><strong>10레벨 달성시 (파동의 권능)</strong>: 모든 1차 타격 물리 무기(검/창) 공격 시 전방으로 벽을 통과하는 미니 충격파 사출</p>
+                </div>
+            </div>
+
+            <!-- E-04: 최대마력투구 -->
+            <div class="card-item" data-title="최대마력투구" data-desc="마력 마나 투구 마력 역류">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-04')" title="클릭하여 복사">E-04</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-purple);">🪖</div>
+                    </div>
+                    <div class="card-title">최대마력 투구 (Mana Helm)</div>
+                    <div class="card-description">마력(MP) 한계를 비약적으로 확보하여 마법 연사 빌드의 리스크를 말끔히 지웁니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>플레이어의 최대 마력(maxMp) 수치를 레벨당 <strong>+8</strong>씩 확장합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-purple);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (마력 역류)</strong>: 마법 발동 시 20% 확률로 요구 MP를 아예 소모하지 않고 공짜로 스킬 방출</p>
+                    <p><strong>10레벨 달성시 (현자의 지혜)</strong>: 플레이어의 현재 마나가 100% 가득 차 있을 때, 모든 물리 기본 위력 대미지가 상시 25% 가산</p>
+                </div>
+            </div>
+
+            <!-- E-05: 행운목걸이 -->
+            <div class="card-item" data-title="행운목걸이" data-desc="행운 운 드롭 리롤">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-05')" title="클릭하여 복사">E-05</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-yellow);">📿</div>
+                    </div>
+                    <div class="card-title">행운 목걸이 (Luck Amulet)</div>
+                    <div class="card-description">고등급 카드를 유도하고 몬스터 사후 약탈물 보너스를 비약적으로 높여주는 성장형 부적입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>플레이어의 행운(LUK) 계수를 레벨당 <strong>+0.05</strong>씩 축적(소프트 캡 무력화)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-yellow);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (황금의 길)</strong>: 정예(Elite) 몬스터 처치 시 2배의 자원(체력 포션/점수)을 확정 드롭</p>
+                    <p><strong>10레벨 달성시 (기적의 운명)</strong>: 카드 선택 화면에서 1회 리롤(Reroll) 기능 활성화 및 추첨 시 Rare 등급 최저 보증</p>
+                </div>
+            </div>
+
+            <!-- E-06: 마력회복반지 -->
+            <div class="card-item" data-title="마력회복반지" data-desc="마나 회복 마력 반지">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-06')" title="클릭하여 복사">E-06</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-blue);">💍</div>
+                    </div>
+                    <div class="card-title">마력회복 반지 (Mana Ring)</div>
+                    <div class="card-description">마법 스킬을 평타처럼 시전할 수 있게 돕는 실시간 초당 마력 수급 링입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>초당 마력(MP) 자연 재생 비율 수치를 레벨당 <strong>+0.3/s</strong>씩 영구 보강합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-blue);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (순환의 고리)</strong>: 몬스터 처치(Kill) 성공 시마다 최대 마나의 3%에 달하는 MP 즉시 환급 수급</p>
+                    <p><strong>10레벨 달성시 (무한의 서클)</strong>: 특수기(불릿타임 시간 정지 장막) 발동 시 소모되는 마나 유지량이 50% 절감</p>
+                </div>
+            </div>
+
+            <!-- E-07: 체력회복반지 -->
+            <div class="card-item" data-title="체력회복반지" data-desc="체력 회복 물약">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-07')" title="클릭하여 복사">E-07</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-green);">💍</div>
+                    </div>
+                    <div class="card-title">체력회복 반지 (Health Ring)</div>
+                    <div class="card-description">치유 수단이 제한적인 좁은 미로 속에서 산소호흡기 역할을 하는 자동 체력 재생 링입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>초당 체력 자연 회복 비율(hpRegen)을 레벨당 <strong>+0.15/s</strong>씩 누적 보강합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-green);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (활력 폭발)</strong>: 전장에 스폰된 붉은 네온 힐링 포션(물약) 획득 시 최종 치유 효율 50% 강제 증가</p>
+                    <p><strong>10레벨 달성시 (자가 수선)</strong>: 적 공격에 피격되지 않은 안전 상태 5초 유지될 때마다, 초당 HP 재생 속도 3배 가속</p>
+                </div>
+            </div>
+
+            <!-- E-08: 이동속도반지 -->
+            <div class="card-item" data-title="이동속도반지" data-desc="이동 속도 반지">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-08')" title="클릭하여 복사">E-08</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-orange);">💍</div>
+                    </div>
+                    <div class="card-title">이동속도 반지 (Speed Ring)</div>
+                    <div class="card-description">경쾌한 속도로 미로 골목길 구석구석을 누비고 카이팅을 원활하게 돕는 신속의 링입니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>기본 이동 속도 계수(ms)를 레벨당 <strong>+1.5%</strong>씩 곱연산 상승시킵니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-orange);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (바람의 상처)</strong>: 멈추지 않고 계속 달려서 이동하는 상태를 2초 유지 시, 공격 위력 10% 증가 버프 획득</p>
+                    <p><strong>10레벨 달성시 (초신성 기동)</strong>: 몬스터 충돌 크기 스쳐지나갈 정도 근접 회피 성공 시, 이동 속도 3초간 50% 폭발적 가속</p>
+                </div>
+            </div>
+
+            <!-- E-09: 공격속도반지 -->
+            <div class="card-item" data-title="공격속도반지" data-desc="공격 속도 반지 연사 속도">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-09')" title="클릭하여 복사">E-09</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-yellow);">💍</div>
+                    </div>
+                    <div class="card-title">공격속도 반지 (Haste Ring)</div>
+                    <div class="card-description">총탄의 연사력과 찌르기/베기 동작 프레임을 비약적으로 끌어당겨 DPS를 폭발적으로 올립니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>연사 공격 속도 주기(aspd)를 레벨당 <strong>+2%</strong>씩 가속 단축 적용합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-yellow);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (쾌속 시전)</strong>: 모든 채널링/시전 지연 준비 동작 애니메이션 프레임을 강제로 15% 일괄 단축</p>
+                    <p><strong>10레벨 달성시 (무한 연사)</strong>: 마우스를 3초 동안 쉬지 않고 공격 사격 진행 시, 인게임 최대 제한 속도 리미트 해제</p>
+                </div>
+            </div>
+
+            <!-- E-10: 회피증가 반지 -->
+            <div class="card-item" data-title="회피증가 반지" data-desc="회피 증가 회피율 섬광">
+                <div>
+                    <div class="card-header">
+                        <span class="card-id" onclick="copyId('E-10')" title="클릭하여 복사">E-10</span>
+                        <div class="card-icon-wrap" style="color: var(--neon-pink);">💍</div>
+                    </div>
+                    <div class="card-title">회피증가 반지 (Evasion Ring)</div>
+                    <div class="card-description">피격 위기 자체를 확률로 차단하여 하드코어 미로 찾기의 피격 누적을 지워줍니다.</div>
+                    
+                    <div class="option-section">
+                        <h4>📈 기본 성장 수치 (1~4레벨, 6~9레벨)</h4>
+                        <ul class="option-list">
+                            <li>물리 확률형 회피 계수(evd)를 레벨당 <strong>+1%</strong>씩 체감 적용 가산해 줍니다.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="overload-box" style="border-color: var(--neon-pink);">
+                    <strong>🔮 레벨별 초월 스테이터스 폭발 이펙트</strong>
+                    <p><strong>5레벨 달성시 (환영 섬광)</strong>: 회피(Dodge) 성공 시, 내 자리에 네온 섬광이 작렬해 주변 적들을 1.5초간 기절(Stun)</p>
+                    <p><strong>10레벨 달성시 (유령의 걸음)</strong>: EVD 시스템의 한계 한도 상한선 공식 자체를 60%에서 <strong>75%</strong>로 강제 재확장</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 기획 종합 토론 및 비교 분석 -->
+    <div class="summary-discussion">
+        <h2>🧐 개발자의 기획 피드백 & 밸런스 제안</h2>
+        <div class="discussion-grid">
+            <div class="disc-card">
+                <h3>⚖️ 시스템 기획에서 누락될 뻔한 빈틈 보완점</h3>
+                <p><strong>무기 10종 및 장비 10종의 원활한 안착을 위한 세부 규칙</strong></p>
+                <ul>
+                    <li><strong>무기 및 마법의 자원 밸런스</strong>: 불, 얼음, 번개, 시간마법은 마나(MP)를 소모하고 총, 검, 창, 가시, 채찍은 자원을 소모하지 않는 '물리 무기'로 이원화합니다. 이를 통해 장비(최대마력 투구, 마력회복 반지)가 마법 빌드의 핵심 시너지로 매끄럽게 연결됩니다.</li>
+                    <li><strong>채찍과 가시의 탱/딜 융합</strong>: 채찍(당겨오기)으로 다수의 적을 내 발밑으로 강제로 끌어당긴 다음, 가시(반사) 및 창(찌르기)으로 폭발적인 다발 딜을 넣는 <strong>'그랩형 복수 반사 탱커 빌드'</strong> 같은 괴물 빌드 설계가 가능해집니다.</li>
+                    <li><strong>함정과 미로 벽면 물리 충격 연동</strong>: 함정-함정 사이의 와이어 폭발은 좁은 미로 복도에서 엄청난 광역 화력을 뿜어냅니다. 창의 넉백으로 벽에 충돌시키는 기믹과 시너지가 훌륭할 것입니다.</li>
+                </ul>
+            </div>
+            <div class="disc-card light">
+                <h3>🚀 장비 성장(5/10레벨 돌파)의 밸런스 제안</h3>
+                <p><strong>RNG(무작위성) 덱빌딩 쾌감 유지를 위한 보완 제안</strong></p>
+                <ul>
+                    <li><strong>성장 체감 격차 유도</strong>: 레벨 1~4 단계의 기본 장비 강화 수치는 유저분께서 제안하신 대로 정말 <strong>미세하게(레벨당 +1.5%~2% 등)</strong> 가져가서 성장을 위해 투자해야 할 이유를 만듭니다.</li>
+                    <li><strong>5레벨/10레벨 마일스톤 설계</strong>: 5레벨 달성 시 '사용하기 쓸만한 특수 편의성 옵션(유틸)'을 해금하고, 최대치인 10레벨에 도달하면 무적 통과나 부활 등 **'게임 판도를 엎어버릴 수 있는 폭발적인 초월 메커니즘'**을 배치하여 10레벨을 만들기 위한 수집 욕구를 극한으로 자극합니다.</li>
+                    <li><strong>시너지 리스트</strong>: [목걸이 10레벨]로 카드 리롤이 해금되면, [투구 10레벨]로 마나 가득 찼을 때 딜뻥을 걸고 [번개 10레벨]로 감전 지대를 만드는 등 중후반 덱 설계의 궁극적 재미가 펼쳐집니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 알림 토스트 -->
+<div class="toast" id="toast">복사 완료!</div>
+
+<script>
+    // 탭 전환 기능
+    function switchTab(evt, tabId) {
+        // 모든 탭 콘텐츠 숨기기
+        const tabContents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        // 모든 탭 버튼 활성화 해제
+        const tabBtns = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < tabBtns.length; i++) {
+            tabBtns[i].classList.remove("active");
+        }
+
+        // 선택된 탭 콘텐츠 보이기 & 버튼 활성화
+        document.getElementById(tabId).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    // 카드 개별 ID 복사 기능
+    function copyId(id) {
+        navigator.clipboard.writeText(id).then(() => {
+            showToast(`아이템 고유 번호 [${id}] 복사 완료!`);
+        });
+    }
+
+    // 카드 목록 전체 텍스트 클립보드 복사
+    function copyPlannerText() {
+        let text = `[네온 미로찾기 로그라이크 - 신규 무기/장비 기획 마스터 플래너]\\n\\n`;
+        
+        text += `■ 1. 신규 무기 10종 & 강화 특성 (Weapons)\\n`;
+        text += `W-01. 가시 (Thorns - 반사) 🌵 (데미지 증가, 데미지 감소, 반사거리 증가, 보복 가시 사출)\\n`;
+        text += `W-02. 채찍 (Whip - 그랩) 🪢 (데미지 증가, 그랩 거리 증가, 착지 기절 스턴, 다중 채찍 부채꼴)\\n`;
+        text += `W-03. 총 (Neon Gun) 🔫 (도탄 확률 증가, 튕김 각도, 다탄화 폭사, 치명타 추가)\\n`;
+        text += `W-04. 검 (Neon Sword) ⚔️ (범위 베기, 사거리 연장, 360도 휠윈드 회전, 투사체 지우기)\\n`;
+        text += `W-05. 불마법 (Fire Magic) 🔥 (중중 화상, 투사체 증대, 연비 튜닝, 시전 딜레이 가속)\\n`;
+        text += `W-06. 얼음마법 (Ice Magic) ❄️ (동결 완정 기절, 고드름 소환, 소모량 경감, 3배 치명타 콤보)\\n`;
+        text += `W-07. 번개마법 (Lightning Magic) ⚡ (벼락 범위 확대, 전이 사거리 증가, 마비 기절, 연쇄 수량 체인)\\n`;
+        text += `W-08. 시간마법 (Time Magic) 🔮 (지속시간 증가, 재충전 쿨타임 감소, 1% 미만 완전 정지, 아이템 블랙홀)\\n`;
+        text += `W-09. 창 (Spear - 찌르기) 🔱 (직선 관통 리치, 강력한 밀치기 넉백, 창끝 2배 크리, 벽쾅 기절 시너지)\\n`;
+        text += `W-10. 함정설치 (Trap Specialist) 🪤 (바닥 지뢰, 벽 레이저, 벽 진입 바리케이드, 레이저 연쇄 트립와이어)\\n\\n`;
+
+        text += `■ 2. 신규 장비 10종 & 5/10 초월 특성 (Equipments)\\n`;
+        text += `E-01. 최대체력 갑옷 (Plate Armor) 🛡️ (HP+4 / 5레벨: 체력 30% 이하 시 뎀감 20% / 10레벨: 사망 시 1회 부활)\\n`;
+        text += `E-02. 최대스테미너 신발 (Stamina Boots) 🥾 (스태미너+4 / 5레벨: 대시 중 회피 15% 가산 / 10레벨: 대시 중 0.25초 무적 관통)\\n`;
+        text += `E-03. 공격범위 장갑 (Reach Gloves) 🧤 (범위+8px / 5레벨: 투사체 히트박스 20% 확대 / 10레벨: 검/창 공격 시 전방 충격파 발사)\\n`;
+        text += `E-04. 최대마력 투구 (Mana Helm) 🪖 (MP+8 / 5레벨: 20% 마나 무료 시전 / 10레벨: 마나 100% 가득 시 공격 대미지 25% 가산)\\n`;
+        text += `E-05. 행운 목걸이 (Luck Amulet) 📿 (LUK+0.05 / 5레벨: 정예 처치 시 드롭 자원 2배 / 10레벨: 카드 리롤 1회 해금 및 최소 Rare 보증)\\n`;
+        text += `E-06. 마력회복 반지 (Mana Ring) 💍 (MP재생+0.3s / 5레벨: 처치 시 마나 3% 환급 수급 / 10레벨: 특수기 장막 마나 소모 유지비 50% 절감)\\n`;
+        text += `E-07. 체력회복 반지 (Health Ring) 💍 (REGEN+0.15s / 5레벨: 포션 회복 효율 50% 버프 / 10레벨: 5초간 비피격 시 체젠 속도 3배 가속)\\n`;
+        text += `E-08. 이동속도 반지 (Speed Ring) 💍 (속도+1.5% / 5레벨: 이동 상태 2초 유지 시 공격력 10% 증가 / 10레벨: 스치기 회피 성공 시 이속 3초간 50% 폭증)\\n`;
+        text += `E-09. 공격속도 반지 (Haste Ring) 💍 (공속+2% / 5레벨: 스킬 시전 준비 프레임 15% 단축 / 10레벨: 3초 연속 사격 시 최대 공속제한 리미트 해제)\\n`;
+        text += `E-10. 회피증가 반지 (Evasion Ring) 💍 (회피+1% / 5레벨: 회피 성공 시 주변 기절 섬광 1.5초 / 10레벨: 회피 상한선 한계 수치 75% 재확장)\\n\\n`;
+        
+        text += `피드백 작성 란:\\n예) "W-09 창끝 대미지 연출을 보강하고 싶어", "E-07 체력 반지 10레벨 효과 수치를 ~로 수정해줘" 처럼 피드백용으로 넘겨주세요!`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("기획 전달용 전체 피드백 리스트 텍스트가 복사되었습니다!");
+        });
+    }
+
+    // 토스트 팝업 띄우기
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.classList.add("show");
+        
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2000);
+    }
+
+    // 실시간 검색 및 필터링 기능
+    function filterCards() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toLowerCase();
+        const cards = document.getElementsByClassName("card-item");
+
+        for (let i = 0; i < cards.length; i++) {
+            const title = cards[i].getAttribute("data-title").toLowerCase();
+            const desc = cards[i].getAttribute("data-desc").toLowerCase();
+            
+            if (title.indexOf(filter) > -1 || desc.indexOf(filter) > -1) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -127,6 +127,11 @@ body {
     color: var(--neon-yellow);
 }
 
+.text-glow-orange {
+    text-shadow: 0 0 10px rgba(255, 108, 0, 0.6), 0 0 2px rgba(255, 108, 0, 0.8);
+    color: var(--neon-orange);
+}
+
 /* --------------------------------------------------------------------------
    메인 게임 영역 (Canvas)
    -------------------------------------------------------------------------- */
@@ -306,18 +311,24 @@ body {
 
 /* 바별 네온 색상 */
 .hp-color {
-    background: linear-gradient(90deg, #b00c30, var(--neon-red));
-    box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+    background: linear-gradient(90deg, #b00c30, var(--neon-red), #b00c30);
+    background-size: 200% 200%;
+    --shadow-rgba: 255, 0, 85;
+    animation: barPulse 2.2s infinite ease-in-out, flowLight 3.5s infinite linear;
 }
 
 .stamina-color {
-    background: linear-gradient(90deg, #1fa630, var(--neon-green));
-    box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    background: linear-gradient(90deg, #1fa630, var(--neon-green), #1fa630);
+    background-size: 200% 200%;
+    --shadow-rgba: 57, 255, 20;
+    animation: barPulse 2.2s infinite ease-in-out, flowLight 3.5s infinite linear;
 }
 
 .mp-color {
-    background: linear-gradient(90deg, #6c12cc, var(--neon-purple));
-    box-shadow: 0 0 10px rgba(176, 38, 255, 0.5);
+    background: linear-gradient(90deg, #6c12cc, var(--neon-purple), #6c12cc);
+    background-size: 200% 200%;
+    --shadow-rgba: 176, 38, 255;
+    animation: barPulse 2.2s infinite ease-in-out, flowLight 3.5s infinite linear;
 }
 
 /* 스탯 보드 */
@@ -415,7 +426,12 @@ body {
     cursor: pointer;
     transform-style: preserve-3d;
     transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s ease;
+    animation: cardReveal 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) both;
 }
+
+.reward-card:nth-child(1) { animation-delay: 0.1s; }
+.reward-card:nth-child(2) { animation-delay: 0.25s; }
+.reward-card:nth-child(3) { animation-delay: 0.4s; }
 
 .card-inner {
     position: absolute;
@@ -629,6 +645,7 @@ body {
    유틸리티 & 키 프레임 애니메이션
    -------------------------------------------------------------------------- */
 .hidden {
+    display: none !important;
     opacity: 0 !important;
     pointer-events: none !important;
 }
@@ -687,3 +704,185 @@ body {
         display: none;
     }
 }
+
+/* 프리미엄 네온 연출 키프레임 애니메이션 */
+@keyframes barPulse {
+    0% { box-shadow: 0 0 8px rgba(var(--shadow-rgba), 0.4), inset 0 0 4px rgba(var(--shadow-rgba), 0.2); }
+    50% { box-shadow: 0 0 20px rgba(var(--shadow-rgba), 0.85), inset 0 0 8px rgba(var(--shadow-rgba), 0.4); }
+    100% { box-shadow: 0 0 8px rgba(var(--shadow-rgba), 0.4), inset 0 0 4px rgba(var(--shadow-rgba), 0.2); }
+}
+
+@keyframes flowLight {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes cardReveal {
+    0% {
+        transform: rotateY(90deg) scale(0.85) translateY(30px);
+        opacity: 0;
+    }
+    60% {
+        transform: rotateY(-12deg) scale(1.02);
+        opacity: 0.9;
+    }
+    100% {
+        transform: rotateY(0deg) scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   결함 2 & 결함 3: 획득 카드 대형 디테일 및 상점 팝업 스타일
+   ========================================================================== */
+#card-detail-overlay, #shop-confirm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 5, 9, 0.88);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: opacity 0.3s ease;
+}
+
+.detail-card-container {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.large-card {
+    flex: none !important;
+    width: 250px !important;
+    height: 340px !important;
+    transform: scale(1.08) !important;
+    cursor: default !important;
+    border-width: 2px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), var(--card-shadow, 0 0 30px rgba(0, 240, 255, 0.3)) !important;
+    display: block !important;
+}
+
+.large-card .card-inner {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 2.2rem 1.5rem !important;
+    background: rgba(22, 25, 45, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+}
+
+.large-card .card-icon {
+    font-size: 3.5rem !important;
+    margin: 1.2rem 0 !important;
+}
+
+.large-card .card-title {
+    font-size: 1.4rem !important;
+    margin-bottom: 0.8rem !important;
+}
+
+.large-card .card-desc {
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+    height: auto !important;
+}
+
+.click-to-close-text {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    animation: pulseText 1.5s infinite;
+    margin-top: 10px;
+}
+
+@keyframes pulseText {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   결함 4: 상단 코인 획득/소모 실시간 피드백 팝업 및 맥동 스타일
+   ========================================================================== */
+.coin-gain-text {
+    position: absolute;
+    right: 0px;
+    bottom: -22px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #ffdf00;
+    text-shadow: 0 0 10px rgba(255, 223, 0, 0.8);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(5px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 20;
+}
+
+.coin-gain-text.animate {
+    animation: floatCoinGain 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes floatCoinGain {
+    0% {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    15% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.25);
+    }
+    30% {
+        transform: translateY(0) scale(1.0);
+    }
+    85% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* 코인 HUD 박스 맥동 애니메이션 */
+.hud-item.pulse {
+    animation: hudPulse 0.5s ease-out;
+}
+
+@keyframes hudPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); box-shadow: 0 0 15px rgba(255, 223, 0, 0.3); border-color: #ffdf00; }
+    100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   W-01 가시 자홍 오라 발광 및 함정용 노란 발광 서클 연동 보강
+   ========================================================================== */
+.text-glow-magenta {
+    text-shadow: 0 0 10px rgba(255, 0, 170, 0.6), 0 0 2px rgba(255, 0, 170, 0.8);
+    color: #ff00aa;
+}
+
+.glow-yellow-circle {
+    box-shadow: 0 0 15px rgba(255, 223, 0, 0.6);
+    border-radius: 50%;
+}
+
