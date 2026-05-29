@@ -886,3 +886,442 @@ body {
     border-radius: 50%;
 }
 
+/* ==========================================================================
+   치트 & 디버그 오버레이 프리미엄 네온 스타일
+   ========================================================================== */
+.cheat-container {
+    width: 680px;
+    max-width: 95%;
+    height: 480px;
+    background: rgba(10, 12, 22, 0.85);
+    border: 2px solid var(--neon-purple);
+    border-radius: 20px;
+    box-shadow: 0 0 35px rgba(176, 38, 255, 0.25), inset 0 0 20px rgba(176, 38, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.cheat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.cheat-header h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.05em;
+}
+
+.cheat-close {
+    font-size: 1.8rem;
+    color: #a0aec0;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.cheat-close:hover {
+    color: var(--neon-red);
+}
+
+/* 탭 네비게이션 */
+.cheat-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cheat-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #718096;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 12px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cheat-tab-btn:hover {
+    color: #edf2f7;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.cheat-tab-btn.active {
+    color: var(--neon-blue);
+    border-bottom-color: var(--neon-blue);
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+/* 콘텐츠 영역 */
+.cheat-content-container {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    background: rgba(18, 20, 36, 0.1);
+}
+
+.cheat-tab-content {
+    display: none;
+    height: 100%;
+}
+
+.cheat-tab-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.cheat-tab-desc {
+    font-size: 0.85rem;
+    color: #a0aec0;
+    margin-bottom: 15px;
+    border-left: 2px solid var(--neon-blue);
+    padding-left: 8px;
+}
+
+/* 그리드 레이아웃 */
+.cheat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.cheat-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cheat-field-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cheat-field-group input[type="number"] {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #edf2f7;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.cheat-field-group input[type="number"]:focus {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.cheat-input-pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cheat-input-pair input {
+    flex: 1;
+    width: 50px;
+}
+
+.cheat-input-pair span {
+    color: #718096;
+    font-weight: bold;
+}
+
+/* 폰트 소형화 클래스 */
+.font-small {
+    font-size: 0.9rem !important;
+    padding: 8px 25px !important;
+}
+
+/* 무기 섹션 */
+.cheat-weapon-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.section-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #cbd5e0;
+    letter-spacing: 0.05em;
+}
+
+.cheat-btn-group {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+.cheat-wpn-btn, .cheat-action-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: #cbd5e0;
+    font-family: var(--font-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 8px 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.cheat-wpn-btn:hover, .cheat-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.cheat-wpn-btn.active {
+    background: rgba(0, 240, 255, 0.12);
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+.cheat-btn-group:not(.cheat-btn-group-2) {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.cheat-tab-content .cheat-btn-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+#cheat-tab-weapons .cheat-btn-group {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+#cheat-tab-weapons .cheat-weapon-section .cheat-btn-group {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+#cheat-tab-weapons .cheat-btn-group button {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* 체크박스 커스텀 */
+.cheat-toggle-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* 장비 목록 */
+.cheat-equip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 330px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.cheat-equip-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 8px 16px;
+    gap: 20px;
+}
+
+.equip-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 240px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.equip-val {
+    color: var(--neon-yellow);
+    text-shadow: 0 0 5px rgba(255, 223, 0, 0.3);
+}
+
+.cheat-range-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+.cheat-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--neon-yellow);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255, 223, 0, 0.6);
+    transition: transform 0.1s;
+}
+
+.cheat-range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* 토글 스위치 */
+.cheat-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.cheat-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.cheat-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: .3s;
+    border-radius: 34px;
+}
+
+.cheat-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #cbd5e0;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .cheat-switch-slider {
+    background-color: rgba(0, 240, 255, 0.2);
+    border-color: var(--neon-blue);
+}
+
+input:checked + .cheat-switch-slider:before {
+    transform: translateX(24px);
+    background-color: var(--neon-blue);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+}
+
+/* 유틸리티 카드 */
+.cheat-util-row {
+    display: flex;
+    gap: 16px;
+}
+
+.cheat-util-card {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.cheat-util-card.full-width {
+    flex: none;
+    width: 100%;
+}
+
+.card-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #edf2f7;
+    letter-spacing: 0.03em;
+}
+
+.cheat-btn-pair {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.cheat-btn-pair button {
+    flex: 1;
+}
+
+.cheat-action-btn.small {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+}
+
+.cheat-action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.cheat-action-group button {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.85rem;
+}
+
+.cheat-warp-group {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.cheat-warp-group input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #edf2f7;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    outline: none;
+    transition: all 0.2s;
+    padding: 8px;
+}
+
+.cheat-warp-group input:focus {
+    border-color: var(--neon-yellow);
+    box-shadow: 0 0 10px rgba(255, 223, 0, 0.2);
+}
+
+.cheat-warp-group button {
+    flex: 1;
+}
+
+

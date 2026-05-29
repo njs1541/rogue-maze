@@ -2241,6 +2241,7 @@ class GameEngine {
         
         this.initInputEvents();
         this.setupInitialRoom();
+        this.initCheatSystemEvents();
     }
 
     // 입력 장치 이벤트 바인딩
@@ -2253,22 +2254,14 @@ class GameEngine {
                 this.triggerMagicSkill();
             }
 
-            // [테스트용 치트 핫키] P키: 모든 스탯 최강 강화 및 디펜더 펫 2기 소환
-            if (e.key === 'p') {
-                this.player.atk += 10;
-                this.player.multishot += 3;
-                this.player.burstCount += 2;
-                this.player.range += 200;
-                this.player.hpRegen += 5.0;
-                this.player.weaponType = 'dual'; // 하이브리드 강제 설정
-
-                let petAngle1 = this.pets.length * (Math.PI * 2 / 3);
-                this.pets.push(new Pet(petAngle1, 45));
-                let petAngle2 = this.pets.length * (Math.PI * 2 / 3);
-                this.pets.push(new Pet(petAngle2, 60));
-
-                this.updateHUD();
-                this.showFloatingText("CHEAT: GOD BUILD ACTIVATED", this.player.x, this.player.y - 40, '#ffdf00');
+            // [테스트용 치트 핫키] P키: 디버그/치트 메뉴 토글
+            if (e.key === 'p' || e.key === 'P') {
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                    return;
+                }
+                e.preventDefault();
+                this.toggleCheatMenu();
             }
 
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
@@ -2955,12 +2948,14 @@ class GameEngine {
         const shopOverlay = document.getElementById('shop-confirm-overlay');
         const resultOverlay = document.getElementById('result-overlay');
         const startOverlay = document.getElementById('start-overlay');
+        const cheatOverlay = document.getElementById('cheat-overlay');
         
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
             (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
             (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
-            (startOverlay && !startOverlay.classList.contains('hidden'))) {
+            (startOverlay && !startOverlay.classList.contains('hidden')) ||
+            (cheatOverlay && !cheatOverlay.classList.contains('hidden'))) {
             isOverlayOpen = true;
         }
 
@@ -4269,6 +4264,11 @@ class GameEngine {
 
     // 플레이어 피격 연산 (회피 확률 연계 및 신규 장비 초월 마스터리 연계)
     damagePlayer(amount, fromX, fromY) {
+        if (this.player.isGodMode) {
+            this.showFloatingText("GOD MODE ACTIVE 🛡️", this.player.x, this.player.y - 20, '#ffdf00');
+            return;
+        }
+
         // [신규 기획] Stamina Boots 10레벨 마스터리: 대시 중 완전 무적 회피 관통!
         if (this.player.equipLevels.boots === 10 && this.keys['shift'] && this.player.stamina > 0) {
             this.showFloatingText("INVISIBLE EVD", this.player.x, this.player.y - 20, '#39ff14');
@@ -5767,6 +5767,346 @@ class GameEngine {
                 handleConfirm();
             };
         }, 100);
+    }
+
+    // ==========================================================================
+    // [신규 기획] 치트/디버그 레이어 제어 및 연동 시스템
+    // ==========================================================================
+    toggleCheatMenu() {
+        const cheatOverlay = document.getElementById('cheat-overlay');
+        if (!cheatOverlay) return;
+        
+        if (cheatOverlay.classList.contains('hidden')) {
+            // 메뉴 열기
+            this.syncCheatUIFromPlayer();
+            cheatOverlay.classList.remove('hidden');
+        } else {
+            // 메뉴 닫기
+            cheatOverlay.classList.add('hidden');
+        }
+    }
+
+    // 플레이어 스탯 및 상태를 치트 UI에 적용
+    syncCheatUIFromPlayer() {
+        const p = this.player;
+        
+        // 1. 기본 스탯 동기화
+        document.getElementById('cheat-atk').value = p.atk;
+        document.getElementById('cheat-aspd').value = p.aspd.toFixed(2);
+        document.getElementById('cheat-ms').value = p.ms.toFixed(2);
+        document.getElementById('cheat-evd').value = p.evd.toFixed(2);
+        document.getElementById('cheat-luk').value = p.luk.toFixed(2);
+        document.getElementById('cheat-regen').value = p.hpRegen.toFixed(2);
+        document.getElementById('cheat-hp').value = Math.ceil(p.hp);
+        document.getElementById('cheat-max-hp').value = p.maxHp;
+        document.getElementById('cheat-mp').value = Math.ceil(p.mp);
+        document.getElementById('cheat-max-mp').value = p.maxMp;
+        document.getElementById('cheat-stamina').value = Math.ceil(p.stamina);
+        document.getElementById('cheat-max-stamina').value = p.maxStamina;
+
+        // 2. 무기 유형 동기화
+        const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
+        wpnBtns.forEach(btn => {
+            if (btn.getAttribute('data-wpn') === p.weaponType) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 3. 투사체 옵션 동기화
+        document.getElementById('cheat-multishot').value = p.multishot;
+        document.getElementById('cheat-burst').value = p.burstCount;
+        document.getElementById('cheat-pierce').value = p.pierceCount;
+        document.getElementById('cheat-range').value = p.range;
+        document.getElementById('cheat-splash').value = p.splashRadius;
+        document.getElementById('cheat-homing').checked = p.homing;
+
+        // 4. 장비 레벨 동기화
+        for (let eqKey in p.equipLevels) {
+            const slider = document.getElementById(`cheat-eq-${eqKey}`);
+            const label = document.getElementById(`cheat-lbl-${eqKey}`);
+            if (slider && label) {
+                slider.value = p.equipLevels[eqKey];
+                label.innerText = p.equipLevels[eqKey];
+            }
+        }
+
+        // 5. 무적 모드 동기화
+        document.getElementById('cheat-godmode').checked = p.isGodMode || false;
+    }
+
+    // 치트 메뉴 조작 이벤트 리스너 바인딩
+    initCheatSystemEvents() {
+        // 모달 닫기
+        document.getElementById('cheat-close-btn').addEventListener('click', () => {
+            this.toggleCheatMenu();
+        });
+
+        // 탭 스위칭
+        const tabBtns = document.querySelectorAll('.cheat-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTabId = btn.getAttribute('data-tab');
+                
+                // 버튼 active 클래스 리셋 및 부여
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // 컨텐트 active 클래스 리셋 및 부여
+                const contents = document.querySelectorAll('.cheat-tab-content');
+                contents.forEach(c => c.classList.remove('active'));
+                document.getElementById(targetTabId).classList.add('active');
+            });
+        });
+
+        // 스탯 일괄 적용
+        document.getElementById('cheat-apply-stats').addEventListener('click', () => {
+            const p = this.player;
+            p.atk = parseFloat(document.getElementById('cheat-atk').value) || p.atk;
+            p.aspd = parseFloat(document.getElementById('cheat-aspd').value) || p.aspd;
+            p.ms = parseFloat(document.getElementById('cheat-ms').value) || p.ms;
+            p.evd = parseFloat(document.getElementById('cheat-evd').value) || p.evd;
+            p.luk = parseFloat(document.getElementById('cheat-luk').value) || p.luk;
+            p.hpRegen = parseFloat(document.getElementById('cheat-regen').value) || p.hpRegen;
+            
+            p.maxHp = parseInt(document.getElementById('cheat-max-hp').value) || p.maxHp;
+            p.hp = Math.min(p.maxHp, parseFloat(document.getElementById('cheat-hp').value) || p.hp);
+            
+            p.maxMp = parseInt(document.getElementById('cheat-max-mp').value) || p.maxMp;
+            p.mp = Math.min(p.maxMp, parseFloat(document.getElementById('cheat-mp').value) || p.mp);
+            
+            p.maxStamina = parseInt(document.getElementById('cheat-max-stamina').value) || p.maxStamina;
+            p.stamina = Math.min(p.maxStamina, parseFloat(document.getElementById('cheat-stamina').value) || p.stamina);
+            
+            this.updateHUD();
+            this.showFloatingText("STATS UPDATED! ⚡", p.x, p.y - 40, '#00f0ff');
+        });
+
+        // 무기 유형 스위칭
+        const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
+        wpnBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const wpnType = btn.getAttribute('data-wpn');
+                this.applyWeaponCheat(wpnType);
+                
+                // 버튼 액티브 동기화
+                wpnBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 투사체 옵션 적용
+        document.getElementById('cheat-apply-weapons').addEventListener('click', () => {
+            const p = this.player;
+            p.multishot = parseInt(document.getElementById('cheat-multishot').value) || 1;
+            p.burstCount = parseInt(document.getElementById('cheat-burst').value) || 1;
+            p.pierceCount = parseInt(document.getElementById('cheat-pierce').value) || 0;
+            p.range = parseInt(document.getElementById('cheat-range').value) || 350;
+            p.splashRadius = parseInt(document.getElementById('cheat-splash').value) || 0;
+            p.homing = document.getElementById('cheat-homing').checked;
+
+            this.updateHUD();
+            this.showFloatingText("WEAPON SPECS APPLIED! 🏹", p.x, p.y - 40, '#b026ff');
+        });
+
+        // 특수 보조 장착
+        document.getElementById('cheat-pet-btn').addEventListener('click', () => {
+            let petAngle = this.pets.length * (Math.PI * 2 / 3);
+            this.pets.push(new Pet(petAngle, 50));
+            this.updateHUD();
+            this.showFloatingText("PET SUMMONED! 🤖", this.player.x, this.player.y - 40, '#39ff14');
+        });
+
+        document.getElementById('cheat-whip-btn').addEventListener('click', () => {
+            this.player.whipSpeedStack = 3;
+            this.player.whipSpeedTimer = 300;
+            this.showFloatingText("WHIP RUSH ACTIVE! 🧣", this.player.x, this.player.y - 40, '#ff6c00');
+        });
+
+        document.getElementById('cheat-trap-btn').addEventListener('click', () => {
+            this.player.hasTrap = true;
+            this.showFloatingText("TRAP MASTER ACTIVE! 🪤", this.player.x, this.player.y - 40, '#ffdf00');
+        });
+
+        document.getElementById('cheat-thorns-btn').addEventListener('click', () => {
+            this.player.hasThorns = true;
+            this.player.thornsFieldTimer = 1800; // 30초 대리 필드
+            this.showFloatingText("THORNS AURA BURST! 🌵", this.player.x, this.player.y - 40, '#ff00aa');
+        });
+
+        // 장비 슬라이더 실시간 조작 및 적용
+        const eqSliders = document.querySelectorAll('.cheat-range-slider');
+        eqSliders.forEach(slider => {
+            const eqKey = slider.id.replace('cheat-eq-', '');
+            const label = document.getElementById(`cheat-lbl-${eqKey}`);
+            
+            // 실시간 숫자 변경 표기
+            slider.addEventListener('input', () => {
+                label.innerText = slider.value;
+            });
+            
+            // 변경 완료 시 스탯 및 효과 동기화
+            slider.addEventListener('change', () => {
+                const targetLvl = parseInt(slider.value);
+                this.applyCheatEquipChange(eqKey, targetLvl);
+            });
+        });
+
+        // 무적 모드 토글
+        document.getElementById('cheat-godmode').addEventListener('change', (e) => {
+            this.player.isGodMode = e.target.checked;
+            const text = this.player.isGodMode ? "GOD MODE ACTIVE 🛡️" : "GOD MODE DEACTIVATED";
+            const color = this.player.isGodMode ? '#ffdf00' : '#ff0055';
+            this.showFloatingText(text, this.player.x, this.player.y - 40, color);
+        });
+
+        // 코인 치트 지급
+        document.getElementById('cheat-add-coin-100').addEventListener('click', () => {
+            this.addCoinsCheat(100);
+        });
+        document.getElementById('cheat-add-coin-1000').addEventListener('click', () => {
+            this.addCoinsCheat(1000);
+        });
+
+        // 방 소탕
+        document.getElementById('cheat-clear-room').addEventListener('click', () => {
+            this.clearRoomCheat();
+        });
+
+        // 스테이지 워프
+        document.getElementById('cheat-warp-stage-btn').addEventListener('click', () => {
+            const stageVal = parseInt(document.getElementById('cheat-warp-stage-input').value) || 1;
+            this.warpStageCheat(stageVal);
+        });
+    }
+
+    // 코인 추가 유틸 치트
+    addCoinsCheat(amount) {
+        this.player.coins += amount;
+        Sound.play('coin');
+        this.showFloatingText(`+${amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
+        
+        // HUD 갱신
+        this.updateHUD();
+        
+        // 실시간 코인 HUD 연출
+        const coinGainPopup = document.getElementById('coin-gain-popup');
+        if (coinGainPopup) {
+            coinGainPopup.innerText = `+${amount}`;
+            coinGainPopup.style.color = '#ffdf00';
+            coinGainPopup.style.textShadow = '0 0 10px rgba(255, 223, 0, 0.8)';
+            coinGainPopup.classList.remove('hidden');
+            coinGainPopup.classList.remove('animate');
+            void coinGainPopup.offsetWidth; // 리플로우 강제
+            coinGainPopup.classList.add('animate');
+            
+            if (coinGainPopup.cleanupTimer) clearTimeout(coinGainPopup.cleanupTimer);
+            coinGainPopup.cleanupTimer = setTimeout(() => {
+                coinGainPopup.classList.remove('animate');
+                coinGainPopup.classList.add('hidden');
+                coinGainPopup.innerText = '';
+            }, 1000);
+        }
+    }
+
+    // 무기 유형 변경 치트
+    applyWeaponCheat(wpnType) {
+        this.player.weaponType = wpnType;
+        this.updateHUD();
+        this.showFloatingText(`WEAPON CHANGED: ${wpnType.toUpperCase()}`, this.player.x, this.player.y - 40, '#00f0ff');
+    }
+
+    // 장비 레벨 실시간 스탯 누적 변경 보정
+    applyCheatEquipChange(equipName, newLevel) {
+        const p = this.player;
+        const oldLevel = p.equipLevels[equipName] || 0;
+        if (oldLevel === newLevel) return;
+        
+        p.equipLevels[equipName] = newLevel;
+        const diff = newLevel - oldLevel;
+        
+        switch (equipName) {
+            case 'armor':
+                p.maxHp += diff * 4;
+                p.hp = Math.min(p.maxHp, Math.max(1, p.hp + diff * 4));
+                break;
+            case 'boots':
+                p.maxStamina += diff * 4;
+                p.stamina = Math.min(p.maxStamina, Math.max(0, p.stamina + diff * 4));
+                break;
+            case 'gloves':
+                p.range += diff * 8;
+                break;
+            case 'helm':
+                p.maxMp += diff * 8;
+                break;
+            case 'necklace':
+                p.luk += diff * 0.05;
+                break;
+            case 'ring_mp':
+                p.mpRegen = (p.mpRegen || 0) + diff * 0.3;
+                break;
+            case 'ring_hp':
+                p.hpRegen += diff * 0.15;
+                break;
+            case 'ring_speed':
+                p.ms += diff * 0.05;
+                break;
+            case 'ring_aspd':
+                p.aspd += diff * 0.02;
+                break;
+            case 'ring_evd':
+                p.evd = Math.min(0.75, Math.max(0, p.evd + diff * 0.01));
+                break;
+        }
+        
+        if (newLevel === 5) {
+            this.showFloatingText(`${equipName.toUpperCase()} LV.5 SPECIAL UNLOCKED`, p.x, p.y - 40, '#ff5e00');
+        } else if (newLevel === 10) {
+            this.showFloatingText(`${equipName.toUpperCase()} LV.10 OVERLIMIT ACTIVE`, p.x, p.y - 40, '#ffdf00');
+        } else {
+            this.showFloatingText(`${equipName.toUpperCase()} -> LV.${newLevel}`, p.x, p.y - 40, '#39ff14');
+        }
+        
+        this.updateHUD();
+    }
+
+    // 방 클리어 치트
+    clearRoomCheat() {
+        if (this.monsters.length === 0 && this.spawnQueue.length === 0) {
+            this.showFloatingText("ROOM ALREADY CLEARED", this.player.x, this.player.y - 20, '#ff0055');
+            return;
+        }
+        
+        // 폭발 파티클
+        for (let m of this.monsters) {
+            this.particles.push(new Particle(m.x, m.y, m.color, m.radius * 2, 0, 0, 20, 'explosionRing'));
+        }
+        
+        this.monsters = [];
+        this.spawnQueue = [];
+        this.currentSpawnRemaining = 0;
+        
+        Sound.play('explosion');
+        this.showFloatingText("CHEAT: ROOM CLEARED! 💥", this.player.x, this.player.y - 40, '#ffdf00');
+    }
+
+    // 스테이지 워프 치트
+    warpStageCheat(targetStage) {
+        if (targetStage < 1 || targetStage > 99) {
+            this.showFloatingText("INVALID STAGE (1~99 ONLY)", this.player.x, this.player.y - 20, '#ff0055');
+            return;
+        }
+        
+        // 룸 전환용 가상 포털 생성 후 연동
+        let mockPortal = { direction: 'top', scoreValue: 0, portalType: 'stat', difficultyClass: 'low' };
+        this.roomNum = targetStage - 1; // transitionToNextRoom 내부에서 roomNum++이 되어 타겟 도달
+        
+        this.toggleCheatMenu(); // 워프 전 치트창 닫기
+        this.transitionToNextRoom(mockPortal);
+        
+        this.showFloatingText(`WARPED TO ROOM ${targetStage} 🌀`, this.player.x, this.player.y - 40, '#ffdf00');
     }
 }
 
