@@ -801,6 +801,7 @@ class Player {
         this.burstIntervalTimer = 0;
         this.burstAngle = 0;
         this.burstType = 'gun'; // 'gun', 'sword' 등
+        this.invincibleTimer = 0; // [신규 추가] 피격 시 무적 쿨타임 타이머
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
@@ -819,6 +820,11 @@ class Player {
     update() {
         // [신규 기획] 피격 무사고 프레임 증가
         this.lastHitTimer++;
+
+        // [신규 추가] 피격 무적 시간 실시간 감쇄
+        if (this.invincibleTimer > 0) {
+            this.invincibleTimer--;
+        }
 
         // [W-01 가시 장막 오라] 3초(180프레임) 유지 중 주변 감속 및 잃은체력 10% 비례 매프레임 틱 피해
         if (this.thornsFieldTimer > 0) {
@@ -981,6 +987,12 @@ class Player {
         }
 
         // 2. 실제 플레이어 본체 캐릭터 렌더링 (이등변 삼각형)
+        // [신규 추가] 피격 무적 타이머 가동 중일 때 빠른 템포로 깜빡임(Flicker) 연출
+        if (this.invincibleTimer > 0 && Math.floor(Date.now() / 45) % 2 === 0) {
+            ctx.restore();
+            return;
+        }
+
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
@@ -2203,6 +2215,7 @@ class GameEngine {
         this.timeDilationActive = false; // [추가] 시간 왜곡(지연) 마법 활성화 플래그
         this.timeWarpFreeCastActive = false; // [신규 기획] Mana Helm 5레벨 무료 지속 시간왜곡 체크용 플래그
         this.hasRerolledThisRoom = false;   // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 리롤 트래킹 플래그
+        this.gameOverActive = false;        // [신규 추가] 사망 연출 다중 중복 트리거 방지용 플래그
         
         this.initInputEvents();
         this.setupInitialRoom();
@@ -2287,6 +2300,11 @@ class GameEngine {
 
     // 게임 시작 시 초기화
     startGame() {
+        // [결함 완치] 게임 재시작 시 기존에 기동 중이던 애니메이션 루프가 있을 수 있으므로 즉시 가드 해제(Cancel)하여 부스팅 현상을 박멸합니다.
+        if (this.gameLoopId) {
+            cancelAnimationFrame(this.gameLoopId);
+        }
+
         this.isPlaying = true;
         this.roomNum = 1;
         this.score = 0;
@@ -2327,8 +2345,8 @@ class GameEngine {
         this.updateHUD();
         this.setupInitialRoom();
         
-        // 매끄러운 60fps 애니메이션 루프 재구동
-        requestAnimationFrame(() => this.gameLoop());
+        // 매끄러운 60fps 애니메이션 루프 재구동 및 루프 ID 보관
+        this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
         Sound.play('powerup');
     }
 
@@ -2903,12 +2921,14 @@ class GameEngine {
     // 8. 60FPS 메인 게임 루프 엔진
     // --------------------------------------------------------------------------
     gameLoop() {
-        if (!this.isPlaying) return;
-
-        this.update();
+        // [결함 완치] 게임오버나 로비 등의 비활성 상태에서도 렌더링이 영구 동결되지 않도록 렌더 루프를 항상 가동시킵니다.
+        if (this.isPlaying) {
+            this.update();
+        }
         this.render();
 
-        requestAnimationFrame(() => this.gameLoop());
+        // 루프 ID를 보관하여 중복 재구동 시 안전하게 캔슬할 수 있도록 바인딩합니다.
+        this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
     }
 
     // 데이터 갱신 및 물리/충돌 검사 총괄
@@ -3184,7 +3204,7 @@ class GameEngine {
         let dx = 0;
         let dy = 0;
 
-        if (!isOverlayOpen) {
+        if (!isOverlayOpen && this.player.hp > 0) {
             if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
             if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
             if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
@@ -3290,12 +3310,10 @@ class GameEngine {
         // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
         this.player.isStopped = (dx === 0 && dy === 0);
 
-        // 4. 주무기 격발 메커니즘 (마우스 클릭 시 사격)
-        // [결함 1] 사격 유도형 if 식에 whip(채찍) 무기 타입을 정상 포함하여, 채찍을 획득/조합 시 사격 불능 고장 나던 치명적 결함을 원천 수정합니다.
-        if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual')) {
             this.shootWeapon();
         }
-        if (this.mouse.isDown && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
             this.slashWeapon();
         }
 
@@ -4278,6 +4296,11 @@ class GameEngine {
 
     // 플레이어 피격 연산 (회피 확률 연계 및 신규 장비 초월 마스터리 연계)
     damagePlayer(amount, fromX, fromY) {
+        // [신규 추가] 피격 무적 시간이 돌고 있으면 데미지 피격을 전면 면제 처리합니다.
+        if (this.player.invincibleTimer > 0) {
+            return;
+        }
+
         if (this.player.isGodMode) {
             this.showFloatingText("GOD MODE ACTIVE 🛡️", this.player.x, this.player.y - 20, '#ffdf00');
             return;
@@ -4336,6 +4359,9 @@ class GameEngine {
         }
 
         this.player.hp = Math.max(0, this.player.hp - finalDamage);
+        
+        // [신규 추가] 실제 피격 데미지가 정산되었으므로 피격 무적 타이머 45프레임(약 0.75초) 가동
+        this.player.invincibleTimer = 45;
         
         // [W-01 가시 탱커 반사 기믹]
         if (this.player.hasThorns) {
@@ -5462,14 +5488,38 @@ class GameEngine {
     // 10. 엔드 게임 상태 트리거 (게임오버 / 클리어)
     // --------------------------------------------------------------------------
     triggerGameOver() {
-        this.isPlaying = false;
+        if (this.gameOverActive) return; // 중복 호출 원천 방지
+        this.gameOverActive = true;
+        
         Sound.play('gameover');
+        this.shakeScreen(60, 7); // 강렬한 카메라 사망 흔들림 진동 주입
         
-        document.getElementById('result-title').innerText = "GAME OVER";
-        document.getElementById('result-title').className = "text-glow-red";
-        document.getElementById('result-message').innerText = "깊고 어두운 미로 속에서 힘이 다해 쓰러졌습니다...";
-        
-        this.populateResultOverlay();
+        // 플레이어 캐릭터 사망 시 사방으로 폭사하며 터져 나가는 붉은 네온 파편 파티클 25개 생성
+        for (let k = 0; k < 25; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 5 + 2.5; // 사방 폭사 퍼짐 속도
+            let life = Math.random() * 45 + 30; // 0.5초 ~ 1.2초 생존
+            this.particles.push(new Particle(
+                this.player.x, this.player.y, 
+                '#ff0055', 2.8, 
+                Math.cos(angle) * speed, Math.sin(angle) * speed, 
+                life, 'spark'
+            ));
+        }
+
+        this.showFloatingText("FATAL DAMAGE! ☠️", this.player.x, this.player.y - 45, '#ff0055');
+
+        // [결함 완치] 사망 파티클과 화면 진동이 매끄럽게 흐른 뒤 1.2초 후(1200ms) 자연스럽게 결과 대시보드가 오버랩되게 지연 처리
+        setTimeout(() => {
+            this.isPlaying = false; // 연출 완료 시점에 루프 정지 지정
+            
+            document.getElementById('result-title').innerText = "GAME OVER";
+            document.getElementById('result-title').className = "text-glow-red";
+            document.getElementById('result-message').innerText = "깊고 어두운 미로 속에서 힘이 다해 쓰러졌습니다...";
+            
+            this.populateResultOverlay();
+            this.gameOverActive = false; // 플래그 초기화
+        }, 1200);
     }
 
     triggerGameClear() {
