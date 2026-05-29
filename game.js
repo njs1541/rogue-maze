@@ -1250,6 +1250,7 @@ class Monster {
             burnStack: 0,   // [신규] 화상 중첩 스택 (최대 5)
             freeze: 0       // [신규] 빙결 게이지 축적율 (0 ~ 100)
         };
+        this.dead = false; // [신규] 지연 삭제용 사망 플래그
     }
 
     // 엘리트 속성 주입 메서드
@@ -2113,7 +2114,91 @@ class VendingMachine {
 }
 
 // --------------------------------------------------------------------------
-// 6.8. 플레이어 설치형 함정 클래스 (Neon Trap Entities)
+// 6.7.1. 네온 암시장 비밀 자판기 클래스 (Secret Black Market Vending Machine)
+// 비밀 균열 벽 파괴 시 50% 확률로 출현하는 차원 거래 자판기.
+// 코인 대신 최대 체력(Max HP) 15를 영구 바쳐 에픽/레전더리 카드를 확정 획득합니다.
+// --------------------------------------------------------------------------
+class SecretVendingMachine {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 58;
+        this.color = '#b026ff'; // 보라빛 네온 테마 컬러
+        this.glowColor = '#d580ff'; // 밝은 보라 광휘
+        this.pulse = 0;
+        this.active = true;
+        this.particleTimer = 0; // 차원 파티클 방출 타이머
+    }
+
+    // 보라빛 차원 아우라를 뿜는 비밀 자판기 렌더링
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.04;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.03;
+
+        // 차원의 보라빛 아우라 후광 (배경 글로우 원)
+        ctx.beginPath();
+        ctx.arc(0, 0, 42, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(176, 38, 255, ${0.06 + Math.sin(this.pulse * 0.7) * 0.04})`;
+        ctx.fill();
+
+        // 메인 자판기 바디 (어두운 보라 테마)
+        ctx.beginPath();
+        ctx.rect(-this.width / 2 * scale, -this.height / 2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = 'rgba(12, 6, 20, 0.92)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 상단 차원 포탈 마크 ("⁂ SECRET ⁂")
+        ctx.fillStyle = this.glowColor;
+        ctx.font = '800 8px "Outfit"';
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fillText('⁂ SECRET ⁂', 0, -this.height / 2 * scale + 12);
+
+        // 중앙 신비로운 보라빛 렌즈 스크린
+        ctx.beginPath();
+        ctx.rect(-this.width / 2 + 5, -this.height / 2 + 18, this.width - 10, 18);
+        ctx.fillStyle = `rgba(176, 38, 255, ${0.08 + Math.sin(this.pulse * 1.3) * 0.06})`;
+        ctx.strokeStyle = this.glowColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fill();
+
+        // 스크린 내 "??" 문양 (어떤 카드가 나올지 미지)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 10px "Outfit"';
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ffffff';
+        ctx.fillText('🔮 ??', 0, -this.height / 2 * scale + 30);
+
+        // 하단 경고 가격 표시 (Max HP)
+        ctx.fillStyle = '#ff0055';
+        ctx.font = '700 8px "Outfit"';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#ff0055';
+        ctx.fillText('❤️ -15 HP', 0, this.height / 2 * scale - 5);
+
+        // 동전 주입구 데코 (보라빛)
+        ctx.beginPath();
+        ctx.rect(this.width / 2 - 10, 8, 4, 8);
+        ctx.fillStyle = '#6b3a8a';
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+
 // --------------------------------------------------------------------------
 class NeonTrap {
     constructor(x, y, type, player) {
@@ -2312,6 +2397,7 @@ class GameEngine {
         this.rewardChests = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
+        this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 리스트
         
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
@@ -2456,6 +2542,7 @@ class GameEngine {
         this.rewardChests = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
+        this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
         
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
@@ -2688,6 +2775,7 @@ class GameEngine {
         this.hiddenChests = []; // [Phase 7 신규 구현] 방 이동 시 숨겨진 상자 청소
         this.rewardChests = []; // [추가] 이전 방 상자들 삭제
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
+        this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
         this.traps = []; // [신규] 함정 리스트 청소
         this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
         this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
@@ -3505,6 +3593,17 @@ class GameEngine {
                                     this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                 }
                                 this.showFloatingText("WALL BROKEN! 💥", wall.x, wall.y - 20, '#00f0ff');
+                                // [네온 암시장] 50% 확률로 비밀 자판기(차원 거래 기계) 추가 스폰
+                                if (Math.random() < 0.5) {
+                                    this.secretVendingMachines.push(new SecretVendingMachine(wall.x, wall.y));
+                                    this.showFloatingText("🔮 SECRET SHOP APPEARED!", wall.x, wall.y - 40, '#b026ff');
+                                    // 보라빛 차원 파티클 분수
+                                    for (let k2 = 0; k2 < 20; k2++) {
+                                        let pAngle2 = Math.random() * Math.PI * 2;
+                                        let pSpeed2 = Math.random() * 4 + 2;
+                                        this.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.5, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 30, 'spark'));
+                                    }
+                                }
                                 this.secretWalls.splice(j, 1);
                             }
                             break;
@@ -3538,10 +3637,12 @@ class GameEngine {
         // 6. 몬스터 거동 및 충돌 판정
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             let m = this.monsters[i];
+            if (!m || m.dead) continue; // [신규] 사망했거나 존재하지 않는 몬스터 즉시 제외
             
             // 몬스터끼리 과하게 뭉치는 현상 해결 (겹침 방지 Separation 물리 연산 추가)
             for (let j = i - 1; j >= 0; j--) {
                 let other = this.monsters[j];
+                if (!other || other.dead) continue; // [신규] 사망한 다른 몬스터와는 겹침 방지 연산 건너뜀
                 let mDist = Math.hypot(other.x - m.x, other.y - m.y);
                 let minDist = m.radius + other.radius;
                 if (mDist < minDist) {
@@ -3627,6 +3728,27 @@ class GameEngine {
                                         this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                     }
                                     this.showFloatingText("WALL BROKEN! 💥", wall.x, wall.y - 20, '#00f0ff');
+                                    // [네온 암시장] 50% 확률로 보물 상자 대신 비밀 자판기(차원 거래 기계) 스폰
+                                    if (Math.random() < 0.5) {
+                                        // 50px 이내의 HiddenChest를 찾아서 제거
+                                        for (let k = this.hiddenChests.length - 1; k >= 0; k--) {
+                                            let chest = this.hiddenChests[k];
+                                            if (Math.hypot(wall.x - chest.x, wall.y - chest.y) < 50) {
+                                                this.hiddenChests.splice(k, 1);
+                                                break;
+                                            }
+                                        }
+                                        // 상자가 있던 위치(밀실) 계산
+                                        let spawnY = wall.y < 300 ? wall.y - 40 : wall.y + 40;
+                                        this.secretVendingMachines.push(new SecretVendingMachine(wall.x, spawnY));
+                                        this.showFloatingText("🔮 SECRET SHOP APPEARED!", wall.x, spawnY - 20, '#b026ff');
+                                        // 보라빛 차원 파티클 분수
+                                        for (let k2 = 0; k2 < 20; k2++) {
+                                            let pAngle2 = Math.random() * Math.PI * 2;
+                                            let pSpeed2 = Math.random() * 4 + 2;
+                                            this.particles.push(new Particle(wall.x, spawnY, '#b026ff', 2.5, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 30, 'spark'));
+                                        }
+                                    }
                                     this.secretWalls.splice(j, 1);
                                 }
                             }
@@ -4134,6 +4256,61 @@ class GameEngine {
         }
 
 
+        // [네온 암시장] 비밀 자판기(SecretVendingMachine) 충돌 감지 및 차원 거래 팝업 호출
+        for (let i = this.secretVendingMachines.length - 1; i >= 0; i--) {
+            let svm = this.secretVendingMachines[i];
+            if (!svm.active) continue;
+
+            // 차원 파티클 아우라 주기적 방출 (15프레임마다 보라빛 파티클 2개)
+            svm.particleTimer++;
+            if (svm.particleTimer % 15 === 0) {
+                for (let k = 0; k < 2; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 0.8 + 0.3;
+                    this.particles.push(new Particle(
+                        svm.x + (Math.random() - 0.5) * 30,
+                        svm.y + (Math.random() - 0.5) * 40,
+                        '#b026ff', 1.5,
+                        Math.cos(pAngle) * pSpeed,
+                        Math.sin(pAngle) * pSpeed,
+                        25, 'spark'
+                    ));
+                }
+            }
+
+            let dist = Math.hypot(this.player.x - svm.x, this.player.y - svm.y);
+            if (dist < this.player.radius + 26) { // 비밀 자판기 충돌 반경
+                if (this.vendingCooldown === 0) {
+                    // 최대 체력이 15 이하면 거래 불가 (안전 가드)
+                    if (this.player.maxHp <= 15) {
+                        this.vendingCooldown = 60;
+                        Sound.play('hit');
+                        this.showFloatingText("⚠️ 제물이 부족합니다 (Max HP ≤ 15)", this.player.x, this.player.y - 30, '#ff0055');
+                    } else {
+                        this.vendingCooldown = 60;
+                        // 플레이어를 자판기 반대 방향으로 밀어냄 (연속 충돌 방지)
+                        let bounceAngle = Math.atan2(this.player.y - svm.y, this.player.x - svm.x);
+                        this.player.x += Math.cos(bounceAngle) * 38;
+                        this.player.y += Math.sin(bounceAngle) * 38;
+                        const wallMargin = 40;
+                        this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
+                        this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
+
+                        // 튕김 파티클 (보라색)
+                        for (let k = 0; k < 6; k++) {
+                            let angle = bounceAngle + (Math.random() * 0.8 - 0.4);
+                            let speed = Math.random() * 3 + 1.5;
+                            this.particles.push(new Particle(this.player.x, this.player.y, '#b026ff', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
+                        }
+                        Sound.play('dodge');
+
+                        // 차원 거래 팝업 호출 (에픽/레전더리 확정 카드 생성)
+                        this.triggerSecretShopPurchase(svm, i);
+                    }
+                }
+            }
+        }
+
         // [추가] 힐링 물약 자석 블랙홀 흡입 및 업데이트 물리 연산
         for (let i = this.potions.length - 1; i >= 0; i--) {
             let pot = this.potions[i];
@@ -4284,6 +4461,9 @@ class GameEngine {
             }
         }
 
+        // [신규] 지연 삭제 사망 마킹된 몬스터들 일괄 Cleanup 정리 연산
+        this.monsters = this.monsters.filter(m => !m.dead);
+
         // 게이지 바 텍스트 실시간 출력 동기화
         this.updateHUD();
     }
@@ -4327,12 +4507,16 @@ class GameEngine {
 
     // 몬스터 처치 성공
     killMonster(m, index) {
+        if (m.dead) return; // [신규] 중복 정산 및 사망 처리 방지
+        m.dead = true; // [신규] 지연 삭제 마킹
+
         // [신규] 사망 시 화상 5중첩이면 연쇄 대폭발 트리거 작동
         if (m.statusEffects && m.statusEffects.burnStack >= 5) {
             this.triggerFireExplosion(m.x, m.y);
         }
 
-        this.monsters.splice(index, 1);
+        // 지연 삭제 기믹 도입으로 즉각적인 splice는 생략합니다.
+        // this.monsters.splice(index, 1);
         this.kills++;
         this.comboCount++;
         this.comboTimer = 180; // 콤보 유효 시간 3초 제공
@@ -5818,6 +6002,9 @@ class GameEngine {
         this.rewardChests.forEach(chest => chest.draw(this.ctx));
         this.vendingMachines.forEach(vm => vm.draw(this.ctx));
 
+        // [네온 암시장] 비밀 자판기 렌더링 (보라빛 차원 아우라)
+        this.secretVendingMachines.forEach(svm => svm.draw(this.ctx));
+
         // [W-10 함정설치 함정 렌더링]
         this.traps.forEach(trap => trap.draw(this.ctx));
 
@@ -5982,6 +6169,107 @@ class GameEngine {
                 handleConfirm();
             };
         }, 100);
+    }
+
+    // ==========================================================================
+    // [네온 암시장] 비밀 자판기 차원 거래 팝업 및 수락/거절 핸들링 함수
+    // 에픽/레전더리 확정 카드를 생성하고, Max HP 15 영구 삭감 대가의 거래를 제안합니다.
+    // ==========================================================================
+    triggerSecretShopPurchase(svm, svmIndex) {
+        const overlay = document.getElementById('secret-shop-overlay');
+        const iconDiv = document.getElementById('secret-shop-card-icon');
+        const titleH3 = document.getElementById('secret-shop-card-title');
+        const descP = document.getElementById('secret-shop-card-desc');
+        const rarityTag = document.getElementById('secret-shop-card-rarity');
+        const acceptBtn = document.getElementById('secret-shop-accept-btn');
+        const rejectBtn = document.getElementById('secret-shop-reject-btn');
+
+        // 에픽/레전더리 확정 카드 풀에서 1장 생성 (보물 상자급 고등급 보증)
+        let cardsData = this.generateRewardCardsData(this.currentSpawnTotal, true);
+        // 카드 중 가장 높은 등급 1장을 선별 (Legendary > Epic > Rare > Common)
+        const rarityOrder = { 'LEGENDARY': 4, 'EPIC': 3, 'RARE': 2, 'COMMON': 1 };
+        cardsData.sort((a, b) => (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0));
+        let chosenCard = cardsData[0];
+
+        // 모달 UI에 카드 정보 바인딩
+        rarityTag.className = `card-rarity ${chosenCard.rarity.toLowerCase()}`;
+        rarityTag.innerText = chosenCard.rarity;
+        rarityTag.style.background = `rgba(176, 38, 255, 0.2)`;
+        rarityTag.style.borderColor = '#b026ff';
+        rarityTag.style.color = '#b026ff';
+        
+        iconDiv.innerText = chosenCard.icon;
+        titleH3.innerText = chosenCard.title;
+        descP.innerText = chosenCard.desc;
+
+        // 모달 표시
+        overlay.classList.remove('hidden');
+
+        // 기존 이벤트 핸들러 안전하게 제거
+        acceptBtn.onclick = null;
+        rejectBtn.onclick = null;
+
+        // 거래 수락 핸들러: Max HP -15 영구 삭감 + 카드 획득 + 파티클 폭발
+        acceptBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.classList.add('hidden');
+
+            // 최대 체력 영구 삭감
+            this.player.maxHp -= 15;
+            // 현재 체력이 최대 체력을 초과하지 않도록 보정
+            if (this.player.hp > this.player.maxHp) {
+                this.player.hp = this.player.maxHp;
+            }
+
+            // 카드 버프 적용
+            this.applyRewardCard(chosenCard);
+
+            // 카드 획득 확인 대형 디테일 오버레이 표시
+            this.showAcquiredCardDetail(chosenCard);
+
+            // 보라빛 차원 붕괴 파티클 폭발 (40개 대규모 방출)
+            for (let k = 0; k < 40; k++) {
+                let pAngle = Math.random() * Math.PI * 2;
+                let pSpeed = Math.random() * 6 + 2;
+                let pColor = Math.random() > 0.5 ? '#b026ff' : '#d580ff';
+                this.particles.push(new Particle(svm.x, svm.y, pColor, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+            }
+            // 어두운 차원 붕괴 잔해 파편
+            for (let k = 0; k < 15; k++) {
+                let pAngle = Math.random() * Math.PI * 2;
+                let pSpeed = Math.random() * 3 + 1;
+                this.particles.push(new Particle(svm.x, svm.y, '#333333', 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'dust'));
+            }
+
+            Sound.play('explosion');
+            this.shakeScreen(12, 5.0);
+            this.showFloatingText("⚠️ MAX HP -15 SACRIFICED!", svm.x, svm.y - 25, '#ff0055');
+            this.showFloatingText("🔮 DARK DEAL COMPLETE!", svm.x, svm.y - 45, '#b026ff');
+
+            // 비밀 자판기 소멸
+            svm.active = false;
+            this.secretVendingMachines.splice(svmIndex, 1);
+
+            // HUD 갱신
+            this.updateHUD();
+
+            // 이벤트 클린업
+            acceptBtn.onclick = null;
+            rejectBtn.onclick = null;
+        };
+
+        // 거래 거절 핸들러: 무해 소멸, 자판기 유지
+        rejectBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.classList.add('hidden');
+            
+            this.showFloatingText("DEAL REJECTED", this.player.x, this.player.y - 30, '#a0aec0');
+            Sound.play('dodge');
+
+            // 이벤트 클린업
+            acceptBtn.onclick = null;
+            rejectBtn.onclick = null;
+        };
     }
 
     // ==========================================================================
