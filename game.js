@@ -6,29 +6,149 @@
  */
 
 // --------------------------------------------------------------------------
-// 1. Web Audio API 기반 효과음 합성기 (SoundSynthesizer)
+// 1. Web Audio API 기반 효과음 합성기 & 실시간 BGM 연주기 (SoundSynthesizer)
 // --------------------------------------------------------------------------
 const Sound = {
     ctx: null,
-    lastPlay: {}, // [결함 2] 동일 사운드 겹침 방지를 위한 타임스탬프 저장소
-    sfxVolume: 1.0, // [신규 추가] 효과음 볼륨 기본값 (0.0 ~ 1.0)
-    bgmVolume: 0.5, // [신규 추가] 배경음악 볼륨 기본값 (0.0 ~ 1.0) - 향후 대비
+    lastPlay: {}, // 동일 사운드 겹침 방지를 위한 타임스탬프 저장소
+    sfxVolume: 1.0, // 효과음 볼륨 기본값 (0.0 ~ 1.0)
+    bgmVolume: 0.5, // 배경음악 볼륨 기본값 (0.0 ~ 1.0)
+    bgmGainNode: null, // [추가] 배경음악 전용 Gain 노드
+    bgmInterval: null, // [추가] Synth BGM 스케줄 루프 타이머
+    bgmStep: 0, // [추가] Synth BGM 16단계 리듬 스텝 카운터
 
     // 오디오 컨텍스트 초기화 (브라우저 정책 상 첫 상호작용 시 활성화)
     init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }
+        // BGM 전용 Gain 노드가 없으면 실시간 생성 후 마스터 연결
+        if (this.ctx && !this.bgmGainNode) {
+            this.bgmGainNode = this.ctx.createGain();
+            this.bgmGainNode.gain.setValueAtTime(this.bgmVolume, this.ctx.currentTime);
+            this.bgmGainNode.connect(this.ctx.destination);
+        }
     },
 
-    // [신규 추가] 효과음 볼륨 갱신 메소드
+    // 효과음 볼륨 갱신 메소드
     setSFXVolume(val) {
         this.sfxVolume = Math.max(0, Math.min(1, parseFloat(val)));
     },
 
-    // [신규 추가] 배경음악 볼륨 갱신 메소드
+    // 배경음악 볼륨 갱신 메소드 (BGM Gain 노드와 실시간 동기화)
     setBGMVolume(val) {
         this.bgmVolume = Math.max(0, Math.min(1, parseFloat(val)));
+        if (this.bgmGainNode && this.ctx) {
+            this.bgmGainNode.gain.setValueAtTime(this.bgmVolume, this.ctx.currentTime);
+        }
+    },
+
+    // [신규] Web Audio Synth BGM 연주 시작 메소드
+    startBGM() {
+        this.init();
+        if (!this.ctx) return;
+
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+
+        if (this.bgmInterval) return; // 이미 연주 중이면 중복 재생 방지
+
+        this.bgmStep = 0;
+        // 200ms 마다 한 스텝씩 진행 (BPM 150 상당의 신나는 테크노/신스웨이브 템포)
+        this.bgmInterval = setInterval(() => {
+            this.playBGMStep();
+        }, 200);
+    },
+
+    // [신규] Synth BGM 연주 정지 메소드
+    stopBGM() {
+        if (this.bgmInterval) {
+            clearInterval(this.bgmInterval);
+            this.bgmInterval = null;
+        }
+    },
+
+    // [신규] 16비트 레트로 신스웨이브 BGM 실시간 합성 한 스텝 연주
+    playBGMStep() {
+        if (!this.ctx || !this.bgmGainNode) return;
+        if (this.ctx.state === 'suspended') return;
+
+        const now = this.ctx.currentTime;
+
+        // C마이너 펜타토닉 네온 신스 저음 베이스 주파수 정의 (C2, Eb2, F2, G2, Bb2, C3)
+        const baseFreqs = [65.41, 77.78, 87.31, 98.00, 116.54, 130.81];
+        // 아르페지오 멜로디 주파수 정의 (C4, Eb4, F4, G4, Bb4, C5, Eb5, G5)
+        const melFreqs = [261.63, 311.13, 349.23, 392.00, 466.16, 523.25, 622.25, 783.99];
+
+        // 16스텝 베이스 리듬 패턴 (C -> Eb -> F -> Bb 진행)
+        const basePattern = [
+            0, 0, 0, 0,  // C (4스텝)
+            1, 1, 1, 1,  // Eb
+            2, 2, 2, 2,  // F
+            4, 4, 3, 3   // Bb -> G
+        ];
+
+        // 16스텝 은은한 멜로디 아르페지오 패턴 (0은 쉼표)
+        const melPattern = [
+            0, 3, 5, 3,
+            1, 4, 6, 4,
+            2, 5, 7, 5,
+            4, 3, 1, 0
+        ];
+
+        const step = this.bgmStep;
+
+        // 1. 저음 네온 베이스 연주 (매 스텝마다 톱니파로 웅장하고 낮게 쿵쿵)
+        const baseIdx = basePattern[step];
+        const baseFreq = baseFreqs[baseIdx];
+
+        const baseOsc = this.ctx.createOscillator();
+        const baseGain = this.ctx.createGain();
+
+        baseOsc.type = 'sawtooth';
+        baseOsc.frequency.setValueAtTime(baseFreq, now);
+
+        // 로우패스 필터를 걸어 귀 아픈 고주파를 차단하고 묵직함만 보존
+        const baseFilter = this.ctx.createBiquadFilter();
+        baseFilter.type = 'lowpass';
+        baseFilter.frequency.setValueAtTime(180, now);
+
+        // 볼륨 감쇄 (둥~ 소리가 0.18초에 걸쳐 사라짐)
+        baseGain.gain.setValueAtTime(0.18, now);
+        baseGain.gain.exponentialRampToValueAtTime(0.005, now + 0.18);
+
+        baseOsc.connect(baseFilter);
+        baseFilter.connect(baseGain);
+        baseGain.connect(this.bgmGainNode); // 마스터 BGM Gain에 결합
+
+        baseOsc.start(now);
+        baseOsc.stop(now + 0.19);
+
+        // 2. 고음 아르페지오 멜로디 연주 (2스텝마다 삼각파로 영롱하게 아르페지오 톡톡)
+        if (step % 2 === 0) {
+            const melIdx = melPattern[step];
+            const melFreq = melFreqs[melIdx];
+
+            const melOsc = this.ctx.createOscillator();
+            const melGain = this.ctx.createGain();
+
+            melOsc.type = 'triangle';
+            melOsc.frequency.setValueAtTime(melFreq, now);
+
+            // 잔향 효과를 대신할 부드럽고 긴 감쇄 (0.35초)
+            melGain.gain.setValueAtTime(0.05, now);
+            melGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+            melOsc.connect(melGain);
+            melGain.connect(this.bgmGainNode); // 마스터 BGM Gain에 결합
+
+            melOsc.start(now);
+            melOsc.stop(now + 0.38);
+        }
+
+        // 스텝 순환
+        this.bgmStep = (this.bgmStep + 1) % 16;
     },
 
     // 다양한 레트로 네온 효과음 생성 및 재생
@@ -41,10 +161,16 @@ const Sound = {
             this.ctx.resume();
         }
 
-        // [결함 2] 같은 사운드 이벤트가 250ms 이내에 중복해서 겹쳐 들리는 현상을 원천 방지합니다.
-        // 같은 유형의 사운드가 너무 촘촘하게 호출되면 재생하지 않고 차단 가드를 칩니다.
+        // 사운드 유형별로 중복 재생 방지 가드 시간을 다르게 주어 타격감과 속사음을 살립니다.
+        let guardTime = 250; // 기본 가드 시간 (보스경보, 폭발, victory 등 대형 효과)
+        if (type === 'shoot' || type === 'hit') {
+            guardTime = 45; // 0.045초 초단기 가드 (공속 10레벨 속사 및 다단 타격 완벽 대응)
+        } else if (type === 'coin' || type === 'dodge' || type === 'slash') {
+            guardTime = 80; // 코인 습득, 검풍, 회피 쿨타임 80ms
+        }
+
         const nowTime = Date.now();
-        if (this.lastPlay[type] && nowTime - this.lastPlay[type] < 250) {
+        if (this.lastPlay[type] && nowTime - this.lastPlay[type] < guardTime) {
             return;
         }
         this.lastPlay[type] = nowTime;
@@ -802,6 +928,8 @@ class Player {
         this.burstAngle = 0;
         this.burstType = 'gun'; // 'gun', 'sword' 등
         this.invincibleTimer = 0; // [신규 추가] 피격 시 무적 쿨타임 타이머
+        this.burstBulletsToLaunch = []; // [추가] 점사/난무 연속 격발 탄환 궤적 배열 사전 정의
+        this.resurrected = false; // [추가] Plate Armor 10레벨 극적 부활 작동 여부 트래킹
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
@@ -2279,6 +2407,7 @@ class GameEngine {
             if (e.button === 0) { // 마우스 좌클릭
                 this.mouse.isDown = true;
                 Sound.init(); // 브라우저 자동 재생 규정 우회
+                Sound.startBGM(); // 첫 클릭 시 은은하고 웅장한 Synth BGM 시작
             }
         });
 
@@ -2348,6 +2477,7 @@ class GameEngine {
         // 매끄러운 60fps 애니메이션 루프 재구동 및 루프 ID 보관
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
         Sound.play('powerup');
+        Sound.startBGM(); // [추가] 게임 시작 시 BGM 연주 강제 시작/보장
     }
 
     restartGame() {
@@ -4423,6 +4553,7 @@ class GameEngine {
             if (this.player.equipLevels.armor === 10 && !this.player.resurrected) {
                 this.player.resurrected = true;
                 this.player.hp = this.player.maxHp * 0.5; // 50% 충전 부활
+                this.player.invincibleTimer = 120; // [수정] 부활 즉시 2초간 완전 무적 상태 부여 (다단 피격사 방지)
                 this.showFloatingText("GUARDIAN RESURRECTION ACTIVE! (+50% HP)", this.player.x, this.player.y - 30, '#ffdf00');
                 Sound.play('victory');
                 this.particles.push(new Particle(this.player.x, this.player.y, '#ffdf00', 50, 0, 0, 30, 'explosionRing'));
@@ -5441,7 +5572,7 @@ class GameEngine {
                 p.equipLevels.ring_hp = Math.min(10, p.equipLevels.ring_hp + 1);
                 p.hpRegen += card.effectValue;
                 if (p.equipLevels.ring_hp === 5) {
-                    this.showFloatingText("HP RING LV.5: LIFE BURST (+50% PORTION EFF)", p.x, p.y - 30, '#ff5e00');
+                    this.showFloatingText("HP RING LV.5: LIFE BURST (+50% POTION EFF)", p.x, p.y - 30, '#ff5e00');
                 } else if (p.equipLevels.ring_hp === 10) {
                     this.showFloatingText("HP RING MAX: AUTO REPAIR (3X REGEN UNLOCKED)", p.x, p.y - 30, '#ffdf00');
                 }
@@ -5491,6 +5622,7 @@ class GameEngine {
         if (this.gameOverActive) return; // 중복 호출 원천 방지
         this.gameOverActive = true;
         
+        Sound.stopBGM(); // [추가] 사망 시 은은하게 돌던 Synth BGM 루프 즉시 종료
         Sound.play('gameover');
         this.shakeScreen(60, 7); // 강렬한 카메라 사망 흔들림 진동 주입
         
@@ -5834,8 +5966,8 @@ class GameEngine {
             // 실제로 카드를 획득하여 버프 적용!
             this.applyRewardCard(cardData);
             
-            confirmBtn.removeEventListener('click', handleConfirm);
-            shopOverlay.removeEventListener('click', handleConfirm);
+            confirmBtn.onclick = null; // [수정] 대입형 onclick 프로퍼티 안전하게 null 처리 해제
+            shopOverlay.onclick = null;
         };
 
         // 확인 버튼 클릭 시 수령
