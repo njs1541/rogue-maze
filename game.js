@@ -2114,57 +2114,6 @@ class NeonTrap {
 }
 
 // --------------------------------------------------------------------------
-// 6.8.5. 25등분 격자 기반 랜덤 장애물 클래스 (Neon Obstacle)
-// --------------------------------------------------------------------------
-class NeonObstacle {
-    constructor(col, row) {
-        this.col = col; // 격자 col (1~3)
-        this.row = row; // 격자 row (1~3)
-        this.width = 80;  // 장애물 가로 크기
-        this.height = 65; // 장애물 세로 크기
-        
-        // 격자 중심 좌표 연산 (가로: 720 / 5 = 144px, 세로: 520 / 5 = 104px)
-        this.x = 40 + col * 144 + 72;
-        this.y = 40 + row * 104 + 52;
-        
-        // 영롱하고 사이버틱한 자홍색 홀로그램 테마 색상 적용
-        this.color = '#ff00aa'; 
-        this.glowColor = '#ff00aa';
-        this.pulse = Math.random() * 100;
-    }
-    
-    draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        this.pulse += 0.04;
-        let scale = 1.0 + Math.sin(this.pulse) * 0.04; // 미세 맥동 홀로그램 연출
-        
-        // 홀로그램 네온 사각형 장벽 렌더링
-        ctx.beginPath();
-        ctx.rect(-this.width/2 * scale, -this.height/2 * scale, this.width * scale, this.height * scale);
-        ctx.fillStyle = 'rgba(255, 0, 170, 0.12)';
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = 2.5;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = this.glowColor;
-        ctx.fill();
-        ctx.stroke();
-        
-        // 내부 데코레이션 대각선 크로스 격자선 추가
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 0, 170, 0.25)';
-        ctx.lineWidth = 1;
-        ctx.moveTo(-this.width/2 * scale, -this.height/2 * scale);
-        ctx.lineTo(this.width/2 * scale, this.height/2 * scale);
-        ctx.moveTo(this.width/2 * scale, -this.height/2 * scale);
-        ctx.lineTo(-this.width/2 * scale, this.height/2 * scale);
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-}
-
-// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 class GameEngine {
