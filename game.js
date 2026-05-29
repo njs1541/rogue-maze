@@ -10,6 +10,7 @@
 // --------------------------------------------------------------------------
 const Sound = {
     ctx: null,
+    lastPlay: {}, // [결함 2] 동일 사운드 겹침 방지를 위한 타임스탬프 저장소
 
     // 오디오 컨텍스트 초기화 (브라우저 정책 상 첫 상호작용 시 활성화)
     init() {
@@ -28,6 +29,14 @@ const Sound = {
             this.ctx.resume();
         }
 
+        // [결함 2] 같은 사운드 이벤트가 250ms 이내에 중복해서 겹쳐 들리는 현상을 원천 방지합니다.
+        // 같은 유형의 사운드가 너무 촘촘하게 호출되면 재생하지 않고 차단 가드를 칩니다.
+        const nowTime = Date.now();
+        if (this.lastPlay[type] && nowTime - this.lastPlay[type] < 250) {
+            return;
+        }
+        this.lastPlay[type] = nowTime;
+
         const now = this.ctx.currentTime;
 
         switch (type) {
@@ -38,7 +47,8 @@ const Sound = {
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
                 
-                gain.gain.setValueAtTime(0.15, now);
+                // 볼륨 50% 감쇄 (0.15 -> 0.075)
+                gain.gain.setValueAtTime(0.075, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
                 
                 osc.connect(gain);
@@ -55,7 +65,8 @@ const Sound = {
                 osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
                 osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
 
-                gain.gain.setValueAtTime(0.2, now);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1)
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
 
                 osc.connect(gain);
@@ -79,7 +90,8 @@ const Sound = {
                 filter.frequency.setValueAtTime(400, now);
 
                 const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.1, now);
+                // 볼륨 50% 감쇄 (0.1 -> 0.05)
+                gain.gain.setValueAtTime(0.05, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
 
                 noise.connect(filter);
@@ -104,7 +116,8 @@ const Sound = {
                 filter.frequency.linearRampToValueAtTime(10, now + 0.3);
 
                 const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.3, now);
+                // 볼륨 50% 감쇄 (0.3 -> 0.15)
+                gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
                 noise.connect(filter);
@@ -120,7 +133,8 @@ const Sound = {
                 osc.frequency.setValueAtTime(600, now);
                 osc.frequency.exponentialRampToValueAtTime(1500, now + 0.12);
 
-                gain.gain.setValueAtTime(0.2, now);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1)
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
 
                 osc.connect(gain);
@@ -137,7 +151,8 @@ const Sound = {
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + idx * 0.08);
                     
-                    gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+                    // 볼륨 50% 감쇄 (0.12 -> 0.06)
+                    gain.gain.setValueAtTime(0.06, now + idx * 0.08);
                     gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
 
                     osc.connect(gain);
@@ -154,7 +169,8 @@ const Sound = {
                 osc.frequency.setValueAtTime(220, now);
                 osc.frequency.linearRampToValueAtTime(55, now + 0.6);
 
-                gain.gain.setValueAtTime(0.2, now);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1)
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
 
                 osc.connect(gain);
@@ -172,7 +188,8 @@ const Sound = {
                     osc.frequency.setValueAtTime(freq, now);
                     osc.frequency.setValueAtTime(freq * 1.5, now + 0.2);
 
-                    gain.gain.setValueAtTime(0.1, now);
+                    // 볼륨 50% 감쇄 (0.1 -> 0.05)
+                    gain.gain.setValueAtTime(0.05, now);
                     gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
 
                     osc.connect(gain);
@@ -189,7 +206,8 @@ const Sound = {
                 osc.frequency.setValueAtTime(150, now);
                 osc.frequency.linearRampToValueAtTime(80, now + 0.35);
 
-                gain.gain.setValueAtTime(0.2, now);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1)
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
 
                 osc.connect(gain);
@@ -205,7 +223,8 @@ const Sound = {
                 osc.frequency.setValueAtTime(987.77, now); // B5 (시)
                 osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6 (미)
                 
-                gain.gain.setValueAtTime(0.08, now);
+                // 볼륨 50% 감쇄 (0.08 -> 0.04)
+                gain.gain.setValueAtTime(0.04, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
                 
                 osc.connect(gain);
@@ -3293,7 +3312,8 @@ class GameEngine {
         this.player.isStopped = (dx === 0 && dy === 0);
 
         // 4. 주무기 격발 메커니즘 (마우스 클릭 시 사격)
-        if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'dual')) {
+        // [결함 1] 사격 유도형 if 식에 whip(채찍) 무기 타입을 정상 포함하여, 채찍을 획득/조합 시 사격 불능 고장 나던 치명적 결함을 원천 수정합니다.
+        if (this.mouse.isDown && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual')) {
             this.shootWeapon();
         }
         if (this.mouse.isDown && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
