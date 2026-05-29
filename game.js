@@ -281,6 +281,59 @@ class Particle {
 }
 
 // --------------------------------------------------------------------------
+// 2.5. 격자 기반 맵 장애물 클래스 (NeonObstacle)
+// --------------------------------------------------------------------------
+class NeonObstacle {
+    constructor(col, row) {
+        this.col = col; // 격자 열 번호 (1~3)
+        this.row = row; // 격자 행 번호 (1~3)
+        this.width = 80;  // 장애물 가로 크기
+        this.height = 65; // 장애물 세로 크기
+        
+        // 격자 기준 월드 좌표 계산 (방 크기 720x520, 좌상단 여백 40,40 기준)
+        // 5x5 격자에서 col, row는 각각 0~4 범위
+        // col=0, 4는 외곽선, row=0, 4는 외곽선이므로 장애물은 1~3 영역에만 배치됨
+        this.x = 40 + col * 144 + 72;
+        this.y = 40 + row * 104 + 52;
+        
+        // 자홍색 홀로그램 테마 색상 설정
+        this.color = '#ff00aa'; 
+        this.glowColor = '#ff00aa';
+        this.pulse = Math.random() * 100; // 미세 맥동 효과를 위한 시작 위상차
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.04;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.04; // 미래지향적 홀로그램 맥동 연출
+        
+        // 홀로그램 네온 사각형 방벽 렌더링
+        ctx.beginPath();
+        ctx.rect(-this.width / 2 * scale, -this.height / 2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = 'rgba(255, 0, 170, 0.12)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.glowColor;
+        ctx.fill();
+        ctx.stroke();
+        
+        // 내부 데코레이션 대각 격자 크로스 격자선 추가로 테크니컬한 감성 극대화
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 0, 170, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(-this.width / 2 * scale, -this.height / 2 * scale);
+        ctx.lineTo(this.width / 2 * scale, this.height / 2 * scale);
+        ctx.moveTo(this.width / 2 * scale, -this.height / 2 * scale);
+        ctx.lineTo(-this.width / 2 * scale, this.height / 2 * scale);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 3. 무기 및 투사체 정보 정의
 // --------------------------------------------------------------------------
 class Bullet {
@@ -351,6 +404,69 @@ class Bullet {
 
         this.x += this.vx * timeScale;
         this.y += this.vy * timeScale;
+
+        // [5-4단계] 탄환과 격자 장애물의 AABB 충돌 및 도탄(Bounce)/소멸 물리 연동
+        // 25등분 격자에 소환된 자홍색 홀로그램 장벽들과 탄환의 AABB 충돌을 검출합니다.
+        if (window.gameEngine && window.gameEngine.obstacles.length > 0 && this.active) {
+            for (let obs of window.gameEngine.obstacles) {
+                let distX = this.x - obs.x;
+                let distY = this.y - obs.y;
+                let minXDist = (obs.width / 2) + this.radius;
+                let minYDist = (obs.height / 2) + this.radius;
+
+                if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
+                    // 충돌 발생!
+                    // 플레이어의 도탄 탄환이고 튕김 횟수가 아직 남아있는 경우 도탄 기하 연산 적용
+                    if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
+                        let overlapX = minXDist - Math.abs(distX);
+                        let overlapY = minYDist - Math.abs(distY);
+
+                        if (overlapX < overlapY) {
+                            // 좌우 측면 충돌 시 수평 속도 반사 및 밀어내기
+                            this.x += distX > 0 ? overlapX : -overlapX;
+                            this.vx = -this.vx;
+                        } else {
+                            // 상하 측면 충돌 시 수직 속도 반사 및 밀어내기
+                            this.y += distY > 0 ? overlapY : -overlapY;
+                            this.vy = -this.vy;
+                        }
+
+                        // 튕김 카운트 증가 및 데미지 복리 증폭 (+25%)
+                        this.bounceCount++;
+                        this.damage *= 1.25; 
+                        Sound.play('dodge'); // 통통 튕기는 틱 레트로 효과음
+
+                        // 튕길 때 튀는 3개 자홍색/노란색 네온 스파크 파티클
+                        for (let k = 0; k < 3; k++) {
+                            let randAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 1;
+                            window.gameEngine.particles.push(new Particle(
+                                this.x, this.y, 
+                                '#ff00aa', 1.5, 
+                                Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
+                            ));
+                        }
+                        window.gameEngine.showFloatingText("BOUNCE! 💥", this.x, this.y - 15, '#ff00aa');
+                    } else {
+                        // 도탄이 불가능하거나 몬스터의 탄환인 경우 즉시 소멸 처리
+                        this.active = false;
+                        this.life = 0;
+
+                        // 소멸 스파크 파편 효과 연출
+                        for (let k = 0; k < 3; k++) {
+                            let randAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 1;
+                            window.gameEngine.particles.push(new Particle(
+                                this.x, this.y, 
+                                this.color, 1.5, 
+                                Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 10, 'spark'
+                            ));
+                        }
+                    }
+                    break; // 하나의 장애물과 충돌 시 루프 탈출
+                }
+            }
+        }
 
         // [W-03 총 도탄 물리 기믹 연산]
         if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
@@ -1979,6 +2095,57 @@ class NeonTrap {
 }
 
 // --------------------------------------------------------------------------
+// 6.8.5. 25등분 격자 기반 랜덤 장애물 클래스 (Neon Obstacle)
+// --------------------------------------------------------------------------
+class NeonObstacle {
+    constructor(col, row) {
+        this.col = col; // 격자 col (1~3)
+        this.row = row; // 격자 row (1~3)
+        this.width = 80;  // 장애물 가로 크기
+        this.height = 65; // 장애물 세로 크기
+        
+        // 격자 중심 좌표 연산 (가로: 720 / 5 = 144px, 세로: 520 / 5 = 104px)
+        this.x = 40 + col * 144 + 72;
+        this.y = 40 + row * 104 + 52;
+        
+        // 영롱하고 사이버틱한 자홍색 홀로그램 테마 색상 적용
+        this.color = '#ff00aa'; 
+        this.glowColor = '#ff00aa';
+        this.pulse = Math.random() * 100;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.04;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.04; // 미세 맥동 홀로그램 연출
+        
+        // 홀로그램 네온 사각형 장벽 렌더링
+        ctx.beginPath();
+        ctx.rect(-this.width/2 * scale, -this.height/2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = 'rgba(255, 0, 170, 0.12)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.glowColor;
+        ctx.fill();
+        ctx.stroke();
+        
+        // 내부 데코레이션 대각선 크로스 격자선 추가
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 0, 170, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(-this.width/2 * scale, -this.height/2 * scale);
+        ctx.lineTo(this.width/2 * scale, this.height/2 * scale);
+        ctx.moveTo(this.width/2 * scale, -this.height/2 * scale);
+        ctx.lineTo(-this.width/2 * scale, this.height/2 * scale);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 class GameEngine {
@@ -2014,6 +2181,7 @@ class GameEngine {
         this.secretWalls = []; // [Phase 7 신규 구현] 비밀 균열 벽 리스트
         this.hiddenChests = []; // [Phase 7 신규 구현] 숨겨진 보물 상자 리스트
         this.traps = [];   // [신규] 함정 엔티티 리스트
+        this.obstacles = []; // [신규] 25등분 격자 장애물 리스트
         
         // [신규 기획] 포털 특화 보상 및 상점 관리 리스트
         this.currentRoomType = 'stat'; 
@@ -2146,6 +2314,7 @@ class GameEngine {
         this.secretWalls = []; // [Phase 7 신규 구현] 비밀 벽 초기화
         this.hiddenChests = []; // [Phase 7 신규 구현] 숨겨진 상자 초기화
         this.traps = [];   // [신규] 함정 리스트 초기화
+        this.obstacles = []; // [신규] 25등분 격자 장애물 리스트 초기화
         
         // [신규 기획] 보상 및 상점 리스트 리셋
         this.currentRoomType = 'stat';
@@ -2387,6 +2556,31 @@ class GameEngine {
         this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
         this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
         this.player.burstRemaining = 0;     // [신규] 방 이동 시 비동기 잔상 사격 완전 차단 리셋!
+        this.obstacles = []; // [신규] 이전 방 장애물 청소
+
+        // [신규] 25등분 격자 기반 랜덤 장애물 생성 기믹
+        if (this.roomNum > 1 && this.roomNum % 10 !== 0) {
+            let stageGroup = Math.floor((this.roomNum - 1) / 20);
+            let maxObstacles = Math.min(5, stageGroup + 1);
+            let obstacleCount = 0;
+            for (let i = 0; i < maxObstacles; i++) {
+                if (Math.random() < 0.5) {
+                    obstacleCount++;
+                } else {
+                    break;
+                }
+            }
+            let candidates = [
+                { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
+                { col: 1, row: 2 },                     { col: 3, row: 2 },
+                { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }
+            ];
+            candidates.sort(() => 0.5 - Math.random());
+            for (let i = 0; i < Math.min(obstacleCount, candidates.length); i++) {
+                let cell = candidates[i];
+                this.obstacles.push(new NeonObstacle(cell.col, cell.row));
+            }
+        }
 
         // 5번 방 주기마다 보스전 활성화 (5, 10, 15... 100)
         // 10의 배수는 무조건 보스방으로 기동!
@@ -2408,7 +2602,24 @@ class GameEngine {
                 { wallX: 680, wallY: 480, chestX: 680, chestY: 520 }  // 우하
             ];
             
-            let chosenSpot = spots[Math.floor(Math.random() * spots.length)];
+            // [5-6단계] 장애물과의 거리가 80px 이하로 겹치지 않는 안전한 스폿만 필터링합니다.
+            // 비밀방 균열 벽 또는 숨겨진 상자가 방금 소환된 격자 장애물과 간섭하는 것을 원천 차단합니다.
+            let safeSpots = spots.filter(spot => {
+                for (let obs of this.obstacles) {
+                    let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
+                    let distChest = Math.hypot(spot.chestX - obs.x, spot.chestY - obs.y);
+                    if (distWall <= 80 || distChest <= 80) {
+                        return false; // 장애물과 너무 가까우면 해당 후보지 배제
+                    }
+                }
+                return true;
+            });
+            
+            // 안전 구역을 확보한 스폿이 존재하는 경우 그 중에서 무작위 배정하고,
+            // 만에 하나 모든 스폿이 격자와 근접하다면 기존의 전체 목록에서 선정하도록 롤백 예외 처리를 둡니다.
+            let chosenSpot = safeSpots.length > 0 
+                ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
+                : spots[Math.floor(Math.random() * spots.length)];
             
             // 비밀 균열 벽 생성
             this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY));
@@ -3030,6 +3241,29 @@ class GameEngine {
         let pMouseAngle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
         this.player.angle = pMouseAngle;
 
+        // [5-3단계] 플레이어와 격자 장애물 지형 충돌 처리 (슬라이딩 물리)
+        // 25등분 격자에 생성된 네온 장벽들과 충돌했을 때 자연스럽게 미끄러지도록 슬라이딩 물리 판정을 가합니다.
+        for (let obs of this.obstacles) {
+            let distX = this.player.x - obs.x;
+            let distY = this.player.y - obs.y;
+            
+            // NeonObstacle 크기(width: 80, height: 65)와 플레이어 반경(radius)을 고려한 한계 겹침 거리 계산
+            let minXDist = (obs.width / 2) + this.player.radius - 2;
+            let minYDist = (obs.height / 2) + this.player.radius - 2;
+            
+            if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
+                // 겹친 정도(overlap)를 계산하여 덜 겹친 축 방향으로 비껴내기
+                let overlapX = minXDist - Math.abs(distX);
+                let overlapY = minYDist - Math.abs(distY);
+                
+                if (overlapX < overlapY) {
+                    this.player.x += distX > 0 ? overlapX : -overlapX;
+                } else {
+                    this.player.y += distY > 0 ? overlapY : -overlapY;
+                }
+            }
+        }
+
         // [Phase 7 신규 구현] 플레이어와 비밀 균열 벽 지형 충돌 처리 (슬라이딩 물리)
         for (let wall of this.secretWalls) {
             let distX = this.player.x - wall.x;
@@ -3178,6 +3412,27 @@ class GameEngine {
             }
             
             m.update(this.player, this.bullets);
+
+            // [5-3단계] 몬스터와 격자 장애물 지형 충돌 처리 (슬라이딩 물리)
+            // 격자 내에 배치된 자홍색 홀로그램 장벽들과 몬스터 간의 충돌 판정을 계산하여 미끄러지도록 처리합니다.
+            for (let obs of this.obstacles) {
+                let distX = m.x - obs.x;
+                let distY = m.y - obs.y;
+                
+                let minXDist = (obs.width / 2) + m.radius - 2;
+                let minYDist = (obs.height / 2) + m.radius - 2;
+                
+                if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
+                    let overlapX = minXDist - Math.abs(distX);
+                    let overlapY = minYDist - Math.abs(distY);
+                    
+                    if (overlapX < overlapY) {
+                        m.x += distX > 0 ? overlapX : -overlapX;
+                    } else {
+                        m.y += distY > 0 ? overlapY : -overlapY;
+                    }
+                }
+            }
 
             // [충돌 검사 A] 몬스터 본체와 플레이어 캐릭터 본체의 격돌
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
@@ -5283,6 +5538,10 @@ class GameEngine {
             this.ctx.lineTo(760, y);
             this.ctx.stroke();
         }
+
+        // [5-5단계] 25등분 격자 장애물 렌더링
+        // 방에 스폰된 자홍색 홀로그램 장벽들을 캔버스에 영롱하게 투사합니다.
+        this.obstacles.forEach(obs => obs.draw(this.ctx));
 
         // 2. 4개 문(포털) 렌더링
         this.portals.forEach(p => p.draw(this.ctx));
