@@ -1324,4 +1324,177 @@ input:checked + .cheat-switch-slider:before {
     flex: 1;
 }
 
+/* ==========================================================================
+   [신규 추가] 시스템 옵션 모달 전용 레이아웃 및 세련된 네온 테마 스타일링
+   ========================================================================== */
+.option-container {
+    background: rgba(14, 15, 23, 0.88);
+    border: 2px solid rgba(176, 38, 255, 0.55);
+    border-radius: 20px;
+    box-shadow: 0 0 35px rgba(176, 38, 255, 0.35);
+    padding: 35px;
+    max-width: 440px;
+    width: 100%;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 모달 등장 시 스케일 팝업 모션 */
+#option-overlay:not(.hidden) .option-container {
+    transform: scale(1);
+}
+
+.option-title {
+    font-size: 1.9rem;
+    font-weight: 800;
+    margin-bottom: 0px;
+    letter-spacing: 0.05em;
+}
+
+.option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    text-align: left;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-label {
+    color: #cbd5e0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* 커스텀 사이버펑크 네온 슬라이더 */
+.neon-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.neon-slider:focus {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* 슬라이더 조절 핸들 (Thumb) 스타일링 - 효과음 */
+#volume-sfx::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--neon-blue); /* 존재하지 않던 neon-cyan 변수를 올바른 neon-blue 로 교체 */
+    box-shadow: 0 0 12px var(--neon-blue);
+    cursor: pointer;
+    margin-top: -6px; /* [결함 해결] 브라우저에 따라 버튼이 잘리거나 안 보이는 현상을 완치하기 위한 중심 마진 보정 */
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#volume-sfx::-webkit-slider-thumb:hover {
+    transform: scale(1.35);
+}
+
+/* 슬라이더 조절 핸들 (Thumb) 스타일링 - 배경음 */
+#volume-bgm::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--neon-green);
+    box-shadow: 0 0 12px var(--neon-green);
+    cursor: pointer;
+    margin-top: -6px; /* [결함 해결] 배경음 슬라이더 단추 위치 마진 보정 */
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#volume-bgm::-webkit-slider-thumb:hover {
+    transform: scale(1.35);
+}
+
+/* [호환성 보강] 파이어폭스(Firefox) 전용 조절 단추 (Thumb) 스타일링 */
+#volume-sfx::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: var(--neon-blue);
+    box-shadow: 0 0 12px var(--neon-blue);
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#volume-sfx::-moz-range-thumb:hover {
+    transform: scale(1.35);
+}
+
+#volume-bgm::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: var(--neon-green);
+    box-shadow: 0 0 12px var(--neon-green);
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#volume-bgm::-moz-range-thumb:hover {
+    transform: scale(1.35);
+}
+
+.slider-val {
+    font-family: var(--font-primary);
+    font-weight: 800;
+    font-size: 1.1rem;
+    min-width: 55px;
+    text-align: right;
+}
+
+.option-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.option-actions button {
+    flex: 1;
+    padding: 13px;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+/* 게임 재시작 전용 Danger 네온 버튼 */
+.neon-btn.danger {
+    border-color: rgba(255, 0, 85, 0.55);
+    color: #ff0055;
+    text-shadow: 0 0 8px rgba(255, 0, 85, 0.4);
+}
+
+.neon-btn.danger:hover {
+    background: rgba(255, 0, 85, 0.18);
+    border-color: #ff0055;
+    box-shadow: 0 0 18px rgba(255, 0, 85, 0.45);
+}
+
 

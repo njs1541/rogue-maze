@@ -11,12 +11,24 @@
 const Sound = {
     ctx: null,
     lastPlay: {}, // [결함 2] 동일 사운드 겹침 방지를 위한 타임스탬프 저장소
+    sfxVolume: 1.0, // [신규 추가] 효과음 볼륨 기본값 (0.0 ~ 1.0)
+    bgmVolume: 0.5, // [신규 추가] 배경음악 볼륨 기본값 (0.0 ~ 1.0) - 향후 대비
 
     // 오디오 컨텍스트 초기화 (브라우저 정책 상 첫 상호작용 시 활성화)
     init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }
+    },
+
+    // [신규 추가] 효과음 볼륨 갱신 메소드
+    setSFXVolume(val) {
+        this.sfxVolume = Math.max(0, Math.min(1, parseFloat(val)));
+    },
+
+    // [신규 추가] 배경음악 볼륨 갱신 메소드
+    setBGMVolume(val) {
+        this.bgmVolume = Math.max(0, Math.min(1, parseFloat(val)));
     },
 
     // 다양한 레트로 네온 효과음 생성 및 재생
@@ -47,9 +59,9 @@ const Sound = {
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
                 
-                // 볼륨 50% 감쇄 (0.15 -> 0.075)
-                gain.gain.setValueAtTime(0.075, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                // 볼륨 50% 감쇄 (0.15 -> 0.075) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.075 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.15);
                 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -65,9 +77,9 @@ const Sound = {
                 osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
                 osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
 
-                // 볼륨 50% 감쇄 (0.2 -> 0.1)
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.2);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -90,9 +102,9 @@ const Sound = {
                 filter.frequency.setValueAtTime(400, now);
 
                 const gain = this.ctx.createGain();
-                // 볼륨 50% 감쇄 (0.1 -> 0.05)
-                gain.gain.setValueAtTime(0.05, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                // 볼륨 50% 감쇄 (0.1 -> 0.05) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.05 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.05);
 
                 noise.connect(filter);
                 filter.connect(gain);
@@ -116,9 +128,9 @@ const Sound = {
                 filter.frequency.linearRampToValueAtTime(10, now + 0.3);
 
                 const gain = this.ctx.createGain();
-                // 볼륨 50% 감쇄 (0.3 -> 0.15)
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                // 볼륨 50% 감쇄 (0.3 -> 0.15) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.15 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01 * this.sfxVolume, now + 0.3);
 
                 noise.connect(filter);
                 filter.connect(gain);
@@ -133,9 +145,9 @@ const Sound = {
                 osc.frequency.setValueAtTime(600, now);
                 osc.frequency.exponentialRampToValueAtTime(1500, now + 0.12);
 
-                // 볼륨 50% 감쇄 (0.2 -> 0.1)
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.12);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -151,9 +163,9 @@ const Sound = {
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + idx * 0.08);
                     
-                    // 볼륨 50% 감쇄 (0.12 -> 0.06)
-                    gain.gain.setValueAtTime(0.06, now + idx * 0.08);
-                    gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                    // 볼륨 50% 감쇄 (0.12 -> 0.06) 및 전역 볼륨 곱 적용
+                    gain.gain.setValueAtTime(0.06 * this.sfxVolume, now + idx * 0.08);
+                    gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + idx * 0.08 + 0.2);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -169,9 +181,9 @@ const Sound = {
                 osc.frequency.setValueAtTime(220, now);
                 osc.frequency.linearRampToValueAtTime(55, now + 0.6);
 
-                // 볼륨 50% 감쇄 (0.2 -> 0.1)
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.01 * this.sfxVolume, now + 0.6);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -188,9 +200,9 @@ const Sound = {
                     osc.frequency.setValueAtTime(freq, now);
                     osc.frequency.setValueAtTime(freq * 1.5, now + 0.2);
 
-                    // 볼륨 50% 감쇄 (0.1 -> 0.05)
-                    gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                    // 볼륨 50% 감쇄 (0.1 -> 0.05) 및 전역 볼륨 곱 적용
+                    gain.gain.setValueAtTime(0.05 * this.sfxVolume, now);
+                    gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.5);
 
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -206,9 +218,9 @@ const Sound = {
                 osc.frequency.setValueAtTime(150, now);
                 osc.frequency.linearRampToValueAtTime(80, now + 0.35);
 
-                // 볼륨 50% 감쇄 (0.2 -> 0.1)
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                // 볼륨 50% 감쇄 (0.2 -> 0.1) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.35);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -223,9 +235,9 @@ const Sound = {
                 osc.frequency.setValueAtTime(987.77, now); // B5 (시)
                 osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6 (미)
                 
-                // 볼륨 50% 감쇄 (0.08 -> 0.04)
-                gain.gain.setValueAtTime(0.04, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                // 볼륨 50% 감쇄 (0.08 -> 0.04) 및 전역 볼륨 곱 적용
+                gain.gain.setValueAtTime(0.04 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(0.01 * this.sfxVolume, now + 0.25);
                 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
@@ -380,6 +392,8 @@ class Bullet {
         this.isIce = options.isIce || false; // 얼음마법 탄환 여부
         this.bounceCount = 0; // 도탄 튕긴 누적 횟수
         this.bounceLimit = options.bounceLimit || 0; // 최대 허용 도탄 횟수
+        this.monsterBounceCount = 0; // 몬스터 튕긴 누적 횟수
+        this.monsterBounceLimit = options.monsterBounceLimit || 0; // 최대 허용 몬스터 튕기기 횟수
         this.active = true; // [신규] 탄환 활성화 상태 (배열 훼손 방멸용 소멸 예약 플래그)
     }
 
@@ -760,6 +774,8 @@ class Player {
         this.burstCount = 1;     // 한 번 사격 시 연속 점사 횟수
         this.pierceCount = 0;    // 탄환 관통력 개수
         this.homing = false;     // 유도탄 보유 여부
+        this.wallBounceLimit = 0; // 벽 튕기기 제한 횟수
+        this.monsterBounceLimit = 0; // 몬스터 튕기기 제한 횟수
         this.splashRadius = 0;   // 탄환 명중 시 스플래시 반경 (0 이면 기본 총알)
 
         // 쿨타임 및 상태 제어
@@ -2191,6 +2207,7 @@ class GameEngine {
         this.initInputEvents();
         this.setupInitialRoom();
         this.initCheatSystemEvents();
+        this.initOptionEvents(); // [신규 추가] 시스템 옵션 모달 이벤트 등록
     }
 
     // 입력 장치 이벤트 바인딩
@@ -2211,6 +2228,16 @@ class GameEngine {
                 }
                 e.preventDefault();
                 this.toggleCheatMenu();
+            }
+
+            // [신규 추가] Escape 키: 시스템 옵션 모달 토글
+            if (e.key === 'Escape') {
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                    return;
+                }
+                e.preventDefault();
+                this.toggleOptionMenu();
             }
 
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
@@ -2886,11 +2913,7 @@ class GameEngine {
 
     // 데이터 갱신 및 물리/충돌 검사 총괄
     update() {
-        this.player.update();
-        if (this.vendingCooldown > 0) this.vendingCooldown--; // [신규 기획] 자판기 구매 쿨타임 매 프레임 감쇠
-        if (this.bossWarningTimer > 0) this.bossWarningTimer--; // [v0.95] 보스 경보 타이머 프레임 감소
-
-        // 오버레이 활성화 체크
+        // [신규 추가] 1. 통합 오버레이 일시정지(Freeze) 체크 및 동결 엔진
         let isOverlayOpen = false;
         const rewardOverlay = document.getElementById('reward-overlay');
         const detailOverlay = document.getElementById('card-detail-overlay');
@@ -2898,15 +2921,26 @@ class GameEngine {
         const resultOverlay = document.getElementById('result-overlay');
         const startOverlay = document.getElementById('start-overlay');
         const cheatOverlay = document.getElementById('cheat-overlay');
+        const optionOverlay = document.getElementById('option-overlay'); // [신규] 시스템 옵션 모달 연동
         
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
             (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
             (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
             (startOverlay && !startOverlay.classList.contains('hidden')) ||
-            (cheatOverlay && !cheatOverlay.classList.contains('hidden'))) {
+            (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
+            (optionOverlay && !optionOverlay.classList.contains('hidden'))) {
             isOverlayOpen = true;
         }
+
+        // 레이어 팝업이 활성화되어 있으면 즉시 루프를 리턴 차단하여 물리적인 시간을 완벽하게 얼려버립니다.
+        if (isOverlayOpen) {
+            return;
+        }
+
+        this.player.update();
+        if (this.vendingCooldown > 0) this.vendingCooldown--; // [신규 기획] 자판기 구매 쿨타임 매 프레임 감쇠
+        if (this.bossWarningTimer > 0) this.bossWarningTimer--; // [v0.95] 보스 경보 타이머 프레임 감소
 
         // [신규] 프레임 기반 점사/난무 연속 격발 처리 (잔상 사격 버그 박멸 완료)
         if (this.player.burstRemaining > 0 && !isOverlayOpen) {
@@ -2959,7 +2993,8 @@ class GameEngine {
                             isLightning: bulletIsLightning,
                             isFire: bulletIsFire,
                             isIce: bulletIsIce,
-                            bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? 3 : 0
+                            bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0,
+                            monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
                         }));
                     }
                     Sound.play('shoot');
@@ -3678,6 +3713,36 @@ class GameEngine {
                         // 관통 횟수 차감 및 소멸
                         if (b.pierce > 0) {
                             b.pierce--;
+                        } else if (b.monsterBounceLimit > 0 && b.monsterBounceCount < b.monsterBounceLimit) {
+                            b.monsterBounceCount++;
+                            
+                            // 주변의 다른 유효 몬스터 탐색 (방금 명중한 몬스터 제외)
+                            let nextMonster = null;
+                            let minDist = Infinity;
+                            for (let otherM of this.monsters) {
+                                if (otherM === m || otherM.hp <= 0) continue;
+                                let distToOther = Math.hypot(otherM.x - b.x, otherM.y - b.y);
+                                if (distToOther < minDist && distToOther < 250) {
+                                    minDist = distToOther;
+                                    nextMonster = otherM;
+                                }
+                            }
+                            
+                            if (nextMonster) {
+                                let speed = Math.hypot(b.vx, b.vy);
+                                let bounceAngle = Math.atan2(nextMonster.y - b.y, nextMonster.x - b.x);
+                                b.vx = Math.cos(bounceAngle) * speed;
+                                b.vy = Math.sin(bounceAngle) * speed;
+                                
+                                // 도탄 피드백 시각 효과음 연출
+                                this.showFloatingText("M-BOUNCE! 💥", b.x, b.y - 15, '#ff00aa');
+                                Sound.play('hit');
+                                
+                                // 날아갈 수 있도록 탄 수명 연장
+                                b.life = Math.max(b.life, this.player.range / speed * 0.6) + 12;
+                            } else {
+                                this.bullets.splice(j, 1);
+                            }
                         } else {
                             this.bullets.splice(j, 1);
                         }
@@ -4568,7 +4633,8 @@ class GameEngine {
                     isLightning: bulletIsLightning,
                     isFire: bulletIsFire,
                     isIce: bulletIsIce,
-                    bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? 3 : 0 // [W-03 총 도탄 옵션 연동]
+                    bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
+                    monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
                 }));
             }
             Sound.play('shoot');
@@ -4871,7 +4937,9 @@ class GameEngine {
             { id: 'homing', title: '유도 추적탄 (Homing)', icon: '🔮', desc: '탄환이 주변에서 가장 가까운 적을 유성처럼 유도 비행합니다.' },
             { id: 'splash', title: '스플래시 탄 (Splash)', icon: '💥', desc: '탄환 명중 지점에 네온 대폭발을 발생시켜 다수의 적을 몰살합니다.' },
             { id: 'pet', title: '디펜더 펫 (PET) 동행', icon: '🤖', desc: '주위를 돌며 적 탄환을 막고 유도탄을 사격하는 디펜더 드론을 추가 소환합니다.' },
-            { id: 'magic_timewarp', title: '시간 왜곡 마법 (Time Warp)', icon: '🔮', desc: '특수 마법을 마나 소모형 불릿타임 시간 왜곡으로 교체합니다.' }
+            { id: 'magic_timewarp', title: '시간 왜곡 마법 (Time Warp)', icon: '🔮', desc: '특수 마법을 마나 소모형 불릿타임 시간 왜곡으로 교체합니다.' },
+            { id: 'wall_bounce', title: '네온 도탄 (Wall Bounce)', icon: '🧱', desc: '탄환이 벽이나 장애물에 충돌 시 튕겨 나와 다른 방향으로 계속 날아갑니다.' },
+            { id: 'monster_bounce', title: '유도 튕기기 (Monster Bounce)', icon: '🔗', desc: '탄환이 적에 명중 시, 소멸하지 않고 주변의 가까운 적을 향해 전이 유도 도탄 튕김 타격합니다.' }
         ];
 
         // [신규 기획] 장비 10종 보상 카드 풀
@@ -5074,6 +5142,14 @@ class GameEngine {
             case 'magic_timewarp':
                 desc = `특수기를 마력 소모형 불릿타임 시간 왜곡으로 영구 교체합니다. 약 6초간 시간이 90% 느리게 흐릅니다.`;
                 break;
+            case 'wall_bounce':
+                value = Math.ceil(rarity === 'COMMON' ? 1 : (rarity === 'RARE' ? 2 : (rarity === 'EPIC' ? 3 : 4)));
+                desc = `탄환이 벽이나 격자 장애물에 충돌 시 튕겨 도탄하는 제한 횟수가 +${value}회 증가합니다.`;
+                break;
+            case 'monster_bounce':
+                value = Math.ceil(rarity === 'COMMON' ? 1 : (rarity === 'RARE' ? 2 : (rarity === 'EPIC' ? 3 : 4)));
+                desc = `탄환이 적에 명중했을 때 소멸하는 대신 다른 적으로 튕겨 유도 추격하는 연쇄 횟수가 +${value}회 증가합니다.`;
+                break;
             case 'upgrade_sword':
                 desc = `검기의 대미지 배율을 +40% 상향시키고, 검풍 리치 타격 반경을 +10px 영구 연장합니다.`;
                 break;
@@ -5242,6 +5318,14 @@ class GameEngine {
                 // [추가] 특수 마법 기술을 시간 왜곡으로 변경
                 p.magicType = 'timeWarp';
                 this.showFloatingText("TIME WARP UNLOCKED", p.x, p.y - 30, '#b026ff');
+                break;
+            case 'wall_bounce':
+                p.wallBounceLimit += card.effectValue;
+                this.showFloatingText(`WALL BOUNCE +${card.effectValue} 🧱`, p.x, p.y - 30, '#00f0ff');
+                break;
+            case 'monster_bounce':
+                p.monsterBounceLimit += card.effectValue;
+                this.showFloatingText(`MONSTER BOUNCE +${card.effectValue} 🔗`, p.x, p.y - 30, '#ff00aa');
                 break;
             case 'upgrade_sword':
                 // [강화] 검기 대미지 계수 +40% (1.0 -> 1.4) 및 리치 확장
@@ -5770,6 +5854,9 @@ class GameEngine {
         document.getElementById('cheat-range').value = p.range;
         document.getElementById('cheat-splash').value = p.splashRadius;
         document.getElementById('cheat-homing').checked = p.homing;
+        // [추가] 벽 튕기기 및 몬스터 유도 튕기기 치트 UI 값 연동
+        document.getElementById('cheat-wall-bounce').value = p.wallBounceLimit;
+        document.getElementById('cheat-monster-bounce').value = p.monsterBounceLimit;
 
         // 4. 장비 레벨 동기화
         for (let eqKey in p.equipLevels) {
@@ -5854,6 +5941,9 @@ class GameEngine {
             p.range = parseInt(document.getElementById('cheat-range').value) || 350;
             p.splashRadius = parseInt(document.getElementById('cheat-splash').value) || 0;
             p.homing = document.getElementById('cheat-homing').checked;
+            // [추가] 벽 튕기기 및 몬스터 튕기기 설정치 플레이어 스탯에 실시간 갱신
+            p.wallBounceLimit = parseInt(document.getElementById('cheat-wall-bounce').value) || 0;
+            p.monsterBounceLimit = parseInt(document.getElementById('cheat-monster-bounce').value) || 0;
 
             this.updateHUD();
             this.showFloatingText("WEAPON SPECS APPLIED! 🏹", p.x, p.y - 40, '#b026ff');
@@ -5928,6 +6018,96 @@ class GameEngine {
             const stageVal = parseInt(document.getElementById('cheat-warp-stage-input').value) || 1;
             this.warpStageCheat(stageVal);
         });
+    }
+
+    // [신규 추가] 시스템 옵션 모달 조작 이벤트 리스너 바인딩
+    initOptionEvents() {
+        // 상단 HUD OPTION 버튼 클릭 시 옵션 토글
+        const optionBtn = document.getElementById('option-btn');
+        if (optionBtn) {
+            optionBtn.addEventListener('click', () => {
+                this.toggleOptionMenu();
+            });
+        }
+        
+        // 옵션 모달 닫기 버튼 클릭
+        const closeBtn = document.getElementById('option-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.toggleOptionMenu();
+            });
+        }
+        
+        // 효과음 볼륨 슬라이더 실시간 조작
+        const sfxSlider = document.getElementById('volume-sfx');
+        const sfxLabel = document.getElementById('volume-sfx-val');
+        if (sfxSlider && sfxLabel) {
+            sfxSlider.addEventListener('input', () => {
+                const val = parseFloat(sfxSlider.value);
+                Sound.setSFXVolume(val);
+                sfxLabel.innerText = Math.round(val * 100) + '%';
+            });
+            // 조작을 마칠 때(change) 소리를 체감해 볼 수 있게 레트로 동전 소리를 1회 출력
+            sfxSlider.addEventListener('change', () => {
+                Sound.play('coin');
+            });
+        }
+        
+        // 배경음악 볼륨 슬라이더 실시간 조작
+        const bgmSlider = document.getElementById('volume-bgm');
+        const bgmLabel = document.getElementById('volume-bgm-val');
+        if (bgmSlider && bgmLabel) {
+            bgmSlider.addEventListener('input', () => {
+                const val = parseFloat(bgmSlider.value);
+                Sound.setBGMVolume(val);
+                bgmLabel.innerText = Math.round(val * 100) + '%';
+            });
+        }
+        
+        // 게임 재시작 버튼 클릭
+        const restartBtn = document.getElementById('option-restart-btn');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                // 게임 재시작 후 모달 강제 닫기
+                this.toggleOptionMenu();
+                this.restartGame();
+            });
+        }
+    }
+
+    // [신규 추가] 시스템 옵션 모달 토글 메소드
+    toggleOptionMenu() {
+        const optionOverlay = document.getElementById('option-overlay');
+        if (!optionOverlay) return;
+        
+        if (optionOverlay.classList.contains('hidden')) {
+            // 옵션 메뉴 열기
+            this.syncOptionUIFromSound();
+            optionOverlay.classList.remove('hidden');
+        } else {
+            // 옵션 메뉴 닫기
+            optionOverlay.classList.add('hidden');
+        }
+    }
+
+    // [신규 추가] Sound 객체의 볼륨 스탯을 옵션 UI 슬라이더에 동기화
+    syncOptionUIFromSound() {
+        const sfxVal = Sound.sfxVolume;
+        const bgmVal = Sound.bgmVolume;
+        
+        const sfxSlider = document.getElementById('volume-sfx');
+        const bgmSlider = document.getElementById('volume-bgm');
+        const sfxLabel = document.getElementById('volume-sfx-val');
+        const bgmLabel = document.getElementById('volume-bgm-val');
+        
+        if (sfxSlider && sfxLabel) {
+            sfxSlider.value = sfxVal;
+            sfxLabel.innerText = Math.round(sfxVal * 100) + '%';
+        }
+        if (bgmSlider && bgmLabel) {
+            bgmSlider.value = bgmVal;
+            bgmLabel.innerText = Math.round(bgmVal * 100) + '%';
+        }
     }
 
     // 코인 추가 유틸 치트

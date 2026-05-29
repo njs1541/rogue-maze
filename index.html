@@ -29,6 +29,10 @@
                 <span id="coin-counter" class="value text-glow-yellow">🪙 0</span>
                 <span id="coin-gain-popup" class="coin-gain-text hidden"></span>
             </div>
+            <!-- [신규 추가] 옵션 설정 및 일시정지 조작 버튼 -->
+            <div class="hud-item" style="cursor: pointer;" id="option-btn" title="옵션 설정">
+                <span class="value text-glow-purple">⚙️ OPTION</span>
+            </div>
         </header>
 
         <!-- 메인 게임 캔버스 -->
@@ -203,6 +207,39 @@
             </div>
         </div>
 
+        <!-- [신규 추가] 시스템 옵션 모달 레이어 (일시정지 및 볼륨/재시작 연동) -->
+        <div id="option-overlay" class="overlay-panel hidden">
+            <div class="option-container">
+                <h2 class="option-title text-glow-purple">⚙️ SYSTEM OPTIONS</h2>
+                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: -15px; margin-bottom: 5px;">게임을 일시정지하고 사운드 및 진행을 제어합니다.</p>
+                
+                <div class="option-content">
+                    <!-- 효과음 볼륨 조절 -->
+                    <div class="option-group">
+                        <label for="volume-sfx" class="option-label">🔊 효과음 볼륨 (SFX)</label>
+                        <div class="slider-row">
+                            <input type="range" id="volume-sfx" min="0" max="1" step="0.05" value="1.0" class="neon-slider">
+                            <span id="volume-sfx-val" class="slider-val text-glow-cyan">100%</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 배경음악 볼륨 조절 (향후 배경음 파일 연동 대비) -->
+                    <div class="option-group">
+                        <label for="volume-bgm" class="option-label">🎵 배경음악 볼륨 (BGM)</label>
+                        <div class="slider-row">
+                            <input type="range" id="volume-bgm" min="0" max="1" step="0.05" value="0.5" class="neon-slider">
+                            <span id="volume-bgm-val" class="slider-val text-glow-green">50%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="option-actions">
+                    <button id="option-restart-btn" class="neon-btn danger">🔄 게임 재시작</button>
+                    <button id="option-close-btn" class="neon-btn">닫기 (Close)</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 치트 및 디버그 모달 레이어 (P 키 연동) -->
         <div id="cheat-overlay" class="overlay-panel hidden">
             <div class="cheat-container">
@@ -309,6 +346,14 @@
                             <div class="cheat-field-group">
                                 <label for="cheat-splash">스플래시 반경 (0=없음)</label>
                                 <input type="number" id="cheat-splash" min="0" max="300" step="5">
+                            </div>
+                            <div class="cheat-field-group">
+                                <label for="cheat-wall-bounce">벽 튕기기 (Wall Bounce)</label>
+                                <input type="number" id="cheat-wall-bounce" min="0" max="20" step="1">
+                            </div>
+                            <div class="cheat-field-group">
+                                <label for="cheat-monster-bounce">몬스터 튕기기 (M-Bounce)</label>
+                                <input type="number" id="cheat-monster-bounce" min="0" max="20" step="1">
                             </div>
                             <div class="cheat-field-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
                                 <label for="cheat-homing" style="margin-bottom: 0;">유도 추적탄 (Homing)</label>
