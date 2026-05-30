@@ -3479,6 +3479,45 @@ class GameEngine {
                     Sound.play('shoot');
                     this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
                 } 
+                else if (this.player.burstType === 'whip') {
+                    // [W-02 채찍(Whip) 점사/난무 연속 격발 처리]
+                    let synergyMult = this.checkBuildSynergy('gun');
+                    let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+                    let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+                    
+                    let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
+                    let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
+                    
+                    let baseDmg = this.player.atk * 0.75;
+                    let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+
+                    for (let angle of this.player.burstBulletsToLaunch) {
+                        let speed = 9.0;
+                        let vx = Math.cos(angle) * speed;
+                        let vy = Math.sin(angle) * speed;
+                        let bulletLife = 200 / speed; // 그랩 사거리 약 200px
+                        
+                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                            color: '#ff00aa',
+                            radius: 6,
+                            life: bulletLife,
+                            isWhip: true,
+                            pierce: this.player.pierceCount,
+                            homing: this.player.homing,
+                            homingSpeed: this.player.homingAngleSpeed,
+                            splash: this.player.splashRadius,
+                            bounceLimit: this.player.wallBounceLimit,
+                            monsterBounceLimit: this.player.monsterBounceLimit
+                        }));
+                        
+                        // 사슬 네온 조각들
+                        for (let i = 0; i < 4; i++) {
+                            this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
+                        }
+                    }
+                    Sound.play('slash');
+                    this.shakeScreen(4, 1.5);
+                }
                 else if (this.player.burstType === 'sword' || this.player.burstType === 'spear') {
                     // 검/창 난무 격발
                     let isSpear = this.player.burstType === 'spear';
@@ -3774,6 +3813,20 @@ class GameEngine {
         }
         if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
             this.slashWeapon();
+        }
+
+        // [성능 최적화] 화면 내 동시 활성 플레이어 탄환 수 하드 캡(Max 200) 제한
+        let playerBullets = this.bullets.filter(b => b.isPlayerBullet);
+        if (playerBullets.length > 200) {
+            let overflow = playerBullets.length - 200;
+            // 배열 앞쪽(가장 오래된 탄환)부터 강제 소멸시킴
+            for (let k = 0; k < this.bullets.length && overflow > 0; k++) {
+                if (this.bullets[k].isPlayerBullet) {
+                    this.bullets.splice(k, 1);
+                    k--;
+                    overflow--;
+                }
+            }
         }
 
         // 5. 탄환 물리 비행 및 유도 연산
@@ -5240,29 +5293,6 @@ class GameEngine {
         let startAngle = this.player.angle;
         let bulletsToLaunch = [];
 
-        // [W-02 채찍(Whip) 전용 사출 물리 로직]
-        if (isWhip) {
-            let speed = 9.0;
-            let vx = Math.cos(startAngle) * speed;
-            let vy = Math.sin(startAngle) * speed;
-            let bulletLife = 200 / speed; // 그랩 사거리 약 200px
-            
-            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, this.player.atk * 0.75, true, {
-                color: '#ff00aa',
-                radius: 6,
-                life: bulletLife,
-                isWhip: true
-            }));
-            
-            Sound.play('slash');
-            
-            // 사슬 네온 조각들
-            for (let i = 0; i < 4; i++) {
-                this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
-            }
-            return; // 채찍 쐈으므로 아래 총알 격발은 스킵
-        }
-
         // 멀티샷(multishot) 부채꼴 살상 각도 배치
         if (this.player.multishot === 1) {
             bulletsToLaunch.push(startAngle);
@@ -5293,48 +5323,79 @@ class GameEngine {
             let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
             let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
 
-            let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+            let baseDmg = isWhip ? (this.player.atk * 0.75) : (this.player.atk * (isLightning ? 0.9 : 1.0));
+            let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
             for (let angle of bulletsToLaunch) {
-                // dual(치트) 상태일 때는 3종 마법탄과 일반탄을 섞어서 폭사!
-                let bulletIsLightning = isLightning;
-                let bulletIsFire = isFire;
-                let bulletIsIce = isIce;
-                
-                if (isDual) {
-                    let randType = Math.random();
-                    if (randType < 0.25) bulletIsLightning = true;
-                    else if (randType < 0.5) bulletIsFire = true;
-                    else if (randType < 0.75) bulletIsIce = true;
-                }
+                if (isWhip) {
+                    let speed = 9.0;
+                    let vx = Math.cos(angle) * speed;
+                    let vy = Math.sin(angle) * speed;
+                    let bulletLife = 200 / speed; // 그랩 사거리 약 200px
+                    
+                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                        color: '#ff00aa',
+                        radius: 6,
+                        life: bulletLife,
+                        isWhip: true,
+                        pierce: this.player.pierceCount,
+                        homing: this.player.homing,
+                        homingSpeed: this.player.homingAngleSpeed,
+                        splash: this.player.splashRadius,
+                        bounceLimit: this.player.wallBounceLimit,
+                        monsterBounceLimit: this.player.monsterBounceLimit
+                    }));
+                    
+                    // 사슬 네온 조각들
+                    for (let i = 0; i < 4; i++) {
+                        this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
+                    }
+                } else {
+                    // dual(치트) 상태일 때는 3종 마법탄 and 일반탄을 섞어서 폭사!
+                    let bulletIsLightning = isLightning;
+                    let bulletIsFire = isFire;
+                    let bulletIsIce = isIce;
+                    
+                    if (isDual) {
+                        let randType = Math.random();
+                        if (randType < 0.25) bulletIsLightning = true;
+                        else if (randType < 0.5) bulletIsFire = true;
+                        else if (randType < 0.75) bulletIsIce = true;
+                    }
 
-                let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
-                let vx = Math.cos(angle) * speed;
-                let vy = Math.sin(angle) * speed;
-                let bulletLife = this.player.range / speed;
-                
-                let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
-                if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
-                    bulletRadius = 4.8;
+                    let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
+                    let vx = Math.cos(angle) * speed;
+                    let vy = Math.sin(angle) * speed;
+                    let bulletLife = this.player.range / speed;
+                    
+                    let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
+                    if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
+                        bulletRadius = 4.8;
+                    }
+                    
+                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                        pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
+                        homing: this.player.homing,
+                        homingSpeed: this.player.homingAngleSpeed,
+                        splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
+                        color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
+                        radius: bulletRadius,
+                        life: bulletLife,
+                        isLightning: bulletIsLightning,
+                        isFire: bulletIsFire,
+                        isIce: bulletIsIce,
+                        bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
+                        monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
+                    }));
                 }
-                
-                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                    pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
-                    homing: this.player.homing,
-                    homingSpeed: this.player.homingAngleSpeed,
-                    splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
-                    color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
-                    radius: bulletRadius,
-                    life: bulletLife,
-                    isLightning: bulletIsLightning,
-                    isFire: bulletIsFire,
-                    isIce: bulletIsIce,
-                    bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
-                    monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
-                }));
             }
-            Sound.play('shoot');
-            this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
+            if (isWhip) {
+                Sound.play('slash');
+                this.shakeScreen(4, 1.5);
+            } else {
+                Sound.play('shoot');
+                this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
+            }
         };
 
         // [신규] 프레임 기반 틱 격발 예약 (잔상 사격 버그 원천 차단)
@@ -5342,7 +5403,7 @@ class GameEngine {
             this.player.burstRemaining = this.player.burstCount - 1; // 1회는 즉시 발사하므로 1회 차감
             this.player.burstIntervalTimer = 0;
             this.player.burstAngle = startAngle;
-            this.player.burstType = 'gun';
+            this.player.burstType = isWhip ? 'whip' : 'gun';
             this.player.burstBulletsToLaunch = bulletsToLaunch;
         } else {
             this.player.burstRemaining = 0;
@@ -5359,6 +5420,20 @@ class GameEngine {
         let baseCd = isSpear ? 40 : 50;
         let cooldownFrames = Math.max(isSpear ? 12 : 15, baseCd / this.player.aspd);
         this.player.slashCooldown = cooldownFrames;
+        
+        // [성능 최적화 및 스코프 결함 수정] 각도 연산 및 선언을 상위 slashWeapon 스코프로 안전하게 인양(Hoisting)
+        let startAngle = this.player.angle;
+        let anglesToLaunch = [];
+        if (this.player.multishot === 1) {
+            anglesToLaunch.push(startAngle);
+        } else {
+            let arcSpan = this.player.multishotArc; // 부채꼴 퍼짐 각도 범위 (강화 카드 연동)
+            let step = arcSpan / (this.player.multishot - 1);
+            for (let i = 0; i < this.player.multishot; i++) {
+                let targetAngle = startAngle - (arcSpan / 2) + (step * i);
+                anglesToLaunch.push(targetAngle);
+            }
+        }
         
         let fireSlashPack = () => {
             if (isSpear) {
@@ -5392,20 +5467,6 @@ class GameEngine {
                     let vx = Math.cos(offset) * 2;
                     let vy = Math.sin(offset) * 2;
                     this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
-                }
-            }
-
-            // [보정 A] 멀티샷 부채꼴 검풍/창살 사출
-            let startAngle = this.player.angle;
-            let anglesToLaunch = [];
-            if (this.player.multishot === 1) {
-                anglesToLaunch.push(startAngle);
-            } else {
-                let arcSpan = this.player.multishotArc; // 부채꼴 퍼짐 각도 범위 (강화 카드 연동)
-                let step = arcSpan / (this.player.multishot - 1);
-                for (let i = 0; i < this.player.multishot; i++) {
-                    let targetAngle = startAngle - (arcSpan / 2) + (step * i);
-                    anglesToLaunch.push(targetAngle);
                 }
             }
 
@@ -5937,17 +5998,17 @@ class GameEngine {
                 p.stamina = p.maxStamina;
                 break;
             case 'sword':
-                if (p.weaponType === 'gun') {
-                    p.weaponType = 'sword'; // 총에서 칼로 변경
-                } else if (p.weaponType === 'sword') {
-                    p.weaponType = 'dual'; // 칼이 있었으면 하이브리드 검+총 융합!
+                if (p.weaponType === 'gun' || p.weaponType === 'lightning' || p.weaponType === 'fire' || p.weaponType === 'ice') {
+                    p.weaponType = 'sword'; // 사격 및 마법 무기에서 검으로 안전 변경
+                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') {
+                    p.weaponType = 'dual'; // 기존 근접 무기가 존재했다면 즉시 하이브리드로 융합!
                 }
                 break;
             case 'spear':
-                if (p.weaponType === 'gun') {
-                    p.weaponType = 'spear'; // 총에서 창으로 변경
-                } else if (p.weaponType === 'spear') {
-                    p.weaponType = 'dual'; // 창이 있었으면 하이브리드 창+총 융합!
+                if (p.weaponType === 'gun' || p.weaponType === 'lightning' || p.weaponType === 'fire' || p.weaponType === 'ice') {
+                    p.weaponType = 'spear'; // 사격 및 마법 무기에서 창으로 안전 변경
+                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') {
+                    p.weaponType = 'dual'; // 하이브리드로 융합!
                 }
                 break;
             case 'thorns':
@@ -5955,10 +6016,10 @@ class GameEngine {
                 this.showFloatingText("THORNS UNLOCKED 🌵", p.x, p.y - 30, '#ff00aa');
                 break;
             case 'whip':
-                if (p.weaponType === 'gun') {
-                    p.weaponType = 'whip'; // 총에서 채찍 변경
-                } else if (p.weaponType === 'whip') {
-                    p.weaponType = 'dual'; // 채찍 있었으면 하이브리드
+                if (p.weaponType === 'gun' || p.weaponType === 'lightning' || p.weaponType === 'fire' || p.weaponType === 'ice') {
+                    p.weaponType = 'whip'; // 사격 및 마법 무기에서 채찍으로 안전 변경
+                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') {
+                    p.weaponType = 'dual'; // 하이브리드로 융합!
                 }
                 this.showFloatingText("WHIP UNLOCKED 🧣", p.x, p.y - 30, '#ff00aa');
                 break;
@@ -5979,11 +6040,11 @@ class GameEngine {
                 this.showFloatingText("❄️ ICE MAGIC UNLOCKED! ❄️", p.x, p.y - 30, '#00f0ff');
                 break;
             case 'multishot':
-                p.multishot += card.effectValue;
+                p.multishot = Math.min(16, p.multishot + card.effectValue);
                 p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType; // 총 사격 속성 강제 활성화
                 break;
             case 'burst':
-                p.burstCount += card.effectValue;
+                p.burstCount = Math.min(10, p.burstCount + card.effectValue);
                 p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
                 break;
             case 'pierce':
@@ -6031,7 +6092,7 @@ class GameEngine {
                 break;
             case 'upgrade_multishot':
                 // [강화] 멀티샷 1발 추가 및 부채꼴 퍼짐각 연마 (0.45 -> 0.55)
-                p.multishot += 1;
+                p.multishot = Math.min(16, p.multishot + 1);
                 p.multishotArc = 0.55;
                 this.showFloatingText("SHOTGUN HONE (BULLET +1 / ARC WIDEN)", p.x, p.y - 30, '#b026ff');
                 break;
