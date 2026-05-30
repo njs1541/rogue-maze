@@ -2568,9 +2568,12 @@ class GameEngine {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
             
-            // Spacebar를 누르면 마력 특수기 가동
+            // Spacebar를 누르면 마력 특수기 가동 (오버레이가 없고 실제 게임 실행 중일 때만 허용)
             if (e.key === ' ' || e.code === 'Space') {
-                this.triggerMagicSkill();
+                const isOverlayOpen = this.checkAnyOverlayOpen();
+                if (!isOverlayOpen && this.isPlaying && this.player && this.player.hp > 0) {
+                    this.triggerMagicSkill();
+                }
             }
 
             // [테스트용 치트 핫키] P키: 디버그/치트 메뉴 토글
@@ -2580,6 +2583,13 @@ class GameEngine {
                     return;
                 }
                 e.preventDefault();
+                
+                // 치트 메뉴를 새로 여는 시점에만 다른 오버레이가 켜져 있는지 확인하여 차단
+                const cheatOverlay = document.getElementById('cheat-overlay');
+                const isAlreadyOpen = cheatOverlay && !cheatOverlay.classList.contains('hidden');
+                if (!isAlreadyOpen) {
+                    if (this.checkAnyOverlayOpenExcept('cheat-overlay')) return;
+                }
                 this.toggleCheatMenu();
             }
 
@@ -2590,6 +2600,13 @@ class GameEngine {
                     return;
                 }
                 e.preventDefault();
+                
+                // 옵션 메뉴를 새로 여는 시점에만 다른 오버레이가 켜져 있는지 확인하여 차단
+                const optionOverlay = document.getElementById('option-overlay');
+                const isAlreadyOpen = optionOverlay && !optionOverlay.classList.contains('hidden');
+                if (!isAlreadyOpen) {
+                    if (this.checkAnyOverlayOpenExcept('option-overlay')) return;
+                }
                 this.toggleOptionMenu();
             }
 
@@ -3354,6 +3371,7 @@ class GameEngine {
         const startOverlay = document.getElementById('start-overlay');
         const cheatOverlay = document.getElementById('cheat-overlay');
         const optionOverlay = document.getElementById('option-overlay'); // [신규] 시스템 옵션 모달 연동
+        const secretShopOverlay = document.getElementById('secret-shop-overlay'); // [결함 수정] 네온 암시장 모달 검증 변수 추가
         
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
@@ -3361,7 +3379,8 @@ class GameEngine {
             (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
             (startOverlay && !startOverlay.classList.contains('hidden')) ||
             (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
-            (optionOverlay && !optionOverlay.classList.contains('hidden'))) {
+            (optionOverlay && !optionOverlay.classList.contains('hidden')) ||
+            (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) { // [결함 수정] 암시장 오버레이 조건식 반영
             isOverlayOpen = true;
         }
 
@@ -6837,6 +6856,12 @@ class GameEngine {
         const optionBtn = document.getElementById('option-btn');
         if (optionBtn) {
             optionBtn.addEventListener('click', () => {
+                // 이미 켜져 있는 걸 닫는 건 허용, 새로 켜는 건 다른 오버레이가 없을 때만 허용
+                const optionOverlay = document.getElementById('option-overlay');
+                const isAlreadyOpen = optionOverlay && !optionOverlay.classList.contains('hidden');
+                if (!isAlreadyOpen) {
+                    if (this.checkAnyOverlayOpenExcept('option-overlay')) return;
+                }
                 this.toggleOptionMenu();
             });
         }
@@ -6899,6 +6924,33 @@ class GameEngine {
             // 옵션 메뉴 닫기
             optionOverlay.classList.add('hidden');
         }
+    }
+
+    // [신규 추가] 임의의 게임 오버레이/모달창이 활성화되어 있는지 여부를 판정하는 헬퍼 함수
+    checkAnyOverlayOpen() {
+        const overlays = [
+            'start-overlay', 'reward-overlay', 'result-overlay', 
+            'card-detail-overlay', 'shop-confirm-overlay', 
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay'
+        ];
+        return overlays.some(id => {
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('hidden');
+        });
+    }
+
+    // [신규 추가] 특정 모달(exceptId)을 제외하고 활성화된 다른 오버레이가 있는지 판정하는 헬퍼 함수
+    checkAnyOverlayOpenExcept(exceptId) {
+        const overlays = [
+            'start-overlay', 'reward-overlay', 'result-overlay', 
+            'card-detail-overlay', 'shop-confirm-overlay', 
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay'
+        ];
+        return overlays.some(id => {
+            if (id === exceptId) return false;
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('hidden');
+        });
     }
 
     // [신규 추가] Sound 객체의 볼륨 스탯을 옵션 UI 슬라이더에 동기화
