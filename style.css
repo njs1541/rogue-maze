@@ -1593,3 +1593,161 @@ input:checked + .cheat-switch-slider:before {
     background: rgba(6, 2, 14, 0.92);
 }
 
+/* ==========================================================================
+   [실시간 네온 랭킹 리더보드 모달] 전용 현대적 프리미엄 테마 스타일링
+   ========================================================================== */
+
+/* 랭킹 팝업 모달 박스 */
+.ranking-modal-container {
+    width: 650px;
+    max-width: 95%;
+    background: rgba(8, 10, 18, 0.92);
+    border: 2px solid #ffdf00; /* 황금 트로피 랭킹 테마 */
+    border-radius: 20px;
+    box-shadow: 0 0 35px rgba(255, 223, 0, 0.25), inset 0 0 20px rgba(255, 223, 0, 0.1);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    animation: scaleUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 랭킹 모달 헤더 */
+.ranking-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 15px;
+}
+
+/* 랭킹 스피너 회전 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 랭킹 테이블 스타일 */
+.ranking-table th {
+    font-weight: 800;
+    padding: 12px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+}
+
+.ranking-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-weight: 500;
+    vertical-align: middle;
+}
+
+/* 테이블 각 행 호버 */
+.ranking-table tbody tr {
+    transition: background 0.2s, transform 0.2s;
+}
+
+.ranking-table tbody tr:hover {
+    background: rgba(0, 240, 255, 0.03);
+    transform: scale(1.015);
+}
+
+/* 명예의 전당 Top 3 하이라이팅 */
+.ranking-table tbody tr.rank-row-1 {
+    background: rgba(255, 223, 0, 0.05);
+    color: #ffdf00;
+    text-shadow: 0 0 8px rgba(255, 223, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 223, 0, 0.2);
+}
+
+.ranking-table tbody tr.rank-row-1 td {
+    font-weight: 800;
+}
+
+.ranking-table tbody tr.rank-row-2 {
+    background: rgba(0, 240, 255, 0.04);
+    color: #00f0ff;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+}
+
+.ranking-table tbody tr.rank-row-2 td {
+    font-weight: 700;
+}
+
+.ranking-table tbody tr.rank-row-3 {
+    background: rgba(255, 94, 0, 0.03);
+    color: #ff5e00;
+    text-shadow: 0 0 8px rgba(255, 94, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 94, 0, 0.15);
+}
+
+.ranking-table tbody tr.rank-row-3 td {
+    font-weight: 700;
+}
+
+/* 랭킹 뱃지 */
+.rank-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 800;
+}
+
+.rank-badge.badge-1 {
+    background: rgba(255, 223, 0, 0.2);
+    border: 1px solid #ffdf00;
+}
+
+.rank-badge.badge-2 {
+    background: rgba(0, 240, 255, 0.2);
+    border: 1px solid #00f0ff;
+}
+
+.rank-badge.badge-3 {
+    background: rgba(255, 94, 0, 0.2);
+    border: 1px solid #ff5e00;
+}
+
+/* LocalStorage 임시 저장 랭킹 표시용 뱃지 */
+.local-temp-badge {
+    font-size: 0.7rem;
+    background: rgba(57, 255, 20, 0.15);
+    border: 1px solid #39ff14;
+    color: #39ff14;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    font-weight: 800;
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
+}
+
+/* 닉네임 입력 Input 포커스 시 네온 라이트닝 */
+#rank-nickname:focus {
+    border-color: #00f0ff !important;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.45) !important;
+}
+
+/* 인풋창 활성화 시 비활성화 스타일 */
+#rank-nickname:disabled {
+    opacity: 0.5;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+}
+
+/* 피드백 상태별 색상 (에러 vs 성공) */
+.rank-feedback-text.success {
+    color: #39ff14;
+    text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+
+.rank-feedback-text.error {
+    color: #ff0055;
+    text-shadow: 0 0 8px rgba(255, 0, 85, 0.65);
+}
+
+

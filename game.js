@@ -2664,6 +2664,62 @@ class GameEngine {
             document.getElementById('result-overlay').classList.add('hidden');
             this.restartGame();
         });
+
+        // [신규] 파이어베이스 랭킹 시스템 UI 이벤트 리스너 연동
+        
+        // 닉네임 입력 실시간 필터 (영어 대문자와 숫자만 허용)
+        const rankNicknameInput = document.getElementById('rank-nickname');
+        if (rankNicknameInput) {
+            rankNicknameInput.addEventListener('input', (e) => {
+                let val = e.target.value.toUpperCase();
+                // 영문 대문자와 숫자만 남기고 제거
+                e.target.value = val.replace(/[^A-Z0-9]/g, '');
+            });
+            // Enter 키 입력 시 랭킹 등록 즉시 호출 지원
+            rankNicknameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.submitRanking();
+                }
+            });
+        }
+
+        // 랭킹 등록 버튼 클릭 이벤트
+        const submitRankBtn = document.getElementById('submit-rank-btn');
+        if (submitRankBtn) {
+            submitRankBtn.addEventListener('click', () => {
+                this.submitRanking();
+            });
+        }
+
+        // 리더보드 모달 열기 버튼 (메인 시작 화면 및 결과 화면)
+        const mainLbBtn = document.getElementById('main-leaderboard-btn');
+        if (mainLbBtn) {
+            mainLbBtn.addEventListener('click', () => {
+                this.showLeaderboard();
+            });
+        }
+
+        const resLbBtn = document.getElementById('result-leaderboard-btn');
+        if (resLbBtn) {
+            resLbBtn.addEventListener('click', () => {
+                this.showLeaderboard();
+            });
+        }
+
+        // 리더보드 모달 닫기 버튼 (X 아이콘 및 하단 닫기 버튼)
+        const lbCloseX = document.getElementById('ranking-modal-close');
+        if (lbCloseX) {
+            lbCloseX.addEventListener('click', () => {
+                this.hideLeaderboard();
+            });
+        }
+
+        const lbCloseBtn = document.getElementById('ranking-modal-close-btn');
+        if (lbCloseBtn) {
+            lbCloseBtn.addEventListener('click', () => {
+                this.hideLeaderboard();
+            });
+        }
     }
 
     // 게임 시작 시 초기화
@@ -6310,7 +6366,182 @@ class GameEngine {
         if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
         document.getElementById('res-wpn').innerText = wpnStr;
 
+        // [신규] 랭킹 등록 영역 상태 초기화
+        const rankSubmitArea = document.getElementById('rank-submit-area');
+        const nicknameInput = document.getElementById('rank-nickname');
+        const submitBtn = document.getElementById('submit-rank-btn');
+        const feedbackMsg = document.getElementById('rank-feedback-msg');
+
+        if (rankSubmitArea && nicknameInput && submitBtn && feedbackMsg) {
+            rankSubmitArea.classList.remove('hidden');
+            nicknameInput.value = "";
+            nicknameInput.disabled = false;
+            submitBtn.disabled = false;
+            feedbackMsg.classList.add('hidden');
+            feedbackMsg.innerText = "";
+            feedbackMsg.className = "rank-feedback-text hidden";
+        }
+
         document.getElementById('result-overlay').classList.remove('hidden');
+    }
+
+    // [신규] 명예의 전당 랭킹 등록 비동기 처리
+    async submitRanking() {
+        const nicknameInput = document.getElementById('rank-nickname');
+        const submitBtn = document.getElementById('submit-rank-btn');
+        const feedbackMsg = document.getElementById('rank-feedback-msg');
+
+        if (!nicknameInput || !submitBtn || !feedbackMsg) return;
+
+        const name = nicknameInput.value.trim().toUpperCase();
+        
+        // 유효성 체크
+        if (!name || name === "") {
+            feedbackMsg.innerText = "⚠️ 닉네임을 입력해 주세요!";
+            feedbackMsg.className = "rank-feedback-text error";
+            feedbackMsg.classList.remove('hidden');
+            return;
+        }
+
+        const nameRegex = /^[A-Z0-9]+$/;
+        if (!nameRegex.test(name)) {
+            feedbackMsg.innerText = "⚠️ 영문 대문자와 숫자만 입력 가능합니다!";
+            feedbackMsg.className = "rank-feedback-text error";
+            feedbackMsg.classList.remove('hidden');
+            return;
+        }
+
+        if (name.length < 2 || name.length > 10) {
+            feedbackMsg.innerText = "⚠️ 닉네임은 2자 이상 10자 이하로 해주세요!";
+            feedbackMsg.className = "rank-feedback-text error";
+            feedbackMsg.classList.remove('hidden');
+            return;
+        }
+
+        // 제출 중 비활성화 처리 (더블클릭 방지)
+        nicknameInput.disabled = true;
+        submitBtn.disabled = true;
+        feedbackMsg.innerText = "⚡ 명예의 전당 등록 중...";
+        feedbackMsg.className = "rank-feedback-text success";
+        feedbackMsg.classList.remove('hidden');
+
+        try {
+            let wpnStr = "총 (Gun)";
+            if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
+            if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
+            if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
+            if (this.player.weaponType === 'fire') wpnStr = "불마법 (Fire)";
+            if (this.player.weaponType === 'ice') wpnStr = "얼음마법 (Ice)";
+            if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
+
+            const result = await window.RankSystem.addRankRecord(
+                name,
+                this.score,
+                this.roomNum,
+                this.kills,
+                wpnStr
+            );
+
+            if (result.success) {
+                if (result.mode === 'online') {
+                    feedbackMsg.innerText = "🎉 실시간 파이어베이스 랭킹 등록 완료!";
+                } else if (result.mode === 'fallback') {
+                    feedbackMsg.innerText = "📢 로컬 저장 및 임시 대기열 등록 완료!";
+                } else {
+                    feedbackMsg.innerText = "🎉 로컬 랭킹 저장 완료!";
+                }
+                feedbackMsg.className = "rank-feedback-text success";
+
+                // 1초 뒤에 랭킹 창을 띄우고 등록 폼을 슬라이드 아웃(숨김) 처리
+                setTimeout(() => {
+                    document.getElementById('rank-submit-area').classList.add('hidden');
+                    this.showLeaderboard();
+                }, 1000);
+            }
+        } catch (error) {
+            console.error(error);
+            feedbackMsg.innerText = "❌ 등록 에러: " + error.message;
+            feedbackMsg.className = "rank-feedback-text error";
+            nicknameInput.disabled = false;
+            submitBtn.disabled = false;
+        }
+    }
+
+    // [신규] 리더보드 모달 열기 및 실시간 렌더링
+    async showLeaderboard() {
+        const overlay = document.getElementById('ranking-modal-overlay');
+        const loading = document.getElementById('ranking-loading');
+        const empty = document.getElementById('ranking-empty');
+        const table = document.getElementById('ranking-table');
+        const tbody = document.getElementById('ranking-table-body');
+
+        if (!overlay || !loading || !empty || !table || !tbody) return;
+
+        // 모달 표시 및 초기 상태 지정
+        overlay.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        empty.classList.add('hidden');
+        table.classList.add('hidden');
+        tbody.innerHTML = "";
+
+        try {
+            // 전역 랭킹 시스템에서 Top 10 정보 로드
+            const rankings = await window.RankSystem.getTopRankings(10);
+
+            if (rankings.length === 0) {
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            } else {
+                rankings.forEach((rank, index) => {
+                    const tr = document.createElement('tr');
+                    const rankNum = index + 1;
+                    
+                    // 1, 2, 3위에 따라 특수 글로우 및 행 스타일 지정
+                    if (rankNum === 1) {
+                        tr.className = "rank-row-1";
+                    } else if (rankNum === 2) {
+                        tr.className = "rank-row-2";
+                    } else if (rankNum === 3) {
+                        tr.className = "rank-row-3";
+                    }
+
+                    // 순위 뱃지 설정
+                    let rankBadge = `${rankNum}위`;
+                    if (rankNum === 1) rankBadge = `<span class="rank-badge badge-1">🏆 1위</span>`;
+                    else if (rankNum === 2) rankBadge = `<span class="rank-badge badge-2">🥈 2위</span>`;
+                    else if (rankNum === 3) rankBadge = `<span class="rank-badge badge-3">🥉 3위</span>`;
+
+                    // 로컬 임시 데이터 표시용 뱃지
+                    const localBadgeHtml = rank.isLocalTemp ? `<span class="local-temp-badge">SYNC PENDING</span>` : "";
+
+                    tr.innerHTML = `
+                        <td style="padding: 12px 5px; font-weight: 800;">${rankBadge}</td>
+                        <td style="padding: 12px 5px; font-weight: 700; color: #fff;">${rank.name}${localBadgeHtml}</td>
+                        <td style="padding: 12px 5px; font-weight: 800; font-family: monospace; font-size: 1rem;">${rank.score.toLocaleString()}</td>
+                        <td style="padding: 12px 5px;">${rank.room} / 100</td>
+                        <td style="padding: 12px 5px; color: #ff0055; font-weight: 600;">💀 ${rank.kills}</td>
+                        <td style="padding: 12px 5px; color: #a0aec0; font-size: 0.8rem;">${rank.date}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                loading.classList.add('hidden');
+                table.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error("랭킹 목록 로드 에러:", error);
+            loading.classList.add('hidden');
+            empty.innerHTML = `<p style="color: #ff0055;">⚠️ 명예의 전당 조회 오류<br>${error.message}</p>`;
+            empty.classList.remove('hidden');
+        }
+    }
+
+    // [신규] 리더보드 모달 닫기
+    hideLeaderboard() {
+        const overlay = document.getElementById('ranking-modal-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
     }
 
     // --------------------------------------------------------------------------
