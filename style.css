@@ -1750,4 +1750,9 @@ input:checked + .cheat-switch-slider:before {
     text-shadow: 0 0 8px rgba(255, 0, 85, 0.65);
 }
 
+/* 랭킹 오버레이 전체 화면 최상위 지정 */
+#ranking-modal-overlay {
+    z-index: 2000 !important;
+}
+
 
