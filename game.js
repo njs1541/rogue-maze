@@ -590,9 +590,9 @@ class Bullet {
                             this.vy = -this.vy;
                         }
 
-                        // 튕김 카운트 증가 및 데미지 복리 증폭 (+25%)
+                        // 튕김 카운트 증가 및 데미지 복리 증폭 (+10%)
                         this.bounceCount++;
-                        this.damage *= 1.25; 
+                        this.damage *= 1.10; 
                         Sound.play('dodge'); // 통통 튕기는 틱 레트로 효과음
 
                         // 튕길 때 튀는 3개 자홍색/노란색 네온 스파크 파티클
@@ -654,10 +654,10 @@ class Bullet {
                 collided = true;
             }
             
-            // 튕겼을 때 데미지 +25% 가산 및 이펙트/효과음
+            // 튕겼을 때 데미지 +10% 가산 및 이펙트/효과음
             if (collided) {
                 this.bounceCount++;
-                this.damage *= 1.25; // 25% 복리 증폭
+                this.damage *= 1.10; // 10% 복리 증폭
                 Sound.play('dodge'); // 통통 튕기는 틱 레트로 효과음
                 
                 // 튕길 때 튀는 3개 노란 네온 스파크
@@ -1185,8 +1185,8 @@ class Monster {
         this.tier = tier; // 5개 방마다 증가하는 단계 (1, 2, 3...)
         this.roomNum = roomNum;
         
-        // [수정] 몬스터 이중 복합 인플레이션을 완화하는 로그(Log) 스케일링 공식 도입
-        let roomFactor = 1.0 + Math.log10(roomNum) * 1.5;
+        // [수정] 몬스터 이중 복합 인플레이션을 완화하되, 후반부 긴장감을 위해 선형 팩터가 가미된 스케일링 공식 개편
+        let roomFactor = 1.0 + Math.log10(roomNum) * 1.2 + (roomNum / 20) * 0.6;
 
         // 티어별 기본 체력과 속도, 데미지 스케일링 설정
         this.maxHp = Math.ceil((15 + (tier - 1) * 4) * roomFactor); // 체력 증가율 합리적으로 완화
@@ -1584,8 +1584,8 @@ class Monster {
 // 6. 방(Room) 및 충돌 경계선 렌더링 클래스
 // --------------------------------------------------------------------------
 class RoomPortal {
-    constructor(direction, scoreValue) {
-        this.direction = direction; // 'top', 'bottom', 'left', 'right'
+    constructor(direction, scoreValue, x = null, y = null) {
+        this.direction = direction; // 'top', 'bottom', 'left', 'right', 'secret'
         this.scoreValue = scoreValue; // 이 문을 지나갈 때의 몬스터 마릿수이자 점수
         this.width = 75;
         this.height = 18;
@@ -1611,11 +1611,72 @@ class RoomPortal {
             this.y = 300 - this.width / 2;
             this.width = 18;
             this.height = 75;
+        } else if (direction === 'secret') {
+            this.x = x;
+            this.y = y;
+            this.width = 40;
+            this.height = 40;
+            this.radius = 20; // 원형 포털 반경
+            this.portalType = 'secret_room'; // 비밀방 차원 상점 진입 테마 매핑
         }
     }
 
     draw(ctx) {
         ctx.save();
+        
+        // [비밀 차원 포털 렌더링 예외 처리]
+        if (this.direction === 'secret') {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // 뱅글뱅글 회전하는 프레임 각도 계산
+            let spinAngle = (Date.now() * 0.005) % (Math.PI * 2);
+            ctx.rotate(spinAngle);
+            
+            // 영롱한 보랏빛 차원 네온 서클
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(176, 38, 255, 0.18)';
+            ctx.strokeStyle = '#b026ff';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#b026ff';
+            ctx.fill();
+            ctx.stroke();
+            
+            // 내부 소용돌이 나선 이펙트 라인 3개
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            for (let k = 0; k < 3; k++) {
+                let angleOffset = (k * Math.PI * 2) / 3;
+                ctx.moveTo(0, 0);
+                let targetX = Math.cos(angleOffset) * this.radius * 0.8;
+                let targetY = Math.sin(angleOffset) * this.radius * 0.8;
+                ctx.quadraticCurveTo(
+                    Math.cos(angleOffset + 0.6) * this.radius * 0.5,
+                    Math.sin(angleOffset + 0.6) * this.radius * 0.5,
+                    targetX, targetY
+                );
+            }
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // 포털 상단 공중 부유 홀로그램 크리스탈 아이콘 🔮
+            ctx.save();
+            ctx.font = '13px "Outfit"';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#b026ff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("🔮", this.x, this.y - this.radius - 12);
+            ctx.restore();
+            
+            ctx.restore();
+            return; // 기존 직사각형 문 렌더링 로직 통째로 패스
+        }
         
         // 포털 타입별 전용 네온 광채 컬러 정의 (잠김 상태는 일괄 붉은색)
         let color = '#ff0055'; 
@@ -1724,6 +1785,11 @@ class RoomPortal {
     // 플레이어가 문 안으로 깊숙이 진입했는지 영역 충돌 판단
     checkCollision(player) {
         if (!this.active) return false;
+        
+        if (this.direction === 'secret') {
+            // 원형 포털과의 기하 충돌 판정
+            return Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius;
+        }
         
         // 플레이어가 포털 박스 영역 안에 도달 시 작동
         return (
@@ -1879,110 +1945,144 @@ class NeonCoin {
 // 6.5.6. 파괴 가능한 비밀 균열 벽 클래스 (Secret Wall)
 // --------------------------------------------------------------------------
 class SecretWall {
-    constructor(x, y) {
+    constructor(x, y, direction) {
         this.x = x;
         this.y = y;
-        this.width = 40;
-        this.height = 40;
-        this.hp = 3; // 3회 피격 시 파괴
-        this.color = '#5a6b8c'; // 네온 청회색 돌 색상
-        this.glowColor = '#00f0ff'; // 금이 갈 때 나오는 시안 광선
+        this.dir = direction; // 'top', 'bottom', 'left', 'right'
+        
+        // [박스 얇기 조절] 외곽 벽면과 거의 같도록 얇게 10px 두께 지정
+        if (direction === 'top' || direction === 'bottom') {
+            this.width = 120;
+            this.height = 10;
+        } else {
+            this.width = 10;
+            this.height = 120;
+        }
+        
+        this.hp = 10; // 10회 가격 시 파괴
+        this.hitCount = 0; // 누적 적중 공격수
+        this.color = 'rgba(255, 255, 255, 0.08)'; // 던전 벽면과 거의 똑같이 동화되는 얇고 어두운 회백색 테두리
+        this.glowColor = '#b026ff'; // 글리치 연출용 보랏빛
         this.flashTimer = 0;
-        this.hitCooldown = 0; // 피격 연속 타격 방지 무적 타이머
+        this.hitCooldown = 0; // 무적 시간 프레임
     }
 
     draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
+        // [완벽 은닉] 반드시 플레이어가 공격한 공격이 닿아야만(hitCount > 0) 표시되기 시작해야 함!
+        if (this.hitCount === 0) return;
 
-        // 피격 시 백색 플래시
+        ctx.save();
+        
+        // 3회 이상 공격당했을 때 비밀방 단서로 지지직거리는 글리치 떨림 및 잔상 계산
+        let shakeX = 0;
+        let shakeY = 0;
+        if (this.hitCount >= 3) {
+            shakeX = (Math.random() * 2 - 1) * 3;
+            shakeY = (Math.random() * 2 - 1) * 3;
+        }
+
+        ctx.translate(this.x + shakeX, this.y + shakeY);
+
+        // 피격 시 백색 깜빡임 피드백
         if (this.flashTimer > 0) {
             this.flashTimer--;
             ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#ffffff';
+            ctx.shadowBlur = 12;
             ctx.shadowColor = '#ffffff';
         } else {
-            ctx.fillStyle = 'rgba(90, 107, 140, 0.4)';
+            // 벽 테두리 마진선과 혼연일체 되도록 얇고 어둡게 처리
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
             ctx.strokeStyle = this.color;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 0;
         }
 
+        // 박스 두께 약 2px 정도로 얇게 벽 테두리와 거의 유사한 느낌 드로잉
         ctx.lineWidth = 2;
-        // 사각형 벽 지형 그리기 (AABB 충돌용 중심 기준)
         ctx.beginPath();
         ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
         ctx.fill();
         ctx.stroke();
 
-        // 쩍쩍 갈라져 있는 균열 금 연출
-        ctx.beginPath();
-        ctx.strokeStyle = this.glowColor;
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.glowColor;
+        // 3회 이상 타격 시 추가적인 보랏빛 노이즈 선을 지지직 덧그리기
+        if (this.hitCount >= 3) {
+            ctx.beginPath();
+            ctx.strokeStyle = this.glowColor;
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.glowColor;
 
-        if (this.hp <= 2) {
-            // 1단계 균열: 가로지르는 사선 금
-            ctx.moveTo(-15, -10);
-            ctx.lineTo(5, 5);
-            ctx.lineTo(15, 12);
+            // 벽면에 보랏빛 지직거리는 크랙 노이즈 드로잉
+            for (let k = 0; k < 3; k++) {
+                if (this.width > this.height) { // 가로 벽
+                    let rx = -this.width / 2 + Math.random() * this.width;
+                    let ry = -this.height / 2 + Math.random() * this.height;
+                    ctx.moveTo(rx - 15, ry);
+                    ctx.lineTo(rx + 15, ry);
+                } else { // 세로 벽
+                    let rx = -this.width / 2 + Math.random() * this.width;
+                    let ry = -this.height / 2 + Math.random() * this.height;
+                    ctx.moveTo(rx, ry - 15);
+                    ctx.lineTo(rx, ry + 15);
+                }
+            }
+            ctx.stroke();
+            
+            // 5% 확률로 GLITCH 텍스트 홀로그램 가끔 출몰
+            if (Math.random() < 0.05) {
+                ctx.fillStyle = this.glowColor;
+                ctx.font = '800 9px "Outfit"';
+                ctx.textAlign = 'center';
+                ctx.fillText("GLITCH", 0, this.height > this.width ? -this.height / 2 - 5 : -10);
+            }
         }
-        if (this.hp <= 1) {
-            // 2단계 균열: 거미줄처럼 사방으로 번지는 금
-            ctx.moveTo(5, 5);
-            ctx.lineTo(-12, 14);
-            ctx.moveTo(-5, -2);
-            ctx.lineTo(12, -14);
-        }
-        ctx.stroke();
 
         ctx.restore();
     }
 }
 
 // --------------------------------------------------------------------------
-// 6.5.7. 숨겨진 황금 보물 상자 클래스 (Hidden Chest)
+// 6.5.7. 비밀방 전용 상호작용 글리치 장치 클래스 (Secret Glitch Device)
 // --------------------------------------------------------------------------
-class HiddenChest {
+class SecretGlitchDevice {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.width = 36;
-        this.height = 26;
-        this.color = '#ffdf00'; // 영롱한 황금색
+        this.radius = 22;
+        this.color = '#b026ff'; // 차원 보랏빛 네온 테마
         this.pulse = 0;
-        this.opened = false;
+        this.active = true;
     }
 
     draw(ctx) {
-        if (this.opened) return; // 이미 개방되면 안 그림
-        
+        if (!this.active) return;
         ctx.save();
         ctx.translate(this.x, this.y);
         this.pulse += 0.05;
         let scale = 1.0 + Math.sin(this.pulse) * 0.08;
-        let floatY = Math.sin(this.pulse * 0.7) * 3;
-        ctx.translate(0, floatY);
 
-        // 상자 내부 글로우
+        // 글리치 보랏빛 에너지 아우라 서클
         ctx.beginPath();
-        ctx.rect(-this.width / 2 * scale, -this.height / 2 * scale, this.width * scale, this.height * scale);
-        ctx.fillStyle = 'rgba(255, 223, 0, 0.25)';
+        ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(176, 38, 255, 0.15)';
         ctx.strokeStyle = this.color;
-        ctx.lineWidth = 2.5;
-        ctx.shadowBlur = 18;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 20;
         ctx.shadowColor = this.color;
         ctx.fill();
         ctx.stroke();
 
-        // 황금 잠금 쇠장식 코어 렌더링
+        // 내부의 뱅글뱅글 핵심 코어
         ctx.beginPath();
-        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.arc(0, 0, this.radius * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ffffff';
         ctx.fill();
+
+        // 상호작용 텍스트 가이드
+        ctx.font = '800 10px "Outfit"';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText("CRASH TO ACTIVATE", 0, -this.radius - 8);
 
         ctx.restore();
     }
@@ -2388,7 +2488,7 @@ class GameEngine {
         this.potions = []; // [추가] 맵 클리어 드롭 물약 엔티티 리스트
         this.coinsList = []; // [W-08 신규 구현] 드롭 코인 엔티티 리스트
         this.secretWalls = []; // [Phase 7 신규 구현] 비밀 균열 벽 리스트
-        this.hiddenChests = []; // [Phase 7 신규 구현] 숨겨진 보물 상자 리스트
+        this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 리스트
         this.traps = [];   // [신규] 함정 엔티티 리스트
         this.obstacles = []; // [신규] 25등분 격자 장애물 리스트
         
@@ -2430,6 +2530,14 @@ class GameEngine {
         this.timeWarpFreeCastActive = false; // [신규 기획] Mana Helm 5레벨 무료 지속 시간왜곡 체크용 플래그
         this.hasRerolledThisRoom = false;   // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 리롤 트래킹 플래그
         this.gameOverActive = false;        // [신규 추가] 사망 연출 다중 중복 트리거 방지용 플래그
+        
+        this.inSecretRoom = false; // 비밀방 보너스 층 상태 추적 플래그
+        this.forceSecretWallNextRoom = false; // 치트 강제 비밀방 등장 플래그
+
+        // [보정] 고주사율 모니터 배속 방지를 위한 60FPS 고정 타임스텝 변수 초기화
+        this.lastTime = performance.now();
+        this.accumulatedTime = 0;
+        this.timestep = 1000 / 60; // 60FPS (약 16.67ms)
         
         this.initInputEvents();
         this.setupInitialRoom();
@@ -2533,7 +2641,7 @@ class GameEngine {
         this.potions = []; // [추가] 물약 리스트 초기화
         this.coinsList = []; // [W-08 신규 구현] 코인 리스트 초기화
         this.secretWalls = []; // [Phase 7 신규 구현] 비밀 벽 초기화
-        this.hiddenChests = []; // [Phase 7 신규 구현] 숨겨진 상자 초기화
+        this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 초기화
         this.traps = [];   // [신규] 함정 리스트 초기화
         this.obstacles = []; // [신규] 25등분 격자 장애물 리스트 초기화
         
@@ -2557,10 +2665,17 @@ class GameEngine {
         this.lastEnteredPortalClass = 'low';
         
         this.timeDilationActive = false; // [추가] 시작 시 시간 왜곡 비활성화
+        
+        this.inSecretRoom = false; // 비밀방 보너스 층 상태 추적 플래그
+        this.forceSecretWallNextRoom = false; // 치트 강제 비밀방 등장 플래그
 
         this.updateHUD();
         this.setupInitialRoom();
         
+        // [보정] 게임 재시작 시 타임스텝 누적 시간 리셋
+        this.lastTime = performance.now();
+        this.accumulatedTime = 0;
+
         // 매끄러운 60fps 애니메이션 루프 재구동 및 루프 ID 보관
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
         Sound.play('powerup');
@@ -2652,7 +2767,14 @@ class GameEngine {
     // 특정 문으로 입장했을 때의 방 전환 엔진
     transitionToNextRoom(portal) {
         // [신규 기획] 현재 방의 유형을 방금 진입한 포털의 보상 유형으로 갱신!
-        this.currentRoomType = portal.portalType || 'stat';
+        const enteringSecretRoom = (portal.portalType === 'secret_room');
+        
+        if (enteringSecretRoom) {
+            this.inSecretRoom = true;
+            this.currentRoomType = 'secret_room';
+        } else {
+            this.currentRoomType = portal.portalType || 'stat';
+        }
 
         const scoreBonus = portal.scoreValue;
         this.score += scoreBonus; // 획득 점수 축적
@@ -2662,7 +2784,7 @@ class GameEngine {
 
         // 5의 배수 방(10의 배수 보스방 제외) 진입 시 엘리트 활성화 여부 세팅
         let nextRoomNum = this.roomNum + 1;
-        if (nextRoomNum % 5 === 0 && nextRoomNum % 10 !== 0) {
+        if (nextRoomNum % 5 === 0 && nextRoomNum % 10 !== 0 && !enteringSecretRoom) {
             // '상'(high) 또는 '중'(mid) 등급 문으로 들어왔을 때만 진짜 엘리트 방
             if (portal.difficultyClass === 'high' || portal.difficultyClass === 'mid') {
                 this.isEliteRoom = true;
@@ -2678,37 +2800,35 @@ class GameEngine {
         if (this.roomNum === 1) {
             this.spawnMethod = 1;
         } else {
-            // 입장 방향을 제외한 나머지 3개 스폰 대상 포털 추출
+            // 입장 방향을 제외한 나머지 3개 스폰 대상 포털 추출 (비밀방 포털인 경우엔 4방향 전부 검토)
             const targetPortals = this.portals.filter(p => p.direction !== this.lastEnteredPortalDir);
             
-            // 시계 방향 정렬 순서 준비 (겹쳤을 때 플레이어 입장 방향의 왼쪽부터 시계방향순 타이브레이커)
-            const dirOrder = ['top', 'right', 'bottom', 'left'];
-            let entryIdx = dirOrder.indexOf(this.lastEnteredPortalDir);
-            // 시계 방향 정렬 기준 인덱스: (entryIdx + 1) % 4 가 가장 우선순위가 높은 "왼쪽"
-            const pOrder = [
-                dirOrder[(entryIdx + 1) % 4],
-                dirOrder[(entryIdx + 2) % 4],
-                dirOrder[(entryIdx + 3) % 4]
-            ];
+            if (targetPortals.length > 0) {
+                // 시계 방향 정렬 순서 준비 (겹쳤을 때 플레이어 입장 방향의 왼쪽부터 시계방향순 타이브레이커)
+                const dirOrder = ['top', 'right', 'bottom', 'left'];
+                let entryIdx = dirOrder.indexOf(this.lastEnteredPortalDir);
+                const pOrder = [
+                    dirOrder[(entryIdx + 1) % 4],
+                    dirOrder[(entryIdx + 2) % 4],
+                    dirOrder[(entryIdx + 3) % 4]
+                ];
 
-            // 3개 포털 정렬 (1순위: 숫자 내림차순, 2순위: pOrder 인덱스가 작을수록 우선)
-            const sortedPortals = [...targetPortals].sort((a, b) => {
-                if (b.scoreValue !== a.scoreValue) {
-                    return b.scoreValue - a.scoreValue; // 숫자 높은 것이 먼저
+                // 3개 포털 정렬 (1순위: 숫자 내림차순, 2순위: pOrder 인덱스가 작을수록 우선)
+                const sortedPortals = [...targetPortals].sort((a, b) => {
+                    if (b.scoreValue !== a.scoreValue) {
+                        return b.scoreValue - a.scoreValue; // 숫자 높은 것이 먼저
+                    }
+                    return pOrder.indexOf(a.direction) - pOrder.indexOf(b.direction);
+                });
+
+                let chosenIdx = sortedPortals.findIndex(p => p.direction === portal.direction);
+                if (chosenIdx === 0) {
+                    this.spawnMethod = 3;
+                } else if (chosenIdx === 1) {
+                    this.spawnMethod = 2;
+                } else {
+                    this.spawnMethod = 1;
                 }
-                // 동률인 경우 시계 방향 우선권
-                return pOrder.indexOf(a.direction) - pOrder.indexOf(b.direction);
-            });
-
-            // 정렬된 결과 매칭
-            // 0번째 (가장 높은 것): 방식 3
-            // 1번째 (중간 것): 방식 2
-            // 2번째 (가장 낮은 것): 방식 1
-            let chosenIdx = sortedPortals.findIndex(p => p.direction === portal.direction);
-            if (chosenIdx === 0) {
-                this.spawnMethod = 3;
-            } else if (chosenIdx === 1) {
-                this.spawnMethod = 2;
             } else {
                 this.spawnMethod = 1;
             }
@@ -2718,7 +2838,13 @@ class GameEngine {
         this.spawnedInRoom = 0;
         this.method2DelayDone = false;
 
-        this.roomNum++; // 스테이지 증가
+        // [글리치 비밀방 층수 룰 적용] 비밀방에 들어설 때는 roomNum(층수)을 올리지 않고 동결!
+        if (enteringSecretRoom) {
+            this.showFloatingText("🔮 SECRET CHASM REACHED (ROOM LEVEL FREEZE)", this.player.x, this.player.y - 45, '#b026ff');
+        } else {
+            this.roomNum++; // 일반 방 진행 시에만 정상 층수 가산
+            this.inSecretRoom = false; // 비밀방 룰에서 복귀
+        }
         
         // 100 스테이지 달성 시 최종 승리 클리어
         if (this.roomNum > 100) {
@@ -2726,11 +2852,15 @@ class GameEngine {
             return;
         }
 
-        // 플레이어 캐릭터 좌표를 해당 포털 방향의 정반대 문 앞으로 워프 이동
-        if (portal.direction === 'top') {
+        // 플레이어 캐릭터 좌표를 해당 포털 방향의 정반대 문 앞으로 워프 이동 (비밀 포털은 맵 중앙 워프)
+        if (portal.direction === 'secret') {
+            this.player.x = 400;
+            this.player.y = 450; // 중앙 장치(400, 300)와 겹쳐서 즉시 충돌 소멸되는 현상 완벽 방지
+            this.lastEnteredPortalDir = 'center';
+        } else if (portal.direction === 'top') {
             this.player.x = 400;
             this.player.y = 510;
-            this.lastEnteredPortalDir = 'bottom'; // 아래 문으로 진입한 것과 마찬가지
+            this.lastEnteredPortalDir = 'bottom';
         } else if (portal.direction === 'bottom') {
             this.player.x = 400;
             this.player.y = 70;
@@ -2745,26 +2875,42 @@ class GameEngine {
             this.lastEnteredPortalDir = 'left';
         }
 
-        // 다음 방의 문 상태 초기화 (전부 몬스터 처치 전까지 잠금 붉은색)
-        this.portals = [
-            new RoomPortal('top', this.getRandomScoreValue()),
-            new RoomPortal('bottom', this.getRandomScoreValue()),
-            new RoomPortal('left', this.getRandomScoreValue()),
-            new RoomPortal('right', this.getRandomScoreValue())
-        ];
-        
-        // [신규 기획] 다음 방 포털 특화 유형 무작위 분배 (25% 확률로 상점 포털 대체 출현)
-        let types = ['stat', 'stat', 'weapon', 'equipment'];
-        if (Math.random() < 0.25) {
-            types[0] = 'shop';
-        }
-        types.sort(() => 0.5 - Math.random());
-        this.portals.forEach((p, idx) => {
-            p.portalType = types[idx];
-        });
+        // [비밀방 출구 포털 룰 적용] 비밀방에 있을 때는 단 하나의 탈출구 문만 랜덤 방향에 생성
+        if (this.inSecretRoom) {
+            const directions = ['top', 'bottom', 'left', 'right'];
+            const chosenDir = directions[Math.floor(Math.random() * 4)];
+            const exitPortal = new RoomPortal(chosenDir, this.getRandomScoreValue());
+            
+            // 100% 무작위 보상 배정 (스탯, 무기, 장비)
+            let types = ['stat', 'weapon', 'equipment'];
+            exitPortal.portalType = types[Math.floor(Math.random() * 3)];
+            // 난이도는 현재 층수 기준 중간(mid) 이상(high)으로 설정
+            exitPortal.difficultyClass = Math.random() < 0.5 ? 'mid' : 'high';
+            exitPortal.active = false; // 격퇴 전까지 활성화 잠금
 
-        this.rankPortals(); // 등급 랭킹화
-        this.portals.forEach(p => p.active = false);
+            this.portals = [exitPortal];
+        } else {
+            // 다음 방의 문 상태 초기화 (전부 몬스터 처치 전까지 잠금 붉은색)
+            this.portals = [
+                new RoomPortal('top', this.getRandomScoreValue()),
+                new RoomPortal('bottom', this.getRandomScoreValue()),
+                new RoomPortal('left', this.getRandomScoreValue()),
+                new RoomPortal('right', this.getRandomScoreValue())
+            ];
+            
+            // [신규 기획] 다음 방 포털 특화 유형 무작위 분배 (25% 확률로 상점 포털 대체 출현)
+            let types = ['stat', 'stat', 'weapon', 'equipment'];
+            if (Math.random() < 0.25) {
+                types[0] = 'shop';
+            }
+            types.sort(() => 0.5 - Math.random());
+            this.portals.forEach((p, idx) => {
+                p.portalType = types[idx];
+            });
+
+            this.rankPortals(); // 등급 랭킹화
+            this.portals.forEach(p => p.active = false);
+        }
 
         // 탄환 전체 청소 및 기존 몬스터 삭제
         this.bullets = [];
@@ -2772,7 +2918,7 @@ class GameEngine {
         this.potions = []; // [추가] 방 이동 시 드롭된 물약 청소
         this.coinsList = []; // [W-08 신규 구현] 방 이동 시 코인 청소
         this.secretWalls = []; // [Phase 7 신규 구현] 방 이동 시 비밀 벽 청소
-        this.hiddenChests = []; // [Phase 7 신규 구현] 방 이동 시 숨겨진 상자 청소
+        this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 청소
         this.rewardChests = []; // [추가] 이전 방 상자들 삭제
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
@@ -2782,8 +2928,8 @@ class GameEngine {
         this.player.burstRemaining = 0;     // [신규] 방 이동 시 비동기 잔상 사격 완전 차단 리셋!
         this.obstacles = []; // [신규] 이전 방 장애물 청소
 
-        // [신규] 25등분 격자 기반 랜덤 장애물 생성 기믹
-        if (this.roomNum > 1 && this.roomNum % 10 !== 0) {
+        // [신규] 25등분 격자 기반 랜덤 장애물 생성 기믹 (비밀방 차원 상점에서는 쾌적함을 위해 장애물 생성 예외적 원천 방지)
+        if (this.roomNum > 1 && this.roomNum % 10 !== 0 && !enteringSecretRoom) {
             let stageGroup = Math.floor((this.roomNum - 1) / 20);
             let maxObstacles = Math.min(5, stageGroup + 1);
             let obstacleCount = 0;
@@ -2808,47 +2954,60 @@ class GameEngine {
 
         // 5번 방 주기마다 보스전 활성화 (5, 10, 15... 100)
         // 10의 배수는 무조건 보스방으로 기동!
-        if (this.roomNum % 10 === 0) {
+        if (enteringSecretRoom) {
+            // 비밀방은 보스 및 몬스터 스폰을 전면 스킵하고 보상 디바이스 소환
+            this.monsters = [];
+            this.spawnQueue = [];
+            this.secretGlitchDevices.push(new SecretGlitchDevice(400, 300));
+        } else if (this.roomNum % 10 === 0) {
             this.setupBossRoom();
         } else {
             // 일반 혹은 엘리트 몬스터 스폰 큐 예약
             this.queueSequentialSpawns(scoreBonus);
         }
 
-        // [Phase 7 신규 구현] 비밀 균열 벽 및 숨겨진 보물상자 스폰 (20% 확률)
+        // [Phase 7 신규 구현] 비밀 균열 벽 스폰 (기본 10% 확률로 완화 + 치트 연동)
         // 보스방(10의 배수)이나 첫 시작방(roomNum === 1)은 스폰하지 않음
-        if (this.roomNum % 10 !== 0 && this.roomNum > 1 && Math.random() < 0.20) {
-            // 비밀방 위치 선정 (플레이어 좌표 x=400, y=300과 멀리 겹치지 않는 구석 모퉁이)
+        let shouldSpawnSecret = false;
+        if (this.roomNum % 10 !== 0 && this.roomNum > 1 && !enteringSecretRoom) {
+            if (this.forceSecretWallNextRoom) {
+                shouldSpawnSecret = true;
+                this.forceSecretWallNextRoom = false; // 치트 소모
+                // 치트 UI 동기화 해제 처리
+                const cheatCheckbox = document.getElementById('cheat-forcesecret');
+                if (cheatCheckbox) cheatCheckbox.checked = false;
+            } else if (Math.random() < 0.10) {
+                shouldSpawnSecret = true;
+            }
+        }
+
+        if (shouldSpawnSecret) {
+            // [요건 반영] 비밀방 입구가 노골적이지 않도록 구석 모퉁이가 아닌 외곽 테두리 4방향 벽면에 완벽 매설
             let spots = [
-                { wallX: 120, wallY: 120, chestX: 120, chestY: 80 }, // 좌상
-                { wallX: 680, wallY: 120, chestX: 680, chestY: 80 }, // 우상
-                { wallX: 120, wallY: 480, chestX: 120, chestY: 520 }, // 좌하
-                { wallX: 680, wallY: 480, chestX: 680, chestY: 520 }  // 우하
+                { wallX: 250, wallY: 40, dir: 'top' },    // 상단 벽면
+                { wallX: 550, wallY: 560, dir: 'bottom' }, // 하단 벽면
+                { wallX: 40, wallY: 180, dir: 'left' },    // 좌측 벽면
+                { wallX: 760, wallY: 420, dir: 'right' }   // 우측 벽면
             ];
             
-            // [5-6단계] 장애물과의 거리가 80px 이하로 겹치지 않는 안전한 스폿만 필터링합니다.
-            // 비밀방 균열 벽 또는 숨겨진 상자가 방금 소환된 격자 장애물과 간섭하는 것을 원천 차단합니다.
+            // 격자 장애물과 간섭 차단을 위한 안전한 후보지만 필터링
             let safeSpots = spots.filter(spot => {
                 for (let obs of this.obstacles) {
                     let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
-                    let distChest = Math.hypot(spot.chestX - obs.x, spot.chestY - obs.y);
-                    if (distWall <= 80 || distChest <= 80) {
-                        return false; // 장애물과 너무 가까우면 해당 후보지 배제
+                    if (distWall <= 85) { // 안전 마진 85px 상향 정교화
+                        return false; 
                     }
                 }
                 return true;
             });
             
-            // 안전 구역을 확보한 스폿이 존재하는 경우 그 중에서 무작위 배정하고,
-            // 만에 하나 모든 스폿이 격자와 근접하다면 기존의 전체 목록에서 선정하도록 롤백 예외 처리를 둡니다.
             let chosenSpot = safeSpots.length > 0 
                 ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
                 : spots[Math.floor(Math.random() * spots.length)];
             
-            // 비밀 균열 벽 생성
-            this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY));
-            // 보물 상자는 벽 바로 뒷밀실에 매설
-            this.hiddenChests.push(new HiddenChest(chosenSpot.chestX, chosenSpot.chestY));
+            // 비밀 균열 외벽 생성 (방향 정보 전달)
+            this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
+            // 보물 상자는 위치 노출 방지를 위해 평소에 생성하지 않음 (스펙 변경으로 삭제 완료)
         }
 
         this.updateHUD();
@@ -3086,14 +3245,14 @@ class GameEngine {
             // 1. [네온 탄막 초토화 폭격기 (Neon Bomber)]
             // 조건: 멀티샷 3발 이상, 유도 추적탄 보유, 스플래시 대폭발 반경 보유
             if (p.multishot >= 3 && p.homing && p.splashRadius > 0) {
-                synergyMultiplier = 1.8;
+                synergyMultiplier = 1.35; // 2차 밸런싱 패치 (1.8 -> 1.35 하향)
                 synergyName = "💥 NEON BOMBER!";
                 synergyColor = '#ffdf00'; // 황금 옐로우
             }
             // 2. [샷건 전탄 집중 화력 (Shotgun Burst)]
             // 조건: 멀티샷 2발 이상, 힘(ATK) 25 이상 (폭격기 하위 호환)
             else if (p.multishot >= 2 && p.atk >= 25) {
-                synergyMultiplier = 1.2;
+                synergyMultiplier = 1.10; // 2차 밸런싱 패치 (1.2 -> 1.10 하향)
                 synergyName = "🏹 SHOTGUN BURST!";
                 synergyColor = '#00f0ff'; // 시안
             }
@@ -3101,14 +3260,14 @@ class GameEngine {
             // 3. [질풍의 마력 네온 검사 (Neon Tempest)]
             // 조건: 검 또는 듀얼 소유, 공격속도(지능) 1.6 이상, 힘(공격력) 20 이상
             if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.aspd >= 1.6 && p.atk >= 20) {
-                synergyMultiplier = 1.5;
+                synergyMultiplier = 1.25; // 2차 밸런싱 패치 (1.5 -> 1.25 하향)
                 synergyName = "🪓 NEON TEMPEST!";
                 synergyColor = '#b026ff'; // 퍼플
             }
             // 4. [차원 유도 환영검 (Spectral Blade)]
             // 조건: 검 또는 듀얼 소유, 유도 추적 보유
             else if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.homing) {
-                synergyMultiplier = 1.3;
+                synergyMultiplier = 1.15; // 2차 밸런싱 패치 (1.3 -> 1.15 하향)
                 synergyName = "🔮 SPECTRAL BLADE!";
                 synergyColor = '#ff0055'; // 마젠타
             }
@@ -3139,10 +3298,26 @@ class GameEngine {
     // 8. 60FPS 메인 게임 루프 엔진
     // --------------------------------------------------------------------------
     gameLoop() {
-        // [결함 완치] 게임오버나 로비 등의 비활성 상태에서도 렌더링이 영구 동결되지 않도록 렌더 루프를 항상 가동시킵니다.
-        if (this.isPlaying) {
-            this.update();
+        const currentTime = performance.now();
+        let deltaTime = currentTime - this.lastTime;
+        
+        // 브라우저 백그라운드 탭 전환 등으로 인한 과도한 시간 누적 방지 (최대 100ms 가드)
+        if (deltaTime > 100) {
+            deltaTime = this.timestep;
         }
+        
+        this.lastTime = currentTime;
+        this.accumulatedTime += deltaTime;
+
+        // 누적 시간이 60FPS 타임스텝보다 크면 그만큼만 update 실행 (고주사율에서도 60FPS 속도 보장)
+        while (this.accumulatedTime >= this.timestep) {
+            if (this.isPlaying) {
+                this.update();
+            }
+            this.accumulatedTime -= this.timestep;
+        }
+
+        // 렌더링은 사용자의 모니터 프레임에 맞춰 매끄럽게 수행
         this.render();
 
         // 루프 ID를 보관하여 중복 재구동 시 안전하게 캔슬할 수 있도록 바인딩합니다.
@@ -3197,7 +3372,12 @@ class GameEngine {
                     let synergyMult = this.checkBuildSynergy('gun');
                     let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
                     let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                    let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus;
+                    
+                    // [2차 밸런스 패치] 멀티샷 및 점사 개수에 따른 대미지 역보정(감쇄) 연동 적용
+                    let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
+                    let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
+                    
+                    let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
                     for (let angle of this.player.burstBulletsToLaunch) {
                         let bulletIsLightning = isLightning;
@@ -3562,48 +3742,83 @@ class GameEngine {
                 }
             }
 
-            // [Phase 7 신규 구현] 창 투사체와 비밀 벽 충돌 검출
-            if (b.isPlayerBullet && b.isSpear) {
+            // [Phase 7 신규 구현] 모든 플레이어 탄환 투사체와 비밀 벽 충돌 검출 (isSpear 한정 버그 수정 완료)
+            if (b.isPlayerBullet) {
                 for (let j = this.secretWalls.length - 1; j >= 0; j--) {
                     let wall = this.secretWalls[j];
                     let wDist = Math.hypot(wall.x - b.x, wall.y - b.y);
-                    if (wDist < 20 + b.radius) {
+                    if (wDist < 25 + b.radius) { // 바뀐 얇은 벽 형상에 맞춘 기하 충돌 반경 보정
                         if (!wall.hitCooldown) {
-                            wall.hitCooldown = 15;
+                            wall.hitCooldown = 12;
                             wall.hp--;
+                            wall.hitCount++;
                             wall.flashTimer = 5;
                             Sound.play('hit');
                             
                             for (let k = 0; k < 4; k++) {
                                 let randAngle = Math.random() * Math.PI * 2;
                                 let pSpeed = Math.random() * 2 + 1;
-                                this.particles.push(new Particle(b.x, b.y, wall.color, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
+                                this.particles.push(new Particle(b.x, b.y, wall.glowColor, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
                             }
-                            this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#00f0ff');
+                            
+                            // 3회 적중 시 최초 지지직 글리치 오라 개막
+                            if (wall.hitCount === 3) {
+                                this.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
+                                Sound.play('powerup');
+                            } else {
+                                this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
+                            }
                             
                             this.bullets.splice(i, 1);
                             
                             if (wall.hp <= 0) {
                                 Sound.play('explosion');
-                                this.shakeScreen(8, 4.0);
-                                for (let k = 0; k < 12; k++) {
+                                this.shakeScreen(10, 4.5);
+                                for (let k = 0; k < 15; k++) {
                                     let randAngle = Math.random() * Math.PI * 2;
-                                    let pSpeed = Math.random() * 3 + 1.5;
-                                    this.particles.push(new Particle(wall.x, wall.y, '#5a6b8c', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 20, 'spark'));
+                                    let pSpeed = Math.random() * 4 + 1.5;
+                                    this.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 25, 'spark'));
                                     this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                 }
-                                this.showFloatingText("WALL BROKEN! 💥", wall.x, wall.y - 20, '#00f0ff');
-                                // [네온 암시장] 50% 확률로 비밀 자판기(차원 거래 기계) 추가 스폰
-                                if (Math.random() < 0.5) {
-                                    this.secretVendingMachines.push(new SecretVendingMachine(wall.x, wall.y));
-                                    this.showFloatingText("🔮 SECRET SHOP APPEARED!", wall.x, wall.y - 40, '#b026ff');
-                                    // 보라빛 차원 파티클 분수
-                                    for (let k2 = 0; k2 < 20; k2++) {
-                                        let pAngle2 = Math.random() * Math.PI * 2;
-                                        let pSpeed2 = Math.random() * 4 + 2;
-                                        this.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.5, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 30, 'spark'));
+                                this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
+                                
+                                // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
+                                let cx = 400, cy = 300;
+                                let foundSafe = false;
+                                for (let attempt = 0; attempt < 50; attempt++) {
+                                    let rx = 100 + Math.random() * 600;
+                                    let ry = 100 + Math.random() * 400;
+                                    let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
+                                    if (distToPlayer < 100) continue;
+                                    
+                                    let distToObs = true;
+                                    for (let obs of this.obstacles) {
+                                        if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
+                                            distToObs = false;
+                                            break;
+                                        }
+                                    }
+                                    if (distToObs) {
+                                        cx = rx;
+                                        cy = ry;
+                                        foundSafe = true;
+                                        break;
                                     }
                                 }
+                                
+                                // 비밀방 포털 100% 소환
+                                let secretPortal = new RoomPortal('secret', 0, cx, cy);
+                                secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
+                                this.portals.push(secretPortal);
+                                this.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
+                                
+                                // 포털 소환 보랏빛 차원 파편 솟구침 연출
+                                for (let k2 = 0; k2 < 20; k2++) {
+                                    let pAngle2 = Math.random() * Math.PI * 2;
+                                    let pSpeed2 = Math.random() * 3.5 + 2;
+                                    this.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
+                                }
+                                
                                 this.secretWalls.splice(j, 1);
                             }
                             break;
@@ -3699,62 +3914,89 @@ class GameEngine {
                 for (let j = this.secretWalls.length - 1; j >= 0; j--) {
                     let wall = this.secretWalls[j];
                     let wDist = Math.hypot(wall.x - this.player.x, wall.y - this.player.y);
-                    if (wDist < this.player.slashRadius + 20) {
+                    if (wDist < this.player.slashRadius + 25) { // 바뀐 벽 모양을 감안하여 리치 소폭 확장 보정
                         let targetAngle = Math.atan2(wall.y - this.player.y, wall.x - this.player.x);
                         let angleDiff = Math.abs(targetAngle - this.player.slashAngle);
                         angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
                         
                         if (Math.abs(angleDiff) < 1.1) {
                             if (!wall.hitCooldown) {
-                                wall.hitCooldown = 15;
+                                wall.hitCooldown = 12;
                                 wall.hp--;
+                                wall.hitCount++;
                                 wall.flashTimer = 5;
                                 Sound.play('hit');
                                 
                                 for (let k = 0; k < 4; k++) {
                                     let randAngle = Math.random() * Math.PI * 2;
                                     let pSpeed = Math.random() * 2 + 1;
-                                    this.particles.push(new Particle(wall.x, wall.y, wall.color, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
+                                    this.particles.push(new Particle(wall.x, wall.y, wall.glowColor, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
                                 }
-                                this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#00f0ff');
+                                
+                                // 3회 적중 시 최초 지지직 글리치 오라 개막
+                                if (wall.hitCount === 3) {
+                                    this.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
+                                    Sound.play('powerup');
+                                } else {
+                                    this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
+                                }
                                 
                                 if (wall.hp <= 0) {
                                     Sound.play('explosion');
-                                    this.shakeScreen(8, 4.0);
-                                    for (let k = 0; k < 12; k++) {
+                                    this.shakeScreen(10, 4.5);
+                                    for (let k = 0; k < 15; k++) {
                                         let randAngle = Math.random() * Math.PI * 2;
-                                        let pSpeed = Math.random() * 3 + 1.5;
-                                        this.particles.push(new Particle(wall.x, wall.y, '#5a6b8c', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 20, 'spark'));
+                                        let pSpeed = Math.random() * 4 + 1.5;
+                                        this.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 25, 'spark'));
                                         this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                     }
-                                    this.showFloatingText("WALL BROKEN! 💥", wall.x, wall.y - 20, '#00f0ff');
-                                    // [네온 암시장] 50% 확률로 보물 상자 대신 비밀 자판기(차원 거래 기계) 스폰
-                                    if (Math.random() < 0.5) {
-                                        // 50px 이내의 HiddenChest를 찾아서 제거
-                                        for (let k = this.hiddenChests.length - 1; k >= 0; k--) {
-                                            let chest = this.hiddenChests[k];
-                                            if (Math.hypot(wall.x - chest.x, wall.y - chest.y) < 50) {
-                                                this.hiddenChests.splice(k, 1);
+                                    this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
+                                    
+                                    // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
+                                    let cx = 400, cy = 300;
+                                    let foundSafe = false;
+                                    for (let attempt = 0; attempt < 50; attempt++) {
+                                        let rx = 100 + Math.random() * 600;
+                                        let ry = 100 + Math.random() * 400;
+                                        let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
+                                        if (distToPlayer < 100) continue;
+                                        
+                                        let distToObs = true;
+                                        for (let obs of this.obstacles) {
+                                            if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
+                                                distToObs = false;
                                                 break;
                                             }
                                         }
-                                        // 상자가 있던 위치(밀실) 계산
-                                        let spawnY = wall.y < 300 ? wall.y - 40 : wall.y + 40;
-                                        this.secretVendingMachines.push(new SecretVendingMachine(wall.x, spawnY));
-                                        this.showFloatingText("🔮 SECRET SHOP APPEARED!", wall.x, spawnY - 20, '#b026ff');
-                                        // 보라빛 차원 파티클 분수
-                                        for (let k2 = 0; k2 < 20; k2++) {
-                                            let pAngle2 = Math.random() * Math.PI * 2;
-                                            let pSpeed2 = Math.random() * 4 + 2;
-                                            this.particles.push(new Particle(wall.x, spawnY, '#b026ff', 2.5, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 30, 'spark'));
+                                        if (distToObs) {
+                                            cx = rx;
+                                            cy = ry;
+                                            foundSafe = true;
+                                            break;
                                         }
                                     }
+                                    
+                                    // 비밀방 포털 100% 소환
+                                    let secretPortal = new RoomPortal('secret', 0, cx, cy);
+                                    secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
+                                    this.portals.push(secretPortal);
+                                    this.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
+                                    
+                                    // 포털 소환 보랏빛 차원 파편 솟구침 연출
+                                    for (let k2 = 0; k2 < 20; k2++) {
+                                        let pAngle2 = Math.random() * Math.PI * 2;
+                                        let pSpeed2 = Math.random() * 3.5 + 2;
+                                        this.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
+                                    }
+                                    
                                     this.secretWalls.splice(j, 1);
                                 }
                             }
                         }
                     }
                 }
+
+
 
                 let swordDist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
                 if (swordDist < this.player.slashRadius + m.radius) {
@@ -4046,8 +4288,8 @@ class GameEngine {
 
         // 8. 4개 문(포털) 진입 체크 및 보상 시스템 연동
         if (this.monsters.length === 0 && this.spawnQueue.length === 0) {
-            // 모든 적 소탕 시점에 보상 스폰 (안전실인 1방 초기 시작 상태는 제외)
-            if (this.roomNum > 1 || this.kills > 0) {
+            // 모든 적 소탕 시점에 보상 스폰 (안전실인 1방 초기 시작 상태는 제외, 비밀방 제외)
+            if ((this.roomNum > 1 || this.kills > 0) && !this.inSecretRoom) {
                 // 아직 보상 오브젝트가 생성되지 않은 상태일 때 (방금 몬스터 격퇴 완료된 시점)
                 if (this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
                     
@@ -4151,6 +4393,18 @@ class GameEngine {
                     this.transitionToNextRoom(p);
                     break;
                 }
+            }
+        }
+
+        // [신규 기획] 비밀방 상호작용 디바이스(SecretGlitchDevice) 물리 충돌 감지 및 상호작용 트리거
+        for (let i = this.secretGlitchDevices.length - 1; i >= 0; i--) {
+            let device = this.secretGlitchDevices[i];
+            if (!device.active) continue;
+            let dist = Math.hypot(this.player.x - device.x, this.player.y - device.y);
+            if (dist < this.player.radius + device.radius) {
+                device.active = false;
+                this.triggerSecretGlitchReward(device);
+                this.secretGlitchDevices.splice(i, 1);
             }
         }
 
@@ -4428,39 +4682,6 @@ class GameEngine {
                 this.coinsList.splice(i, 1);
             }
         }
-
-        // [Phase 7 신규 구현] 숨겨진 황금 보물 상자 충돌 감지 및 개방
-        for (let i = this.hiddenChests.length - 1; i >= 0; i--) {
-            let chest = this.hiddenChests[i];
-            if (chest.opened) continue;
-            
-            let cDist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
-            if (cDist < this.player.radius + 18) {
-                chest.opened = true;
-                Sound.play('victory');
-                this.shakeScreen(15, 5.0);
-                
-                // 황금빛 30개 네온 폭사 이펙트
-                for (let k = 0; k < 30; k++) {
-                    let pAngle = Math.random() * Math.PI * 2;
-                    let pSpeed = Math.random() * 5 + 2;
-                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35));
-                }
-                
-                // 황금 네온 코인(20 🪙) 대량 바닥 드롭 분수 물리
-                for (let k = 0; k < 20; k++) {
-                    this.coinsList.push(new NeonCoin(chest.x, chest.y, 1));
-                }
-                
-                this.showFloatingText("HIDDEN TREASURE UNLOCKED! 🎁", chest.x, chest.y - 25, '#ffdf00');
-                
-                // 고등급 확정 3택 1 카드 오버레이 트리거
-                this.triggerRewardSelector(true);
-                
-                this.hiddenChests.splice(i, 1);
-            }
-        }
-
         // [신규] 지연 삭제 사망 마킹된 몬스터들 일괄 Cleanup 정리 연산
         this.monsters = this.monsters.filter(m => !m.dead);
 
@@ -4503,6 +4724,68 @@ class GameEngine {
                 m.statusEffects.burnStack = Math.min(5, (m.statusEffects.burnStack || 0) + 1);
             }
         }
+    }
+
+    // [신규 기획] 비밀방 글리치 장치 보상 테이블 격발 (꽝 50%, 코인 35%, 체력 거래 15%)
+    triggerSecretGlitchReward(device) {
+        Sound.play('victory');
+        
+        // 보랏빛 폭발 파티클 이펙트
+        for (let k = 0; k < 30; k++) {
+            let pAngle = Math.random() * Math.PI * 2;
+            let pSpeed = Math.random() * 5 + 2;
+            this.particles.push(new Particle(device.x, device.y, '#b026ff', 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+        }
+
+        let rand = Math.random();
+        
+        if (rand < 0.50) {
+            // 1. 꽝 (50% 확률)
+            this.showFloatingText("SYSTEM ERROR: NO REWARD ❌", device.x, device.y - 30, '#ff0055');
+            Sound.play('hit');
+            this.shakeScreen(15, 5.0);
+            
+            // 지지직거리는 오작동 스파크 파편 사출
+            for (let k = 0; k < 15; k++) {
+                let pAngle = Math.random() * Math.PI * 2;
+                let pSpeed = Math.random() * 3 + 1;
+                this.particles.push(new Particle(device.x, device.y, '#ff0055', 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
+            }
+        } 
+        else if (rand < 0.85) {
+            // 2. 네온 코인 (35% 확률) - 다량의 코인 드롭
+            let coinCount = Math.floor(Math.random() * 21) + 40; // 40~60 코인 드롭
+            this.showFloatingText(`SYSTEM CRACK: GAINED 🪙 ${coinCount} COINS!`, device.x, device.y - 30, '#ffdf00');
+            Sound.play('coin');
+            
+            // 코인이 방 중앙에서 통통 튕겨 나오도록 드롭
+            for (let k = 0; k < coinCount; k++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 4 + 2;
+                let coin = new NeonCoin(device.x, device.y, 1);
+                coin.vx = Math.cos(angle) * speed;
+                coin.vy = Math.sin(angle) * speed;
+                this.coinsList.push(coin);
+            }
+        } 
+        else {
+            // 3. 체력 거래 상점 (15% 확률) - 특별 비밀 자판기 소환
+            this.showFloatingText("🔮 CHAOTIC BLACK MARKET OPENED!", device.x, device.y - 35, '#b026ff');
+            Sound.play('boss_alert');
+            
+            // 특별 자판기가 방 중앙에 스폰됨 (Max HP 15를 영구 깎고 에픽/레전더리 카드 거래)
+            this.secretVendingMachines.push(new SecretVendingMachine(400, 300));
+            
+            // 소환 스파크 파편
+            for (let k = 0; k < 20; k++) {
+                let pAngle = Math.random() * Math.PI * 2;
+                let pSpeed = Math.random() * 4 + 2;
+                this.particles.push(new Particle(400, 300, '#b026ff', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'spark'));
+            }
+        }
+
+        // 상호작용 완료 시점에 비밀방 탈출구 포털을 즉시 개방하여 탈출할 수 있도록 뚫어줌!
+        this.portals.forEach(p => p.active = true);
     }
 
     // 몬스터 처치 성공
@@ -4938,7 +5221,11 @@ class GameEngine {
             // [E-08 신규 구현] Speed Ring 5레벨 돌파: 바람의 상처 2초 달리기 유지 시 공증 10% 가산 보정
             let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
 
-            let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus;
+            // [2차 밸런스 패치] 멀티샷 및 점사 개수에 따른 대미지 역보정(감쇄) 연동 적용
+            let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
+            let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
+
+            let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
             for (let angle of bulletsToLaunch) {
                 // dual(치트) 상태일 때는 3종 마법탄과 일반탄을 섞어서 폭사!
@@ -5407,31 +5694,31 @@ class GameEngine {
 
         switch (id) {
             case 'atk':
-                value = Math.ceil(2 * mult); // 기본 3에서 2로 미세 하향 조율 (모델 C 팽팽함 보정)
+                value = Math.ceil(1.5 * mult); // 종합 밸런스 패치 (기본 2에서 1.5로 하향)
                 desc = `공격 피해량이 +${value} 만큼 영구히 상승합니다.`;
                 break;
             case 'aspd':
-                value = 0.12 * mult; // 기본 0.2에서 0.12로 하향
+                value = 0.08 * mult; // 종합 밸런스 패치 (기본 0.12에서 0.08로 하향)
                 desc = `공격 연사 속도가 +${value.toFixed(2)}배 빨라집니다.`;
                 break;
             case 'ms':
-                value = 0.25 * mult; // 기본 0.35에서 0.25로 하향
+                value = 0.18 * mult; // 종합 밸런스 패치 (기본 0.25에서 0.18로 하향)
                 desc = `플레이어 이동 속도가 +${value.toFixed(2)} 증가합니다.`;
                 break;
             case 'evd':
-                value = 0.02 * mult; // 기본 0.03에서 0.02로 하향
+                value = 0.015 * mult; // 종합 밸런스 패치 (기본 0.02에서 0.015로 하향)
                 desc = `적 공격을 물리적으로 비껴낼 회피율이 +${(value * 100).toFixed(0)}% 보강됩니다.`;
                 break;
             case 'hp':
-                value = Math.ceil(15 * mult); // 기본 20에서 15로 하향
+                value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
                 desc = `최대 체력이 +${value} 늘어나며 동시에 실시간 체력을 회복합니다.`;
                 break;
             case 'luk':
-                value = 0.15 * mult; // 기본 0.25에서 0.15로 하향
+                value = 0.10 * mult; // 종합 밸런스 패치 (기본 0.15에서 0.10으로 하향)
                 desc = `카드 행운 계수가 +${value.toFixed(2)} 올라가 고등급 획득에 크게 기여합니다.`;
                 break;
             case 'stamina':
-                value = Math.ceil(15 * mult); // 기본 25에서 15로 하향
+                value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
                 desc = `최대 대시용 기력이 +${value}만큼 증가합니다.`;
                 break;
             case 'sword':
@@ -5466,15 +5753,15 @@ class GameEngine {
                 desc = `탄환이 자동 회전 탐색하여 근접 적을 유도 추적합니다.`;
                 break;
             case 'splash':
-                value = Math.ceil(25 + (15 * mult)); // 기본 35+20*mult에서 25+15*mult로 하향
+                value = Math.ceil(20 + (10 * mult)); // 종합 밸런스 패치 (기본 25+15*mult에서 20+10*mult로 하향)
                 desc = `탄환 명중 시 반경 ${value}px 범위에 대폭발을 일으켜 광역 데미지를 입힙니다.`;
                 break;
             case 'hpRegen':
-                value = 0.5 * mult;
+                value = 0.3 * mult; // 종합 밸런스 패치 (기본 0.5에서 0.3으로 하향)
                 desc = `초당 체력 자연 재생량이 +${value.toFixed(2)} 만큼 영구 증가합니다.`;
                 break;
             case 'range':
-                value = Math.ceil(40 * mult);
+                value = Math.ceil(30 * mult); // 종합 밸런스 패치 (기본 40에서 30으로 하향)
                 desc = `탄환 사거리 및 검의 리치(베기 반경)가 +${value}px 만큼 영구 상승합니다.`;
                 break;
             case 'pet':
@@ -6011,8 +6298,8 @@ class GameEngine {
         // [Phase 7 신규 구현] 비밀 균열 벽 렌더링
         this.secretWalls.forEach(wall => wall.draw(this.ctx));
 
-        // [Phase 7 신규 구현] 숨겨진 황금 보물 상자 렌더링
-        this.hiddenChests.forEach(chest => chest.draw(this.ctx));
+        // [Phase 7 신규 구현] 비밀방 상호작용 디바이스 렌더링
+        this.secretGlitchDevices.forEach(device => device.draw(this.ctx));
 
         // 6. 플레이어 렌더링
         this.player.draw(this.ctx);
@@ -6051,6 +6338,8 @@ class GameEngine {
             
             if (this.roomNum === 1 && this.kills === 0) {
                 this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", 400, 275);
+            } else if (this.inSecretRoom) {
+                this.ctx.fillText("🔮 글리치 보너스 틈새 방에 도달했습니다. 중앙의 장치를 조작하여 보상을 확인하세요.", 400, 275);
             } else {
                 this.ctx.fillText("방 소탕 완료! 원하는 문으로 들어가서 탈출을 향해 전진하세요.", 400, 275);
             }
@@ -6340,6 +6629,12 @@ class GameEngine {
 
         // 5. 무적 모드 동기화
         document.getElementById('cheat-godmode').checked = p.isGodMode || false;
+        
+        // 6. 다음 층 비밀방 강제 동기화
+        const cheatSecret = document.getElementById('cheat-forcesecret');
+        if (cheatSecret) {
+            cheatSecret.checked = this.forceSecretWallNextRoom || false;
+        }
     }
 
     // 치트 메뉴 조작 이벤트 리스너 바인딩
@@ -6469,6 +6764,17 @@ class GameEngine {
             const color = this.player.isGodMode ? '#ffdf00' : '#ff0055';
             this.showFloatingText(text, this.player.x, this.player.y - 40, color);
         });
+
+        // [2차 기획] 다음 층 비밀방 강제 출현 토글
+        const cheatSecret = document.getElementById('cheat-forcesecret');
+        if (cheatSecret) {
+            cheatSecret.addEventListener('change', (e) => {
+                this.forceSecretWallNextRoom = e.target.checked;
+                const text = this.forceSecretWallNextRoom ? "FORCE SECRET WALL ACTIVE 🔮" : "FORCE SECRET WALL DEACTIVATED";
+                const color = this.forceSecretWallNextRoom ? '#b026ff' : '#ff0055';
+                this.showFloatingText(text, this.player.x, this.player.y - 40, color);
+            });
+        }
 
         // 코인 치트 지급
         document.getElementById('cheat-add-coin-100').addEventListener('click', () => {

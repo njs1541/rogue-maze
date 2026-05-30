@@ -338,45 +338,154 @@
     <div class="container">
         <div class="timeline-line"></div>
 
-        <!-- v0.95 (미로 탐색 및 비밀 보물상자 파밍 빌드) -->
+        <!-- v0.97 (네온 암시장 비밀방 진입 복구 및 디바이스 겹침 소멸 결함 완벽 해결) -->
         <div class="timeline-card card-active">
             <div class="timeline-marker"></div>
 
             <div class="card-header">
                 <div class="version-title">
-                    🗺️ v0.95
+                    🌌 v0.97
                     <span class="badge badge-active"
-                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">미로 탐색 & 파밍 기믹 (Active)</span>
+                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">네온 암시장 진입 환경 복구 (Active)</span>
                 </div>
-                <div class="date-text">2026-05-28 (완료)</div>
+                <div class="date-text">2026-05-30 (완료)</div>
             </div>
 
             <div class="change-category">
-                <div class="category-title" style="color: var(--neon-cyan);">🧱 비밀 균열 벽 타격 파괴 및 🎁 숨겨진 황금 상자 20코인 드롭 분수 물리
-                    (Changelog v0.95)</div>
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 네온 암시장(비밀방) 진입 환경 복구 및 디바이스 겹침 소멸 결함 완벽 해결 (Changelog v0.97)</div>
                 <ul>
-                    <li><strong>비밀 균열 벽 (Secret Wall) 지형 물리 및 근접 파괴 기믹 구현:</strong>
-                        일반 방 진입 시 20%의 확률로 구석진 지형(막다른 코너 등)에 사각형 지형 충돌 박스(40px x 40px)를 지닌 네온 균열 벽이 스폰됩니다.
-                        이 균열 벽은 일반 총탄이나 마법으로는 부술 수 없고, 오직 <b>물리 근접 공격 (검 베기 Sword Slash 또는 창 찌르기 Spear Stab 투사체)</b>으로 3회 피격 시에만 파괴됩니다.
-                        피격 시 쩍쩍 갈라지는 백색 네온 스케일링이 작렬하며, 완파 시 돌 깨짐 파편 파티클 12개가 뿜어져 나오고 지형 락이 해제되어 통로가 열립니다.
+                    <li><strong>비밀방 차원 포털 맵 진입 인식 결함 완벽 해결:</strong>
+                        <code>RoomPortal</code> 클래스에서 <code>'secret'</code> 타입 포털 초기화 시 <code>portalType</code> 속성이 <code>'weapon'</code>으로 강제 고정 맵핑되어, 암시장 비밀방(secret_room)으로 가지 않고 일반 무기 방으로 오판되던 핵심 로직 결함을 <code>'secret_room'</code>으로 매핑 수정하여 정상 복구하였습니다.
                     </li>
-                    <li><strong>숨겨진 황금 보물 상자 (Hidden Chest) 파밍 대폭발 구현:</strong>
-                        비밀 균열 벽 바로 뒷밀실 공간에 영롱하게 명멸하는 황금빛 상자가 스폰됩니다. 플레이어가 이 상자와 접촉하는 순간 황금 코인 <b>20 🪙</b>이 사방으로 통통 튀며 드롭되는 스프링 분수 물리 효과와 30개의 황금 스파크 폭사 이펙트가 발현됩니다.
+                    <li><strong>중앙 장치 스폰 즉시 충돌 소멸(0초 삭제) 결함 완파:</strong>
+                        기존에 플레이어의 비밀방 진입 워프 스폰 위치와 글리치 디바이스의 스폰 위치가 똑같이 <code>(400, 300)</code>으로 완전히 동일하여, 들어가자마자 1프레임째의 물리 충돌 연산에 잡혀 즉각 소멸하던 버그를 해결했습니다. 플레이어 진입 Y 좌표를 <b>하단 웰컴 영역인 <code>450</code>으로 격리 보정</b>하여 중앙 장치를 직접 확인하고 수동으로 상호작용하도록 완벽 개선했습니다.
                     </li>
-                    <li><strong>확정 최고 등급 3택 1 카드 오버레이 트리거 결합:</strong>
-                        황금 보물 상자 개방 시, 확정적으로 <b>Rare 등급 또는 Epic/Legendary 등급 이상의 강력한 무기/장비 3택 1 카드 오버레이</b>를 전체화면에 팝업시켜 미로를 탐험한 플레이어에게 파격적인 보상을 지급합니다.
-                    </li>
-                    <li><strong>보상 선택/상점 UI 가동 중 이동 및 조작 완전 차단 (Input Lock):</strong>
-                        3택 1 카드 획득 화면, 대형 획득 카드 확인 모달, 자판기 구매 수령 팝업이 떠 있는 동안 키보드 입력(WASD, 방향키)을 즉시 락 무력화하여 백그라운드 오동작과 예기치 못한 중복 조작을 원천적으로 완벽 차단했습니다.
+                    <li><strong>비밀방 내 장애물(NeonObstacle) 원천 스폰 방지:</strong>
+                        비밀방 내부에서는 어떠한 방해물이나 장애물도 소환되지 않도록 격자 장애물 생성 엔진 가드(<code>!enteringSecretRoom</code>)를 완벽 수혈하여, 보물 거래와 피의 계약을 진행하는 어둡고 쾌적한 암시장 고유의 환경 공간을 보장합니다.
                     </li>
                 </ul>
             </div>
 
             <div class="tech-tags">
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Secret Wall</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Hidden Chest</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Gold Fountain</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Input Lock</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Secret portal Fix</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Overlap Collision</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Obstacle Guard</span>
+            </div>
+        </div>
+
+        <!-- v0.96 (히든 비밀방 리뉴얼 및 3종 확률형 보상, 그리고 조작 먹통 핫픽스 완료) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🌌 v0.96
+                    <span class="badge badge-stable"
+                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">비밀방
+                        리뉴얼 & 핫픽스 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-30 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 히든 비밀방(Glitch Secret Room) 대규모 개편, 상호작용형
+                    확률 보상(꽝/코인/체력 암시장) 및 TypeError 핫픽스 (Changelog v0.96)</div>
+                <ul>
+                    <li><strong>비밀 벽의 완전 은닉 및 얇은 테마 렌더링:</strong>
+                        기존의 비밀방 벽 뒷편 밀실에 소환되어 우측 하단 밖으로 노출되던 <code>HiddenChest</code> 황금 상자 오브젝트를 제거하여 사전 위치 스포일러 누출을
+                        완벽하게 차단했습니다.
+                        평소(0회 타격)에는 비밀방 벽이 완전히 보이지 않는 투명 상태로 은닉되며, 플레이어가 발사한 무기에 피격될 때만 약 2px 두께의 벽 테마 사각형 외곽선으로 은밀하게
+                        활성화됩니다.
+                        3회 이상 피격 시 보랏빛 글리치 지지직 효과가 발현되며, 10회 피격 완료 시 벽이 통째로 파괴되고 비밀방 포털이 무작위 위치에 동적으로 생성되도록 개선했습니다.
+                    </li>
+                    <li><strong>비밀방 4방향 무작위 균등 스폰 정밀화:</strong>
+                        맵의 중앙 격자 장애물들과의 안전 거리 마진을 85px로 확장하여, 상/하/좌/우 외곽 벽면 네 곳 중 10%의 확률로 편중 없이 완전히 무작위하고 균등하게 비밀방 문이
+                        스폰되도록 난수 배치를 전면 정교화했습니다.
+                    </li>
+                    <li><strong>비밀방 몬스터 0마리 연출 오작동 및 보상 중복 차단:</strong>
+                        비밀방 진입 시 몬스터가 0마리로 판정되어 발생하던 일반 방 청소 완료 상자 스폰 및 소탕 가이드가 작동하는 로직을
+                        방지(<code>!this.inSecretRoom</code>)하여 불필요한 보상 중복 획득 결함을 차단했습니다.
+                        상단에 비밀방 전용 안내 텍스트("비밀방의 보상을 획득하고 탈출하세요!")가 동적으로 제공됩니다.
+                    </li>
+                    <li><strong>비밀방 상호작용 글리치 장치(SecretGlitchDevice) 및 3종 확률 보상 시스템:</strong>
+                        비밀방의 중앙에 황금빛 명멸이 아닌 보랏빛 글리치 홀로그램으로 진동하는 신규 장치 <code>SecretGlitchDevice</code>를 추가했습니다.
+                        플레이어가 이 장치를 직접 들이받아 상호작용할 때, 다음의 3가지 확률 보상이 강력하게 작용합니다.
+                        <br>• <b>꽝 (50% 확률)</b>: 아무런 보상이 주어지지 않고 "꽝입니다!" 이펙트와 함께 파편 소멸.
+                        <br>• <b>네온코인 드롭 (35% 확률)</b>: 다량의 네온코인이 바닥으로 통통 튀며 사방으로 뿜어져 나옵니다.
+                        <br>• <b>체력 계약 상점 (15% 확률)</b>: 플레이어의 최대 체력을 15 깎는(<code>Max HP -15</code>) 대신 레전더리급 무기나 파격적인 옵션
+                        보상을 제시하는 암시장 자판기가 즉시 그 자리에 특수 스폰됩니다.
+                        상호작용 성공 즉시 비밀방을 나갈 수 있는 탈출용 보랏빛 소용돌이 포털이 즉각 강제 활성화됩니다.
+                    </li>
+                    <li><strong>조작 불능(방향키 및 사격 먹통) TypeError 핫픽스 완치:</strong>
+                        1차 패치 이후 기존 <code>HiddenChest</code>를 소거하면서 발생했던 <code>this.hiddenChests</code> 잔재 변수 호출
+                        크래시(TypeError: Cannot read properties of undefined (reading 'length'))를 완벽하게 찾아내어 영구 제거했습니다.
+                        엔진 업데이트 루프(<code>update</code>) 및 충돌 감지 로직의 3군데 잔재를 완전히 도려내어, 게임 진입 시의 방향키 이동 마비 및 마우스 조준/사격 불능
+                        결함을 완벽히 핫픽스했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Glitch
+                    Secret Wall</span>
+                <span class="tech-tag"
+                    style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">SecretGlitchDevice</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Contract
+                    Vending</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">TypeError
+                    Hotfix</span>
+            </div>
+        </div>
+
+        <!-- v0.95 (미로 탐색 및 비밀 보물상자 파밍 빌드) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🗺️ v0.95
+                    <span class="badge badge-stable"
+                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">미로
+                        탐색 & 파밍 기믹 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-28 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🧱 비밀 균열 벽 타격 파괴 및 🎁 숨겨진 황금 상자 20코인 드롭 분수
+                    물리
+                    (Changelog v0.95)</div>
+                <ul>
+                    <li><strong>비밀 균열 벽 (Secret Wall) 지형 물리 및 근접 파괴 기믹 구현:</strong>
+                        일반 방 진입 시 20%의 확률로 구석진 지형(막다른 코너 등)에 사각형 지형 충돌 박스(40px x 40px)를 지닌 네온 균열 벽이 스폰됩니다.
+                        이 균열 벽은 일반 총탄이나 마법으로는 부술 수 없고, 오직 <b>물리 근접 공격 (검 베기 Sword Slash 또는 창 찌르기 Spear Stab 투사체)</b>으로
+                        3회 피격 시에만 파괴됩니다.
+                        피격 시 쩍쩍 갈라지는 백색 네온 스케일링이 작렬하며, 완파 시 돌 깨짐 파편 파티클 12개가 뿜어져 나오고 지형 락이 해제되어 통로가 열립니다.
+                    </li>
+                    <li><strong>숨겨진 황금 보물 상자 (Hidden Chest) 파밍 대폭발 구현:</strong>
+                        비밀 균열 벽 바로 뒷밀실 공간에 영롱하게 명멸하는 황금빛 상자가 스폰됩니다. 플레이어가 이 상자와 접촉하는 순간 황금 코인 <b>20 🪙</b>이 사방으로 통통 튀며
+                        드롭되는 스프링 분수 물리 효과와 30개의 황금 스파크 폭사 이펙트가 발현됩니다.
+                    </li>
+                    <li><strong>확정 최고 등급 3택 1 카드 오버레이 트리거 결합:</strong>
+                        황금 보물 상자 개방 시, 확정적으로 <b>Rare 등급 또는 Epic/Legendary 등급 이상의 강력한 무기/장비 3택 1 카드 오버레이</b>를 전체화면에 팝업시켜
+                        미로를 탐험한 플레이어에게 파격적인 보상을 지급합니다.
+                    </li>
+                    <li><strong>보상 선택/상점 UI 가동 중 이동 및 조작 완전 차단 (Input Lock):</strong>
+                        3택 1 카드 획득 화면, 대형 획득 카드 확인 모달, 자판기 구매 수령 팝업이 떠 있는 동안 키보드 입력(WASD, 방향키)을 즉시 락 무력화하여 백그라운드 오동작과
+                        예기치 못한 중복 조작을 원천적으로 완벽 차단했습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Secret
+                    Wall</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Hidden
+                    Chest</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Gold
+                    Fountain</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Input
+                    Lock</span>
             </div>
         </div>
 
