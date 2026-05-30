@@ -847,7 +847,7 @@ class Player {
         this.maxStamina = 100;
         this.stamina = 100;
         this.atk = 10;          // 힘 (공격 데미지)
-        this.aspd = 1.0;        // 지능 (초당 공격 속도)
+        this.aspd = 1.2;        // 지능 (초당 공격 속도)
         this.ms = 3.2;          // 이동속도
         this.evd = 0.05;        // 민첩 (회피율 5%)
         this.luk = 1.0;         // 운 (보상 가중 확률)
