@@ -2624,15 +2624,25 @@ class GameEngine {
             this.keys[e.key.toLowerCase()] = false;
         });
 
-        // 마우스 조준 방향 계산을 위해 캔버스 기준 상대 좌표 획득
-        this.canvas.addEventListener('mousemove', (e) => {
+        // [수정] 마우스가 캔버스 바깥 영역으로 나가도 조준이 끊김 없이 부드럽게 갱신되도록 window 전체에 바인딩
+        window.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
-            // 화면 스케일에 상관없이 정확한 캔버스 내 조준점 확보
+            // 화면 스케일에 상관없이 정확한 캔버스 기준 상대 조준점 확보 (바깥 영역 투영 가능)
             this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             this.mouse.y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
         });
 
-        this.canvas.addEventListener('mousedown', (e) => {
+        // [수정] 캔버스 바깥 검은 영역을 클릭해도 정상 사격이 되도록 window에 mousedown 바인딩
+        window.addEventListener('mousedown', (e) => {
+            // 버튼, 슬라이더, 또는 HUD 오버레이 영역을 클릭 시 사격이 중복 격발되는 오동작 차단 가드 적용
+            if (e.target) {
+                const targetTagName = e.target.tagName;
+                if (targetTagName === 'INPUT' || targetTagName === 'BUTTON' || targetTagName === 'SELECT' || 
+                    e.target.closest('.overlay-panel') || e.target.closest('#hud-header') || e.target.closest('#hud-footer')) {
+                    return;
+                }
+            }
+            
             if (e.button === 0) { // 마우스 좌클릭
                 this.mouse.isDown = true;
                 Sound.init(); // 브라우저 자동 재생 규정 우회
@@ -3003,9 +3013,9 @@ class GameEngine {
         }
 
         // [Phase 7 신규 구현] 비밀 균열 벽 스폰 (기본 10% 확률로 완화 + 치트 연동)
-        // 보스방(10의 배수)이나 첫 시작방(roomNum === 1)은 스폰하지 않음
+        // 보스방(10의 배수), 첫 시작방(roomNum === 1), 또는 비밀방 안(inSecretRoom)에서는 절대 스폰하지 않음
         let shouldSpawnSecret = false;
-        if (this.roomNum % 10 !== 0 && this.roomNum > 1 && !enteringSecretRoom) {
+        if (this.roomNum % 10 !== 0 && this.roomNum > 1 && !enteringSecretRoom && !this.inSecretRoom) {
             if (this.forceSecretWallNextRoom) {
                 shouldSpawnSecret = true;
                 this.forceSecretWallNextRoom = false; // 치트 소모
@@ -6388,18 +6398,19 @@ class GameEngine {
         // [비전투 휴식방 안내 텍스트] 첫 방이나 몬스터가 전부 끝났을 때 안내 팝업
         if (this.monsters.length === 0 && this.spawnQueue.length === 0) {
             this.ctx.save();
-            this.ctx.font = '600 13px "Outfit"';
+            this.ctx.font = '600 14px "Outfit"'; // 시인성 개선을 위해 14px로 소폭 상향
             this.ctx.fillStyle = '#39ff14';
             this.ctx.textAlign = 'center';
             this.ctx.shadowBlur = 10;
             this.ctx.shadowColor = '#39ff14';
             
+            // [결함 완치] Y좌표를 275에서 중앙 오브젝트와 절대 겹치지 않는 상단 공간인 130으로 상향 보정!
             if (this.roomNum === 1 && this.kills === 0) {
-                this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", 400, 275);
+                this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", 400, 130);
             } else if (this.inSecretRoom) {
-                this.ctx.fillText("🔮 글리치 보너스 틈새 방에 도달했습니다. 중앙의 장치를 조작하여 보상을 확인하세요.", 400, 275);
+                this.ctx.fillText("🔮 글리치 보너스 틈새 방에 도달했습니다. 중앙의 장치를 조작하여 보상을 확인하세요.", 400, 130);
             } else {
-                this.ctx.fillText("방 소탕 완료! 원하는 문으로 들어가서 탈출을 향해 전진하세요.", 400, 275);
+                this.ctx.fillText("방 소탕 완료! 원하는 문으로 들어가서 탈출을 향해 전진하세요.", 400, 130);
             }
             this.ctx.restore();
         }
