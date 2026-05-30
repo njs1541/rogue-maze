@@ -1599,7 +1599,7 @@ input:checked + .cheat-switch-slider:before {
 
 /* 랭킹 팝업 모달 박스 */
 .ranking-modal-container {
-    width: 650px;
+    width: 720px; /* 리더보드 가로폭을 720px로 확장하여 공간을 더욱 넉넉히 확보 */
     max-width: 95%;
     background: rgba(8, 10, 18, 0.92);
     border: 2px solid #ffdf00; /* 황금 트로피 랭킹 테마 */
@@ -1632,17 +1632,26 @@ input:checked + .cheat-switch-slider:before {
 /* 랭킹 테이블 스타일 */
 .ranking-table th {
     font-weight: 800;
-    padding: 12px 8px;
+    padding: 12px 6px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-size: 0.85rem;
+    white-space: nowrap; /* 헤더 텍스트 줄바꿈 방지 */
 }
 
 .ranking-table td {
-    padding: 12px 8px;
+    padding: 12px 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     font-weight: 500;
     vertical-align: middle;
+    white-space: nowrap; /* 셀 텍스트 줄바꿈 방지 */
+}
+
+/* Date 영역(마지막 열)은 명시적인 <br> 태그에 의해 2줄로 렌더링되도록 white-space 해제 */
+.ranking-table th:last-child,
+.ranking-table td:last-child {
+    white-space: normal !important;
+    line-height: 1.3;
 }
 
 /* 테이블 각 행 호버 */

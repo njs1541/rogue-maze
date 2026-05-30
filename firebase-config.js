@@ -181,7 +181,9 @@ class NeonRankSystem {
                     let dateStr = "";
                     if (data.timestamp) {
                         const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
-                        dateStr = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        const monthDay = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                        const time = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                        dateStr = `${monthDay}<br>${time}`;
                     } else {
                         dateStr = "방금 전";
                     }
@@ -256,7 +258,9 @@ class NeonRankSystem {
 
             return localData.slice(0, limitCount).map(data => {
                 const date = new Date(data.timestamp);
-                const dateStr = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const monthDay = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                const time = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = `${monthDay}<br>${time}`;
                 return {
                     name: data.name,
                     score: data.score,
@@ -281,7 +285,9 @@ class NeonRankSystem {
             // 로컬 임시 데이터 포맷팅
             const formattedLocal = localData.map(data => {
                 const date = new Date(data.timestamp);
-                const dateStr = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const monthDay = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                const time = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = `${monthDay}<br>${time}`;
                 return {
                     name: data.name,
                     score: data.score,
