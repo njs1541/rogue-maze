@@ -3195,7 +3195,11 @@ class GameEngine {
     // 마력 풀 충전 시 발동 가능한 플레이어 장착 마법 특수기
     triggerMagicSkill() {
         if (this.player.magicType === 'explosion') {
-            if (this.player.mp < this.player.maxMp) return;
+            // [개선] 100% 전체 소모가 아닌 고정 100 MP 이상 시 시전 가능
+            if (this.player.mp < 100) {
+                this.showFloatingText("NEED 100+ MP", this.player.x, this.player.y - 20, '#ff0055');
+                return;
+            }
 
             // [신규 기획] Mana Helm 5레벨 돌파: 20% 확률로 마나 무료 시전!
             let isFreeMana = false;
@@ -3204,9 +3208,9 @@ class GameEngine {
                 this.showFloatingText("FREE MANA CAST!", this.player.x, this.player.y - 30, '#00f0ff');
             }
 
-            // 마력 소모 및 화면 초토화 흔들림
+            // [개선] 마력 100 MP 고정 차감 (maxMp가 크면 연속 시전 가능)
             if (!isFreeMana) {
-                this.player.mp = 0;
+                this.player.mp = Math.max(0, this.player.mp - 100);
             }
             this.shakeScreen(40, 10);
             Sound.play('explosion');
@@ -3248,9 +3252,9 @@ class GameEngine {
                 return;
             }
 
-            // 활성화 시도 (마력이 50% 이상일 때만 발동 가능)
-            if (this.player.mp < 50) {
-                this.showFloatingText("NEED 50+ MP", this.player.x, this.player.y - 20, '#ff0055');
+            // [개선] 50 MP가 아닌 100 MP 이상일 때 발동 가능하게 밸런스 상향 일치
+            if (this.player.mp < 100) {
+                this.showFloatingText("NEED 100+ MP", this.player.x, this.player.y - 20, '#ff0055');
                 return;
             }
             
@@ -5464,7 +5468,7 @@ class GameEngine {
         let mpTextStr = `${Math.ceil(this.player.mp)} / ${this.player.maxMp}`;
         if (this.timeDilationActive) {
             mpTextStr = "🔮 TIME WARPING...";
-        } else if (this.player.mp >= this.player.maxMp) {
+        } else if (this.player.mp >= 100) { // [개선] maxMp 대신 고정치인 100 MP 기준으로 READY 상태 판단
             mpTextStr = this.player.magicType === 'timeWarp' ? "🔮 WARP READY (SPACE)" : "READY (SPACEBAR)";
         }
         document.getElementById('mp-text').innerText = mpTextStr;
