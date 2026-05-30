@@ -153,8 +153,8 @@ class NeonRankSystem {
         }
     }
 
-    // 랭킹 목록 조회 메소드 (기본 10명 반환)
-    async getTopRankings(limitCount = 10) {
+    // 랭킹 목록 조회 메소드 (기본 10명 반환, 로컬 랭킹 병합 여부 인수 보강)
+    async getTopRankings(limitCount = 10, includeLocal = true) {
         this.init();
 
         const collectionName = this.getCurrentCollectionName();
@@ -198,12 +198,15 @@ class NeonRankSystem {
                     });
                 });
 
-                // [변경] 파이어베이스 통신이 정상적으로 완료되었다면 로컬 랭킹을 병합하지 않고
-                // 오직 파이어베이스 온라인 데이터 기준으로만 정렬하여 반환합니다.
+                // [변경] 파이어베이스 통신이 정상적으로 완료되었다면 랭킹 정렬
                 rankings.sort((a, b) => b.score - a.score || b.room - a.room);
 
-                // 최종 limitCount로 슬라이싱하여 반환
-                return rankings.slice(0, limitCount);
+                // 로컬 랭킹 포함 여부에 따라 분기하여 반환
+                if (includeLocal) {
+                    return this.mergeWithLocal(rankings, limitCount);
+                } else {
+                    return rankings.slice(0, limitCount);
+                }
             } catch (error) {
                 console.error("❌ Firestore 랭킹 읽기 실패. 로컬 저장소 데이터를 출력합니다:", error);
                 return this.getLocalRankings(limitCount);

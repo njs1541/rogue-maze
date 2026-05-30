@@ -2720,6 +2720,18 @@ class GameEngine {
                 this.hideLeaderboard();
             });
         }
+
+        // [신규] 리더보드 모달 필터 전환 버튼 이벤트 바인딩
+        const filterBtns = document.querySelectorAll('.rank-filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filterType = btn.getAttribute('data-filter');
+                const includeLocal = (filterType === 'all');
+                
+                // 필터링된 데이터 재호출 및 리더보드 다시 렌더링
+                this.showLeaderboard(includeLocal);
+            });
+        });
     }
 
     // 게임 시작 시 초기화
@@ -6467,8 +6479,8 @@ class GameEngine {
         }
     }
 
-    // [신규] 리더보드 모달 열기 및 실시간 렌더링
-    async showLeaderboard() {
+    // [신규] 리더보드 모달 열기 및 실시간 렌더링 (로컬 랭킹 포함 여부 인수 보완)
+    async showLeaderboard(includeLocal = true) {
         const overlay = document.getElementById('ranking-modal-overlay');
         const loading = document.getElementById('ranking-loading');
         const empty = document.getElementById('ranking-empty');
@@ -6484,9 +6496,19 @@ class GameEngine {
         table.classList.add('hidden');
         tbody.innerHTML = "";
 
+        // 필터 버튼들의 UI 상태 동기화 (all: 로컬 포함, online: 온라인만)
+        const filterBtns = document.querySelectorAll('.rank-filter-btn');
+        filterBtns.forEach(btn => {
+            if (btn.getAttribute('data-filter') === (includeLocal ? 'all' : 'online')) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
         try {
             // 전역 랭킹 시스템에서 Top 10 정보 로드
-            const rankings = await window.RankSystem.getTopRankings(10);
+            const rankings = await window.RankSystem.getTopRankings(10, includeLocal);
 
             if (rankings.length === 0) {
                 loading.classList.add('hidden');
@@ -6512,7 +6534,7 @@ class GameEngine {
                     else if (rankNum === 3) rankBadge = `<span class="rank-badge badge-3">🥉 3위</span>`;
 
                     // 로컬 임시 데이터 표시용 뱃지
-                    const localBadgeHtml = rank.isLocalTemp ? `<span class="local-temp-badge">SYNC PENDING</span>` : "";
+                    const localBadgeHtml = rank.isLocalTemp ? `<span class="local-temp-badge">로컬 랭킹</span>` : "";
 
                     tr.innerHTML = `
                         <td style="padding: 12px 5px; font-weight: 800;">${rankBadge}</td>

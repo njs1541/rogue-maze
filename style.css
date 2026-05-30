@@ -1764,4 +1764,48 @@ input:checked + .cheat-switch-slider:before {
     z-index: 2000 !important;
 }
 
+/* ==========================================================================
+   [신규 추가] 랭킹 리더보드 필터 전환용 프리미엄 네온 스타일
+   ========================================================================== */
+.ranking-filter-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.rank-filter-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a0aec0;
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 7px 22px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    outline: none;
+}
+
+.rank-filter-btn:hover {
+    color: #edf2f7;
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.rank-filter-btn.active[data-filter="all"] {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.35), inset 0 0 8px rgba(0, 240, 255, 0.1);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.rank-filter-btn.active[data-filter="online"] {
+    border-color: var(--neon-purple);
+    color: var(--neon-purple);
+    box-shadow: 0 0 15px rgba(176, 38, 255, 0.35), inset 0 0 8px rgba(176, 38, 255, 0.1);
+    background: rgba(176, 38, 255, 0.05);
+}
+
 
