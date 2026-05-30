@@ -196,14 +196,12 @@ class NeonRankSystem {
                     });
                 });
 
-                // 온라인 랭킹과 로컬 랭킹 병합
-                const merged = this.mergeWithLocal(rankings, 100);
-
-                // 클라이언트 사이드에서 동일 점수 처리를 위한 2차 병합 정렬 수행 (방 도달 desc 추가)
-                merged.sort((a, b) => b.score - a.score || b.room - a.room);
+                // [변경] 파이어베이스 통신이 정상적으로 완료되었다면 로컬 랭킹을 병합하지 않고
+                // 오직 파이어베이스 온라인 데이터 기준으로만 정렬하여 반환합니다.
+                rankings.sort((a, b) => b.score - a.score || b.room - a.room);
 
                 // 최종 limitCount로 슬라이싱하여 반환
-                return merged.slice(0, limitCount);
+                return rankings.slice(0, limitCount);
             } catch (error) {
                 console.error("❌ Firestore 랭킹 읽기 실패. 로컬 저장소 데이터를 출력합니다:", error);
                 return this.getLocalRankings(limitCount);
