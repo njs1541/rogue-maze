@@ -1867,6 +1867,7 @@ class NeonCoin {
         this.color = '#ffdf00'; // 황금색 네온
         this.pulse = Math.random() * 10;
         this.friction = 0.95; // 통통 튕기고 정지하는 마찰력
+        this.isAttractedToPlayer = false; // [신규 기믹] 보상 상자 획득 시 전체 흡입 플래그
     }
 
     update(player, timeDilationActive) {
@@ -1892,16 +1893,28 @@ class NeonCoin {
             pullRadius = 1000; 
         }
 
-        if (dist < pullRadius) {
-            // 흡입 세기 계산 (시간 왜곡 시 엄청 빠른 흡입력 부여, 평소에는 적정 속도)
-            let pullForce = timeDilationActive ? 12.0 : 4.0;
+        // 보상 상자를 먹었을 때의 강제 전체 흡입 상태이거나 자석 범위 내에 있을 경우
+        if (this.isAttractedToPlayer || dist < pullRadius) {
+            // [버그 수정] 초근접(40px 미만) 도달 시 오르비팅(공전)과 터널링을 완전히 막기 위해 LERP 강제 유도 적용
+            if (dist < 40) {
+                this.x += (player.x - this.x) * 0.45;
+                this.y += (player.y - this.y) * 0.45;
+                this.vx = 0;
+                this.vy = 0;
+                return;
+            }
+
+            // 강제 흡입 상태일 때는 최고 가속도와 속도를 주어 번개처럼 날아가도록 세팅
+            let pullForce = this.isAttractedToPlayer ? 18.0 : (timeDilationActive ? 12.0 : 4.0);
+            
             // 거리 비례 가속
             let angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
             this.vx += Math.cos(angleToPlayer) * pullForce * 0.15;
             this.vy += Math.sin(angleToPlayer) * pullForce * 0.15;
+            
             // 속도 상한선 제한 (초광속 방지 및 자연스러움)
             let currentSpeed = Math.hypot(this.vx, this.vy);
-            let maxSpeed = timeDilationActive ? 15.0 : 6.0;
+            let maxSpeed = this.isAttractedToPlayer ? 22.0 : (timeDilationActive ? 15.0 : 6.0);
             if (currentSpeed > maxSpeed) {
                 this.vx = (this.vx / currentSpeed) * maxSpeed;
                 this.vy = (this.vy / currentSpeed) * maxSpeed;
@@ -2479,6 +2492,11 @@ class GameEngine {
         this.bossWarningTimer = 0; // [v0.95] 보스 출현 테두리 경보 타이머
         this.gameClearActive = false; // [v0.95] 최종 클리어 중복 방지 플래그
         
+        // [신규 기믹] 보상 상자 획득 후 카드 선택 오버레이 활성화 지연 타이머 시스템
+        this.rewardSelectorDelayTimer = -1;
+        this.rewardSelectorIsFromHiddenChest = false;
+        this.roomRewardSpawned = false; // [신규] 방 클리어 보상 스폰 유일성 플래그
+        
         // 엔티티 관리 리스트
         this.player = new Player(400, 300);
         this.monsters = [];
@@ -2837,6 +2855,7 @@ class GameEngine {
         // 스폰 제어 변수들 다음 방 진입 대비 리셋
         this.spawnedInRoom = 0;
         this.method2DelayDone = false;
+        this.roomRewardSpawned = false; // [신규] 다음 방 진입 시 보상 스폰 플래그 리셋
 
         // [글리치 비밀방 층수 룰 적용] 비밀방에 들어설 때는 roomNum(층수)을 올리지 않고 동결!
         if (enteringSecretRoom) {
@@ -3349,6 +3368,15 @@ class GameEngine {
         // 레이어 팝업이 활성화되어 있으면 즉시 루프를 리턴 차단하여 물리적인 시간을 완벽하게 얼려버립니다.
         if (isOverlayOpen) {
             return;
+        }
+
+        // [신규 기믹] 보상 상자 획득 시 3선택1 카드 보상창 팝업 지연 연출 업데이트
+        if (this.rewardSelectorDelayTimer > 0) {
+            this.rewardSelectorDelayTimer--;
+            if (this.rewardSelectorDelayTimer === 0) {
+                this.rewardSelectorDelayTimer = -1;
+                this.triggerRewardSelector(this.rewardSelectorIsFromHiddenChest);
+            }
         }
 
         this.player.update();
@@ -4291,7 +4319,8 @@ class GameEngine {
             // 모든 적 소탕 시점에 보상 스폰 (안전실인 1방 초기 시작 상태는 제외, 비밀방 제외)
             if ((this.roomNum > 1 || this.kills > 0) && !this.inSecretRoom) {
                 // 아직 보상 오브젝트가 생성되지 않은 상태일 때 (방금 몬스터 격퇴 완료된 시점)
-                if (this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
+                if (!this.roomRewardSpawned && this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
+                    this.roomRewardSpawned = true; // [버그 수정] 단 1회 보상 스폰 즉시 잠금
                     
                     // A. 코인 정산 연산 (수정 2: 퍼펙트 보상 30% 하향 적용)
                     let baseCoins = this.currentSpawnTotal * 2;
@@ -4424,8 +4453,14 @@ class GameEngine {
                 }
                 Sound.play('victory');
                 
-                // 3택1 카드 오버레이 트리거 해금
-                this.triggerRewardSelector();
+                // [신규 기믹] 보상 상자 획득 시 맵 상의 모든 네온코인을 플레이어에게 즉시 끌어당김
+                this.coinsList.forEach(coin => {
+                    coin.isAttractedToPlayer = true;
+                });
+
+                // 바로 카드 오버레이를 띄우지 않고 45프레임(약 0.75초) 지연 후 트리거되도록 딜레이 시스템 활성화
+                this.rewardSelectorDelayTimer = 45;
+                this.rewardSelectorIsFromHiddenChest = false;
                 
                 // 상자 삭제
                 this.rewardChests.splice(i, 1);

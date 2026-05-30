@@ -338,15 +338,51 @@
     <div class="container">
         <div class="timeline-line"></div>
 
-        <!-- v0.97 (네온 암시장 비밀방 진입 복구 및 디바이스 겹침 소멸 결함 완벽 해결) -->
+        <!-- v0.98 (보상 획득 네온코인 쇄도 연출 및 버그 2종 완파) -->
         <div class="timeline-card card-active">
             <div class="timeline-marker"></div>
 
             <div class="card-header">
                 <div class="version-title">
-                    🌌 v0.97
+                    🌌 v0.98
                     <span class="badge badge-active"
-                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">네온 암시장 진입 환경 복구 (Active)</span>
+                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">보상 획득 네온코인 쇄도 & 버그 완파 (Active)</span>
+                </div>
+                <div class="date-text">2026-05-30 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 방 클리어 보상 상자 획득 시 네온코인 전원 쇄도 흡입 및 버그 2종 완파 (Changelog v0.98)</div>
+                <ul>
+                    <li><strong>보상 획득 시 맵 코인 쇄도 자석 기믹 및 0.75초 연출 지연:</strong>
+                        맵 중앙의 보상 상자를 획득하는 즉시 오버레이로 시간 정지가 되는 어색함을 해소하기 위해, 획득 순간 맵 상의 모든 코인의 흡입 플래그(<code>isAttractedToPlayer = true</code>)를 작동시켰습니다. 또한 <b>45프레임(약 0.75초)의 지연 타이머</b>를 탑재하여 코인들이 쇄도하는 연출을 귀와 눈으로 감상한 뒤 카드 선택 오버레이가 자연스럽게 팝업되도록 개선했습니다.
+                    </li>
+                    <li><strong>오르비팅(공전) 및 터널링 물리 결함 완파 (렉 박멸):</strong>
+                        코인의 강제 흡입 최대 속도(<code>22.0</code>)가 너무 빨라 충돌 반경을 건너뜀(Tunneling)으로써 플레이어 주변을 무한 공전(Orbiting)하며 물리 계산 렉을 유발하던 현상을 해결했습니다. 코인과 플레이어 거리가 <b>40px 미만</b>으로 도달하는 극초근접 시 물리 관성을 끄고 LERP 선형 보정(<code>this.x += (player.x - this.x) * 0.45;</code>)을 주어 1~2프레임 내에 무조건 플레이어 품으로 유연하게 흡착되게 하여 렉을 완전히 영구 박멸했습니다.
+                    </li>
+                    <li><strong>보상 상자 및 자판기 45프레임 지연 중 중복 무한 스폰 오류 원천 차단:</strong>
+                        보상을 먹고 오버레이가 뜨기까지 45프레임 동안 스폰 조건이 매 프레임 격발되어 상자와 코인이 복제되던 오류를 해결하기 위해 방 단위 일회성 스폰 확인용 <b><code>this.roomRewardSpawned</code> 플래그 안전장치</b>를 이식했습니다. 방 스폰 즉시 <code>true</code>로 잠겨 지연 프레임 중 중복 스폰이 완벽하게 방지되었습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">LERP Magnet</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Delay Trigger</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Spawn Lock</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Orbiting Fix</span>
+            </div>
+        </div>
+
+        <!-- v0.97 (네온 암시장 비밀방 진입 복구 및 디바이스 겹침 소멸 결함 완벽 해결) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🌌 v0.97
+                    <span class="badge badge-stable"
+                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">네온 암시장 진입 환경 복구 (Stable)</span>
                 </div>
                 <div class="date-text">2026-05-30 (완료)</div>
             </div>
