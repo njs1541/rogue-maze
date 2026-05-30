@@ -338,39 +338,94 @@
     <div class="container">
         <div class="timeline-line"></div>
 
-        <!-- v0.98 (보상 획득 네온코인 쇄도 연출 및 버그 2종 완파) -->
+        <!-- v0.99 (마법 스킬 혁신적 밸런싱 및 전역 입력/UI 겹침 완벽 청소) -->
         <div class="timeline-card card-active">
             <div class="timeline-marker"></div>
 
             <div class="card-header">
                 <div class="version-title">
-                    🌌 v0.98
+                    🌌 v0.99
                     <span class="badge badge-active"
-                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">보상 획득 네온코인 쇄도 & 버그 완파 (Active)</span>
+                        style="background: rgba(0, 240, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(0, 240, 255, 0.3);">마법 스킬 혁신 밸런싱 & UI/UX 결함 완파 (Active)</span>
                 </div>
                 <div class="date-text">2026-05-30 (완료)</div>
             </div>
 
             <div class="change-category">
-                <div class="category-title" style="color: var(--neon-cyan);">🌌 방 클리어 보상 상자 획득 시 네온코인 전원 쇄도 흡입 및 버그 2종 완파 (Changelog v0.98)</div>
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 마법 스킬 혁신적 밸런싱(시나리오 A) 및 전역 조작/UI 겹침 영구 완치 (Changelog v0.99)</div>
                 <ul>
-                    <li><strong>보상 획득 시 맵 코인 쇄도 자석 기믹 및 0.75초 연출 지연:</strong>
-                        맵 중앙의 보상 상자를 획득하는 즉시 오버레이로 시간 정지가 되는 어색함을 해소하기 위해, 획득 순간 맵 상의 모든 코인의 흡입 플래그(<code>isAttractedToPlayer = true</code>)를 작동시켰습니다. 또한 <b>45프레임(약 0.75초)의 지연 타이머</b>를 탑재하여 코인들이 쇄도하는 연출을 귀와 눈으로 감상한 뒤 카드 선택 오버레이가 자연스럽게 팝업되도록 개선했습니다.
+                    <li><strong>마법 스킬 고정 마나 소모(-100 MP) 및 발동 조건 통일 (시나리오 A):</strong>
+                        기본 마법(<code>explosion</code>) 시전 시 최대 마나(<code>maxMp</code>)가 확장될수록 손해를 보던 100% 전량 삭감 결함을 고치고, <b>100 MP 고정 차감 방식</b>으로 완벽하게 전환했습니다. 이로써 최대 마나를 200 이상 확보 시 2연속 난사가 가능해져 장비(Helm) 업그레이드 성장 쾌감을 대폭 강화했습니다. 시간 왜곡(<code>timeWarp</code>)의 발동 기준 또한 <b>100 MP</b>로 상향 통일하여 UI 가이드 READY 타이밍과 논리를 일치시켰습니다.
                     </li>
-                    <li><strong>오르비팅(공전) 및 터널링 물리 결함 완파 (렉 박멸):</strong>
-                        코인의 강제 흡입 최대 속도(<code>22.0</code>)가 너무 빨라 충돌 반경을 건너뜀(Tunneling)으로써 플레이어 주변을 무한 공전(Orbiting)하며 물리 계산 렉을 유발하던 현상을 해결했습니다. 코인과 플레이어 거리가 <b>40px 미만</b>으로 도달하는 극초근접 시 물리 관성을 끄고 LERP 선형 보정(<code>this.x += (player.x - this.x) * 0.45;</code>)을 주어 1~2프레임 내에 무조건 플레이어 품으로 유연하게 흡착되게 하여 렉을 완전히 영구 박멸했습니다.
+                    <li><strong>휴식방/비밀방 안내 텍스트 겹침 결함 완치:</strong>
+                        비밀방 진입 가이드 및 일반 방 소탕 완료 텍스트가 맵 중앙(<code>Y=275</code>)에 그려져 중앙 상자, 글리치 디바이스, 상점 자판기 등과 난잡하게 겹쳐지던 UI/UX 결함을 해결했습니다. Y좌표를 <b>상단 안전 공간인 <code>130</code>으로 대폭 상향 보정</b>하고 글씨 크기를 14px로 확장하여 최적의 가독성을 제공합니다.
                     </li>
-                    <li><strong>보상 상자 및 자판기 45프레임 지연 중 중복 무한 스폰 오류 원천 차단:</strong>
-                        보상을 먹고 오버레이가 뜨기까지 45프레임 동안 스폰 조건이 매 프레임 격발되어 상자와 코인이 복제되던 오류를 해결하기 위해 방 단위 일회성 스폰 확인용 <b><code>this.roomRewardSpawned</code> 플래그 안전장치</b>를 이식했습니다. 방 스폰 즉시 <code>true</code>로 잠겨 지연 프레임 중 중복 스폰이 완벽하게 방지되었습니다.
+                    <li><strong>맵 외곽 바깥 영역 마우스 사격 및 조준 전역 확장:</strong>
+                        마우스 사격(<code>mousedown</code>) 및 조준(<code>mousemove</code>) 감지 대상 범위를 캔버스에서 <b><code>window</code> 전역으로 전격 확장</b>했습니다. 맵 외곽의 검은색 빈 영역을 클릭하더라도 공격이 중단 없이 시원하게 작동하며, 마우스가 화면 끝으로 나가더라도 끊김 없이 360도 실시간 연장 조준이 작동하도록 타격 편의성을 극대화했습니다. (버튼 및 HUD 영역 클릭 시 난사 방지 가드 탑재)
+                    </li>
+                    <li><strong>비밀방 내 중복 비밀방 생성 원천 차단:</strong>
+                        비밀방 안에서 다시 비밀방으로 통하는 균열 지형이 포개어져 생성되는 시스템적 꼬임 및 무한 루프 위험을 차단하기 위해 <b><code>!this.inSecretRoom</code> 이중 안전 가드</b>를 정교하게 믹스인했습니다.
+                    </li>
+                    <li><strong>다중 모달/오버레이 중복 토글 및 겹침 노출 완치:</strong>
+                        네온 암시장 모달(<code>secret-shop-overlay</code>) 활성화 시 게임 물리 일시정지가 누락되던 결함을 완치하고, 오버레이 상태 조회 헬퍼 함수(<code>checkAnyOverlayOpenExcept</code>)를 신설했습니다. 이를 통해 Spacebar(스킬), P키(치트), Escape키(옵션), HUD ⚙️ OPTION 버튼 클릭 시 다른 모달이 켜져 있는 동안 화면이 여러 겹으로 중복 노출되던 고질적인 UI 겹침 버그를 완전히 박멸했습니다.
                     </li>
                 </ul>
             </div>
 
             <div class="tech-tags">
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">LERP Magnet</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Delay Trigger</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Spawn Lock</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Orbiting Fix</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Flat MP Cost</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Text Align Y</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Window Mouse Event</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Double Spawn Guard</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Overlay Pause Fix</span>
+            </div>
+        </div>
+
+        <!-- v0.98 (보상 획득 네온코인 쇄도 연출 및 버그 2종 완파) -->
+        <div class="timeline-card card-stable-2">
+            <div class="timeline-marker"></div>
+
+            <div class="card-header">
+                <div class="version-title">
+                    🌌 v0.98
+                    <span class="badge badge-stable"
+                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">보상 획득 네온코인 쇄도 & 버그 완파 (Stable)</span>
+                </div>
+                <div class="date-text">2026-05-30 (완료)</div>
+            </div>
+
+            <div class="change-category">
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 방 클리어 보상 상자 획득 시 네온코인 전원 쇄도 흡입 및 버그 2종
+                    완파 (Changelog v0.98)</div>
+                <ul>
+                    <li><strong>보상 획득 시 맵 코인 쇄도 자석 기믹 및 0.75초 연출 지연:</strong>
+                        맵 중앙의 보상 상자를 획득하는 즉시 오버레이로 시간 정지가 되는 어색함을 해소하기 위해, 획득 순간 맵 상의 모든 코인의 흡입
+                        플래그(<code>isAttractedToPlayer = true</code>)를 작동시켰습니다. 또한 <b>45프레임(약 0.75초)의 지연 타이머</b>를 탑재하여
+                        코인들이 쇄도하는 연출을 귀와 눈으로 감상한 뒤 카드 선택 오버레이가 자연스럽게 팝업되도록 개선했습니다.
+                    </li>
+                    <li><strong>오르비팅(공전) 및 터널링 물리 결함 완파 (렉 박멸):</strong>
+                        코인의 강제 흡입 최대 속도(<code>22.0</code>)가 너무 빨라 충돌 반경을 건너뜀(Tunneling)으로써 플레이어 주변을 무한 공전(Orbiting)하며 물리
+                        계산 렉을 유발하던 현상을 해결했습니다. 코인과 플레이어 거리가 <b>40px 미만</b>으로 도달하는 극초근접 시 물리 관성을 끄고 LERP 선형
+                        보정(<code>this.x += (player.x - this.x) * 0.45;</code>)을 주어 1~2프레임 내에 무조건 플레이어 품으로 유연하게 흡착되게 하여
+                        렉을 완전히 영구 박멸했습니다.
+                    </li>
+                    <li><strong>보상 상자 및 자판기 45프레임 지연 중 중복 무한 스폰 오류 원천 차단:</strong>
+                        보상을 먹고 오버레이가 뜨기까지 45프레임 동안 스폰 조건이 매 프레임 격발되어 상자와 코인이 복제되던 오류를 해결하기 위해 방 단위 일회성 스폰 확인용
+                        <b><code>this.roomRewardSpawned</code> 플래그 안전장치</b>를 이식했습니다. 방 스폰 즉시 <code>true</code>로 잠겨 지연
+                        프레임 중 중복 스폰이 완벽하게 방지되었습니다.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tech-tags">
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">LERP
+                    Magnet</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Delay
+                    Trigger</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Spawn
+                    Lock</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Orbiting
+                    Fix</span>
             </div>
         </div>
 
@@ -382,30 +437,40 @@
                 <div class="version-title">
                     🌌 v0.97
                     <span class="badge badge-stable"
-                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">네온 암시장 진입 환경 복구 (Stable)</span>
+                        style="background: rgba(176, 38, 255, 0.1); color: var(--neon-purple); border: 1px solid rgba(176, 38, 255, 0.3);">네온
+                        암시장 진입 환경 복구 (Stable)</span>
                 </div>
                 <div class="date-text">2026-05-30 (완료)</div>
             </div>
 
             <div class="change-category">
-                <div class="category-title" style="color: var(--neon-cyan);">🌌 네온 암시장(비밀방) 진입 환경 복구 및 디바이스 겹침 소멸 결함 완벽 해결 (Changelog v0.97)</div>
+                <div class="category-title" style="color: var(--neon-cyan);">🌌 네온 암시장(비밀방) 진입 환경 복구 및 디바이스 겹침 소멸 결함 완벽
+                    해결 (Changelog v0.97)</div>
                 <ul>
                     <li><strong>비밀방 차원 포털 맵 진입 인식 결함 완벽 해결:</strong>
-                        <code>RoomPortal</code> 클래스에서 <code>'secret'</code> 타입 포털 초기화 시 <code>portalType</code> 속성이 <code>'weapon'</code>으로 강제 고정 맵핑되어, 암시장 비밀방(secret_room)으로 가지 않고 일반 무기 방으로 오판되던 핵심 로직 결함을 <code>'secret_room'</code>으로 매핑 수정하여 정상 복구하였습니다.
+                        <code>RoomPortal</code> 클래스에서 <code>'secret'</code> 타입 포털 초기화 시 <code>portalType</code> 속성이
+                        <code>'weapon'</code>으로 강제 고정 맵핑되어, 암시장 비밀방(secret_room)으로 가지 않고 일반 무기 방으로 오판되던 핵심 로직 결함을
+                        <code>'secret_room'</code>으로 매핑 수정하여 정상 복구하였습니다.
                     </li>
                     <li><strong>중앙 장치 스폰 즉시 충돌 소멸(0초 삭제) 결함 완파:</strong>
-                        기존에 플레이어의 비밀방 진입 워프 스폰 위치와 글리치 디바이스의 스폰 위치가 똑같이 <code>(400, 300)</code>으로 완전히 동일하여, 들어가자마자 1프레임째의 물리 충돌 연산에 잡혀 즉각 소멸하던 버그를 해결했습니다. 플레이어 진입 Y 좌표를 <b>하단 웰컴 영역인 <code>450</code>으로 격리 보정</b>하여 중앙 장치를 직접 확인하고 수동으로 상호작용하도록 완벽 개선했습니다.
+                        기존에 플레이어의 비밀방 진입 워프 스폰 위치와 글리치 디바이스의 스폰 위치가 똑같이 <code>(400, 300)</code>으로 완전히 동일하여, 들어가자마자
+                        1프레임째의 물리 충돌 연산에 잡혀 즉각 소멸하던 버그를 해결했습니다. 플레이어 진입 Y 좌표를 <b>하단 웰컴 영역인 <code>450</code>으로 격리
+                            보정</b>하여 중앙 장치를 직접 확인하고 수동으로 상호작용하도록 완벽 개선했습니다.
                     </li>
                     <li><strong>비밀방 내 장애물(NeonObstacle) 원천 스폰 방지:</strong>
-                        비밀방 내부에서는 어떠한 방해물이나 장애물도 소환되지 않도록 격자 장애물 생성 엔진 가드(<code>!enteringSecretRoom</code>)를 완벽 수혈하여, 보물 거래와 피의 계약을 진행하는 어둡고 쾌적한 암시장 고유의 환경 공간을 보장합니다.
+                        비밀방 내부에서는 어떠한 방해물이나 장애물도 소환되지 않도록 격자 장애물 생성 엔진 가드(<code>!enteringSecretRoom</code>)를 완벽 수혈하여, 보물
+                        거래와 피의 계약을 진행하는 어둡고 쾌적한 암시장 고유의 환경 공간을 보장합니다.
                     </li>
                 </ul>
             </div>
 
             <div class="tech-tags">
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Secret portal Fix</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Overlap Collision</span>
-                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Obstacle Guard</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Secret
+                    portal Fix</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Overlap
+                    Collision</span>
+                <span class="tech-tag" style="color: var(--neon-cyan); border-color: rgba(0, 240, 255, 0.3);">Obstacle
+                    Guard</span>
             </div>
         </div>
 
