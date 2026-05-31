@@ -2618,7 +2618,14 @@ class GameEngine {
             }
 
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
-            if (e.key === 'o') {
+            if (e.key === 'o' || e.key === 'O') {
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                    return;
+                }
+                if (!this.isPlaying || this.checkAnyOverlayOpen()) {
+                    return;
+                }
                 this.roomNum = 99;
                 this.monsters = [];
                 this.spawnQueue = [];
