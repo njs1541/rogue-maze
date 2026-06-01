@@ -54,9 +54,10 @@
                     <div class="guide-item"><span>Mouse Left Click</span> 일반 공격 (연사)</div>
                     <div class="guide-item"><span>Spacebar</span> 마력 특수기 (광역 폭발)</div>
                 </div>
-                <div style="display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 480px; margin-top: 15px;">
-                    <button id="start-btn" class="neon-btn" style="flex: 1; margin: 0;">게임 시작</button>
-                    <button id="main-leaderboard-btn" class="neon-btn" style="flex: 1; margin: 0; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 리더보드</button>
+                <div style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 560px; margin-top: 15px; flex-wrap: nowrap;">
+                    <button id="start-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem;">게임 시작</button>
+                    <button id="main-codex-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇 카드 도감</button>
+                    <button id="main-leaderboard-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 리더보드</button>
                 </div>
             </div>
         </div>
@@ -273,9 +274,18 @@
                             <span id="volume-bgm-val" class="slider-val text-glow-green">50%</span>
                         </div>
                     </div>
+
+                    <!-- [성능 최적화] 저사양 모드 (Glow 효과 끄기) 추가 -->
+                    <div class="option-group" style="flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px; margin-top: 15px;">
+                        <label for="perf-low-spec" class="option-label" style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <span>⚡ 성능 최적화 모드 (Glow 끄기)</span>
+                        </label>
+                        <input type="checkbox" id="perf-low-spec" style="width: 20px; height: 20px; cursor: pointer; accent-color: #00f0ff;">
+                    </div>
                 </div>
                 
                 <div class="option-actions">
+                    <button id="option-codex-btn" class="neon-btn" style="border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇 카드 도감</button>
                     <button id="option-restart-btn" class="neon-btn danger">🔄 게임 재시작</button>
                     <button id="option-close-btn" class="neon-btn">닫기 (Close)</button>
                 </div>
@@ -362,9 +372,14 @@
                                 <button class="cheat-wpn-btn" data-wpn="gun">🔫 총 (Gun)</button>
                                 <button class="cheat-wpn-btn" data-wpn="sword">🪓 검 (Sword)</button>
                                 <button class="cheat-wpn-btn" data-wpn="dual">⚔️ 복합 (Dual)</button>
+                                <button class="cheat-wpn-btn" data-wpn="spear">🔱 창 (Spear)</button>
+                                <button class="cheat-wpn-btn" data-wpn="whip">🧣 채찍 (Whip)</button>
                                 <button class="cheat-wpn-btn" data-wpn="lightning">⚡ 번개마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="fire">🔥 불마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="ice">❄️ 얼음마법</button>
+                                <button class="cheat-wpn-btn" data-wpn="thorns">🌵 가시 (Thorns)</button>
+                                <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
+                                <button class="cheat-wpn-btn" data-wpn="trap">🪤 함정 (Trap)</button>
                             </div>
                         </div>
                         
@@ -502,6 +517,35 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [신규] 실시간 네온 카드 도감(Codex) 모달 오버레이 -->
+    <div id="card-codex-overlay" class="overlay-panel hidden">
+        <div class="ranking-modal-container">
+            <div class="ranking-modal-header">
+                <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📇 NEON CARD CODEX 📇</h2>
+                <span id="codex-modal-close" class="cheat-close">&times;</span>
+            </div>
+            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">미로에서 획득 가능한 모든 무기/장비/스탯 카드 정보</p>
+            
+            <!-- 탭 필터 버튼 -->
+            <div class="ranking-filter-container">
+                <button class="codex-filter-btn codex-tab-btn active" data-tab="weapon">⚔️ 무기 10종</button>
+                <button class="codex-filter-btn codex-tab-btn" data-tab="equipment">🛡️ 장비 10종</button>
+                <button class="codex-filter-btn codex-tab-btn" data-tab="status">🔋 캐릭터 스탯</button>
+            </div>
+            
+            <!-- 스크롤 가능한 카드 그리드 영역 -->
+            <div class="ranking-list-container" style="min-height: 320px; max-height: 420px; overflow-y: auto; width: 100%; padding: 10px; display: block;">
+                <div id="codex-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%;">
+                    <!-- JS로 동적 생성 -->
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="codex-modal-close-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">닫기 (Close)</button>
             </div>
         </div>
     </div>

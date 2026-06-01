@@ -1,0 +1,1208 @@
+﻿diff --git a/game.js b/game.js
+index 85c1319..0e53ab5 100644
+--- a/game.js
++++ b/game.js
+@@ -910,6 +910,10 @@ class Player {
+         this.isSlashActive = false; // ?꾩옱 寃 踰좉린 紐⑥뀡???붾㈃??洹몃젮吏??以묒씤媛?
+         this.slashAngle = 0;        // 踰좉린 ?좊땲硫붿씠?섏슜 媛곷룄
+         this.slashRadius = 45;      // 寃 踰좉린 臾쇰━ ?꾨떖 諛섍꼍
++        this.isSpearActive = false; // ?꾩옱 李?李뚮Ⅴ湲?紐⑥뀡???붾㈃??洹몃젮吏??以묒씤媛?
++        this.spearTimer = 0;        // 李?李뚮Ⅴ湲?吏???꾨젅????대㉧
++        this.spearAngle = 0;        // 李?李뚮Ⅴ湲?媛곷룄
++        this.spearAngles = [];      // ?ㅼ쨷 李?李뚮Ⅴ湲?媛곷룄??         
+         // ?뚰뵾 ?깃났 ?쇰뱶諛??곗텧 (遺됱????붿긽)
+         this.evadeActive = false;
+@@ -1049,6 +1053,14 @@ class Player {
+             }
+         }
+ 
++        // 李?李뚮Ⅴ湲?紐⑥뀡 ??대㉧ 愿由?(吏?띿떆媛?8?꾨젅??
++        if (this.isSpearActive) {
++            this.spearTimer--;
++            if (this.spearTimer <= 0) {
++                this.isSpearActive = false;
++            }
++        }
++
+         // ?뚰뵾 ?붿긽 ?좊땲硫붿씠??愿由?         if (this.evadeActive) {
+             this.evadeTimer--;
+@@ -1151,26 +1163,68 @@ class Player {
+ 
+         ctx.restore();
+ 
+-        // 3. 寃???섎몢瑜대뒗 紐⑥뀡 ?곗텧 (移??μ갑 ???꾪겕 ?뚮뜑留?
++        // 3. 寃/梨꾩컢???섎몢瑜대뒗 紐⑥뀡 ?곗텧 (踰좉린 ?쒖꽦????沅ㅼ쟻 ?뚮뜑留?
+         if (this.isSlashActive) {
+             ctx.save();
+             ctx.translate(this.x, this.y);
+             
+-            // 寃 踰좉린 寃湲???Arc) ?쒕줈??(媛곷룄??議곗? 諛⑺뼢 湲곗? 諛섏썝 -70??~ +70???ㅼ쐲)
+-            ctx.beginPath();
+-            let start = this.slashAngle - 1.2;
+-            let end = this.slashAngle + 1.2;
+-            ctx.arc(0, 0, this.slashRadius, start, end);
++            let isWhip = this.weaponType === 'whip';
++            let color = isWhip ? 'rgba(255, 0, 170, 0.85)' : 'rgba(176, 38, 255, 0.85)';
++            let shadowColor = isWhip ? '#ff00aa' : '#b026ff';
++            let radius = isWhip ? (this.weaponUnlocks.whip.range ? 220 : 150) : this.slashRadius;
+             
+-            ctx.strokeStyle = 'rgba(176, 38, 255, 0.85)';
+-            ctx.lineWidth = 6 * (this.slashTimer / 10); // ?쒓컙???먮??섎줉 ?좎씠 ?뉗븘吏?-            ctx.shadowBlur = 15;
+-            ctx.shadowColor = '#b026ff';
+-            ctx.stroke();
++            let drawAngles = this.slashAngles && this.slashAngles.length > 0 ? this.slashAngles : [this.slashAngle];
++            for (let angle of drawAngles) {
++                ctx.beginPath();
++                let start = angle - 1.2;
++                let end = angle + 1.2;
++                ctx.arc(0, 0, radius, start, end);
++                
++                ctx.strokeStyle = color;
++                ctx.lineWidth = (isWhip ? 4 : 6) * (this.slashTimer / 10);
++                ctx.shadowBlur = 15;
++                ctx.shadowColor = shadowColor;
++                ctx.stroke();
++            }
+             
+             ctx.restore();
+         }
+ 
++        // 4. 李쎌쓣 李뚮Ⅴ??紐⑥뀡 ?곗텧 (李뚮Ⅴ湲??쒖꽦????吏곸꽑 ?뚮뜑留?
++        if (this.isSpearActive) {
++            ctx.save();
++            let drawAngles = this.spearAngles && this.spearAngles.length > 0 ? this.spearAngles : [this.spearAngle];
++            let targetRange = this.range;
++            if (this.weaponUnlocks.spear.range) targetRange += 40;
++            
++            let color = 'rgba(0, 240, 255, 0.95)';
++            let shadowColor = '#00f0ff';
++            
++            for (let angle of drawAngles) {
++                ctx.beginPath();
++                ctx.moveTo(this.x, this.y);
++                
++                let tx = this.x + Math.cos(angle) * targetRange;
++                let ty = this.y + Math.sin(angle) * targetRange;
++                ctx.lineTo(tx, ty);
++                
++                ctx.strokeStyle = color;
++                ctx.lineWidth = 5 * (this.spearTimer / 8);
++                ctx.shadowBlur = 15;
++                ctx.shadowColor = shadowColor;
++                ctx.stroke();
++                
++                // 李??앸?遺???媛뺤“ (移섎챸? 吏???쒓컖??
++                ctx.beginPath();
++                ctx.arc(tx, ty, 6, 0, Math.PI * 2);
++                ctx.fillStyle = '#ffffff';
++                ctx.shadowBlur = 15;
++                ctx.shadowColor = '#00f0ff';
++                ctx.fill();
++            }
++            ctx.restore();
++        }
++
+         ctx.restore();
+     }
+ }
+@@ -3194,128 +3248,97 @@ class GameEngine {
+                 let spawnCoords = this.getSpawnCoordinates(randomDir);
+                 this.spawnQueue.push({
+                     size: 1,
+-                    x: spawnCoords.x,
+-                    y: spawnCoords.y,
+-                    delay: 20,
+-                    forceElite: true // ?섎━???띿꽦 ?뚰솚 ?좊룄
+-                });
+-            }
+-        }
+-        
+-        // 1留덈━ ~ 5留덈━ ?ъ씠??紐ъ뒪????Pac) ?⑥쐞濡??뚮웾 履쇨컻???ㅽ룿 ?먯뿉 ?댁븘 ?쒖감 異쒗쁽
+-        while (remainingToSpawn > 0) {
+-            let pacSize = Math.floor(Math.random() * 5) + 1; // 1~5留덈━
+-            pacSize = Math.min(pacSize, remainingToSpawn);
+-            
+-            // 3怨??낃뎄 以?臾댁옉??諛⑺뼢 1怨??좏깮
+-            let randomDir = spawnDirections[Math.floor(Math.random() * spawnDirections.length)];
+-            let spawnCoords = this.getSpawnCoordinates(randomDir);
+-
+-            this.spawnQueue.push({
+-                size: pacSize,
+-                x: spawnCoords.x,
+-                y: spawnCoords.y,
+-                delay: 30 // 30?꾨젅??媛꾧꺽 (??0.5珥?二쇨린濡??쒖감 ?ㅽ룿?섎룄濡??곗옣)
+-            });
+-
+-            remainingToSpawn -= pacSize;
+-        }
+-
+-        this.spawnTimer = 0;
+-    }
+-
+-    // 諛⑺뼢蹂??뺥솗???ㅽ룿 ?쒖옉 醫뚰몴 ?띾뱷
+-    getSpawnCoordinates(direction) {
+-        // 臾??낃뎄??以묒븰 遺洹?醫뚰몴
+-        if (direction === 'top') return { x: 400, y: 55 };
+-        if (direction === 'bottom') return { x: 400, y: 525 };
+-        if (direction === 'left') return { x: 55, y: 300 };
+-        return { x: 725, y: 300 }; // right
+-    }
+-
+-    // 留??꾨젅?꾨쭏???ㅽ룿 ?먯뿉??紐ъ뒪????臾띠쓬??肉쒖뼱?닿린
+-    processSpawnQueue() {
+-        if (this.spawnQueue.length === 0) return;
+-
+-        // [3李??쇰뱶諛? 諛⑹떇 3: 10留덈━ ?댁긽 ?ㅽ룿?섎㈃ ?뺤??섍퀬 ??泥섏튂?섎㈃ ?뚰솚 ?ш컻
+-        if (this.spawnMethod === 3 && this.spawnedInRoom >= 10) {
+-            // ?꾨뱶??紐ъ뒪?곌? ?꾨? ?뚰깢???뚭퉴吏 ?ㅼ쓬 ???ㅽ룿??蹂대쪟(?뺤?)
+-            if (this.monsters.length > 0) {
+-                return; // ?뺤? ?곹깭 ?좎?
+-            } else {
+-                // ?곸씠 ?꾨? ?뚰깢?섏뿀?쇰?濡??대쾲 諛??ㅽ룿 ?꾩쟻 留덈━?섎? 由ъ뀑?섏뿬 ?ㅼ쓬 ?ㅽ룿 ?쒖꽦??-                this.spawnedInRoom = 0;
+-            }
+-        }
+-
+-        this.spawnTimer++;
+-        
+-        let currentPac = this.spawnQueue[0];
+-        if (this.spawnTimer >= currentPac.delay) {
+-            // ?대쾲 二쇨린 紐ъ뒪???뚰솚
+-            for (let i = 0; i < currentPac.size; i++) {
+-                // ?뚰솚 ?⑹뼱吏???쓣 ???볤쾶 ?ㅼ젙?섏뿬 怨쇰룄??萸됱묠 諛⑹? (80px 諛섍꼍 遺꾩궛)
+-                let rx = currentPac.x + (Math.random() * 80 - 40);
+-                let ry = currentPac.y + (Math.random() * 80 - 40);
+-                
+-                // 5媛?諛⑸쭏??紐ъ뒪???깃툒 ?곗뼱 ?곸듅 怨꾩궛??-                let currentTier = Math.floor((this.roomNum - 1) / 5) + 1;
+-                let enemy = new Monster(rx, ry, currentTier, this.roomNum);
+-
+-                // 媛뺤젣 ?섎━??紐ъ뒪??泥섎━
+-                if (currentPac.forceElite) {
+-                    enemy.makeElite();
+-                }
+-                
+-                this.monsters.push(enemy);
+-
+-                // ?뚰솚?섎뒗 臾??낃뎄 ?ㅽ뙆???뚰떚???④낵 ?곗텧
+-                for (let k = 0; k < 6; k++) {
+-                    let angle = Math.random() * Math.PI * 2;
+-                    let speed = Math.random() * 2 + 1;
+-                    this.particles.push(new Particle(rx, ry, enemy.color, 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 25));
++                    x: spawnCoords.x,                else if (this.player.burstType === 'whip') {
++                    // [W-02 梨꾩컢(Whip) ?먯궗/?쒕Т 利됰컻 ?곗냽 寃⑸컻 泥섎━]
++                    this.player.isSlashActive = true;
++                    this.player.slashTimer = 12;
++                    this.player.slashAngle = this.player.angle;
++                    this.player.slashAngles = [...this.player.burstBulletsToLaunch];
++                    
++                    for (let angle of this.player.burstBulletsToLaunch) {
++                        for (let i = -5; i <= 5; i++) {
++                            let offset = angle + (i * 0.15);
++                            let px = this.player.x + Math.cos(offset) * 25;
++                            let py = this.player.y + Math.sin(offset) * 25;
++                            let vx = Math.cos(offset) * 2;
++                            let vy = Math.sin(offset) * 2;
++                            this.particles.push(new Particle(px, py, '#ff00aa', 2, vx, vy, 15, 'slashWave'));
++                        }
++                    }
++                    Sound.play('slash');
++                    this.shakeScreen(4, 1.5);
++                    
++                    // 利됰컻 洹몃옪/湲곗젅 ?寃??ㅽ뻾
++                    this.triggerWhipInstantAttack(this.player.burstBulletsToLaunch);
+                 }
+-            }
+-
+-            // ?ㅽ룿??紐ъ뒪??媛쒖닔瑜?移댁슫?곗뿉 湲곕줉
+-            this.spawnedInRoom += currentPac.size;
+-
+-            // [3李??쇰뱶諛? 諛⑹떇 2: 10留덈━ ?ㅽ룿 ?꾨떖 ???ㅼ쓬 ?뚰솚 ??대컢???꾩떆 2珥?120?꾨젅??濡?吏??-            if (this.spawnMethod === 2 && this.spawnedInRoom >= 10 && !this.method2DelayDone) {
+-                // ?꾩옱 ??대㉧瑜?-90?쇰줈 ?밴꺼?? ?ㅼ쓬 ?뚰솚源뚯? 120?꾨젅??2珥???嫄몃━?꾨줉 媛뺤젣 吏??-                this.spawnTimer = -90; 
+-                this.method2DelayDone = true; // 吏??癒뱀엫 泥섎━
+-            } else {
+-                this.spawnTimer = 0;
+-            }
+-
+-            // ?대쾲 ?ㅽ룿 ???꾨즺 泥섎━ 諛??먯뿉???쒓굅
+-            this.spawnQueue.shift();
+-            
+-            // ?뚰솚 ?쇰뱶諛??붾㈃ 吏꾨룞
+-            this.shakeScreen(5, 2);
+-        }
+-    }
+-
+-    // 留덈젰 ? 異⑹쟾 ??諛쒕룞 媛?ν븳 ?뚮젅?댁뼱 ?μ갑 留덈쾿 ?뱀닔湲?-    triggerMagicSkill() {
+-        if (this.player.magicType === 'explosion') {
+-            // [媛쒖꽑] 100% ?꾩껜 ?뚮え媛 ?꾨땶 怨좎젙 100 MP ?댁긽 ???쒖쟾 媛??-            if (this.player.mp < 100) {
+-                this.showFloatingText("NEED 100+ MP", this.player.x, this.player.y - 20, '#ff0055');
+-                return;
+-            }
+-
+-            // [?좉퇋 湲고쉷] Mana Helm 5?덈꺼 ?뚰뙆: 20% ?뺣쪧濡?留덈굹 臾대즺 ?쒖쟾!
+-            let isFreeMana = false;
+-            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+-                isFreeMana = true;
+-                this.showFloatingText("FREE MANA CAST!", this.player.x, this.player.y - 30, '#00f0ff');
+-            }
+-
+-            // [媛쒖꽑] 留덈젰 100 MP 怨좎젙 李④컧 (maxMp媛 ?щ㈃ ?곗냽 ?쒖쟾 媛??
+-            if (!isFreeMana) {
+-                this.player.mp = Math.max(0, this.player.mp - 100);
++                else if (this.player.burstType === 'sword' || this.player.burstType === 'spear') {
++                    // 寃/李??쒕Т 寃⑸컻
++                    let isSpear = this.player.burstType === 'spear';
++                    if (isSpear) {
++                        this.player.isSpearActive = true;
++                        this.player.spearTimer = 8;
++                        this.player.spearAngle = this.player.angle;
++                        this.player.spearAngles = [...this.player.burstBulletsToLaunch];
++                        
++                        for (let angle of this.player.burstBulletsToLaunch) {
++                            for (let i = 0; i < 6; i++) {
++                                let distOffset = i * 8;
++                                let px = this.player.x + Math.cos(angle) * distOffset;
++                                let py = this.player.y + Math.sin(angle) * distOffset;
++                                let vx = Math.cos(angle) * 3;
++                                let vy = Math.sin(angle) * 3;
++                                this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
++                            }
++                        }
++                        Sound.play('slash');
++                        this.shakeScreen(4, 1.8);
++                        
++                        // 利됰컻 李뚮Ⅴ湲??寃??ㅽ뻾
++                        this.triggerSpearInstantAttack(this.player.burstBulletsToLaunch);
++                    } else {
++                        this.player.isSlashActive = true;
++                        this.player.slashTimer = 12;
++                        this.player.slashAngle = this.player.angle;
++                        this.player.slashAngles = [...this.player.burstBulletsToLaunch];
++                        
++                        Sound.play('slash');
++                        this.shakeScreen(5, 2.5);
++ 
++                        for (let angle of this.player.burstBulletsToLaunch) {
++                            for (let i = -5; i <= 5; i++) {
++                                let offset = angle + (i * 0.15);
++                                let px = this.player.x + Math.cos(offset) * 25;
++                                let py = this.player.y + Math.sin(offset) * 25;
++                                let vx = Math.cos(offset) * 2;
++                                let vy = Math.sin(offset) * 2;
++                                this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
++                            }
++                        }
++                    }
++ 
++                    let synergyMult = this.checkBuildSynergy('sword');
++                    let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
++                    let baseMult = isSpear ? 1.35 : 1.2;
++                    let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
++ 
++                    // 寃湲??뚮룞 諛쒖궗 (?ㅼ쭅 寃??wave 吏꾪솕 ?닿툑 ?쒖뿉留?諛쒓꺽)
++                    if (!isSpear && this.player.weaponUnlocks.sword.wave) {
++                        for (let angle of this.player.burstBulletsToLaunch) {
++                            let speed = 6.0;
++                            let vx = Math.cos(angle) * speed;
++                            let vy = Math.sin(angle) * speed;
++                            
++                            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
++                                pierce: Math.min(5, this.player.pierceCount + 1), 
++                                homing: this.player.homing,
++                                homingSpeed: this.player.homingAngleSpeed,
++                                splash: this.player.splashRadius,
++                                color: '#b026ff',
++                                radius: 5
++                            }));
++                        }
++                    }
++                } Math.max(0, this.player.mp - 100);
+             }
+             this.shakeScreen(40, 10);
+             Sound.play('explosion');
+@@ -5345,7 +5368,7 @@ class GameEngine {
+         let isLightning = this.player.weaponType === 'lightning';
+         let isFire = this.player.weaponType === 'fire';
+         let isIce = this.player.weaponType === 'ice';
+-        let isWhip = this.player.weaponType === 'whip';
++        let isWhip = false;
+         let isDual = this.player.weaponType === 'dual';
+         
+         // 踰덇컻/遺??쇱쓬 留덈쾿 寃⑸컻 ??留덈젰(MP) ?뚮え 諛??붾웾 李⑤떒 泥댄겕
+@@ -5509,7 +5532,370 @@ class GameEngine {
+     }
+ 
+     // 洹쇱젒 寃 踰좉린 諛?李?李뚮Ⅴ湲?硫붿빱?덉쬁
++    // [?좉퇋 湲고쉷] 梨꾩컢 利됰컻 踰좉린 諛?寃ъ씤/湲곗젅 臾쇰━ 異⑸룎 ?먯젙
++    triggerWhipInstantAttack(anglesToLaunch) {
++        let isWhip = this.player.weaponType === 'whip';
++        if (!isWhip) return;
++        
++        let whipRadius = this.player.weaponUnlocks.whip.range ? 220 : 150;
++        
++        let synergyMult = this.checkBuildSynergy('gun');
++        let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
++        let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
++        
++        let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
++        let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
++        
++        let baseDmg = this.player.atk * 0.75;
++        let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
++
++        for (let i = this.monsters.length - 1; i >= 0; i--) {
++            let m = this.monsters[i];
++            let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
++            
++            if (dist < whipRadius + m.radius) {
++                let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
++                let inWhipArc = false;
++                
++                for (let angle of anglesToLaunch) {
++                    let angleDiff = Math.abs(targetAngle - angle);
++                    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
++                    if (Math.abs(angleDiff) < 1.1) {
++                        inWhipArc = true;
++                        break;
++                    }
++                }
++                
++                if (inWhipArc) {
++                    // 寃ъ씤 ?꾩튂 怨꾩궛 (?뚮젅?댁뼱 ??35px)
++                    let pullAngle = this.player.angle;
++                    let pullX = this.player.x + Math.cos(pullAngle) * 35;
++                    let pullY = this.player.y + Math.sin(pullAngle) * 35;
++                    
++                    m.x = pullX;
++                    m.y = pullY;
++                    
++                    const wallMargin = 40;
++                    m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
++                    m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
++                    
++                    m.statusEffects.shock = 90; // 1.5珥?湲곗젅
++                    m.flashTimer = 8;
++                    
++                    if (this.player.weaponUnlocks.whip.haste) {
++                        this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
++                        this.player.whipSpeedTimer = 180;
++                        this.showFloatingText(`GRAB PULL! ?볩툘 HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
++                    } else {
++                        this.showFloatingText(`GRAB PULL! ?볩툘`, this.player.x, this.player.y - 30, '#ff00aa');
++                    }
++
++                    if (this.player.weaponUnlocks.whip.break) {
++                        m.statusEffects.vulnerability = Math.max(m.statusEffects.vulnerability || 0, 300);
++                    }
++                    
++                    if (this.player.weaponUnlocks.whip.shock) {
++                        let splashRadius = 60;
++                        let splashDmg = finalDamage * 0.4;
++                        this.particles.push(new Particle(m.x, m.y, '#ff00aa', splashRadius, 0, 0, 15, 'explosionRing'));
++                        
++                        for (let k = this.monsters.length - 1; k >= 0; k--) {
++                            let otherM = this.monsters[k];
++                            if (otherM !== m) {
++                                let sDist = Math.hypot(otherM.x - m.x, otherM.y - m.y);
++                                if (sDist < splashRadius + otherM.radius) {
++                                    otherM.hp -= splashDmg;
++                                    otherM.statusEffects.shock = 90;
++                                    otherM.flashTimer = 8;
++                                    this.showFloatingText(`SPLASH -${Math.ceil(splashDmg)}`, otherM.x, otherM.y - 20, '#ff00aa');
++                                    
++                                    if (otherM.hp <= 0) {
++                                        this.killMonster(otherM, k);
++                                        if (k < i) i--;
++                                    }
++                                }
++                            }
++                        }
++                    }
++                    
++                    for (let k = 0; k < 8; k++) {
++                        let rAngle = Math.random() * Math.PI * 2;
++                        let rSpeed = Math.random() * 4 + 2;
++                        this.particles.push(new Particle(m.x, m.y, '#ff00aa', 2, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 15, 'spark'));
++                    }
++                    
++                    m.hp -= finalDamage;
++                    if (m.hp <= 0) {
++                        this.killMonster(m, i);
++                    }
++                }
++            }
++        }
++    }
++
++    // [?좉퇋 湲고쉷] 李?利됰컻 李뚮Ⅴ湲?諛??앸?遺?Tip) 移섎챸? 臾쇰━ 異⑸룎 ?먯젙
++    triggerSpearInstantAttack(anglesToLaunch) {
++        let isSpear = this.player.weaponType === 'spear';
++        if (!isSpear) return;
++        
++        let spearRange = this.player.range;
++        if (this.player.weaponUnlocks.spear.range) spearRange += 40;
++        
++        let synergyMult = this.checkBuildSynergy('sword');
++        let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
++        let weaponDmg = this.player.atk * 1.35 * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
++        
++        let px = this.player.x;
++        let py = this.player.y;
++
++        for (let angle of anglesToLaunch) {
++            let cosA = Math.cos(angle);
++            let sinA = Math.sin(angle);
++            
++            let hits = [];
++            for (let i = this.monsters.length - 1; i >= 0; i--) {
++                let m = this.monsters[i];
++                let mx = m.x;
++                let my = m.y;
++                
++                let dx = mx - px;
++                let dy = my - py;
++                let t = (dx * cosA * spearRange + dy * sinA * spearRange) / (spearRange * spearRange);
++                t = Math.max(0, Math.min(1, t));
++                
++                let tx = px + t * cosA * spearRange;
++                let ty = py + t * sinA * spearRange;
++                
++                let distToLine = Math.hypot(mx - tx, my - ty);
++                
++                if (distToLine < m.radius + 6) {
++                    let distToPlayer = Math.hypot(mx - px, my - py);
++                    hits.push({ index: i, monster: m, distance: distToPlayer, t: t });
++                }
++            }
++            
++            hits.sort((a, b) => a.distance - b.distance);
++            
++            let maxPierce = Math.min(5, this.player.pierceCount + 2);
++            let allowedHits = hits.slice(0, maxPierce + 1);
++            
++            for (let hit of allowedHits) {
++                let m = hit.monster;
++                let idx = hit.index;
++                let distToPlayer = hit.distance;
++                
++                let isSpearTip = false;
++                let finalDmg = weaponDmg;
++                
++                if (distToPlayer >= spearRange * 0.80 && this.player.weaponUnlocks.spear.tip) {
++                    finalDmg *= 2.0;
++                    isSpearTip = true;
++                }
++                
++                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
++                
++                let hasShattered = false;
++                if (m.isFrozenActive > 0 && this.player.weaponUnlocks.ice.shatter) {
++                    if (Math.random() < 0.3) {
++                        finalDmg *= 3.0;
++                        hasShattered = true;
++                        m.isFrozenActive = 0;
++                        m.statusEffects.shock = 0;
++                    }
++                }
++                
++                m.hp -= finalDmg;
++                m.flashTimer = 5;
++                
++                let kbForce = this.player.weaponUnlocks.spear.knockback ? 12.0 : 7.5;
++                m.knockbackX = cosA * kbForce;
++                m.knockbackY = sinA * kbForce;
++                
++                if (isSpearTip) {
++                    this.showFloatingText("??SPEAR-TIP CRITICAL! ??, m.x, m.y - 35, '#00f0ff');
++                    this.shakeScreen(8, 3.8);
++                }
++                
++                if (hasShattered) {
++                    this.showFloatingText("?꾬툘 FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
++                    this.shakeScreen(12, 5.0);
++                    Sound.play('explosion');
++                    
++                    for (let k = 0; k < 12; k++) {
++                        let rAngle = Math.random() * Math.PI * 2;
++                        let rSpeed = Math.random() * 4 + 2;
++                        this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 20, 'spark'));
++                    }
++                }
++                
++                if (this.player.weaponUnlocks.spear.wall) {
++                    let nextX = m.x + m.knockbackX * 3;
++                    let nextY = m.y + m.knockbackY * 3;
++                    const wallMargin = 40;
++                    let hitWall = (nextX <= wallMargin + m.radius || nextX >= 800 - wallMargin - m.radius ||
++                                   nextY <= wallMargin + m.radius || nextY >= 600 - wallMargin - m.radius);
++                                   
++                    if (hitWall) {
++                        let wallCrashDmg = finalDmg * 0.5;
++                        m.hp -= wallCrashDmg;
++                        this.showFloatingText("?뮙 WALL IMPACT! +50%", m.x, m.y - 20, '#ffdf00');
++                        Sound.play('explosion');
++                        
++                        for (let k = 0; k < 6; k++) {
++                            let rAngle = Math.random() * Math.PI * 2;
++                            let rSpeed = Math.random() * 3 + 1;
++                            this.particles.push(new Particle(m.x, m.y, '#ffdf00', 2, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 15, 'spark'));
++                        }
++                    }
++                }
++                
++                Sound.play('hit');
++                
++                for (let k = 0; k < 5; k++) {
++                    let rSpeed = Math.random() * 3 + 1;
++                    this.particles.push(new Particle(m.x, m.y, '#00f0ff', 2, cosA * rSpeed + (Math.random() - 0.5) * 2, sinA * rSpeed + (Math.random() - 0.5) * 2, 15));
++                }
++                
++                if (m.hp <= 0) {
++                    this.killMonster(m, idx);
++                }
++            }
++        }
++    }
++
++    // 洹쇱젒 寃 踰좉린, 梨꾩컢 寃ъ씤, 李?利됰컻 李뚮Ⅴ湲?硫붿빱?덉쬁
+     slashWeapon() {
++        let isSpear = this.player.weaponType === 'spear';
++        let isWhip = this.player.weaponType === 'whip';
++        
++        // 怨듭냽 荑⑦????곸슜
++        let baseCd = isSpear ? 40 : (isWhip ? 45 : 50);
++        let cooldownFrames = Math.max(isSpear ? 12 : (isWhip ? 13 : 15), baseCd / this.player.aspd);
++        this.player.slashCooldown = cooldownFrames;
++        
++        let startAngle = this.player.angle;
++        let anglesToLaunch = [];
++        
++        if (isSpear && this.player.weaponUnlocks.spear.multi) {
++            anglesToLaunch = [startAngle - 0.2, startAngle, startAngle + 0.2];
++        } else if (isWhip && this.player.weaponUnlocks.whip.multi) {
++            anglesToLaunch = [startAngle - 0.25, startAngle, startAngle + 0.25];
++        } else if (this.player.multishot === 1) {
++            anglesToLaunch.push(startAngle);
++        } else {
++            let arcSpan = this.player.multishotArc;
++            let step = arcSpan / (this.player.multishot - 1);
++            for (let i = 0; i < this.player.multishot; i++) {
++                let targetAngle = startAngle - (arcSpan / 2) + (step * i);
++                anglesToLaunch.push(targetAngle);
++            }
++        }
++        
++        let fireSlashPack = () => {
++            if (isSpear) {
++                // 李?利됰컻 李뚮Ⅴ湲?紐⑥뀡 ?곗텧
++                this.player.isSpearActive = true;
++                this.player.spearTimer = 8;
++                this.player.spearAngle = this.player.angle;
++                this.player.spearAngles = [...anglesToLaunch];
++                
++                for (let angle of anglesToLaunch) {
++                    for (let i = 0; i < 6; i++) {
++                        let distOffset = i * 8;
++                        let px = this.player.x + Math.cos(angle) * distOffset;
++                        let py = this.player.y + Math.sin(angle) * distOffset;
++                        let vx = Math.cos(angle) * 3;
++                        let vy = Math.sin(angle) * 3;
++                        this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
++                    }
++                }
++                Sound.play('slash');
++                this.shakeScreen(4, 1.8);
++                
++                // 利됰컻 ?寃??ㅽ뻾
++                this.triggerSpearInstantAttack(anglesToLaunch);
++            } else if (isWhip) {
++                // 梨꾩컢 利됰컻 踰좉린 紐⑥뀡 ?곗텧
++                this.player.isSlashActive = true;
++                this.player.slashTimer = 12;
++                this.player.slashAngle = this.player.angle;
++                this.player.slashAngles = [...anglesToLaunch];
++                
++                for (let angle of anglesToLaunch) {
++                    for (let i = -5; i <= 5; i++) {
++                        let offset = angle + (i * 0.15);
++                        let px = this.player.x + Math.cos(offset) * 25;
++                        let py = this.player.y + Math.sin(offset) * 25;
++                        let vx = Math.cos(offset) * 2;
++                        let vy = Math.sin(offset) * 2;
++                        this.particles.push(new Particle(px, py, '#ff00aa', 2, vx, vy, 15, 'slashWave'));
++                    }
++                }
++                Sound.play('slash');
++                this.shakeScreen(4, 1.5);
++                
++                // 利됰컻 寃ъ씤/?寃??ㅽ뻾
++                this.triggerWhipInstantAttack(anglesToLaunch);
++            } else {
++                // 寃 踰좉린 ?묐룞 紐⑥뀡 ?몃━嫄?+                this.player.isSlashActive = true;
++                this.player.slashTimer = 12;
++                this.player.slashAngle = this.player.angle;
++                this.player.slashAngles = [...anglesToLaunch];
++                
++                Sound.play('slash');
++                this.shakeScreen(5, 2.5);
++ 
++                let sAngle = this.player.angle;
++                for (let i = -5; i <= 5; i++) {
++                    let offset = sAngle + (i * 0.15);
++                    let px = this.player.x + Math.cos(offset) * 25;
++                    let py = this.player.y + Math.sin(offset) * 25;
++                    let vx = Math.cos(offset) * 2;
++                    let vy = Math.sin(offset) * 2;
++                    this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
++                }
++            }
++ 
++            let synergyMult = this.checkBuildSynergy('sword');
++            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
++            let baseMult = isSpear ? 1.35 : 1.2;
++            let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
++ 
++            // 寃湲??뚮룞 諛쒖궗 (?ㅼ쭅 寃??wave 吏꾪솕 ?닿툑 ?쒖뿉留?諛쒓꺽)
++            if (!isSpear && !isWhip && this.player.weaponUnlocks.sword.wave) {
++                for (let angle of anglesToLaunch) {
++                    let speed = 6.0;
++                    let vx = Math.cos(angle) * speed;
++                    let vy = Math.sin(angle) * speed;
++                    
++                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
++                        pierce: Math.min(5, this.player.pierceCount + 1), 
++                        homing: this.player.homing,
++                        homingSpeed: this.player.homingAngleSpeed,
++                        splash: this.player.splashRadius,
++                        color: '#b026ff',
++                        radius: 5
++                    }));
++                }
++            }
++        };
++ 
++        // [?좉퇋] ?꾨젅??湲곕컲 ??寃⑸컻 ?덉빟 (?붿긽 ?ш꺽 踰꾧렇 ?먯쿇 李⑤떒)
++        if (this.player.burstCount > 1) {
++            this.player.burstRemaining = this.player.burstCount - 1;
++            this.player.burstIntervalTimer = 0;
++            this.player.burstAngle = startAngle;
++            this.player.burstType = isSpear ? 'spear' : (isWhip ? 'whip' : 'sword');
++            this.player.burstBulletsToLaunch = anglesToLaunch;
++        } else {
++            this.player.burstRemaining = 0;
++        }
++ 
++        fireSlashPack();
++    }
++
++    slashWeapon_old() {
+         // 怨듭냽 荑⑦????곸슜 (李쎌? 李뚮Ⅴ湲곗씠誘濡?荑⑦??꾩쓣 誘몄꽭?섍쾶 吏㏐쾶 ?ㅼ젙 - DPS 洹밸???
+         let isSpear = this.player.weaponType === 'spear';
+         let baseCd = isSpear ? 40 : 50;
+diff --git a/index.html b/index.html
+index 493fa72..1bbf68e 100644
+--- a/index.html
++++ b/index.html
+@@ -54,9 +54,10 @@
+                     <div class="guide-item"><span>Mouse Left Click</span> ?쇰컲 怨듦꺽 (?곗궗)</div>
+                     <div class="guide-item"><span>Spacebar</span> 留덈젰 ?뱀닔湲?(愿묒뿭 ??컻)</div>
+                 </div>
+-                <div style="display: flex; gap: 20px; justify-content: center; width: 100%; max-width: 480px; margin-top: 15px;">
+-                    <button id="start-btn" class="neon-btn" style="flex: 1; margin: 0;">寃뚯엫 ?쒖옉</button>
+-                    <button id="main-leaderboard-btn" class="neon-btn" style="flex: 1; margin: 0; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">?룇 由щ뜑蹂대뱶</button>
++                <div style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 560px; margin-top: 15px; flex-wrap: nowrap;">
++                    <button id="start-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem;">寃뚯엫 ?쒖옉</button>
++                    <button id="main-codex-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">?뱡 移대뱶 ?꾧컧</button>
++                    <button id="main-leaderboard-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">?룇 由щ뜑蹂대뱶</button>
+                 </div>
+             </div>
+         </div>
+@@ -273,9 +274,18 @@
+                             <span id="volume-bgm-val" class="slider-val text-glow-green">50%</span>
+                         </div>
+                     </div>
++
++                    <!-- [?깅뒫 理쒖쟻?? ??ъ뼇 紐⑤뱶 (Glow ?④낵 ?꾧린) 異붽? -->
++                    <div class="option-group" style="flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px; margin-top: 15px;">
++                        <label for="perf-low-spec" class="option-label" style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 5px;">
++                            <span>???깅뒫 理쒖쟻??紐⑤뱶 (Glow ?꾧린)</span>
++                        </label>
++                        <input type="checkbox" id="perf-low-spec" style="width: 20px; height: 20px; cursor: pointer; accent-color: #00f0ff;">
++                    </div>
+                 </div>
+                 
+                 <div class="option-actions">
++                    <button id="option-codex-btn" class="neon-btn" style="border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">?뱡 移대뱶 ?꾧컧</button>
+                     <button id="option-restart-btn" class="neon-btn danger">?봽 寃뚯엫 ?ъ떆??/button>
+                     <button id="option-close-btn" class="neon-btn">?リ린 (Close)</button>
+                 </div>
+@@ -362,9 +372,14 @@
+                                 <button class="cheat-wpn-btn" data-wpn="gun">?뵭 珥?(Gun)</button>
+                                 <button class="cheat-wpn-btn" data-wpn="sword">?첆 寃 (Sword)</button>
+                                 <button class="cheat-wpn-btn" data-wpn="dual">?뷂툘 蹂듯빀 (Dual)</button>
++                                <button class="cheat-wpn-btn" data-wpn="spear">?뵳 李?(Spear)</button>
++                                <button class="cheat-wpn-btn" data-wpn="whip">?㎗ 梨꾩컢 (Whip)</button>
+                                 <button class="cheat-wpn-btn" data-wpn="lightning">??踰덇컻留덈쾿</button>
+                                 <button class="cheat-wpn-btn" data-wpn="fire">?뵦 遺덈쭏踰?/button>
+                                 <button class="cheat-wpn-btn" data-wpn="ice">?꾬툘 ?쇱쓬留덈쾿</button>
++                                <button class="cheat-wpn-btn" data-wpn="thorns">?뙲 媛??(Thorns)</button>
++                                <button class="cheat-wpn-btn" data-wpn="time">?뵰 ?쒓컙 (Time)</button>
++                                <button class="cheat-wpn-btn" data-wpn="trap">?い ?⑥젙 (Trap)</button>
+                             </div>
+                         </div>
+                         
+@@ -506,6 +521,35 @@
+         </div>
+     </div>
+ 
++    <!-- [?좉퇋] ?ㅼ떆媛??ㅼ삩 移대뱶 ?꾧컧(Codex) 紐⑤떖 ?ㅻ쾭?덉씠 -->
++    <div id="card-codex-overlay" class="overlay-panel hidden">
++        <div class="ranking-modal-container">
++            <div class="ranking-modal-header">
++                <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">?뱡 NEON CARD CODEX ?뱡</h2>
++                <span id="codex-modal-close" class="cheat-close">&times;</span>
++            </div>
++            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">誘몃줈?먯꽌 ?띾뱷 媛?ν븳 紐⑤뱺 臾닿린/?λ퉬/?ㅽ꺈 移대뱶 ?뺣낫</p>
++            
++            <!-- ???꾪꽣 踰꾪듉 -->
++            <div class="ranking-filter-container">
++                <button class="codex-filter-btn codex-tab-btn active" data-tab="weapon">?뷂툘 臾닿린 10醫?/button>
++                <button class="codex-filter-btn codex-tab-btn" data-tab="equipment">?썳截??λ퉬 10醫?/button>
++                <button class="codex-filter-btn codex-tab-btn" data-tab="status">?뵅 罹먮┃???ㅽ꺈</button>
++            </div>
++            
++            <!-- ?ㅽ겕濡?媛?ν븳 移대뱶 洹몃━???곸뿭 -->
++            <div class="ranking-list-container" style="min-height: 320px; max-height: 420px; overflow-y: auto; width: 100%; padding: 10px; display: block;">
++                <div id="codex-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%;">
++                    <!-- JS濡??숈쟻 ?앹꽦 -->
++                </div>
++            </div>
++            
++            <div style="text-align: center; margin-top: 20px;">
++                <button id="codex-modal-close-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">?リ린 (Close)</button>
++            </div>
++        </div>
++    </div>
++
+     <!-- [?좉퇋] ?ㅼ떆媛??ㅼ삩 ??궧 由щ뜑蹂대뱶 紐⑤떖 ?ㅻ쾭?덉씠 -->
+     <div id="ranking-modal-overlay" class="overlay-panel hidden">
+         <div class="ranking-modal-container">
+diff --git a/style.css b/style.css
+index fd9c3c8..b33f47e 100644
+--- a/style.css
++++ b/style.css
+@@ -235,6 +235,7 @@ body {
+     letter-spacing: 0.1em;
+     box-shadow: 0 0 15px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
+     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
++    white-space: nowrap;
+ }
+ 
+ .neon-btn:hover {
+@@ -266,7 +267,7 @@ body {
+ }
+ 
+ #player-bars {
+-    flex: 1.2;
++    flex: 0.8;
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+@@ -333,12 +334,13 @@ body {
+ 
+ /* ?ㅽ꺈 蹂대뱶 */
+ #stats-dashboard {
+-    flex: 1;
++    flex: 1.6;
+     display: flex;
+     justify-content: space-between;
+     gap: 16px;
+     border-left: 1px solid rgba(255, 255, 255, 0.08);
+     padding-left: 20px;
++    white-space: nowrap;
+ }
+ 
+ .stat-column {
+@@ -355,16 +357,19 @@ body {
+     align-items: center;
+     padding: 3px 0;
+     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
++    white-space: nowrap;
+ }
+ 
+ .stat-name {
+     color: #718096;
+     font-weight: 500;
++    white-space: nowrap;
+ }
+ 
+ .stat-value {
+     color: #edf2f7;
+     font-weight: 700;
++    white-space: nowrap;
+ }
+ 
+ /* --------------------------------------------------------------------------
+@@ -1333,7 +1338,7 @@ input:checked + .cheat-switch-slider:before {
+     border-radius: 20px;
+     box-shadow: 0 0 35px rgba(176, 38, 255, 0.35);
+     padding: 35px;
+-    max-width: 440px;
++    max-width: 500px;
+     width: 100%;
+     backdrop-filter: blur(16px);
+     -webkit-backdrop-filter: blur(16px);
+@@ -1473,14 +1478,15 @@ input:checked + .cheat-switch-slider:before {
+ 
+ .option-actions {
+     display: flex;
+-    gap: 15px;
++    gap: 10px;
+     margin-top: 10px;
++    flex-wrap: nowrap;
+ }
+ 
+ .option-actions button {
+     flex: 1;
+-    padding: 13px;
+-    font-size: 0.95rem;
++    padding: 10px 6px;
++    font-size: 0.9rem;
+     cursor: pointer;
+ }
+ 
+@@ -1774,7 +1780,7 @@ input:checked + .cheat-switch-slider:before {
+     margin-bottom: 20px;
+ }
+ 
+-.rank-filter-btn {
++.rank-filter-btn, .codex-filter-btn {
+     background: rgba(0, 0, 0, 0.3);
+     border: 1px solid rgba(255, 255, 255, 0.1);
+     color: #a0aec0;
+@@ -1788,7 +1794,7 @@ input:checked + .cheat-switch-slider:before {
+     outline: none;
+ }
+ 
+-.rank-filter-btn:hover {
++.rank-filter-btn:hover, .codex-filter-btn:hover {
+     color: #edf2f7;
+     border-color: rgba(255, 255, 255, 0.25);
+     background: rgba(255, 255, 255, 0.02);
+@@ -1808,4 +1814,318 @@ input:checked + .cheat-switch-slider:before {
+     background: rgba(176, 38, 255, 0.05);
+ }
+ 
++/* ==========================================================================
++   移대뱶 ?꾧컧(Codex) ?꾩슜 ?ㅽ??쇱떆???좎꽕
++   ========================================================================== */
++.codex-tab-btn {
++    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
++}
++
++/* ???쒖꽦???뚮쭏?됱긽 留ㅽ븨 */
++.codex-tab-btn.active[data-tab="weapon"] {
++    border-color: var(--neon-red) !important;
++    color: var(--neon-red) !important;
++    box-shadow: 0 0 15px rgba(255, 0, 85, 0.35), inset 0 0 8px rgba(255, 0, 85, 0.1) !important;
++    background: rgba(255, 0, 85, 0.05) !important;
++}
++
++.codex-tab-btn.active[data-tab="equipment"] {
++    border-color: var(--neon-blue) !important;
++    color: var(--neon-blue) !important;
++    box-shadow: 0 0 15px rgba(0, 240, 255, 0.35), inset 0 0 8px rgba(0, 240, 255, 0.1) !important;
++    background: rgba(0, 240, 255, 0.05) !important;
++}
++
++.codex-tab-btn.active[data-tab="status"] {
++    border-color: var(--neon-green) !important;
++    color: var(--neon-green) !important;
++    box-shadow: 0 0 15px rgba(57, 255, 20, 0.35), inset 0 0 8px rgba(57, 255, 20, 0.1) !important;
++    background: rgba(57, 255, 20, 0.05) !important;
++}
++
++/* ?꾧컧 ?꾩슜 ?ㅽ겕濡ㅻ컮 而ㅼ뒪? */
++.ranking-list-container::-webkit-scrollbar {
++    width: 6px;
++}
++
++.ranking-list-container::-webkit-scrollbar-track {
++    background: rgba(255, 255, 255, 0.01);
++    border-radius: 4px;
++}
++
++.ranking-list-container::-webkit-scrollbar-thumb {
++    background: rgba(176, 38, 255, 0.25);
++    border-radius: 4px;
++}
++
++.ranking-list-container::-webkit-scrollbar-thumb:hover {
++    background: rgba(176, 38, 255, 0.55);
++}
++
++/* ?꾧컧 媛쒕퀎 移대뱶 */
++.codex-card {
++    background: rgba(15, 17, 26, 0.85);
++    border: 1px solid rgba(255, 255, 255, 0.05);
++    border-radius: 12px;
++    padding: 16px;
++    display: flex;
++    flex-direction: column;
++    gap: 8px;
++    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
++    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
++    position: relative;
++    overflow: hidden;
++}
++
++.codex-card:hover {
++    transform: translateY(-5px);
++    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
++}
++
++/* ?깃툒蹂??ㅼ삩 ?꾩슦???뚮쭏 */
++.codex-card.card-common { border-color: rgba(160, 174, 192, 0.25); }
++.codex-card.card-common:hover { 
++    border-color: #a0aec0;
++    box-shadow: 0 0 15px rgba(160, 174, 192, 0.25);
++}
++
++.codex-card.card-rare { border-color: rgba(255, 223, 0, 0.25); }
++.codex-card.card-rare:hover { 
++    border-color: var(--neon-yellow);
++    box-shadow: 0 0 15px rgba(255, 223, 0, 0.3);
++}
++
++.codex-card.card-epic { border-color: rgba(176, 38, 255, 0.25); }
++.codex-card.card-epic:hover { 
++    border-color: var(--neon-purple);
++    box-shadow: 0 0 15px rgba(176, 38, 255, 0.35);
++}
++
++.codex-card.card-legendary { border-color: rgba(255, 108, 0, 0.25); }
++.codex-card.card-legendary:hover { 
++    border-color: var(--neon-orange);
++    box-shadow: 0 0 20px rgba(255, 108, 0, 0.4);
++}
++
++/* 移대뱶 ?대? 援ъ꽦 */
++.codex-card-header {
++    display: flex;
++    justify-content: space-between;
++    align-items: center;
++}
++
++.codex-card-icon {
++    font-size: 1.8rem;
++    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
++}
++
++.codex-card-title {
++    font-size: 1.05rem;
++    font-weight: 800;
++    color: #fff;
++    text-align: left;
++}
++
++.codex-card-desc {
++    font-size: 0.82rem;
++    color: #a0aec0;
++    line-height: 1.4;
++    text-align: left;
++    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
++    padding-bottom: 8px;
++    margin-bottom: 4px;
++}
++
++/* 珥덉썡 ?곸옄 */
++.codex-overload-box {
++    background: linear-gradient(135deg, rgba(255, 108, 0, 0.08) 0%, rgba(255, 223, 0, 0.03) 100%);
++    border: 1px dashed rgba(255, 108, 0, 0.25);
++    border-radius: 6px;
++    padding: 8px;
++    font-size: 0.76rem;
++    text-align: left;
++    margin-top: auto;
++}
++
++.codex-overload-box strong {
++    color: var(--neon-orange);
++    display: block;
++    margin-bottom: 2px;
++}
++
++.codex-overload-box p {
++    color: #cbd5e0;
++    margin: 2px 0;
++    padding-left: 6px;
++    position: relative;
++}
++
++.codex-overload-box p::before {
++    content: "??;
++    position: absolute;
++    left: 0;
++    color: var(--neon-yellow);
++}
++
++/* ==========================================================================
++   [?깅뒫 理쒖쟻?? ??ъ뼇 紐⑤뱶 ?좏깮 泥댄겕諛뺤뒪 而ㅼ뒪? ?ㅼ삩 ?ㅽ??쇰쭅
++   ========================================================================== */
++#perf-low-spec {
++    appearance: none;
++    -webkit-appearance: none;
++    width: 20px;
++    height: 20px;
++    border: 2px solid rgba(0, 240, 255, 0.4);
++    border-radius: 4px;
++    background: rgba(0, 5, 15, 0.7);
++    cursor: pointer;
++    position: relative;
++    outline: none;
++    transition: all 0.25s ease;
++}
++
++#perf-low-spec:hover {
++    border-color: #00f0ff;
++    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
++}
++
++#perf-low-spec:checked {
++    border-color: #00f0ff;
++    background: rgba(0, 240, 255, 0.2);
++    box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
++}
++
++#perf-low-spec:checked::before {
++    content: "??;
++    position: absolute;
++    top: 50%;
++    left: 50%;
++    transform: translate(-50%, -50%);
++    color: #00f0ff;
++    font-size: 1rem;
++    font-weight: bold;
++    text-shadow: 0 0 5px rgba(0, 240, 255, 0.8);
++}
++
++/* ==========================================================================
++   [?깅뒫 理쒖쟻?? ??ъ뼇 紐⑤뱶(low-spec) ??CSS ???좊컻 二쇰쾾(釉붾윭, 湲濡쒖슦, ?좊땲硫붿씠?? 鍮꾪솢?깊솕
++   ========================================================================== */
++body.low-spec * {
++    /* ??ъ뼇 紐⑤뱶 ???꾩껜 ?붿냼??怨쇰룄???띿뒪????꾩슦 異뺤냼 */
++    text-shadow: none !important;
++}
++
++/* ?띿뒪????꾩슦瑜??꾩쟾???꾨㈃ ?ㅼ삩 ?쒖씤?깆씠 ?덈Т ??븘吏????덉쑝誘濡??듭떖 HUD??理쒖냼?쒕쭔 ?좎? */
++body.low-spec .text-glow-blue,
++body.low-spec .text-glow-green,
++body.low-spec .text-glow-red,
++body.low-spec .text-glow-yellow,
++body.low-spec .text-glow-purple,
++body.low-spec .text-glow-cyan {
++    text-shadow: 0 0 2px currentColor !important; /* 珥덇꼍??諛쒓킅?좊쭔 ?좎? */
++}
++
++/* 1. 湲?섏뒪紐⑦뵾利?釉붾윭 ?꾪꽣 ?쇨큵 鍮꾪솢?깊솕 (移대뱶 ?꾧컧 諛?由щ뜑蹂대뱶 ?쒖쇅 - ?섏? ?곸떆 理쒖쟻?? */
++body.low-spec .overlay-panel:not(#card-codex-overlay):not(#ranking-modal-overlay),
++body.low-spec .option-container,
++body.low-spec .detail-card-container,
++body.low-spec .cheat-container,
++body.low-spec .result-box,
++body.low-spec #hud-header,
++body.low-spec #hud-footer {
++    backdrop-filter: none !important;
++    -webkit-backdrop-filter: none !important;
++    background: rgba(10, 11, 18, 0.96) !important; /* 諛섑닾紐????遺덊닾紐??ㅽ겕 諛곌꼍?쇰줈 ?泥?*/
++    box-shadow: none !important;
++}
++
++/* 2. 紐⑤떖 而⑦뀒?대꼫 諛??λ꼍 ?뚮몢由щ? ?먭퍖怨??쒕졆???ㅼ꽑?쇰줈 ?泥?(?꾧컧/由щ뜑蹂대뱶 ?쒖쇅) */
++body.low-spec .option-container {
++    border: 2px solid #b026ff !important;
++}
++body.low-spec .detail-card-container {
++    border: 2px solid #ffdf00 !important;
++}
++body.low-spec .cheat-container {
++    border: 2px solid #00f0ff !important;
++}
++body.low-spec .result-box {
++    border: 2px solid #ff0055 !important;
++}
++
++/* 3. 由щ뜑蹂대뱶 ?뚯씠釉?諛?濡쒕뵫 ?곹깭?????좊컻 ?붿씤 ?쒓굅 (?곸떆 理쒖쟻?붾줈 ?댁쟾?섏뼱 鍮꾩썙?? */
++
++/* 4. 蹂댁긽 ?ㅻ쾭?덉씠?????移대뱶 諛?由щ· 踰꾪듉 湲濡쒖슦 ?쒓굅 */
++body.low-spec .reward-card {
++    box-shadow: none !important;
++    background: rgba(20, 22, 33, 0.95) !important;
++}
++body.low-spec .reward-card .card-glow {
++    display: none !important; /* 臾닿굅??洹몃씪?곗씠???꾪꽣 ?쒓굅 */
++}
++body.low-spec .reward-card:hover {
++    box-shadow: none !important;
++}
++body.low-spec .neon-btn {
++    box-shadow: none !important;
++    text-shadow: none !important;
++}
++body.low-spec .neon-btn:hover {
++    box-shadow: 0 0 5px currentColor !important;
++}
++
++
++/* ==========================================================================
++   [?깅뒫 理쒖쟻?? 移대뱶 ?꾧컧(Codex) 諛?由щ뜑蹂대뱶(Leaderboard) ?곸뿭 ?곸떆 理쒖쟻??(lowSpecMode ?щ?? 愿怨꾩뾾??100% 寃쎈웾???곹깭 ?좎?)
++   ========================================================================== */
++#card-codex-overlay,
++#card-codex-overlay .ranking-modal-container,
++#ranking-modal-overlay,
++#ranking-modal-overlay .ranking-modal-container {
++    backdrop-filter: none !important;
++    -webkit-backdrop-filter: none !important;
++    background: rgba(10, 11, 18, 0.97) !important; /* ?곸떆 遺덊닾紐??ㅽ겕 泥섎━ */
++    box-shadow: none !important;
++}
++
++#card-codex-overlay,
++#card-codex-overlay .ranking-modal-container {
++    border: 2px solid #b026ff !important; /* ?꾨쫫?ㅼ슫 ?먰솉???ㅼ삩 ?ㅼ꽑 怨좎젙 */
++}
++
++#ranking-modal-overlay,
++#ranking-modal-overlay .ranking-modal-container {
++    border: 2px solid #ffdf00 !important; /* 李щ????⑷툑???ㅼ삩 ?ㅼ꽑 怨좎젙 */
++}
++
++/* 移대뱶 ?꾧컧 ??媛쒕퀎 移대뱶??臾닿굅???좊땲硫붿씠??諛??ㅼ삩 ??꾩슦 ?곸떆 李⑤떒 */
++.codex-card {
++    box-shadow: none !important;
++    animation: none !important;
++    background: rgba(20, 22, 33, 0.95) !important;
++    transition: transform 0.15s ease !important;
++}
++
++.codex-card:hover {
++    box-shadow: none !important;
++    transform: translateY(-2px) !important; /* ?꾨줈 遺?쒕읇寃??잕뎄移섎뒗 湲곕룞媛먮쭔 ?④? */
++}
++
++/* ?깃툒蹂?移대뱶??臾닿굅??shadowBlur瑜??곸떆 ?쒓굅?섍퀬 ?좊챸???ㅼ꽑 寃쎄퀎濡??移?*/
++.codex-card.card-common { border: 1.5px solid rgba(255, 255, 255, 0.3) !important; }
++.codex-card.card-rare { border: 1.5px solid #ffdf00 !important; }
++.codex-card.card-epic { border: 1.5px solid #b026ff !important; }
++.codex-card.card-legendary { border: 1.5px solid #ff6c00 !important; }
++
++/* 由щ뜑蹂대뱶 ?뚯씠釉??ㅻ뜑 諛?濡쒕뵫 ?곹깭?????좊컻 ?붿씤 ?곸떆 李⑤떒 */
++.ranking-table th {
++    text-shadow: none !important;
++    border-bottom: 2px solid #00f0ff !important;
++}
++.neon-spinner {
++    box-shadow: none !important;
++    animation: spin 1s linear infinite !important;
++}
++
++
+ 
