@@ -915,12 +915,12 @@ class Player {
         this.spearAngle = 0;        // 창 찌르기 각도
         this.spearAngles = [];      // 다중 창 찌르기 각도들
         
-        // 무기 진화 해금 속성들 (기본적으로 모두 true로 활성화하여 습득 시 완벽 작동하도록 구성)
+        // 무기 진화 해금 속성들 (기본적으로 비활성화 후 무기 중복 획득 시 테크트리에 따라 단계별 해금)
         this.weaponUnlocks = {
-            sword: { wave: true },
-            whip: { range: true, haste: true, break: true, shock: true, multi: true },
-            spear: { range: true, tip: true, knockback: true, wall: true, multi: true },
-            ice: { shatter: true }
+            sword: { wave: false },
+            whip: { range: false, haste: false, break: false, shock: false, multi: false },
+            spear: { range: false, tip: false, knockback: false, wall: false, multi: false },
+            ice: { shatter: false }
         };
         
         // 회피 성공 피드백 연출 (붉은색 잔상)
@@ -3752,7 +3752,7 @@ class GameEngine {
 
                     let synergyMult = this.checkBuildSynergy('sword');
                     let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                    let baseMult = isSpear ? 0.9 : 0.8;
+                    let baseMult = isSpear ? 0.7 : 0.8; // 창 대미지 추가 하향 조정 (0.9 -> 0.7)
                     let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
 
                     // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
@@ -5624,8 +5624,12 @@ class GameEngine {
         let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
         let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
         
-        let baseDmg = this.player.atk * 0.5;
+        let baseDmg = this.player.atk * 0.3; // 추가 하향 조정 (0.5 -> 0.3)
         let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+
+        // [W-06 채찍 동시 견인 제한 공식] 기본 1마리, 다발 및 진화에 비례해 증가
+        let maxPullCount = 1 + (this.player.multishot - 1) + (this.player.weaponUnlocks.whip.multi ? 1 : 0);
+        let pulledCount = 0;
 
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             let m = this.monsters[i];
@@ -5650,18 +5654,24 @@ class GameEngine {
                 }
                 
                 if (inWhipArc) {
-                    // 견인 대상 위치 계산 (플레이어 정방향 35px 지점)
-                    let pullAngle = this.player.angle;
-                    let pullX = this.player.x + Math.cos(pullAngle) * 35;
-                    let pullY = this.player.y + Math.sin(pullAngle) * 35;
-                    
-                    m.x = pullX;
-                    m.y = pullY;
-                    
-                    // 외벽 충돌 맵 탈출 방지 마진 클램프 (wallMargin = 40)
-                    const wallMargin = 40;
-                    m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
-                    m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                    let isPulled = false;
+                    // 동시 견인 수량 제한 범위 내에서만 플레이어 70px 앞 안전 거리로 견인
+                    if (pulledCount < maxPullCount) {
+                        let pullAngle = this.player.angle;
+                        let pullX = this.player.x + Math.cos(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
+                        let pullY = this.player.y + Math.sin(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
+                        
+                        m.x = pullX;
+                        m.y = pullY;
+                        
+                        // 외벽 충돌 맵 탈출 방지 마진 클램프 (wallMargin = 40)
+                        const wallMargin = 40;
+                        m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
+                        m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                        
+                        pulledCount++;
+                        isPulled = true;
+                    }
                     
                     m.statusEffects.shock = 90; // 1.5초 기절 프레임 부여
                     m.flashTimer = 8;
@@ -5671,9 +5681,9 @@ class GameEngine {
                     if (this.player.weaponUnlocks.whip.haste) {
                         this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
                         this.player.whipSpeedTimer = 180;
-                        this.showFloatingText(`GRAB PULL! ⚡ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
+                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡ HASTE [${this.player.whipSpeedStack}/3]` : `GRAB STUN! ⚡ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
                     } else {
-                        this.showFloatingText(`GRAB PULL! ⚡`, this.player.x, this.player.y - 30, '#ff00aa');
+                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡` : `GRAB STUN! ⚡`, this.player.x, this.player.y - 30, '#ff00aa');
                     }
 
                     // 2) whip.break: 피격 적에게 5초(300프레임) 취약 디버프 부여
@@ -5730,7 +5740,7 @@ class GameEngine {
         
         let synergyMult = this.checkBuildSynergy('sword'); // 창은 검기 카드의 시너지를 받음
         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-        let weaponDmg = this.player.atk * 0.9 * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+        let weaponDmg = this.player.atk * 0.7 * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus; // 창 대미지 추가 하향 조정 (0.9 -> 0.7)
         
         let px = this.player.x;
         let py = this.player.y;
@@ -5877,8 +5887,12 @@ class GameEngine {
         let anglesToLaunch = [];
         
         // 다발 각도 계산 및 진화 해금 분기
-        if (isSpear && this.player.weaponUnlocks.spear.multi) {
-            anglesToLaunch = [startAngle - 0.2, startAngle, startAngle + 0.2];
+        if (isSpear) {
+            if (this.player.weaponUnlocks.spear.multi) {
+                anglesToLaunch = [startAngle - 0.2, startAngle, startAngle + 0.2];
+            } else {
+                anglesToLaunch = [startAngle]; // 창 처음 습득 시 무조건 1개 격발 제한
+            }
         } else if (isWhip) {
             // [W-05 채찍 좌우 다발 궤적 각도 좁은 스케일링 공식] 기본 0.15 라디안, 성장 시 조금씩 넓어짐
             let whipMultiArc = 0.15 + (this.player.multishot - 1) * 0.03 + (this.player.weaponUnlocks.whip.multi ? 0.10 : 0);
@@ -5978,7 +5992,7 @@ class GameEngine {
  
             let synergyMult = this.checkBuildSynergy('sword');
             let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-            let baseMult = isSpear ? 0.9 : 0.8;
+            let baseMult = isSpear ? 0.7 : 0.8; // 창 대미지 추가 하향 조정 (0.9 -> 0.7)
             let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
  
             // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
@@ -6513,8 +6527,33 @@ class GameEngine {
             case 'spear':
                 if (p.weaponType === 'gun' || p.weaponType === 'lightning' || p.weaponType === 'fire' || p.weaponType === 'ice') {
                     p.weaponType = 'spear'; // 사격 및 마법 무기에서 창으로 안전 변경
-                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') {
-                    p.weaponType = 'dual'; // 하이브리드로 융합!
+                    this.showFloatingText("SPEAR UNLOCKED 🔱", p.x, p.y - 30, '#00f0ff');
+                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip' || p.weaponType === 'dual') {
+                    // 이미 근접무기나 창을 가지고 있다면 중복 습득으로 진화 순차 해금!
+                    if (p.weaponType !== 'dual' && p.weaponType !== 'spear') {
+                        p.weaponType = 'dual'; // 하이브리드로 융합!
+                    }
+                    
+                    // 진화 해금 테크트리: tip -> range -> knockback -> wall -> multi
+                    if (!p.weaponUnlocks.spear.tip) {
+                        p.weaponUnlocks.spear.tip = true;
+                        this.showFloatingText("SPEAR EVOLVE: TIP CRITICAL! 🎯", p.x, p.y - 30, '#00f0ff');
+                    } else if (!p.weaponUnlocks.spear.range) {
+                        p.weaponUnlocks.spear.range = true;
+                        this.showFloatingText("SPEAR EVOLVE: RANGE UP! 📏", p.x, p.y - 30, '#00f0ff');
+                    } else if (!p.weaponUnlocks.spear.knockback) {
+                        p.weaponUnlocks.spear.knockback = true;
+                        this.showFloatingText("SPEAR EVOLVE: HEAVY KNOCKBACK! 🛡️", p.x, p.y - 30, '#00f0ff');
+                    } else if (!p.weaponUnlocks.spear.wall) {
+                        p.weaponUnlocks.spear.wall = true;
+                        this.showFloatingText("SPEAR EVOLVE: WALL CRASH! 💥", p.x, p.y - 30, '#00f0ff');
+                    } else if (!p.weaponUnlocks.spear.multi) {
+                        p.weaponUnlocks.spear.multi = true;
+                        this.showFloatingText("SPEAR EVOLVE: TRIPLE STRIKE! 🔱🔱🔱", p.x, p.y - 30, '#00f0ff');
+                    } else {
+                        p.atk = Math.round(p.atk * 1.1);
+                        this.showFloatingText("SPEAR MAXIMIZED! ATK +10% ⚡", p.x, p.y - 30, '#00f0ff');
+                    }
                 }
                 break;
             case 'thorns':
@@ -6524,10 +6563,34 @@ class GameEngine {
             case 'whip':
                 if (p.weaponType === 'gun' || p.weaponType === 'lightning' || p.weaponType === 'fire' || p.weaponType === 'ice') {
                     p.weaponType = 'whip'; // 사격 및 마법 무기에서 채찍으로 안전 변경
-                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') {
-                    p.weaponType = 'dual'; // 하이브리드로 융합!
+                    this.showFloatingText("WHIP UNLOCKED 🧣", p.x, p.y - 30, '#ff00aa');
+                } else if (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip' || p.weaponType === 'dual') {
+                    // 이미 근접무기나 채찍을 가지고 있다면 중복 습득으로 진화 순차 해금!
+                    if (p.weaponType !== 'dual' && p.weaponType !== 'whip') {
+                        p.weaponType = 'dual'; // 하이브리드로 융합!
+                    }
+                    
+                    // 진화 해금 테크트리: haste -> range -> break -> shock -> multi
+                    if (!p.weaponUnlocks.whip.haste) {
+                        p.weaponUnlocks.whip.haste = true;
+                        this.showFloatingText("WHIP EVOLVE: ATTACK HASTE! ⚡", p.x, p.y - 30, '#ff00aa');
+                    } else if (!p.weaponUnlocks.whip.range) {
+                        p.weaponUnlocks.whip.range = true;
+                        this.showFloatingText("WHIP EVOLVE: RANGE UP! 📏", p.x, p.y - 30, '#ff00aa');
+                    } else if (!p.weaponUnlocks.whip.break) {
+                        p.weaponUnlocks.whip.break = true;
+                        this.showFloatingText("WHIP EVOLVE: VULNERABILITY! 💔", p.x, p.y - 30, '#ff00aa');
+                    } else if (!p.weaponUnlocks.whip.shock) {
+                        p.weaponUnlocks.whip.shock = true;
+                        this.showFloatingText("WHIP EVOLVE: SHOCK SPLASH! 💥", p.x, p.y - 30, '#ff00aa');
+                    } else if (!p.weaponUnlocks.whip.multi) {
+                        p.weaponUnlocks.whip.multi = true;
+                        this.showFloatingText("WHIP EVOLVE: MULTI SLASH! 🧣🧣🧣", p.x, p.y - 30, '#ff00aa');
+                    } else {
+                        p.atk = Math.round(p.atk * 1.1);
+                        this.showFloatingText("WHIP MAXIMIZED! ATK +10% ⚡", p.x, p.y - 30, '#ff00aa');
+                    }
                 }
-                this.showFloatingText("WHIP UNLOCKED 🧣", p.x, p.y - 30, '#ff00aa');
                 break;
             case 'trap':
                 p.hasTrap = true;
