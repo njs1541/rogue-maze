@@ -910,6 +910,18 @@ class Player {
         this.isSlashActive = false; // 현재 검 베기 모션이 화면에 그려지는 중인가?
         this.slashAngle = 0;        // 베기 애니메이션용 각도
         this.slashRadius = 45;      // 검 베기 물리 도달 반경
+        this.isSpearActive = false; // 현재 창 찌르기 모션이 화면에 그려지는 중인가?
+        this.spearTimer = 0;        // 창 찌르기 지속 프레임 타이머
+        this.spearAngle = 0;        // 창 찌르기 각도
+        this.spearAngles = [];      // 다중 창 찌르기 각도들
+        
+        // 무기 진화 해금 속성들 (기본적으로 모두 true로 활성화하여 습득 시 완벽 작동하도록 구성)
+        this.weaponUnlocks = {
+            sword: { wave: true },
+            whip: { range: true, haste: true, break: true, shock: true, multi: true },
+            spear: { range: true, tip: true, knockback: true, wall: true, multi: true },
+            ice: { shatter: true }
+        };
         
         // 회피 성공 피드백 연출 (붉은색 잔상)
         this.evadeActive = false;
@@ -1049,6 +1061,14 @@ class Player {
             }
         }
 
+        // 창 찌르기 모션 타이머 관리 (지속시간 8프레임)
+        if (this.isSpearActive) {
+            this.spearTimer--;
+            if (this.spearTimer <= 0) {
+                this.isSpearActive = false;
+            }
+        }
+
         // 회피 잔상 애니메이션 관리
         if (this.evadeActive) {
             this.evadeTimer--;
@@ -1151,23 +1171,101 @@ class Player {
 
         ctx.restore();
 
-        // 3. 검을 휘두르는 모션 연출 (칼 장착 시 아크 렌더링)
+        // 3. 검/채찍을 휘두르는 모션 연출 (베기 활성화 시 궤적 렌더링)
         if (this.isSlashActive) {
             ctx.save();
             ctx.translate(this.x, this.y);
             
-            // 검 베기 검기 호(Arc) 드로잉 (각도는 조준 방향 기준 반원 -70도 ~ +70도 스윕)
-            ctx.beginPath();
-            let start = this.slashAngle - 1.2;
-            let end = this.slashAngle + 1.2;
-            ctx.arc(0, 0, this.slashRadius, start, end);
+            let isWhip = this.weaponType === 'whip';
+            let color = isWhip ? 'rgba(255, 0, 170, 0.85)' : 'rgba(176, 38, 255, 0.85)';
+            let shadowColor = isWhip ? '#ff00aa' : '#b026ff';
+            let radius = isWhip ? (this.weaponUnlocks.whip.range ? 220 : 150) : this.slashRadius;
             
-            ctx.strokeStyle = 'rgba(176, 38, 255, 0.85)';
-            ctx.lineWidth = 6 * (this.slashTimer / 10); // 시간이 흐를수록 선이 얇아짐
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#b026ff';
-            ctx.stroke();
+            let drawAngles = this.slashAngles && this.slashAngles.length > 0 ? this.slashAngles : [this.slashAngle];
+            for (let angle of drawAngles) {
+                if (isWhip) {
+                    // [W-03 채찍 S자 파형 궤적 실시간 렌더링]
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    let segments = 20;
+                    for (let s = 1; s <= segments; s++) {
+                        let t = s / segments;
+                        let currentDist = radius * t;
+                        // 플레이어부터 조준방향 끝단까지 S자로 출렁이며 굽이치는 Sine 파형 계산
+                        let wave = Math.sin(t * Math.PI * 2) * 15 * (this.slashTimer / 12);
+                        
+                        let sx = Math.cos(angle) * currentDist - Math.sin(angle) * wave;
+                        let sy = Math.sin(angle) * currentDist + Math.cos(angle) * wave;
+                        ctx.lineTo(sx, sy);
+                    }
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 3.5 * (this.slashTimer / 12);
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = shadowColor;
+                    ctx.stroke();
+                } else {
+                    // 검 베기 아크 드로잉
+                    ctx.beginPath();
+                    let start = angle - 1.2;
+                    let end = angle + 1.2;
+                    ctx.arc(0, 0, radius, start, end);
+                    
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 6 * (this.slashTimer / 10);
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = shadowColor;
+                    ctx.stroke();
+                }
+            }
             
+            ctx.restore();
+        }
+
+        // 4. 창을 찌르는 모션 연출 (찌르기 활성화 시 직선 렌더링)
+        if (this.isSpearActive) {
+            ctx.save();
+            let drawAngles = this.spearAngles && this.spearAngles.length > 0 ? this.spearAngles : [this.spearAngle];
+            
+            // [S-01 창 사거리 축소 밸런스 공식] 기본 80px, 성장 시 최대 180px 제한 수식
+            let targetRange = 80 + (this.range - 350) * 0.3;
+            if (this.weaponUnlocks.spear.range) targetRange += 20;
+            
+            let color = 'rgba(0, 240, 255, 0.95)';
+            let shadowColor = '#00f0ff';
+            
+            for (let angle of drawAngles) {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                
+                let tx = this.x + Math.cos(angle) * targetRange;
+                let ty = this.y + Math.sin(angle) * targetRange;
+                ctx.lineTo(tx, ty);
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 5 * (this.spearTimer / 8);
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = shadowColor;
+                ctx.stroke();
+                
+                // [S-02 창의 끝단 날카로운 다이아몬드(창끝 촉) 글로우 데코 렌더링]
+                ctx.save();
+                ctx.translate(tx, ty);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.moveTo(12, 0);    // 창끝 뾰족한 앞
+                ctx.lineTo(0, -4.5);  // 위 날
+                ctx.lineTo(-12, 0);   // 뒷 끝
+                ctx.lineTo(0, 4.5);   // 아래 날
+                ctx.closePath();
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00f0ff';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
             ctx.restore();
         }
 
@@ -3575,97 +3673,104 @@ class GameEngine {
                     this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
                 } 
                 else if (this.player.burstType === 'whip') {
-                    // [W-02 채찍(Whip) 점사/난무 연속 격발 처리]
-                    let synergyMult = this.checkBuildSynergy('gun');
-                    let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
-                    let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+                    // [W-02 채찍(Whip) 점사/난무 즉발 연속 격발 처리]
+                    this.player.isSlashActive = true;
+                    this.player.slashTimer = 12;
+                    this.player.slashAngle = this.player.angle;
+                    this.player.slashAngles = [...this.player.burstBulletsToLaunch];
                     
-                    let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
-                    let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
-                    
-                    let baseDmg = this.player.atk * 0.75;
-                    let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
-
+                    let radius = this.player.weaponUnlocks.whip.range ? 220 : 150;
                     for (let angle of this.player.burstBulletsToLaunch) {
-                        let speed = 9.0;
-                        let vx = Math.cos(angle) * speed;
-                        let vy = Math.sin(angle) * speed;
-                        let bulletLife = 200 / speed; // 그랩 사거리 약 200px
-                        
-                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                            color: '#ff00aa',
-                            radius: 6,
-                            life: bulletLife,
-                            isWhip: true,
-                            pierce: this.player.pierceCount,
-                            homing: this.player.homing,
-                            homingSpeed: this.player.homingAngleSpeed,
-                            splash: this.player.splashRadius,
-                            bounceLimit: this.player.wallBounceLimit,
-                            monsterBounceLimit: this.player.monsterBounceLimit
-                        }));
-                        
-                        // 사슬 네온 조각들
-                        for (let i = 0; i < 4; i++) {
-                            this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
+                        // S자 모양을 그리며 네온 채찍 먼지 파티클 스폰 연출
+                        for (let i = 0; i < 8; i++) {
+                            let t = i / 8;
+                            let dist = radius * t;
+                            let wave = Math.sin(t * Math.PI * 2) * 15;
+                            let px = this.player.x + Math.cos(angle) * dist - Math.sin(angle) * wave;
+                            let py = this.player.y + Math.sin(angle) * dist + Math.cos(angle) * wave;
+                            let vx = Math.cos(angle) * 1.5;
+                            let vy = Math.sin(angle) * 1.5;
+                            this.particles.push(new Particle(px, py, '#ff00aa', 1.8, vx, vy, 15, 'dust'));
                         }
                     }
                     Sound.play('slash');
                     this.shakeScreen(4, 1.5);
+                    
+                    // 즉발 견인/기절 타격 실행
+                    this.triggerWhipInstantAttack(this.player.burstBulletsToLaunch);
                 }
                 else if (this.player.burstType === 'sword' || this.player.burstType === 'spear') {
                     // 검/창 난무 격발
                     let isSpear = this.player.burstType === 'spear';
                     if (isSpear) {
-                        let sAngle = this.player.angle;
-                        for (let i = 0; i < 6; i++) {
-                            let distOffset = i * 8;
-                            let px = this.player.x + Math.cos(sAngle) * distOffset;
-                            let py = this.player.y + Math.sin(sAngle) * distOffset;
-                            let vx = Math.cos(sAngle) * 3;
-                            let vy = Math.sin(sAngle) * 3;
-                            this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
+                        // 창 즉발 찌르기 모션 연출 활성화
+                        this.player.isSpearActive = true;
+                        this.player.spearTimer = 8;
+                        this.player.spearAngle = this.player.angle;
+                        this.player.spearAngles = [...this.player.burstBulletsToLaunch];
+                        
+                        // [S-01 창 사거리 축소 밸런스 공식] 동일 사거리 연계
+                        let targetRange = 80 + (this.player.range - 350) * 0.3;
+                        if (this.player.weaponUnlocks.spear.range) targetRange += 20;
+                        
+                        for (let angle of this.player.burstBulletsToLaunch) {
+                            for (let i = 0; i < 6; i++) {
+                                let distOffset = i * (targetRange / 6);
+                                let px = this.player.x + Math.cos(angle) * distOffset;
+                                let py = this.player.y + Math.sin(angle) * distOffset;
+                                let vx = Math.cos(angle) * 3;
+                                let vy = Math.sin(angle) * 3;
+                                this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
+                            }
                         }
                         Sound.play('slash');
                         this.shakeScreen(4, 1.8);
+                        
+                        // 즉발 찌르기 타격 실행
+                        this.triggerSpearInstantAttack(this.player.burstBulletsToLaunch);
                     } else {
+                        // 검풍 베기 모션
                         this.player.isSlashActive = true;
                         this.player.slashTimer = 12;
                         this.player.slashAngle = this.player.angle;
+                        this.player.slashAngles = [...this.player.burstBulletsToLaunch];
                         
                         Sound.play('slash');
                         this.shakeScreen(5, 2.5);
 
-                        let sAngle = this.player.angle;
-                        for (let i = -5; i <= 5; i++) {
-                            let offset = sAngle + (i * 0.15);
-                            let px = this.player.x + Math.cos(offset) * 25;
-                            let py = this.player.y + Math.sin(offset) * 25;
-                            let vx = Math.cos(offset) * 2;
-                            let vy = Math.sin(offset) * 2;
-                            this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+                        for (let angle of this.player.burstBulletsToLaunch) {
+                            for (let i = -5; i <= 5; i++) {
+                                let offset = angle + (i * 0.15);
+                                let px = this.player.x + Math.cos(offset) * 25;
+                                let py = this.player.y + Math.sin(offset) * 25;
+                                let vx = Math.cos(offset) * 2;
+                                let vy = Math.sin(offset) * 2;
+                                this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
+                            }
                         }
                     }
 
                     let synergyMult = this.checkBuildSynergy('sword');
                     let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                    let baseMult = isSpear ? 1.35 : 1.2;
+                    let baseMult = isSpear ? 0.9 : 0.8;
                     let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
 
-                    for (let angle of this.player.burstBulletsToLaunch) {
-                        let speed = isSpear ? 10.0 : 6.0;
-                        let vx = Math.cos(angle) * speed;
-                        let vy = Math.sin(angle) * speed;
-                        
-                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
-                            pierce: Math.min(5, this.player.pierceCount + (isSpear ? 2 : 1)),
-                            homing: this.player.homing,
-                            homingSpeed: this.player.homingAngleSpeed,
-                            splash: this.player.splashRadius,
-                            color: isSpear ? '#00f0ff' : '#b026ff',
-                            radius: isSpear ? 6 : 5,
-                            isSpear: isSpear
-                        }));
+                    // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
+                    if (!isSpear && this.player.weaponUnlocks.sword.wave) {
+                        for (let angle of this.player.burstBulletsToLaunch) {
+                            let speed = 6.0;
+                            let vx = Math.cos(angle) * speed;
+                            let vy = Math.sin(angle) * speed;
+                            
+                            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
+                                pierce: Math.min(5, this.player.pierceCount + 1),
+                                homing: this.player.homing,
+                                homingSpeed: this.player.homingAngleSpeed,
+                                splash: this.player.splashRadius,
+                                color: '#b026ff',
+                                radius: 5
+                            }));
+                        }
                     }
                 }
             }
@@ -3903,10 +4008,10 @@ class GameEngine {
         // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
         this.player.isStopped = (dx === 0 && dy === 0);
 
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && (this.player.weaponType === 'gun' || this.player.weaponType === 'lightning' || this.player.weaponType === 'fire' || this.player.weaponType === 'ice' || this.player.weaponType === 'dual')) {
             this.shootWeapon();
         }
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual')) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'whip' || this.player.weaponType === 'dual')) {
             this.slashWeapon();
         }
 
@@ -5345,7 +5450,7 @@ class GameEngine {
         let isLightning = this.player.weaponType === 'lightning';
         let isFire = this.player.weaponType === 'fire';
         let isIce = this.player.weaponType === 'ice';
-        let isWhip = this.player.weaponType === 'whip';
+        let isWhip = false; // 채찍은 즉발형 근접 베기 무기로 개편되었으므로 탄환 발사를 전면 중단함
         let isDual = this.player.weaponType === 'dual';
         
         // 번개/불/얼음 마법 격발 시 마력(MP) 소모 및 잔량 차단 체크
@@ -5508,21 +5613,288 @@ class GameEngine {
         fireBulletPack();
     }
 
-    // 근접 검 베기 및 창 찌르기 메커니즘
+    // [신규 기획] 채찍 즉발 베기 및 견인/기절 물리 충돌 판정
+    triggerWhipInstantAttack(anglesToLaunch) {
+        let whipRadius = this.player.weaponUnlocks.whip.range ? 220 : 150;
+        
+        let synergyMult = this.checkBuildSynergy('gun'); // 채찍은 총기 카드의 시너지를 받음
+        let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+        let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+        
+        let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
+        let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
+        
+        let baseDmg = this.player.atk * 0.5;
+        let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+            
+            // 사거리 판정
+            if (dist < whipRadius + m.radius) {
+                let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                let inWhipArc = false;
+                
+                // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 기본 0.2 라디안에서 카드 성장에 따라 미세 확장
+                let whipArcLimit = 0.2 + (this.player.multishot - 1) * 0.05 + (this.player.weaponUnlocks.whip.multi ? 0.15 : 0);
+                
+                // 그어진 모든 채찍 호 각도 검사
+                for (let angle of anglesToLaunch) {
+                    let angleDiff = Math.abs(targetAngle - angle);
+                    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+                    if (Math.abs(angleDiff) < whipArcLimit) {
+                        inWhipArc = true;
+                        break;
+                    }
+                }
+                
+                if (inWhipArc) {
+                    // 견인 대상 위치 계산 (플레이어 정방향 35px 지점)
+                    let pullAngle = this.player.angle;
+                    let pullX = this.player.x + Math.cos(pullAngle) * 35;
+                    let pullY = this.player.y + Math.sin(pullAngle) * 35;
+                    
+                    m.x = pullX;
+                    m.y = pullY;
+                    
+                    // 외벽 충돌 맵 탈출 방지 마진 클램프 (wallMargin = 40)
+                    const wallMargin = 40;
+                    m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
+                    m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                    
+                    m.statusEffects.shock = 90; // 1.5초 기절 프레임 부여
+                    m.flashTimer = 8;
+                    
+                    // Whip 진화 능력 해금 연동
+                    // 1) whip.haste: 견인 성공 시 공속 스택 중첩
+                    if (this.player.weaponUnlocks.whip.haste) {
+                        this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
+                        this.player.whipSpeedTimer = 180;
+                        this.showFloatingText(`GRAB PULL! ⚡ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
+                    } else {
+                        this.showFloatingText(`GRAB PULL! ⚡`, this.player.x, this.player.y - 30, '#ff00aa');
+                    }
+
+                    // 2) whip.break: 피격 적에게 5초(300프레임) 취약 디버프 부여
+                    if (this.player.weaponUnlocks.whip.break) {
+                        m.statusEffects.vulnerability = Math.max(m.statusEffects.vulnerability || 0, 300);
+                    }
+                    
+                    // 3) whip.shock: 주변 적들에게 40% 스플래시 피해 및 연쇄 기절 전이
+                    if (this.player.weaponUnlocks.whip.shock) {
+                        let splashRadius = 60;
+                        let splashDmg = finalDamage * 0.4;
+                        this.particles.push(new Particle(m.x, m.y, '#ff00aa', splashRadius, 0, 0, 15, 'explosionRing'));
+                        
+                        for (let k = this.monsters.length - 1; k >= 0; k--) {
+                            let otherM = this.monsters[k];
+                            if (otherM !== m) {
+                                let sDist = Math.hypot(otherM.x - m.x, otherM.y - m.y);
+                                if (sDist < splashRadius + otherM.radius) {
+                                    otherM.hp -= splashDmg;
+                                    otherM.statusEffects.shock = 90;
+                                    otherM.flashTimer = 8;
+                                    this.showFloatingText(`SPLASH -${Math.ceil(splashDmg)}`, otherM.x, otherM.y - 20, '#ff00aa');
+                                    
+                                    if (otherM.hp <= 0) {
+                                        this.killMonster(otherM, k);
+                                        if (k < i) i--;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 네온 분홍빛 스파크 파티클 비산
+                    for (let k = 0; k < 8; k++) {
+                        let rAngle = Math.random() * Math.PI * 2;
+                        let rSpeed = Math.random() * 4 + 2;
+                        this.particles.push(new Particle(m.x, m.y, '#ff00aa', 2, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 15, 'spark'));
+                    }
+                    
+                    m.hp -= finalDamage;
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+    }
+
+    // [신규 기획] 창 즉발 찌르기 및 사거리 끝 80%~100% 치명타(Critical) 및 벽꽝 물리 판정
+    triggerSpearInstantAttack(anglesToLaunch) {
+        // [S-01 창 사거리 축소 밸런스 공식] 기본 80px, 성장 시 최대 180px 제한 수식
+        let spearRange = 80 + (this.player.range - 350) * 0.3;
+        if (this.player.weaponUnlocks.spear.range) spearRange += 20;
+        
+        let synergyMult = this.checkBuildSynergy('sword'); // 창은 검기 카드의 시너지를 받음
+        let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+        let weaponDmg = this.player.atk * 0.9 * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+        
+        let px = this.player.x;
+        let py = this.player.y;
+
+        for (let angle of anglesToLaunch) {
+            let cosA = Math.cos(angle);
+            let sinA = Math.sin(angle);
+            
+            let hits = [];
+            // 선분 대 원 충돌 판정 연산
+            for (let i = this.monsters.length - 1; i >= 0; i--) {
+                let m = this.monsters[i];
+                let mx = m.x;
+                let my = m.y;
+                
+                let dx = mx - px;
+                let dy = my - py;
+                
+                // 찌르기 직선 선분 위로 몬스터의 정사영 투영 비율 t 구하기
+                let t = (dx * cosA * spearRange + dy * sinA * spearRange) / (spearRange * spearRange);
+                t = Math.max(0, Math.min(1, t)); // 선분 내부로 제한
+                
+                // 투영 좌표점 (tx, ty)
+                let tx = px + t * cosA * spearRange;
+                let ty = py + t * sinA * spearRange;
+                
+                // 정사영점에서 몬스터 중심까지의 기하학적 최소 거리
+                let distToLine = Math.hypot(mx - tx, my - ty);
+                
+                // 몬스터의 피격 판정 (반지름 + 6px 마진 적용)
+                if (distToLine < m.radius + 6) {
+                    let distToPlayer = Math.hypot(mx - px, my - py);
+                    hits.push({ index: i, monster: m, distance: distToPlayer, t: t });
+                }
+            }
+            
+            // 플레이어와 가까운 순서대로 관통 판정을 위한 정렬
+            hits.sort((a, b) => a.distance - b.distance);
+            
+            // 창의 관통력 제한 (기본 관통 + spear 진화로 2개 추가 제공)
+            let maxPierce = Math.min(5, this.player.pierceCount + 2);
+            let allowedHits = hits.slice(0, maxPierce + 1);
+            
+            for (let hit of allowedHits) {
+                let m = hit.monster;
+                let idx = hit.index;
+                let distToPlayer = hit.distance;
+                
+                let isSpearTip = false;
+                let finalDmg = weaponDmg;
+                
+                // 1) spear.tip: 찌르기 사거리의 80%~100% 끝부분 타격 시 2배 치명타 피해 및 강넉백
+                if (distToPlayer >= spearRange * 0.80 && this.player.weaponUnlocks.spear.tip) {
+                    finalDmg *= 2.0;
+                    isSpearTip = true;
+                }
+                
+                // 취약 효과 데미지 25% 가산
+                if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
+                
+                // 빙결 분쇄(ice.shatter) 연동: 30% 확률로 300% 대미지
+                let hasShattered = false;
+                if (m.isFrozenActive > 0 && this.player.weaponUnlocks.ice.shatter) {
+                    if (Math.random() < 0.3) {
+                        finalDmg *= 3.0;
+                        hasShattered = true;
+                        m.isFrozenActive = 0;
+                        m.statusEffects.shock = 0;
+                    }
+                }
+                
+                m.hp -= finalDmg;
+                m.flashTimer = 5;
+                
+                // 넉백 벡터 적용 (spear.knockback 해금 시 넉백 물리 12.0)
+                let kbForce = this.player.weaponUnlocks.spear.knockback ? 12.0 : 7.5;
+                m.knockbackX = cosA * kbForce;
+                m.knockbackY = sinA * kbForce;
+                
+                if (isSpearTip) {
+                    this.showFloatingText("🎯 SPEAR-TIP CRITICAL! 🎯", m.x, m.y - 35, '#00f0ff');
+                    this.shakeScreen(8, 3.8);
+                }
+                
+                if (hasShattered) {
+                    this.showFloatingText("❄️ FREEZE SHATTER! 300%", m.x, m.y - 35, '#00f0ff');
+                    this.shakeScreen(12, 5.0);
+                    Sound.play('explosion');
+                    
+                    for (let k = 0; k < 12; k++) {
+                        let rAngle = Math.random() * Math.PI * 2;
+                        let rSpeed = Math.random() * 4 + 2;
+                        this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 20, 'spark'));
+                    }
+                }
+                
+                // 2) spear.wall: 벽꽝 충돌 시 1.5배(50% 추가) 피해
+                if (this.player.weaponUnlocks.spear.wall) {
+                    let nextX = m.x + m.knockbackX * 3;
+                    let nextY = m.y + m.knockbackY * 3;
+                    const wallMargin = 40;
+                    let hitWall = (nextX <= wallMargin + m.radius || nextX >= 800 - wallMargin - m.radius ||
+                                   nextY <= wallMargin + m.radius || nextY >= 600 - wallMargin - m.radius);
+                                   
+                    if (hitWall) {
+                        let wallCrashDmg = finalDmg * 0.5;
+                        m.hp -= wallCrashDmg;
+                        this.showFloatingText("💥 WALL IMPACT! +50%", m.x, m.y - 20, '#ffdf00');
+                        Sound.play('explosion');
+                        
+                        for (let k = 0; k < 6; k++) {
+                            let rAngle = Math.random() * Math.PI * 2;
+                            let rSpeed = Math.random() * 3 + 1;
+                            this.particles.push(new Particle(m.x, m.y, '#ffdf00', 2, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 15, 'spark'));
+                        }
+                    }
+                }
+                
+                Sound.play('hit');
+                
+                // 청록색 찌르기 스파크 파티클 생성
+                for (let k = 0; k < 5; k++) {
+                    let rSpeed = Math.random() * 3 + 1;
+                    this.particles.push(new Particle(m.x, m.y, '#00f0ff', 2, cosA * rSpeed + (Math.random() - 0.5) * 2, sinA * rSpeed + (Math.random() - 0.5) * 2, 15));
+                }
+                
+                if (m.hp <= 0) {
+                    this.killMonster(m, idx);
+                }
+            }
+        }
+    }
+
     slashWeapon() {
-        // 공속 쿨타임 적용 (창은 찌르기이므로 쿨타임을 미세하게 짧게 설정 - DPS 극대화)
         let isSpear = this.player.weaponType === 'spear';
-        let baseCd = isSpear ? 40 : 50;
-        let cooldownFrames = Math.max(isSpear ? 12 : 15, baseCd / this.player.aspd);
+        let isWhip = this.player.weaponType === 'whip';
+        
+        // 공속 쿨타임 적용
+        let baseCd = isSpear ? 40 : (isWhip ? 45 : 50);
+        let cooldownFrames = Math.max(isSpear ? 12 : (isWhip ? 13 : 15), baseCd / this.player.aspd);
         this.player.slashCooldown = cooldownFrames;
         
-        // [성능 최적화 및 스코프 결함 수정] 각도 연산 및 선언을 상위 slashWeapon 스코프로 안전하게 인양(Hoisting)
         let startAngle = this.player.angle;
         let anglesToLaunch = [];
-        if (this.player.multishot === 1) {
+        
+        // 다발 각도 계산 및 진화 해금 분기
+        if (isSpear && this.player.weaponUnlocks.spear.multi) {
+            anglesToLaunch = [startAngle - 0.2, startAngle, startAngle + 0.2];
+        } else if (isWhip) {
+            // [W-05 채찍 좌우 다발 궤적 각도 좁은 스케일링 공식] 기본 0.15 라디안, 성장 시 조금씩 넓어짐
+            let whipMultiArc = 0.15 + (this.player.multishot - 1) * 0.03 + (this.player.weaponUnlocks.whip.multi ? 0.10 : 0);
+            if (this.player.multishot === 1) {
+                anglesToLaunch.push(startAngle);
+            } else {
+                let step = whipMultiArc / (this.player.multishot - 1);
+                for (let i = 0; i < this.player.multishot; i++) {
+                    let targetAngle = startAngle - (whipMultiArc / 2) + (step * i);
+                    anglesToLaunch.push(targetAngle);
+                }
+            }
+        } else if (this.player.multishot === 1) {
             anglesToLaunch.push(startAngle);
         } else {
-            let arcSpan = this.player.multishotArc; // 부채꼴 퍼짐 각도 범위 (강화 카드 연동)
+            let arcSpan = this.player.multishotArc;
             let step = arcSpan / (this.player.multishot - 1);
             for (let i = 0; i < this.player.multishot; i++) {
                 let targetAngle = startAngle - (arcSpan / 2) + (step * i);
@@ -5532,28 +5904,67 @@ class GameEngine {
         
         let fireSlashPack = () => {
             if (isSpear) {
-                // 창 찌르기 파티클 (일직선상으로 뿜어져 나옴)
-                let sAngle = this.player.angle;
-                for (let i = 0; i < 6; i++) {
-                    let distOffset = i * 8;
-                    let px = this.player.x + Math.cos(sAngle) * distOffset;
-                    let py = this.player.y + Math.sin(sAngle) * distOffset;
-                    let vx = Math.cos(sAngle) * 3;
-                    let vy = Math.sin(sAngle) * 3;
-                    this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
+                // 창 즉발 찌르기 모션 연출 활성화
+                this.player.isSpearActive = true;
+                this.player.spearTimer = 8;
+                this.player.spearAngle = this.player.angle;
+                this.player.spearAngles = [...anglesToLaunch];
+                
+                // [S-01 창 사거리 축소 밸런스 공식] 동일 사거리 연계
+                let targetRange = 80 + (this.player.range - 350) * 0.3;
+                if (this.player.weaponUnlocks.spear.range) targetRange += 20;
+                
+                for (let angle of anglesToLaunch) {
+                    for (let i = 0; i < 6; i++) {
+                        let distOffset = i * (targetRange / 6);
+                        let px = this.player.x + Math.cos(angle) * distOffset;
+                        let py = this.player.y + Math.sin(angle) * distOffset;
+                        let vx = Math.cos(angle) * 3;
+                        let vy = Math.sin(angle) * 3;
+                        this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
+                    }
                 }
                 Sound.play('slash');
                 this.shakeScreen(4, 1.8);
-            } else {
-                // 베기 작동 모션 트리거
+                
+                // 즉발 타격 실행
+                this.triggerSpearInstantAttack(anglesToLaunch);
+            } else if (isWhip) {
+                // 채찍 즉발 베기 모션 연출 활성화
                 this.player.isSlashActive = true;
-                this.player.slashTimer = 12; // 12프레임간 휘두름 호가 그려짐
+                this.player.slashTimer = 12;
                 this.player.slashAngle = this.player.angle;
+                this.player.slashAngles = [...anglesToLaunch];
+                
+                let radius = this.player.weaponUnlocks.whip.range ? 220 : 150;
+                for (let angle of anglesToLaunch) {
+                    // S자 모양을 그리며 네온 채찍 먼지 파티클 스폰 연출
+                    for (let i = 0; i < 8; i++) {
+                        let t = i / 8;
+                        let dist = radius * t;
+                        let wave = Math.sin(t * Math.PI * 2) * 15;
+                        let px = this.player.x + Math.cos(angle) * dist - Math.sin(angle) * wave;
+                        let py = this.player.y + Math.sin(angle) * dist + Math.cos(angle) * wave;
+                        let vx = Math.cos(angle) * 1.5;
+                        let vy = Math.sin(angle) * 1.5;
+                        this.particles.push(new Particle(px, py, '#ff00aa', 1.8, vx, vy, 15, 'dust'));
+                    }
+                }
+                Sound.play('slash');
+                this.shakeScreen(4, 1.5);
+                
+                // 즉발 견인/타격 실행
+                this.triggerWhipInstantAttack(anglesToLaunch);
+            } else {
+                // 검 베기 작동 모션 트리거
+                this.player.isSlashActive = true;
+                this.player.slashTimer = 12;
+                this.player.slashAngle = this.player.angle;
+                this.player.slashAngles = [...anglesToLaunch];
                 
                 Sound.play('slash');
                 this.shakeScreen(5, 2.5);
-
-                // 검풍 베기 파티클
+ 
                 let sAngle = this.player.angle;
                 for (let i = -5; i <= 5; i++) {
                     let offset = sAngle + (i * 0.15);
@@ -5564,49 +5975,44 @@ class GameEngine {
                     this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
                 }
             }
-
+ 
             let synergyMult = this.checkBuildSynergy('sword');
-            
-            // [E-08 신규 구현] Speed Ring 5레벨 돌파: 바람의 상처 2초 달리기 유지 시 공증 10% 가산 보정
             let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-
-            // 검기 또는 창 찌르기 대미지 보정 (창은 한방 관통 찌르기이므로 데미지 배율 1.35)
-            let baseMult = isSpear ? 1.35 : 1.2;
+            let baseMult = isSpear ? 0.9 : 0.8;
             let weaponDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
-
-            for (let angle of anglesToLaunch) {
-                let speed = isSpear ? 10.0 : 6.0; // 창은 검기보다 날카롭고 민첩하게 10.0의 속도로 날아감
-                let vx = Math.cos(angle) * speed;
-                let vy = Math.sin(angle) * speed;
-                
-                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
-                    // 창은 관통을 기본적으로 2회 가산 획득하여 시원하게 관통함
-                    pierce: Math.min(5, this.player.pierceCount + (isSpear ? 2 : 1)), 
-                    homing: this.player.homing,
-                    homingSpeed: this.player.homingAngleSpeed,
-                    splash: this.player.splashRadius,
-                    color: isSpear ? '#00f0ff' : '#b026ff',
-                    radius: isSpear ? 6 : 5,
-                    isSpear: isSpear // 창 여부 설정 전달
-                }));
+ 
+            // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
+            if (!isSpear && !isWhip && this.player.weaponUnlocks.sword.wave) {
+                for (let angle of anglesToLaunch) {
+                    let speed = 6.0;
+                    let vx = Math.cos(angle) * speed;
+                    let vy = Math.sin(angle) * speed;
+                    
+                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, weaponDmg, true, {
+                        pierce: Math.min(5, this.player.pierceCount + 1), 
+                        homing: this.player.homing,
+                        homingSpeed: this.player.homingAngleSpeed,
+                        splash: this.player.splashRadius,
+                        color: '#b026ff',
+                        radius: 5
+                    }));
+                }
             }
         };
-
+ 
         // [신규] 프레임 기반 틱 격발 예약 (잔상 사격 버그 원천 차단)
         if (this.player.burstCount > 1) {
-            this.player.burstRemaining = this.player.burstCount - 1; // 1회는 즉시 사출하므로 1회 차감
+            this.player.burstRemaining = this.player.burstCount - 1;
             this.player.burstIntervalTimer = 0;
             this.player.burstAngle = startAngle;
-            this.player.burstType = isSpear ? 'spear' : 'sword';
+            this.player.burstType = isSpear ? 'spear' : (isWhip ? 'whip' : 'sword');
             this.player.burstBulletsToLaunch = anglesToLaunch;
         } else {
             this.player.burstRemaining = 0;
         }
-
-        // 1회 즉시 난무 격발
+ 
         fireSlashPack();
     }
-
 
     // HUD 데이터 동기화 및 바 게이지 드로잉
     updateHUD() {

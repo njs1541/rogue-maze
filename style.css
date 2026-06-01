@@ -235,6 +235,7 @@ body {
     letter-spacing: 0.1em;
     box-shadow: 0 0 15px rgba(0, 240, 255, 0.15), inset 0 0 10px rgba(0, 240, 255, 0.05);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    white-space: nowrap;
 }
 
 .neon-btn:hover {
@@ -266,7 +267,7 @@ body {
 }
 
 #player-bars {
-    flex: 1.2;
+    flex: 0.8;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -333,12 +334,13 @@ body {
 
 /* 스탯 보드 */
 #stats-dashboard {
-    flex: 1;
+    flex: 1.6;
     display: flex;
     justify-content: space-between;
     gap: 16px;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     padding-left: 20px;
+    white-space: nowrap;
 }
 
 .stat-column {
@@ -355,16 +357,19 @@ body {
     align-items: center;
     padding: 3px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
 }
 
 .stat-name {
     color: #718096;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .stat-value {
     color: #edf2f7;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 /* --------------------------------------------------------------------------
@@ -1333,7 +1338,7 @@ input:checked + .cheat-switch-slider:before {
     border-radius: 20px;
     box-shadow: 0 0 35px rgba(176, 38, 255, 0.35);
     padding: 35px;
-    max-width: 440px;
+    max-width: 500px;
     width: 100%;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -1473,14 +1478,15 @@ input:checked + .cheat-switch-slider:before {
 
 .option-actions {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     margin-top: 10px;
+    flex-wrap: nowrap;
 }
 
 .option-actions button {
     flex: 1;
-    padding: 13px;
-    font-size: 0.95rem;
+    padding: 10px 6px;
+    font-size: 0.9rem;
     cursor: pointer;
 }
 
@@ -1774,7 +1780,7 @@ input:checked + .cheat-switch-slider:before {
     margin-bottom: 20px;
 }
 
-.rank-filter-btn {
+.rank-filter-btn, .codex-filter-btn {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #a0aec0;
@@ -1788,7 +1794,7 @@ input:checked + .cheat-switch-slider:before {
     outline: none;
 }
 
-.rank-filter-btn:hover {
+.rank-filter-btn:hover, .codex-filter-btn:hover {
     color: #edf2f7;
     border-color: rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.02);
@@ -1807,5 +1813,319 @@ input:checked + .cheat-switch-slider:before {
     box-shadow: 0 0 15px rgba(176, 38, 255, 0.35), inset 0 0 8px rgba(176, 38, 255, 0.1);
     background: rgba(176, 38, 255, 0.05);
 }
+
+/* ==========================================================================
+   카드 도감(Codex) 전용 스타일시트 신설
+   ========================================================================== */
+.codex-tab-btn {
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 탭 활성화 테마색상 매핑 */
+.codex-tab-btn.active[data-tab="weapon"] {
+    border-color: var(--neon-red) !important;
+    color: var(--neon-red) !important;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.35), inset 0 0 8px rgba(255, 0, 85, 0.1) !important;
+    background: rgba(255, 0, 85, 0.05) !important;
+}
+
+.codex-tab-btn.active[data-tab="equipment"] {
+    border-color: var(--neon-blue) !important;
+    color: var(--neon-blue) !important;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.35), inset 0 0 8px rgba(0, 240, 255, 0.1) !important;
+    background: rgba(0, 240, 255, 0.05) !important;
+}
+
+.codex-tab-btn.active[data-tab="status"] {
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.35), inset 0 0 8px rgba(57, 255, 20, 0.1) !important;
+    background: rgba(57, 255, 20, 0.05) !important;
+}
+
+/* 도감 전용 스크롤바 커스텀 */
+.ranking-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ranking-list-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 4px;
+}
+
+.ranking-list-container::-webkit-scrollbar-thumb {
+    background: rgba(176, 38, 255, 0.25);
+    border-radius: 4px;
+}
+
+.ranking-list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(176, 38, 255, 0.55);
+}
+
+/* 도감 개별 카드 */
+.codex-card {
+    background: rgba(15, 17, 26, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.codex-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* 등급별 네온 아우라 테마 */
+.codex-card.card-common { border-color: rgba(160, 174, 192, 0.25); }
+.codex-card.card-common:hover { 
+    border-color: #a0aec0;
+    box-shadow: 0 0 15px rgba(160, 174, 192, 0.25);
+}
+
+.codex-card.card-rare { border-color: rgba(255, 223, 0, 0.25); }
+.codex-card.card-rare:hover { 
+    border-color: var(--neon-yellow);
+    box-shadow: 0 0 15px rgba(255, 223, 0, 0.3);
+}
+
+.codex-card.card-epic { border-color: rgba(176, 38, 255, 0.25); }
+.codex-card.card-epic:hover { 
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 15px rgba(176, 38, 255, 0.35);
+}
+
+.codex-card.card-legendary { border-color: rgba(255, 108, 0, 0.25); }
+.codex-card.card-legendary:hover { 
+    border-color: var(--neon-orange);
+    box-shadow: 0 0 20px rgba(255, 108, 0, 0.4);
+}
+
+/* 카드 내부 구성 */
+.codex-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.codex-card-icon {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.1));
+}
+
+.codex-card-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #fff;
+    text-align: left;
+}
+
+.codex-card-desc {
+    font-size: 0.82rem;
+    color: #a0aec0;
+    line-height: 1.4;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+/* 초월 상자 */
+.codex-overload-box {
+    background: linear-gradient(135deg, rgba(255, 108, 0, 0.08) 0%, rgba(255, 223, 0, 0.03) 100%);
+    border: 1px dashed rgba(255, 108, 0, 0.25);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.76rem;
+    text-align: left;
+    margin-top: auto;
+}
+
+.codex-overload-box strong {
+    color: var(--neon-orange);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.codex-overload-box p {
+    color: #cbd5e0;
+    margin: 2px 0;
+    padding-left: 6px;
+    position: relative;
+}
+
+.codex-overload-box p::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--neon-yellow);
+}
+
+/* ==========================================================================
+   [성능 최적화] 저사양 모드 선택 체크박스 커스텀 네온 스타일링
+   ========================================================================== */
+#perf-low-spec {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 240, 255, 0.4);
+    border-radius: 4px;
+    background: rgba(0, 5, 15, 0.7);
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+#perf-low-spec:hover {
+    border-color: #00f0ff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+#perf-low-spec:checked {
+    border-color: #00f0ff;
+    background: rgba(0, 240, 255, 0.2);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+#perf-low-spec:checked::before {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #00f0ff;
+    font-size: 1rem;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(0, 240, 255, 0.8);
+}
+
+/* ==========================================================================
+   [성능 최적화] 저사양 모드(low-spec) 시 CSS 렉 유발 주범(블러, 글로우, 애니메이션) 비활성화
+   ========================================================================== */
+body.low-spec * {
+    /* 저사양 모드 시 전체 요소의 과도한 텍스트 섀도우 축소 */
+    text-shadow: none !important;
+}
+
+/* 텍스트 섀도우를 완전히 끄면 네온 시인성이 너무 낮아질 수 있으므로 핵심 HUD는 최소한만 유지 */
+body.low-spec .text-glow-blue,
+body.low-spec .text-glow-green,
+body.low-spec .text-glow-red,
+body.low-spec .text-glow-yellow,
+body.low-spec .text-glow-purple,
+body.low-spec .text-glow-cyan {
+    text-shadow: 0 0 2px currentColor !important; /* 초경량 발광선만 유지 */
+}
+
+/* 1. 글래스모피즘 블러 필터 일괄 비활성화 (카드 도감 및 리더보드 제외 - 둘은 상시 최적화) */
+body.low-spec .overlay-panel:not(#card-codex-overlay):not(#ranking-modal-overlay),
+body.low-spec .option-container,
+body.low-spec .detail-card-container,
+body.low-spec .cheat-container,
+body.low-spec .result-box,
+body.low-spec #hud-header,
+body.low-spec #hud-footer {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 11, 18, 0.96) !important; /* 반투명 대신 불투명 다크 배경으로 대체 */
+    box-shadow: none !important;
+}
+
+/* 2. 모달 컨테이너 및 장벽 테두리를 두껍고 뚜렷한 실선으로 대체 (도감/리더보드 제외) */
+body.low-spec .option-container {
+    border: 2px solid #b026ff !important;
+}
+body.low-spec .detail-card-container {
+    border: 2px solid #ffdf00 !important;
+}
+body.low-spec .cheat-container {
+    border: 2px solid #00f0ff !important;
+}
+body.low-spec .result-box {
+    border: 2px solid #ff0055 !important;
+}
+
+/* 3. 리더보드 테이블 및 로딩 상태의 렉 유발 요인 제거 (상시 최적화로 이전되어 비워둠) */
+
+/* 4. 보상 오버레이의 대형 카드 및 리롤 버튼 글로우 제거 */
+body.low-spec .reward-card {
+    box-shadow: none !important;
+    background: rgba(20, 22, 33, 0.95) !important;
+}
+body.low-spec .reward-card .card-glow {
+    display: none !important; /* 무거운 그라데이션 필터 제거 */
+}
+body.low-spec .reward-card:hover {
+    box-shadow: none !important;
+}
+body.low-spec .neon-btn {
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+body.low-spec .neon-btn:hover {
+    box-shadow: 0 0 5px currentColor !important;
+}
+
+
+/* ==========================================================================
+   [성능 최적화] 카드 도감(Codex) 및 리더보드(Leaderboard) 영역 상시 최적화 (lowSpecMode 여부와 관계없이 100% 경량화 상태 유지)
+   ========================================================================== */
+#card-codex-overlay,
+#card-codex-overlay .ranking-modal-container,
+#ranking-modal-overlay,
+#ranking-modal-overlay .ranking-modal-container {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 11, 18, 0.97) !important; /* 상시 불투명 다크 처리 */
+    box-shadow: none !important;
+}
+
+#card-codex-overlay,
+#card-codex-overlay .ranking-modal-container {
+    border: 2px solid #b026ff !important; /* 아름다운 자홍색 네온 실선 고정 */
+}
+
+#ranking-modal-overlay,
+#ranking-modal-overlay .ranking-modal-container {
+    border: 2px solid #ffdf00 !important; /* 찬란한 황금색 네온 실선 고정 */
+}
+
+/* 카드 도감 내 개별 카드의 무거운 애니메이션 및 네온 섀도우 상시 차단 */
+.codex-card {
+    box-shadow: none !important;
+    animation: none !important;
+    background: rgba(20, 22, 33, 0.95) !important;
+    transition: transform 0.15s ease !important;
+}
+
+.codex-card:hover {
+    box-shadow: none !important;
+    transform: translateY(-2px) !important; /* 위로 부드럽게 솟구치는 기동감만 남김 */
+}
+
+/* 등급별 카드의 무거운 shadowBlur를 상시 제거하고 선명한 실선 경계로 대치 */
+.codex-card.card-common { border: 1.5px solid rgba(255, 255, 255, 0.3) !important; }
+.codex-card.card-rare { border: 1.5px solid #ffdf00 !important; }
+.codex-card.card-epic { border: 1.5px solid #b026ff !important; }
+.codex-card.card-legendary { border: 1.5px solid #ff6c00 !important; }
+
+/* 리더보드 테이블 헤더 및 로딩 상태의 렉 유발 요인 상시 차단 */
+.ranking-table th {
+    text-shadow: none !important;
+    border-bottom: 2px solid #00f0ff !important;
+}
+.neon-spinner {
+    box-shadow: none !important;
+    animation: spin 1s linear infinite !important;
+}
+
 
 
