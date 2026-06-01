@@ -159,8 +159,11 @@
                     </div>
                 </div>
             </div>
-            <!-- [신규 기획] 행운 목걸이(Luck Amulet) 10레벨 초월: 보상 리롤 버튼 -->
-            <button id="reroll-btn" class="neon-btn hidden" style="margin-top: 25px; padding: 10px 30px; font-size: 1rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🎲 보상 다시 굴리기 (1회)</button>
+            <!-- [개선] 카드 보상 리롤 및 건너뛰기 액션 홀더 -->
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px; width: 100%; max-width: 480px; margin: 25px auto 0 auto;">
+                <button id="reroll-btn" class="neon-btn" style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲 다시 굴리기 (0)</button>
+                <button id="skip-btn" class="neon-btn" style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️ 건너뛰기 (0)</button>
+            </div>
         </div>
 
         <!-- 게임 오버 및 최종 클리어 모달 오버레이 -->
@@ -377,6 +380,8 @@
                                 <button class="cheat-wpn-btn" data-wpn="lightning">⚡ 번개마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="fire">🔥 불마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="ice">❄️ 얼음마법</button>
+                                <button class="cheat-wpn-btn" data-wpn="icefiredance" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 아앤파 댄스 (초월)</button>
+                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 아앤파 초월 조건 즉시 충전</button>
                                 <button class="cheat-wpn-btn" data-wpn="thorns">🌵 가시 (Thorns)</button>
                                 <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
                                 <button class="cheat-wpn-btn" data-wpn="trap">🪤 함정 (Trap)</button>
@@ -501,16 +506,27 @@
                                     <button id="cheat-add-coin-1000" class="cheat-action-btn small">🪙 +1000</button>
                                 </div>
                             </div>
+                            <!-- [신규 추가] 리롤 & 건너뛰기 횟수 치트 세팅 -->
+                            <div class="cheat-util-card">
+                                <span class="card-label">리롤 & 건너뛰기 횟수</span>
+                                <div style="display: flex; gap: 5px; align-items: center; justify-content: center; margin-top: 5px;">
+                                    <input type="number" id="cheat-reroll-count" min="0" max="99" value="0" style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;" title="리롤 횟수">
+                                    <span style="color: #64748b;">/</span>
+                                    <input type="number" id="cheat-skip-count" min="0" max="99" value="0" style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;" title="건너뛰기 횟수">
+                                    <button id="cheat-apply-rolls" class="cheat-action-btn small" style="margin: 0; padding: 4px 8px; border-color: #ffdf00; color: #ffdf00;">적용</button>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="cheat-util-row" style="margin-top: 15px;">
                             <div class="cheat-util-card full-width">
-                                <span class="card-label">방 클리어 & 스테이지 건너뛰기</span>
-                                <div class="cheat-action-group">
-                                    <button id="cheat-clear-room" class="cheat-action-btn" style="background: rgba(255, 0, 108, 0.2); border-color: #ff006c; color: #ff006c;">💥 현재 방 즉시 소탕 (Clear Room)</button>
-                                    <div class="cheat-warp-group">
-                                        <input type="number" id="cheat-warp-stage-input" min="1" max="99" value="1" style="width: 70px; text-align: center;">
-                                        <button id="cheat-warp-stage-btn" class="cheat-action-btn" style="background: rgba(255, 223, 0, 0.2); border-color: #ffdf00; color: #ffdf00;">🌀 스테이지 워프</button>
+                                <span class="card-label">방 클리어 & 보상 시스템 통제</span>
+                                <div class="cheat-action-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button id="cheat-clear-room" class="cheat-action-btn" style="background: rgba(255, 0, 108, 0.15); border-color: #ff006c; color: #ff006c; flex: 1;">💥 현재 방 즉시 소탕 (Clear Room)</button>
+                                    <button id="cheat-spawn-reward" class="cheat-action-btn" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁 보상 선택 즉시 소환</button>
+                                    <div class="cheat-warp-group" style="flex: 1.2; display: flex; gap: 5px;">
+                                        <input type="number" id="cheat-warp-stage-input" min="1" max="99" value="1" style="width: 60px; text-align: center;">
+                                        <button id="cheat-warp-stage-btn" class="cheat-action-btn" style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0; flex: 1;">🌀 스테이지 워프</button>
                                     </div>
                                 </div>
                             </div>
