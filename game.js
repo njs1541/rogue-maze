@@ -5673,7 +5673,9 @@ class GameEngine {
                         isPulled = true;
                     }
                     
-                    m.statusEffects.shock = 90; // 1.5초 기절 프레임 부여
+                    if (isPulled) {
+                        m.statusEffects.shock = 90; // 1.5초 기절 프레임 부여 (견인된 적만 스턴)
+                    }
                     m.flashTimer = 8;
                     
                     // Whip 진화 능력 해금 연동
@@ -5681,9 +5683,9 @@ class GameEngine {
                     if (this.player.weaponUnlocks.whip.haste) {
                         this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
                         this.player.whipSpeedTimer = 180;
-                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡ HASTE [${this.player.whipSpeedStack}/3]` : `GRAB STUN! ⚡ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
+                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡ HASTE [${this.player.whipSpeedStack}/3]` : `GRAB HIT! ⚡ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
                     } else {
-                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡` : `GRAB STUN! ⚡`, this.player.x, this.player.y - 30, '#ff00aa');
+                        this.showFloatingText(isPulled ? `GRAB PULL! ⚡` : `GRAB HIT! ⚡`, this.player.x, this.player.y - 30, '#ff00aa');
                     }
 
                     // 2) whip.break: 피격 적에게 5초(300프레임) 취약 디버프 부여
