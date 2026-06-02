@@ -2,15 +2,22 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <script>
+        // 원격 런타임 에러 추적용 디버거
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("🚨 네온 엔진 런타임 에러 감지!\n\n에러 메시지: " + message + "\n발생 위치: " + source + " (Line " + lineno + ", Col " + colno + ")\n\n이 에러 메시지를 복사해서 개발자에게 알려주세요!");
+            return false;
+        };
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Rogue-Maze: 100 Rooms</title>
     <!-- 고급 현대적인 타이포그래피 Google Font 적용 -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
-    <!-- Firebase Compat v8 Core & Firestore CDN 추가 -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Firebase Compat v10 Core & Firestore CDN 추가 (최신화 완료) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div id="game-container">
@@ -544,7 +551,11 @@
                 <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📇 NEON CARD CODEX 📇</h2>
                 <span id="codex-modal-close" class="cheat-close">&times;</span>
             </div>
-            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">미로에서 획득 가능한 모든 무기/장비/스탯 카드 정보</p>
+            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
+                미로에서 획득 가능한 모든 무기/장비/스탯 카드 정보<br>
+                <a href="cards_list.html" target="_blank" style="color: #00f0ff; text-decoration: none; margin-right: 15px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 240, 255, 0.4);">📇 신규 기획서 상세 보기</a>
+                <a href="weapon_combinations.html" target="_blank" style="color: #ffdf00; text-decoration: none; font-weight: bold; text-shadow: 0 0 5px rgba(255, 223, 0, 0.4);">🔮 전설 진화/시너지 가이드</a>
+            </p>
             
             <!-- 탭 필터 버튼 -->
             <div class="ranking-filter-container">
