@@ -521,6 +521,15 @@ class Bullet {
         this.monsterBounceCount = 0; // 몬스터 튕긴 누적 횟수
         this.monsterBounceLimit = options.monsterBounceLimit || 0; // 최대 허용 몬스터 튕기기 횟수
         this.active = true; // [신규] 탄환 활성화 상태 (배열 훼손 방멸용 소멸 예약 플래그)
+
+        // [초월 무기 - 아앤파 댄스 전용] DNA 이중나선 물리/비주얼 관련 상태 주입
+        this.isDna = options.isDna || false;
+        this.dnaWavePhase = options.dnaWavePhase || 0;
+        this.dnaAmplitude = options.dnaAmplitude !== undefined ? options.dnaAmplitude : 16;
+        this.dnaFrequency = options.dnaFrequency !== undefined ? options.dnaFrequency : 0.18;
+        this.dnaTime = 0;
+        this.virtualX = x;
+        this.virtualY = y;
     }
 
     update(monsters) {
@@ -532,12 +541,16 @@ class Bullet {
 
         this.life -= timeScale;
 
+        // DNA 궤적의 경우 유도 조준 및 거리 탐색의 기본 기준점을 가상 물리 중심으로 전환
+        let baseForHomingX = this.isDna ? this.virtualX : this.x;
+        let baseForHomingY = this.isDna ? this.virtualY : this.y;
+
         // 유도탄 로직: 가장 가까운 적을 감지하여 실시간 유도 비행
         if (this.isPlayerBullet && this.homing && monsters.length > 0) {
             let closest = null;
             let minDist = Infinity;
             for (let m of monsters) {
-                let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                let dist = Math.hypot(m.x - baseForHomingX, m.y - baseForHomingY);
                 if (dist < minDist) {
                     minDist = dist;
                     closest = m;
@@ -546,7 +559,7 @@ class Bullet {
 
             if (closest) {
                 // 적 방향의 목표 각도 연산
-                let targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                let targetAngle = Math.atan2(closest.y - baseForHomingY, closest.x - baseForHomingX);
                 let currentAngle = Math.atan2(this.vy, this.vx);
                 
                 // 각도 보간 (매 프레임마다 약 5도씩 조준점 수정 - 강화 시 0.13로 향상)
@@ -561,15 +574,23 @@ class Bullet {
             }
         }
 
-        this.x += this.vx * timeScale;
-        this.y += this.vy * timeScale;
+        // DNA 궤적 탄환은 가상 중심 좌표를 누적 전진하고 일반 탄환은 실제 좌표를 누적
+        if (this.isDna) {
+            this.virtualX += this.vx * timeScale;
+            this.virtualY += this.vy * timeScale;
+        } else {
+            this.x += this.vx * timeScale;
+            this.y += this.vy * timeScale;
+        }
 
         // [5-4단계] 탄환과 격자 장애물의 AABB 충돌 및 도탄(Bounce)/소멸 물리 연동
         // 25등분 격자에 소환된 자홍색 홀로그램 장벽들과 탄환의 AABB 충돌을 검출합니다.
         if (window.gameEngine && window.gameEngine.obstacles.length > 0 && this.active) {
             for (let obs of window.gameEngine.obstacles) {
-                let distX = this.x - obs.x;
-                let distY = this.y - obs.y;
+                let currentX = this.isDna ? this.virtualX : this.x;
+                let currentY = this.isDna ? this.virtualY : this.y;
+                let distX = currentX - obs.x;
+                let distY = currentY - obs.y;
                 let minXDist = (obs.width / 2) + this.radius;
                 let minYDist = (obs.height / 2) + this.radius;
 
@@ -582,11 +603,19 @@ class Bullet {
 
                         if (overlapX < overlapY) {
                             // 좌우 측면 충돌 시 수평 속도 반사 및 밀어내기
-                            this.x += distX > 0 ? overlapX : -overlapX;
+                            if (this.isDna) {
+                                this.virtualX += distX > 0 ? overlapX : -overlapX;
+                            } else {
+                                this.x += distX > 0 ? overlapX : -overlapX;
+                            }
                             this.vx = -this.vx;
                         } else {
                             // 상하 측면 충돌 시 수직 속도 반사 및 밀어내기
-                            this.y += distY > 0 ? overlapY : -overlapY;
+                            if (this.isDna) {
+                                this.virtualY += distY > 0 ? overlapY : -overlapY;
+                            } else {
+                                this.y += distY > 0 ? overlapY : -overlapY;
+                            }
                             this.vy = -this.vy;
                         }
 
@@ -596,27 +625,31 @@ class Bullet {
                         Sound.play('dodge'); // 통통 튕기는 틱 레트로 효과음
 
                         // 튕길 때 튀는 3개 자홍색/노란색 네온 스파크 파티클
+                        let currentEmitX = this.isDna ? this.virtualX : this.x;
+                        let currentEmitY = this.isDna ? this.virtualY : this.y;
                         for (let k = 0; k < 3; k++) {
                             let randAngle = Math.random() * Math.PI * 2;
                             let pSpeed = Math.random() * 2 + 1;
                             window.gameEngine.particles.push(new Particle(
-                                this.x, this.y, 
+                                currentEmitX, currentEmitY, 
                                 '#ff00aa', 1.5, 
                                 Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
                             ));
                         }
-                        window.gameEngine.showFloatingText("BOUNCE! 💥", this.x, this.y - 15, '#ff00aa');
+                        window.gameEngine.showFloatingText("BOUNCE! 💥", currentEmitX, currentEmitY - 15, '#ff00aa');
                     } else {
                         // 도탄이 불가능하거나 몬스터의 탄환인 경우 즉시 소멸 처리
                         this.active = false;
                         this.life = 0;
 
                         // 소멸 스파크 파편 효과 연출
+                        let currentEmitX = this.isDna ? this.virtualX : this.x;
+                        let currentEmitY = this.isDna ? this.virtualY : this.y;
                         for (let k = 0; k < 3; k++) {
                             let randAngle = Math.random() * Math.PI * 2;
                             let pSpeed = Math.random() * 2 + 1;
                             window.gameEngine.particles.push(new Particle(
-                                this.x, this.y, 
+                                currentEmitX, currentEmitY, 
                                 this.color, 1.5, 
                                 Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 10, 'spark'
                             ));
@@ -632,24 +665,35 @@ class Bullet {
             const wallMargin = 40;
             let collided = false;
             
+            let currentX = this.isDna ? this.virtualX : this.x;
+            let currentY = this.isDna ? this.virtualY : this.y;
+
             // 좌우 벽 충돌 감지
-            if (this.x < wallMargin + this.radius) {
-                this.x = wallMargin + this.radius;
+            if (currentX < wallMargin + this.radius) {
+                currentX = wallMargin + this.radius;
+                if (this.isDna) this.virtualX = currentX;
+                else this.x = currentX;
                 this.vx = -this.vx;
                 collided = true;
-            } else if (this.x > 800 - wallMargin - this.radius) {
-                this.x = 800 - wallMargin - this.radius;
+            } else if (currentX > 800 - wallMargin - this.radius) {
+                currentX = 800 - wallMargin - this.radius;
+                if (this.isDna) this.virtualX = currentX;
+                else this.x = currentX;
                 this.vx = -this.vx;
                 collided = true;
             }
             
             // 상하 벽 충돌 감지
-            if (this.y < wallMargin + this.radius) {
-                this.y = wallMargin + this.radius;
+            if (currentY < wallMargin + this.radius) {
+                currentY = wallMargin + this.radius;
+                if (this.isDna) this.virtualY = currentY;
+                else this.y = currentY;
                 this.vy = -this.vy;
                 collided = true;
-            } else if (this.y > 600 - wallMargin - this.radius) {
-                this.y = 600 - wallMargin - this.radius;
+            } else if (currentY > 600 - wallMargin - this.radius) {
+                currentY = 600 - wallMargin - this.radius;
+                if (this.isDna) this.virtualY = currentY;
+                else this.y = currentY;
                 this.vy = -this.vy;
                 collided = true;
             }
@@ -662,17 +706,35 @@ class Bullet {
                 
                 // 튕길 때 튀는 3개 노란 네온 스파크
                 if (window.gameEngine) {
+                    let currentEmitX = this.isDna ? this.virtualX : this.x;
+                    let currentEmitY = this.isDna ? this.virtualY : this.y;
                     for (let k = 0; k < 3; k++) {
                         let randAngle = Math.random() * Math.PI * 2;
                         let pSpeed = Math.random() * 2 + 1;
                         window.gameEngine.particles.push(new Particle(
-                            this.x, this.y, 
+                            currentEmitX, currentEmitY, 
                             this.color, 1.5, 
                             Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
                         ));
                     }
-                    window.gameEngine.showFloatingText("BOUNCE! 💥", this.x, this.y - 15, '#ffdf00');
+                    window.gameEngine.showFloatingText("BOUNCE! 💥", currentEmitX, currentEmitY - 15, '#ffdf00');
                 }
+            }
+        }
+
+        // DNA 이중나선 궤적용 법선 방향 사인파 변위 최종 좌표 갱신
+        if (this.isDna) {
+            this.dnaTime += timeScale * this.dnaFrequency;
+            let offset = Math.sin(this.dnaTime + this.dnaWavePhase) * this.dnaAmplitude;
+            let speed = Math.hypot(this.vx, this.vy);
+            if (speed > 0) {
+                let px = -this.vy / speed;
+                let py = this.vx / speed;
+                this.x = this.virtualX + px * offset;
+                this.y = this.virtualY + py * offset;
+            } else {
+                this.x = this.virtualX;
+                this.y = this.virtualY;
             }
         }
     }
@@ -5663,55 +5725,103 @@ class GameEngine {
                         this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
                     }
                 } else {
-                    // dual 상태 및 다중 마법 활성화 시 보유 마법탄을 섞어서 발사!
-                    let bulletIsLightning = this.player.weaponType === 'lightning';
-                    let bulletIsFire = this.player.weaponType === 'fire';
-                    let bulletIsIce = this.player.weaponType === 'ice';
-                    
-                    if (isDual || activeMagics.length > 0) {
-                        let pool = [...activeMagics];
-                        if (pool.length > 0) {
-                            let chosen = pool[Math.floor(Math.random() * pool.length)];
-                            if (chosen === 'lightning') {
-                                bulletIsLightning = true;
-                                bulletIsFire = false;
-                                bulletIsIce = false;
-                            } else if (chosen === 'fire') {
-                                bulletIsLightning = false;
-                                bulletIsFire = true;
-                                bulletIsIce = false;
-                            } else if (chosen === 'ice') {
-                                bulletIsLightning = false;
-                                bulletIsFire = false;
-                                bulletIsIce = true;
+                    // [초월 무기] 아이스 앤드 파이어 댄스 상태라면 불과 얼음 DNA 탄환 2발 동시 격발!
+                    if (this.player.weaponType === 'icefiredance') {
+                        let speed = 7.5; // 불마법(6.2)과 얼음마법(7.5)의 시너지 균형 속도
+                        let vx = Math.cos(angle) * speed;
+                        let vy = Math.sin(angle) * speed;
+                        let bulletLife = this.player.range / speed;
+
+                        // 1. 불마법 초월 DNA 탄환 (위상 0, 스플래시 보너스)
+                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                            pierce: this.player.pierceCount,
+                            homing: this.player.homing,
+                            homingSpeed: this.player.homingAngleSpeed,
+                            splash: this.player.splashRadius + 35, // 초월적인 네온 폭화 범위 보너스
+                            color: '#ff3300', // 고열 네온 불꽃색
+                            radius: 7.2,
+                            life: bulletLife,
+                            isLightning: false,
+                            isFire: true,
+                            isIce: false,
+                            bounceLimit: this.player.wallBounceLimit,
+                            monsterBounceLimit: this.player.monsterBounceLimit,
+                            isDna: true,
+                            dnaWavePhase: 0,
+                            dnaAmplitude: 18,
+                            dnaFrequency: 0.16
+                        }));
+
+                        // 2. 얼음마법 초월 DNA 탄환 (위상 Math.PI, 관통 보너스)
+                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                            pierce: this.player.pierceCount + 2, // 초월적인 빙결 관통력 보너스
+                            homing: this.player.homing,
+                            homingSpeed: this.player.homingAngleSpeed,
+                            splash: this.player.splashRadius,
+                            color: '#00f0ff', // 청안 네온 얼음색
+                            radius: 5.5,
+                            life: bulletLife,
+                            isLightning: false,
+                            isFire: false,
+                            isIce: true,
+                            bounceLimit: this.player.wallBounceLimit,
+                            monsterBounceLimit: this.player.monsterBounceLimit,
+                            isDna: true,
+                            dnaWavePhase: Math.PI, // 180도 반대 위상
+                            dnaAmplitude: 18,
+                            dnaFrequency: 0.16
+                        }));
+                    } else {
+                        // dual 상태 및 다중 마법 활성화 시 보유 마법탄을 섞어서 발사!
+                        let bulletIsLightning = this.player.weaponType === 'lightning';
+                        let bulletIsFire = this.player.weaponType === 'fire';
+                        let bulletIsIce = this.player.weaponType === 'ice';
+                        
+                        if (isDual || activeMagics.length > 0) {
+                            let pool = [...activeMagics];
+                            if (pool.length > 0) {
+                                let chosen = pool[Math.floor(Math.random() * pool.length)];
+                                if (chosen === 'lightning') {
+                                    bulletIsLightning = true;
+                                    bulletIsFire = false;
+                                    bulletIsIce = false;
+                                } else if (chosen === 'fire') {
+                                    bulletIsLightning = false;
+                                    bulletIsFire = true;
+                                    bulletIsIce = false;
+                                } else if (chosen === 'ice') {
+                                    bulletIsLightning = false;
+                                    bulletIsFire = false;
+                                    bulletIsIce = true;
+                                }
                             }
                         }
-                    }
 
-                    let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
-                    let vx = Math.cos(angle) * speed;
-                    let vy = Math.sin(angle) * speed;
-                    let bulletLife = this.player.range / speed;
-                    
-                    let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
-                    if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
-                        bulletRadius = 4.8;
+                        let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
+                        let vx = Math.cos(angle) * speed;
+                        let vy = Math.sin(angle) * speed;
+                        let bulletLife = this.player.range / speed;
+                        
+                        let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
+                        if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
+                            bulletRadius = 4.8;
+                        }
+                        
+                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                            pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
+                            homing: this.player.homing,
+                            homingSpeed: this.player.homingAngleSpeed,
+                            splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
+                            color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
+                            radius: bulletRadius,
+                            life: bulletLife,
+                            isLightning: bulletIsLightning,
+                            isFire: bulletIsFire,
+                            isIce: bulletIsIce,
+                            bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
+                            monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
+                        }));
                     }
-                    
-                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                        pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
-                        homing: this.player.homing,
-                        homingSpeed: this.player.homingAngleSpeed,
-                        splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
-                        color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
-                        radius: bulletRadius,
-                        life: bulletLife,
-                        isLightning: bulletIsLightning,
-                        isFire: bulletIsFire,
-                        isIce: bulletIsIce,
-                        bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
-                        monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
-                    }));
                 }
             }
             if (isWhip) {
