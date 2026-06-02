@@ -1418,7 +1418,7 @@ class Monster {
         this.isElite = false;
 
         // 몬스터 종류 다양화
-        const monsterTypes = ['normal', 'chaser', 'shooter'];
+        // const monsterTypes = ['normal', 'chaser', 'shooter']; // 추후 몬스터 다양화 확장 시 사용 예정
         // 높은 티어일수록 shooter나 chaser 비중이 높아짐
         let typeRand = Math.random();
         if (tier < 3) {
@@ -4294,6 +4294,12 @@ class GameEngine {
                                     }
                                 }
                                 
+                                // 🛡️ [비상용 폴백 예외 처리] 안전 좌표 55회 추출 실패 시, 부서진 비밀방 벽(Glitch Wall)이 있던 좌표를 기준으로 포털을 스폰하여 절대 맵을 이탈하지 않도록 조치
+                                if (!foundSafe) {
+                                    cx = wall.x;
+                                    cy = wall.y;
+                                }
+                                
                                 // 비밀방 포털 100% 소환
                                 let secretPortal = new RoomPortal('secret', 0, cx, cy);
                                 secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
@@ -4462,6 +4468,12 @@ class GameEngine {
                                             foundSafe = true;
                                             break;
                                         }
+                                    }
+                                    
+                                    // 🛡️ [비상용 폴백 예외 처리] 안전 좌표 55회 추출 실패 시, 부서진 비밀방 벽(Glitch Wall)이 있던 좌표를 기준으로 포털을 스폰하여 절대 맵을 이탈하지 않도록 조치
+                                    if (!foundSafe) {
+                                        cx = wall.x;
+                                        cy = wall.y;
                                     }
                                     
                                     // 비밀방 포털 100% 소환
@@ -5153,7 +5165,6 @@ class GameEngine {
                 }
                 
                 // [신규 기획] 실시간 코인 HUD 연출 트리거
-                const coinCounter = document.getElementById('coin-counter');
                 const coinGainPopup = document.getElementById('coin-gain-popup');
                 if (coinGainPopup) {
                     coinGainPopup.innerText = `+${coin.amount}`;
