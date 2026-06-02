@@ -7087,7 +7087,7 @@ class GameEngine {
         document.getElementById('result-overlay').classList.remove('hidden');
     }
 
-    // [신규] 명예의 전당 랭킹 등록 비동기 처리
+    // [신규] 명예의 전당 랭킹 등록 비동기 처리 (고도화 및 피드백 통합 완료)
     async submitRanking() {
         const nicknameInput = document.getElementById('rank-nickname');
         const submitBtn = document.getElementById('submit-rank-btn');
@@ -7097,44 +7097,60 @@ class GameEngine {
 
         const name = nicknameInput.value.trim().toUpperCase();
         
+        // 입력 박스 보더 색상 초기화
+        nicknameInput.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+
         // 유효성 체크
         if (!name || name === "") {
+            Sound.play('hit');
             feedbackMsg.innerText = "⚠️ 닉네임을 입력해 주세요!";
-            feedbackMsg.className = "rank-feedback-text error";
+            feedbackMsg.style.color = '#ff0055';
             feedbackMsg.classList.remove('hidden');
+            nicknameInput.style.borderColor = '#ff0055';
             return;
         }
 
         const nameRegex = /^[A-Z0-9]+$/;
         if (!nameRegex.test(name)) {
-            feedbackMsg.innerText = "⚠️ 영문 대문자와 숫자만 입력 가능합니다!";
-            feedbackMsg.className = "rank-feedback-text error";
+            Sound.play('hit');
+            feedbackMsg.innerText = "⚠️ 영문 대문자와 숫자 조합(공백 없음)만 가능합니다!";
+            feedbackMsg.style.color = '#ff0055';
             feedbackMsg.classList.remove('hidden');
+            nicknameInput.style.borderColor = '#ff0055';
             return;
         }
 
         if (name.length < 2 || name.length > 10) {
+            Sound.play('hit');
             feedbackMsg.innerText = "⚠️ 닉네임은 2자 이상 10자 이하로 해주세요!";
-            feedbackMsg.className = "rank-feedback-text error";
+            feedbackMsg.style.color = '#ff0055';
             feedbackMsg.classList.remove('hidden');
+            nicknameInput.style.borderColor = '#ff0055';
             return;
         }
 
         // 제출 중 비활성화 처리 (더블클릭 방지)
         nicknameInput.disabled = true;
         submitBtn.disabled = true;
-        feedbackMsg.innerText = "⚡ 명예의 전당 등록 중...";
-        feedbackMsg.className = "rank-feedback-text success";
+        submitBtn.style.opacity = '0.5';
+        submitBtn.style.cursor = 'not-allowed';
+        
+        feedbackMsg.innerText = "⚡ 네온 서버 통신 전송 중...";
+        feedbackMsg.style.color = '#00f0ff';
         feedbackMsg.classList.remove('hidden');
 
         try {
+            // 플레이어가 착용 중인 최종 주무기 8종 한글 세부 정보 매핑
             let wpnStr = "총 (Gun)";
-            if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
-            if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
-            if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
-            if (this.player.weaponType === 'fire') wpnStr = "불마법 (Fire)";
-            if (this.player.weaponType === 'ice') wpnStr = "얼음마법 (Ice)";
-            if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
+            const currentWpn = this.player.weaponType;
+            if (currentWpn === 'sword') wpnStr = "검 (Sword)";
+            else if (currentWpn === 'dual') wpnStr = "검 + 총 (Hybrid)";
+            else if (currentWpn === 'spear') wpnStr = "창 (Spear)";
+            else if (currentWpn === 'whip') wpnStr = "채찍 (Whip)";
+            else if (currentWpn === 'lightning') wpnStr = "번개마법 (Lightning)";
+            else if (currentWpn === 'fire') wpnStr = "불마법 (Fire)";
+            else if (currentWpn === 'ice') wpnStr = "얼음마법 (Ice)";
+            else if (currentWpn === 'icefiredance') wpnStr = "아앤파 (Evo-초월)";
 
             const result = await window.RankSystem.addRankRecord(
                 name,
@@ -7145,27 +7161,36 @@ class GameEngine {
             );
 
             if (result.success) {
+                Sound.play('powerup');
+                
                 if (result.mode === 'online') {
-                    feedbackMsg.innerText = "🎉 실시간 파이어베이스 랭킹 등록 완료!";
+                    feedbackMsg.innerText = "🏆 명예의 전당 온라인 실시간 동기화 등록 성공!";
+                    feedbackMsg.style.color = '#39ff14';
                 } else if (result.mode === 'fallback') {
-                    feedbackMsg.innerText = "📢 로컬 저장 및 임시 대기열 등록 완료!";
+                    feedbackMsg.innerText = "🔌 네트워크 대기: 로컬 저장소에 우선 세이프 임시 등록되었습니다!";
+                    feedbackMsg.style.color = '#ffdf00';
                 } else {
-                    feedbackMsg.innerText = "🎉 로컬 랭킹 저장 완료!";
+                    feedbackMsg.innerText = "💾 로컬 랭킹 세이브 보관 완료!";
+                    feedbackMsg.style.color = '#39ff14';
                 }
-                feedbackMsg.className = "rank-feedback-text success";
 
-                // 1초 뒤에 랭킹 창을 띄우고 등록 폼을 슬라이드 아웃(숨김) 처리
+                // 1.2초 뒤에 랭킹 창을 자연스럽게 띄우고 등록 폼을 숨김 처리하여 자신의 기록을 확인하게 함
                 setTimeout(() => {
                     document.getElementById('rank-submit-area').classList.add('hidden');
-                    this.showLeaderboard();
-                }, 1000);
+                    this.showLeaderboard(true);
+                }, 1200);
             }
         } catch (error) {
             console.error(error);
-            feedbackMsg.innerText = "❌ 등록 에러: " + error.message;
-            feedbackMsg.className = "rank-feedback-text error";
+            Sound.play('hit');
+            feedbackMsg.innerText = "❌ 등록 에러: " + (error.message || '알 수 없는 서버 에러');
+            feedbackMsg.style.color = '#ff0055';
+            nicknameInput.style.borderColor = '#ff0055';
+            
             nicknameInput.disabled = false;
             submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
         }
     }
 
@@ -8325,129 +8350,21 @@ function initNeonGameUISystem() {
 
 
     // 2) 실시간 랭킹 리더보드 (Leaderboard) 이벤트 바인딩
-    const mainLeaderboardBtn = document.getElementById('main-leaderboard-btn');
-    const resultLeaderboardBtn = document.getElementById('result-leaderboard-btn');
-    const rankingOverlay = document.getElementById('ranking-modal-overlay');
-    const rankingClose = document.getElementById('ranking-modal-close');
-    const rankingCloseBtn = document.getElementById('ranking-modal-close-btn');
-    const rankFilterButtons = document.querySelectorAll('.rank-filter-btn');
-
-    let currentRankFilter = 'all'; // 'all' (로컬 포함), 'online' (온라인만)
-
-    // 실시간 리더보드 출력 엔진
-    ge.showLeaderboard = async (filterType = 'all') => {
-        const loadingEl = document.getElementById('ranking-loading');
-        const emptyEl = document.getElementById('ranking-empty');
-        const tableEl = document.getElementById('ranking-table');
-        const tableBody = document.getElementById('ranking-table-body');
-
-        if (!tableBody) return;
-
-        // 1. UI 상태 리셋 및 로딩 오버레이 켜기
-        if (loadingEl) loadingEl.classList.remove('hidden');
-        if (emptyEl) emptyEl.classList.add('hidden');
-        if (tableEl) tableEl.classList.add('hidden');
-        tableBody.innerHTML = '';
-
-        try {
-            // 2. 비동기식 랭킹 긁어오기 (RankSystem API 호출)
-            // 'online' 필터일 경우 includeLocal = false로 쿼리
-            const includeLocal = (filterType === 'all');
-            const data = await window.RankSystem.getTopRankings(10, includeLocal);
-
-            // 3. 로딩 엘리먼트 끄기
-            if (loadingEl) loadingEl.classList.add('hidden');
-
-            if (!data || data.length === 0) {
-                if (emptyEl) emptyEl.classList.remove('hidden');
-            } else {
-                if (tableEl) tableEl.classList.remove('hidden');
-
-                data.forEach((row, idx) => {
-                    const tr = document.createElement('tr');
-                    
-                    // 로컬 임시 데이터인 경우 구분 스타일링 적용
-                    let rowStyle = '';
-                    let namePrefix = '';
-                    if (row.isLocalTemp) {
-                        rowStyle = 'background: rgba(0, 240, 255, 0.04); color: #00f0ff;';
-                        namePrefix = '🔌 [임시] ';
-                    }
-
-                    // 순위 왕관/메달 특화 디자인 적용
-                    let rankDecor = `${idx + 1}`;
-                    if (idx === 0) rankDecor = '🥇';
-                    else if (idx === 1) rankDecor = '🥈';
-                    else if (idx === 2) rankDecor = '🥉';
-
-                    tr.style = rowStyle;
-                    tr.style.borderBottom = '1px solid rgba(255, 255, 255, 0.05)';
-                    
-                    tr.innerHTML = `
-                        <td style="padding: 12px 4px; font-weight: bold; font-size: 1.1rem;">${rankDecor}</td>
-                        <td style="padding: 12px 4px; font-weight: bold; color: ${idx < 3 ? '#ffdf00' : '#fff'};">${namePrefix}${row.name}</td>
-                        <td style="padding: 12px 4px; font-weight: 800; color: #39ff14; text-shadow: 0 0 5px rgba(57, 255, 20, 0.2);">${row.score.toLocaleString()}</td>
-                        <td style="padding: 12px 4px; color: #00f0ff;">${row.room} / 100</td>
-                        <td style="padding: 12px 4px; color: #ff0055;">${row.kills}</td>
-                        <td style="padding: 12px 4px; font-size: 0.78rem; color: #94a3b8; line-height: 1.3;">${row.date}</td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-            }
-        } catch (error) {
-            console.error("⚠️ 리더보드 데이터 렌더링 도중 크래시 발생:", error);
-            if (loadingEl) loadingEl.classList.add('hidden');
-            if (emptyEl) emptyEl.classList.remove('hidden');
-        }
-    };
-
-    const openRanking = () => {
-        Sound.play('powerup');
-        if (rankingOverlay) {
-            rankingOverlay.classList.remove('hidden');
-        }
-
-        // 기본 필터인 'all' 선택 및 로드
-        rankFilterButtons.forEach(btn => btn.classList.remove('active'));
-        const defaultFilterBtn = document.querySelector('.rank-filter-btn[data-filter="all"]');
-        if (defaultFilterBtn) defaultFilterBtn.classList.add('active');
-        currentRankFilter = 'all';
-
-        ge.showLeaderboard('all');
-    };
-
-    const closeRanking = () => {
-        Sound.play('dodge');
-        if (rankingOverlay) {
-            rankingOverlay.classList.add('hidden');
-        }
-    };
-
-    if (mainLeaderboardBtn) mainLeaderboardBtn.addEventListener('click', openRanking);
-    if (resultLeaderboardBtn) resultLeaderboardBtn.addEventListener('click', openRanking);
-    if (rankingClose) rankingClose.addEventListener('click', closeRanking);
-    if (rankingCloseBtn) rankingCloseBtn.addEventListener('click', closeRanking);
-
-    // 리더보드 필터 탭 바인딩
-    rankFilterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            Sound.play('dodge');
-            rankFilterButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            currentRankFilter = btn.getAttribute('data-filter') || 'all';
-            ge.showLeaderboard(currentRankFilter);
-        });
-    });
+    // [중복 리팩토링] 리더보드 UI 이벤트 바인딩과 렌더링은 Game 클래스 내부(this.showLeaderboard 및 init() 내 바인딩)에서
+    // 단일 진실 공급원(SSOT)으로 이미 아름답게 처리하고 있으므로, 하단에 중복 등록되어 있던 리스너 및 재정의된 렌더러를 
+    // 완전히 청소하여 데이터 중복 노출(2회 렌더링) 현상을 완벽하게 예방합니다.
 
 
     // 3) 명예의 전당 랭킹 등록 (Rank Submit) 폼 바인딩
+    // [중복 리팩토링] 랭킹 등록 제출(click) 이벤트는 Game 클래스 내부(this.submitRanking)에서 
+    // 단일 진실 공급원(SSOT)으로 완벽하게 처리하므로, 하단의 중복 리스너 등록을 지워 
+    // 동일 기록이 Firestore 및 로컬 저장소에 2회 중복 제출(더블 저장)되던 결함을 원천 해결합니다.
     const submitBtn = document.getElementById('submit-rank-btn');
     const nicknameInput = document.getElementById('rank-nickname');
     const feedbackMsg = document.getElementById('rank-feedback-msg');
 
     if (submitBtn && nicknameInput && feedbackMsg) {
-        // 인게임 결과 화면 폼 리셋용 유틸리티 바인딩
+        // 인게임 결과 화면 폼 리셋용 유틸리티 바인딩 (결과 화면에서 계속해서 폼 상태를 리셋할 때 사용)
         ge.resetRankingSubmitForm = () => {
             nicknameInput.value = '';
             nicknameInput.disabled = false;
@@ -8458,100 +8375,6 @@ function initNeonGameUISystem() {
             feedbackMsg.classList.add('hidden');
             feedbackMsg.innerText = '';
         };
-
-        submitBtn.addEventListener('click', async () => {
-            const nickname = nicknameInput.value.trim().toUpperCase();
-            
-            // 영문 대문자 및 숫자만 조합, 공백 없음 정규식
-            const nameRegex = /^[A-Z0-9]+$/;
-
-            // 유효성 체크
-            if (!nickname || nickname === '') {
-                Sound.play('hit');
-                feedbackMsg.innerText = "⚠️ 닉네임을 입력해 주세요!";
-                feedbackMsg.style.color = '#ff0055';
-                feedbackMsg.classList.remove('hidden');
-                nicknameInput.style.borderColor = '#ff0055';
-                return;
-            }
-
-            if (!nameRegex.test(nickname)) {
-                Sound.play('hit');
-                feedbackMsg.innerText = "⚠️ 영문 대문자와 숫자 조합만 가능합니다.";
-                feedbackMsg.style.color = '#ff0055';
-                feedbackMsg.classList.remove('hidden');
-                nicknameInput.style.borderColor = '#ff0055';
-                return;
-            }
-
-            if (nickname.length > 10) {
-                Sound.play('hit');
-                feedbackMsg.innerText = "⚠️ 닉네임은 최대 10자까지만 허용됩니다.";
-                feedbackMsg.style.color = '#ff0055';
-                feedbackMsg.classList.remove('hidden');
-                nicknameInput.style.borderColor = '#ff0055';
-                return;
-            }
-
-            // 제출 대기 모션
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
-            nicknameInput.disabled = true;
-            feedbackMsg.style.color = '#00f0ff';
-            feedbackMsg.innerText = "⚡ 네온 서버 통신 전송 중...";
-            feedbackMsg.classList.remove('hidden');
-
-            try {
-                // 게임 스탯 수집
-                const finalScore = ge.score;
-                const finalRoom = ge.roomNum;
-                const finalKills = ge.kills;
-                
-                // 플레이어가 착용 중인 최종 주무기 한글 형태 반환
-                let wpnName = "총 (Gun)";
-                const currentWpn = ge.player.weaponType;
-                if (currentWpn === 'sword') wpnName = "검 (Sword)";
-                else if (currentWpn === 'dual') wpnName = "검 + 총 (Hybrid)";
-                else if (currentWpn === 'spear') wpnName = "창 (Spear)";
-                else if (currentWpn === 'whip') wpnName = "채찍 (Whip)";
-                else if (currentWpn === 'lightning') wpnName = "번개마법 (Lightning)";
-                else if (currentWpn === 'fire') wpnName = "불마법 (Fire)";
-                else if (currentWpn === 'ice') wpnName = "얼음마법 (Ice)";
-                else if (currentWpn === 'icefiredance') wpnName = "아앤파 (Evo-초월)";
-
-                // 랭킹 등록 API 호출
-                const res = await window.RankSystem.addRankRecord(nickname, finalScore, finalRoom, finalKills, wpnName);
-                
-                Sound.play('powerup');
-                
-                if (res.mode === 'online') {
-                    feedbackMsg.style.color = '#39ff14';
-                    feedbackMsg.innerText = "🏆 명예의 전당 온라인 실시간 동기화 등록 성공!";
-                } else if (res.mode === 'fallback') {
-                    feedbackMsg.style.color = '#ffdf00';
-                    feedbackMsg.innerText = "🔌 네트워크 대기: 로컬 저장소에 우선 세이프 임시 등록되었습니다!";
-                } else {
-                    feedbackMsg.style.color = '#39ff14';
-                    feedbackMsg.innerText = "💾 로컬 랭킹 세이브 보관 완료!";
-                }
-
-                // 1.5초 후 랭킹 리더보드 모달을 즉시 열어 자신의 기록을 확인하게 해주는 영리한 UX 흐름 구현
-                setTimeout(() => {
-                    openRanking();
-                }, 1200);
-
-            } catch (err) {
-                console.error("⚠️ 랭킹 등록 처리 실패:", err);
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.style.cursor = 'pointer';
-                nicknameInput.disabled = false;
-                
-                feedbackMsg.style.color = '#ff0055';
-                feedbackMsg.innerText = `❌ 등록 실패: ${err.message || '알 수 없는 서버 에러'}`;
-            }
-        });
     }
 
     // 4) 기존 game.js 결과 오버레이 호출 시 랭킹 등록 폼 자동 리셋 훅 결합
