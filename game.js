@@ -156,6 +156,11 @@ const Sound = {
         this.init();
         if (!this.ctx) return;
         
+        // [안전 장치] 효과음 볼륨이 음소거(0) 상태이거나 극히 작은 경우, 재생을 생략하여(Early Return) Web Audio API의 'exponentialRampToValueAtTime' 0 주입 RangeError 버그를 원천 차단합니다.
+        if (this.sfxVolume <= 0.001) {
+            return;
+        }
+        
         // 오디오 컨텍스트가 정지 상태이면 재개
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
