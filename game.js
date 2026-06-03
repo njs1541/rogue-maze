@@ -2826,6 +2826,23 @@ class GameEngine {
                 this.toggleOptionMenu();
             }
 
+            // [신규 추가] Tab 키: 인게임 획득 장비 상태창 모달 토글
+            if (e.key === 'Tab') {
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                    return;
+                }
+                e.preventDefault();
+                
+                // 상태 조회 창을 열 수 있는지 조건 검사
+                const statusOverlay = document.getElementById('in-game-status-overlay');
+                const isAlreadyOpen = statusOverlay && !statusOverlay.classList.contains('hidden');
+                if (!isAlreadyOpen) {
+                    if (this.checkAnyOverlayOpenExcept('in-game-status-overlay')) return;
+                }
+                this.toggleStatusMenu();
+            }
+
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
             if (e.key === 'o' || e.key === 'O') {
                 const activeEl = document.activeElement;
@@ -2887,6 +2904,59 @@ class GameEngine {
             document.getElementById('result-overlay').classList.add('hidden');
             this.restartGame();
         });
+
+        // [신규] 🏆 랭킹 등록 버튼 클릭 이벤트
+        const openRankFormBtn = document.getElementById('open-rank-form-btn');
+        if (openRankFormBtn) {
+            openRankFormBtn.addEventListener('click', () => {
+                const rankSubmitArea = document.getElementById('rank-submit-area');
+                if (rankSubmitArea) {
+                    rankSubmitArea.classList.remove('hidden');
+                }
+            });
+        }
+
+        // [신규] 🏠 처음으로 버튼 클릭 이벤트
+        const gotoMainBtn = document.getElementById('goto-main-btn');
+        if (gotoMainBtn) {
+            gotoMainBtn.addEventListener('click', () => {
+                document.getElementById('result-overlay').classList.add('hidden');
+                document.getElementById('start-overlay').classList.remove('hidden');
+                
+                // 처음 화면 복귀 시 HUD 헤더와 푸터 숨기기
+                const hudHeader = document.getElementById('hud-header');
+                const hudFooter = document.getElementById('hud-footer');
+                if (hudHeader) hudHeader.classList.add('hidden');
+                if (hudFooter) hudFooter.classList.add('hidden');
+
+                this.isPlaying = false;
+                if (this.gameLoopId) {
+                    cancelAnimationFrame(this.gameLoopId);
+                }
+                Sound.stopBGM();
+                const ctx = this.ctx;
+                if (ctx) {
+                    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    ctx.fillStyle = '#05060c';
+                    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
+            });
+        }
+
+        // [신규] 인게임 상태창 모달 닫기 버튼 이벤트
+        const statusModalClose = document.getElementById('status-modal-close');
+        if (statusModalClose) {
+            statusModalClose.addEventListener('click', () => {
+                this.toggleStatusMenu();
+            });
+        }
+
+        const statusModalCloseBtn = document.getElementById('status-modal-close-btn');
+        if (statusModalCloseBtn) {
+            statusModalCloseBtn.addEventListener('click', () => {
+                this.toggleStatusMenu();
+            });
+        }
 
         // [신규] 파이어베이스 랭킹 시스템 UI 이벤트 리스너 연동
         
@@ -2963,6 +3033,12 @@ class GameEngine {
         if (this.gameLoopId) {
             cancelAnimationFrame(this.gameLoopId);
         }
+
+        // 게임 시작 시 HUD 보이기
+        const hudHeader = document.getElementById('hud-header');
+        const hudFooter = document.getElementById('hud-footer');
+        if (hudHeader) hudHeader.classList.remove('hidden');
+        if (hudFooter) hudFooter.classList.remove('hidden');
 
         this.isPlaying = true;
         this.roomNum = 1;
@@ -3697,6 +3773,7 @@ class GameEngine {
         const cheatOverlay = document.getElementById('cheat-overlay');
         const optionOverlay = document.getElementById('option-overlay'); // [신규] 시스템 옵션 모달 연동
         const secretShopOverlay = document.getElementById('secret-shop-overlay'); // [결함 수정] 네온 암시장 모달 검증 변수 추가
+        const statusOverlay = document.getElementById('in-game-status-overlay'); // [신규] 인게임 상태창 모달
         
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
@@ -3705,6 +3782,7 @@ class GameEngine {
             (startOverlay && !startOverlay.classList.contains('hidden')) ||
             (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
             (optionOverlay && !optionOverlay.classList.contains('hidden')) ||
+            (statusOverlay && !statusOverlay.classList.contains('hidden')) ||
             (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) { // [결함 수정] 암시장 오버레이 조건식 반영
             isOverlayOpen = true;
         }
@@ -5425,6 +5503,9 @@ class GameEngine {
         if (Math.random() < evdRate) {
             // 회피 대성공! 1~2px 붉은색 잔상 실루엣 및 DODGE 피드백 가동
             this.player.triggerEvade(fromX, fromY);
+            
+            // [신규 추가] 회피 성공 시에도 피격처럼 무적 타이머 45프레임(약 0.75초) 가동
+            this.player.invincibleTimer = 45;
             
             // [신규 기획] Evasion Ring 5레벨 돌파: 회피 대성공 시 주변 적 1.5초간 기절 네온 섬광 작렬!
             if (this.player.equipLevels.ring_evd >= 5) {
@@ -7201,13 +7282,90 @@ class GameEngine {
         const feedbackMsg = document.getElementById('rank-feedback-msg');
 
         if (rankSubmitArea && nicknameInput && submitBtn && feedbackMsg) {
-            rankSubmitArea.classList.remove('hidden');
+            // 원래 바로 드러나던 랭킹 등록창을 2단계로 숨김 처리 (기본 hidden 부여)
+            rankSubmitArea.classList.add('hidden');
             nicknameInput.value = "";
             nicknameInput.disabled = false;
             submitBtn.disabled = false;
             feedbackMsg.classList.add('hidden');
             feedbackMsg.innerText = "";
             feedbackMsg.className = "rank-feedback-text hidden";
+        }
+
+        // 최종 습득 장비 현황 그리드 바인딩
+        const resultGrid = document.getElementById('result-equipments-grid');
+        if (resultGrid) {
+            resultGrid.innerHTML = '';
+            
+            // 1. 활성화된 무기 6종 탐색
+            const wpns = [
+                { key: 'sword', name: '네온 검', icon: '⚔️' },
+                { key: 'spear', name: '네온 창', icon: '🔱' },
+                { key: 'whip', name: '네온 채찍', icon: '🧣' },
+                { key: 'lightning', name: '번개마법', icon: '⚡' },
+                { key: 'fire', name: '불마법', icon: '🔥' },
+                { key: 'ice', name: '얼음마법', icon: '❄' }
+            ];
+            let wpnCount = 0;
+            wpns.forEach(w => {
+                const lvl = (this.player && this.player.weaponLevels) ? (this.player.weaponLevels[w.key] || 0) : 0;
+                if (lvl > 0) {
+                    wpnCount++;
+                    const card = document.createElement('div');
+                    card.className = 'status-card active-weapon';
+                    card.innerHTML = `
+                        <span class="icon">${w.icon}</span>
+                        <div class="info">
+                            <span class="name">${w.name}</span>
+                            <span class="level">Lv.${lvl}</span>
+                        </div>
+                    `;
+                    resultGrid.appendChild(card);
+                }
+            });
+            
+            // 만약 아무 무기도 활성화 안 되어 있다면 기본 총기 추가
+            if (wpnCount === 0) {
+                const card = document.createElement('div');
+                card.className = 'status-card active-weapon';
+                card.innerHTML = `
+                    <span class="icon">🔫</span>
+                    <div class="info">
+                        <span class="name">기본 총기</span>
+                        <span class="level">기본 장착</span>
+                    </div>
+                `;
+                resultGrid.appendChild(card);
+            }
+            
+            // 2. 활성화된 보조 장비 10종 탐색
+            const equips = [
+                { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
+                { key: 'boots', name: '신속 부츠', icon: '🥾' },
+                { key: 'gloves', name: '공격 장갑', icon: '🧤' },
+                { key: 'helm', name: '지혜 투구', icon: '🪖' },
+                { key: 'necklace', name: '행운 목걸이', icon: '📿' },
+                { key: 'ring_mp', name: '마력 반지', icon: '💍' },
+                { key: 'ring_hp', name: '생명 반지', icon: '💍' },
+                { key: 'ring_speed', name: '신속 반지', icon: '💍' },
+                { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
+                { key: 'ring_evd', name: '회피 반지', icon: '💍' }
+            ];
+            equips.forEach(eq => {
+                const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
+                if (lvl > 0) {
+                    const card = document.createElement('div');
+                    card.className = 'status-card active-equip';
+                    card.innerHTML = `
+                        <span class="icon">${eq.icon}</span>
+                        <div class="info">
+                            <span class="name">${eq.name}</span>
+                            <span class="level">Lv.${lvl}</span>
+                        </div>
+                    `;
+                    resultGrid.appendChild(card);
+                }
+            });
         }
 
         document.getElementById('result-overlay').classList.remove('hidden');
@@ -8101,7 +8259,7 @@ class GameEngine {
         const overlays = [
             'start-overlay', 'reward-overlay', 'result-overlay', 
             'card-detail-overlay', 'shop-confirm-overlay', 
-            'secret-shop-overlay', 'cheat-overlay', 'option-overlay'
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
@@ -8114,13 +8272,111 @@ class GameEngine {
         const overlays = [
             'start-overlay', 'reward-overlay', 'result-overlay', 
             'card-detail-overlay', 'shop-confirm-overlay', 
-            'secret-shop-overlay', 'cheat-overlay', 'option-overlay'
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;
             const el = document.getElementById(id);
             return el && !el.classList.contains('hidden');
         });
+    }
+
+    // [신규 추가] 인게임 습득 장비 상태창 모달 토글
+    toggleStatusMenu() {
+        const statusOverlay = document.getElementById('in-game-status-overlay');
+        if (!statusOverlay) return;
+
+        if (statusOverlay.classList.contains('hidden')) {
+            // 상태창 열기
+            statusOverlay.classList.remove('hidden');
+            
+            // HUD 정보 동기화
+            const statusRoom = document.getElementById('status-room');
+            const statusScore = document.getElementById('status-score');
+            const statusCoin = document.getElementById('status-coin');
+            
+            if (statusRoom) statusRoom.innerText = `${Math.min(100, this.roomNum)} / 100`;
+            if (statusScore) statusScore.innerText = this.score;
+            if (statusCoin) statusCoin.innerText = `🪙 ${this.player ? this.player.coins : 0}`;
+            
+            // 장비 그리드 렌더링
+            const statusGrid = document.getElementById('status-equipments-grid');
+            if (statusGrid) {
+                statusGrid.innerHTML = '';
+                
+                // 무기 6종
+                const wpns = [
+                    { key: 'sword', name: '네온 검', icon: '⚔️' },
+                    { key: 'spear', name: '네온 창', icon: '🔱' },
+                    { key: 'whip', name: '네온 채찍', icon: '🧣' },
+                    { key: 'lightning', name: '번개마법', icon: '⚡' },
+                    { key: 'fire', name: '불마법', icon: '🔥' },
+                    { key: 'ice', name: '얼음마법', icon: '❄' }
+                ];
+                let wpnCount = 0;
+                wpns.forEach(w => {
+                    const lvl = (this.player && this.player.weaponLevels) ? (this.player.weaponLevels[w.key] || 0) : 0;
+                    if (lvl > 0) {
+                        wpnCount++;
+                        const card = document.createElement('div');
+                        card.className = 'status-card active-weapon';
+                        card.innerHTML = `
+                            <span class="icon">${w.icon}</span>
+                            <div class="info">
+                                <span class="name">${w.name}</span>
+                                <span class="level">Lv.${lvl}</span>
+                            </div>
+                        `;
+                        statusGrid.appendChild(card);
+                    }
+                });
+
+                if (wpnCount === 0) {
+                    const card = document.createElement('div');
+                    card.className = 'status-card active-weapon';
+                    card.innerHTML = `
+                        <span class="icon">🔫</span>
+                        <div class="info">
+                            <span class="name">기본 총기</span>
+                            <span class="level">기본 장착</span>
+                        </div>
+                    `;
+                    statusGrid.appendChild(card);
+                }
+
+                // 보조 장비 10종
+                const equips = [
+                    { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
+                    { key: 'boots', name: '신속 부츠', icon: '🥾' },
+                    { key: 'gloves', name: '공격 장갑', icon: '🧤' },
+                    { key: 'helm', name: '지혜 투구', icon: '🪖' },
+                    { key: 'necklace', name: '행운 목걸이', icon: '📿' },
+                    { key: 'ring_mp', name: '마력 반지', icon: '💍' },
+                    { key: 'ring_hp', name: '생명 반지', icon: '💍' },
+                    { key: 'ring_speed', name: '신속 반지', icon: '💍' },
+                    { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
+                    { key: 'ring_evd', name: '회피 반지', icon: '💍' }
+                ];
+                equips.forEach(eq => {
+                    const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
+                    if (lvl > 0) {
+                        const card = document.createElement('div');
+                        card.className = 'status-card active-equip';
+                        card.innerHTML = `
+                            <span class="icon">${eq.icon}</span>
+                            <div class="info">
+                                <span class="name">${eq.name}</span>
+                                <span class="level">Lv.${lvl}</span>
+                            </div>
+                        `;
+                        statusGrid.appendChild(card);
+                    }
+                });
+            }
+        } else {
+            // 상태창 닫기
+            statusOverlay.classList.add('hidden');
+        }
     }
 
     // [신규 추가] Sound 객체의 볼륨 스탯을 옵션 UI 슬라이더에 동기화

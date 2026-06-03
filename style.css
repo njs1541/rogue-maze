@@ -2117,15 +2117,65 @@ body.low-spec .neon-btn:hover {
 .codex-card.card-epic { border: 1.5px solid #b026ff !important; }
 .codex-card.card-legendary { border: 1.5px solid #ff6c00 !important; }
 
-/* 리더보드 테이블 헤더 및 로딩 상태의 렉 유발 요인 상시 차단 */
-.ranking-table th {
-    text-shadow: none !important;
-    border-bottom: 2px solid #00f0ff !important;
+/* ==========================================================================
+   [신규] 인게임 상태창 모달 그리드 및 레이아웃 스타일
+   ========================================================================== */
+#in-game-status-overlay .ranking-modal-container {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(10, 11, 18, 0.97) !important;
+    border: 2px solid #00f0ff !important; /* 청록색 네온 실선 고정 */
 }
-.neon-spinner {
-    box-shadow: none !important;
-    animation: spin 1s linear infinite !important;
+
+/* 장비 그리드 스타일 */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    width: 100%;
 }
+
+.status-card {
+    background: rgba(20, 22, 33, 0.95);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.status-card.active-weapon {
+    border-color: #b026ff;
+    box-shadow: 0 0 8px rgba(176, 38, 255, 0.2);
+}
+
+.status-card.active-equip {
+    border-color: #ff6c00;
+    box-shadow: 0 0 8px rgba(255, 108, 0, 0.2);
+}
+
+.status-card .icon {
+    font-size: 1.2rem;
+}
+
+.status-card .info {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-card .name {
+    font-weight: 700;
+    color: #edf2f7;
+}
+
+.status-card .level {
+    font-size: 0.72rem;
+    color: #718096;
+    font-weight: 800;
+}
+
 
 
 
