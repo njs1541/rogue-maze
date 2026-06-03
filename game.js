@@ -387,13 +387,14 @@ class Particle {
     constructor(x, y, color, size, vx, vy, life, type = 'spark') {
         this.x = x;
         this.y = y;
+        this.startY = y; // [추가] 텍스트 튕김 물리를 위한 시작점 저장
         this.color = color;
         this.size = size;
         this.vx = vx;
         this.vy = vy;
         this.maxLife = life;
         this.life = life;
-        this.type = type; // 'spark', 'dust', 'explosionRing', 'slashWave'
+        this.type = type; // 'spark', 'dust', 'explosionRing', 'slashWave', 'trail'
         this.alpha = 1;
     }
 
@@ -401,9 +402,24 @@ class Particle {
         this.x += this.vx;
         this.y += this.vy;
         
-        // 서서히 감속 처리 (마찰력)
-        this.vx *= 0.95;
-        this.vy *= 0.95;
+        // 잔상(trail) 파티클은 감속을 거의 하지 않고 제자리에서 빠르게 소멸
+        if (this.type === 'trail') {
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+        } else if (this.type === 'text') {
+            // [신규 물리] 데미지 텍스트 튕김 물리 시뮬레이션
+            this.vy += 0.15; // 중력 가속
+            // 스폰 기준 10px 아래를 가상 지면으로 판정하여 바운싱
+            if (this.y > this.startY + 10) {
+                this.y = this.startY + 10;
+                this.vy = -this.vy * 0.45; // 튕김 탄성
+                this.vx *= 0.75; // 마찰 감속
+            }
+        } else {
+            // 일반 파티클은 마찰력으로 서서히 감속
+            this.vx *= 0.95;
+            this.vy *= 0.95;
+        }
         
         this.life--;
         this.alpha = Math.max(0, this.life / this.maxLife);
@@ -413,25 +429,59 @@ class Particle {
         ctx.save();
         ctx.globalAlpha = this.alpha;
         
-        if (this.type === 'spark' || this.type === 'dust') {
+        if (this.type === 'spark') {
+            // [개선] 단순 원 대신 십자형(+) 전기 스파크 형태로 날카롭게 렌더링
+            ctx.beginPath();
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 1.8;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.color;
+            // 가로선
+            ctx.moveTo(this.x - this.size * 1.5, this.y);
+            ctx.lineTo(this.x + this.size * 1.5, this.y);
+            // 세로선
+            ctx.moveTo(this.x, this.y - this.size * 1.5);
+            ctx.lineTo(this.x, this.y + this.size * 1.5);
+            ctx.stroke();
+        } else if (this.type === 'dust') {
+            // 부드러운 연기/먼지 입자
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = this.type === 'spark' ? 8 : 0;
+            ctx.shadowBlur = 2;
             ctx.shadowColor = this.color;
             ctx.fill();
         } else if (this.type === 'explosionRing') {
+            // 폭발 충격파 링
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * (1 - this.alpha), 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.size * (1 - this.alpha * 0.8), 0, Math.PI * 2);
             ctx.strokeStyle = this.color;
-            ctx.lineWidth = 3 * this.alpha;
-            ctx.shadowBlur = 15;
+            ctx.lineWidth = 3.5 * this.alpha;
+            ctx.shadowBlur = 18;
             ctx.shadowColor = this.color;
             ctx.stroke();
         } else if (this.type === 'slashWave') {
-            // 검 베기 시 남는 검풍/파편
+            // [개선] 단순 원 대신 베기 각도에 맞춘 날카로운 초승달 형태 검기
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            let angle = Math.atan2(this.vy, this.vx);
+            ctx.rotate(angle);
+            
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            // 부채꼴 및 초승달 블렌딩 궤적
+            ctx.arc(0, 0, this.size, -Math.PI / 2.8, Math.PI / 2.8);
+            ctx.quadraticCurveTo(-this.size * 0.3, 0, Math.cos(-Math.PI / 2.8) * this.size, Math.sin(-Math.PI / 2.8) * this.size);
+            ctx.closePath();
+            
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = this.color;
+            ctx.fill();
+            ctx.restore();
+        } else if (this.type === 'trail') {
+            // [신규] 유도탄이나 대시 뒤에 남는 네온 잔상 꼬리
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * this.alpha, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
             ctx.shadowBlur = 10;
             ctx.shadowColor = this.color;
@@ -586,6 +636,16 @@ class Bullet {
         } else {
             this.x += this.vx * timeScale;
             this.y += this.vy * timeScale;
+        }
+
+        // 플레이어의 탄환일 때 이동 방향 뒤로 잔상 trail 파티클 생성
+        if (this.isPlayerBullet && window.gameEngine && Math.random() < 0.3) {
+            window.gameEngine.particles.push(new Particle(
+                this.x, this.y,
+                this.color, this.radius * 0.7,
+                (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2,
+                10, 'trail'
+            ));
         }
 
         // [5-4단계] 탄환과 격자 장애물의 AABB 충돌 및 도탄(Bounce)/소멸 물리 연동
@@ -1139,6 +1199,26 @@ class Player {
             window.gameEngine.particles.push(new Particle(this.x, this.y, '#00f0ff', 1.5, (Math.random()-0.5)*0.4, (Math.random()-0.5)*0.4, 12, 'dust'));
         }
 
+        // [신규 연출] 플레이어 질주(Shift 달리기) 시 부드러운 네온 시안 잔상 trail 파티클 생성
+        if (isSprinting && Math.random() < 0.35 && window.gameEngine) {
+            window.gameEngine.particles.push(new Particle(
+                this.x, this.y,
+                'rgba(0, 240, 255, 0.35)', this.radius * 0.9,
+                (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1,
+                15, 'trail'
+            ));
+        }
+
+        // [신규 연출] 플레이어 회피(Evade) 활성화 중일 때 네온 핫핑크 잔상 trail 파티클 생성
+        if (this.evadeActive && Math.random() < 0.5 && window.gameEngine) {
+            window.gameEngine.particles.push(new Particle(
+                this.x, this.y,
+                'rgba(255, 0, 85, 0.4)', this.radius * 0.95,
+                (Math.random() - 0.5) * 0.25, (Math.random() - 0.5) * 0.25,
+                20, 'trail'
+            ));
+        }
+
         // [수정] 체력 자연 재생 (HP Regen) - 전투 중이면 이동 여부와 관계없이 자연 치유 작동
         let isCombat = window.gameEngine && (window.gameEngine.monsters.length > 0 || window.gameEngine.spawnQueue.length > 0);
         let currentRegen = this.hpRegen;
@@ -1560,6 +1640,7 @@ class Monster {
         let dy = player.y - this.y;
         let dist = Math.hypot(dx, dy);
         let angle = Math.atan2(dy, dx);
+        this.angle = angle; // [추가] 렌더링 방향 업데이트를 위해 각도 저장
 
         // Slow (감속) 상태에 따른 실제 이동 속도 연산
         let activeSpeed = this.speed * timeScale;
@@ -1618,6 +1699,18 @@ class Monster {
             } else {
                 this.x += Math.cos(angle) * activeSpeed;
                 this.y += Math.sin(angle) * activeSpeed;
+            }
+
+            // [신규 연출] 대시 상태(넉백 가속도가 높을 때) 꽁무니에서 네온 주황 배기 스파크 발사
+            if (Math.hypot(this.knockbackX, this.knockbackY) > 3.0 && Math.random() < 0.4 && window.gameEngine) {
+                let tailAngle = this.angle + Math.PI + (Math.random() - 0.5) * 0.5;
+                let pSpeed = Math.random() * 2 + 1;
+                window.gameEngine.particles.push(new Particle(
+                    this.x - Math.cos(this.angle) * this.radius,
+                    this.y - Math.sin(this.angle) * this.radius,
+                    '#ffaa00', 1.5,
+                    Math.cos(tailAngle) * pSpeed, Math.sin(tailAngle) * pSpeed, 15, 'spark'
+                ));
             }
         } 
         else if (this.type === 'shooter') {
@@ -1690,39 +1783,201 @@ class Monster {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        ctx.beginPath();
-        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        // 피격 깜빡임 및 상태이상 색상/스타일 계산
+        let fillColor, strokeColor, glowColor, lineWidth;
+        lineWidth = this.isBoss ? 4.0 : 2.5;
 
-        // 피격 깜빡임 구현 (흰색 반투명 플래시)
         if (this.flashTimer > 0) {
-            ctx.fillStyle = '#ffffff';
+            fillColor = 'rgba(255, 255, 255, 0.8)';
+            strokeColor = '#ffffff';
+            glowColor = '#ffffff';
             ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ffffff';
         } else if (this.statusEffects.shock >= 120) {
             // [W-08 시간 완전 정지 - 회색조 석상화 렌더링]
-            ctx.fillStyle = 'rgba(80, 80, 80, 0.45)';
-            ctx.strokeStyle = '#555555';
-            ctx.lineWidth = this.isBoss ? 4.0 : 2.0;
+            fillColor = 'rgba(80, 80, 80, 0.45)';
+            strokeColor = '#555555';
+            glowColor = '#333333';
             ctx.shadowBlur = 6;
-            ctx.shadowColor = '#333333';
         } else {
-            ctx.fillStyle = this.isBoss ? 'rgba(255, 51, 0, 0.2)' : 'rgba(255, 0, 85, 0.15)';
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = this.isBoss ? 4.0 : 2.0;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = this.glowColor;
+            fillColor = this.isBoss ? 'rgba(255, 51, 0, 0.12)' : 
+                        (this.type === 'chaser' ? 'rgba(255, 170, 0, 0.12)' : 
+                        (this.type === 'shooter' ? 'rgba(176, 38, 255, 0.12)' : 'rgba(255, 0, 85, 0.12)'));
+            strokeColor = this.color;
+            glowColor = this.glowColor;
+            ctx.shadowBlur = 12;
         }
+        ctx.shadowColor = glowColor;
 
-        ctx.fill();
-        if (this.flashTimer <= 0) {
+        // 몬스터 타입별 기하학적 네온 렌더링
+        if (this.isBoss) {
+            // [보스 몬스터] 이중 역회전 기계식 링 연출
+            // 1. 외부 역회전 링 1 (시계 방향 회전 점선 링)
+            let angle1 = (Date.now() * 0.0015);
+            ctx.save();
+            ctx.rotate(angle1);
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([8, 12]);
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 1.35, 0, Math.PI * 2);
             ctx.stroke();
-        }
+            ctx.restore();
+            
+            // 2. 외부 역회전 링 2 (반시계 방향 회전 8각 톱니 링)
+            let angle2 = -(Date.now() * 0.0025);
+            ctx.save();
+            ctx.rotate(angle2);
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2.0;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                let a = i * Math.PI / 4;
+                let r1 = this.radius * 1.1;
+                let r2 = this.radius * 1.25;
+                ctx.lineTo(Math.cos(a - 0.1) * r1, Math.sin(a - 0.1) * r1);
+                ctx.lineTo(Math.cos(a - 0.05) * r2, Math.sin(a - 0.05) * r2);
+                ctx.lineTo(Math.cos(a + 0.05) * r2, Math.sin(a + 0.05) * r2);
+                ctx.lineTo(Math.cos(a + 0.1) * r1, Math.sin(a + 0.1) * r1);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+            
+            // 3. 본체 구체
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = lineWidth;
+            ctx.fill();
+            if (this.flashTimer <= 0) ctx.stroke();
 
-        // 보스 또는 일반 몬스터의 안구/핵 네온 그래픽
-        ctx.beginPath();
-        ctx.arc(0, 0, this.isBoss ? 8 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : (this.statusEffects.shock >= 120 ? '#555555' : this.color);
-        ctx.fill();
+            // 4. 플레이어를 째려보는 눈(코어)
+            let eyeAngle = this.angle || 0;
+            let eyeDist = this.radius * 0.35;
+            let ex = Math.cos(eyeAngle) * eyeDist;
+            let ey = Math.sin(eyeAngle) * eyeDist;
+
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : strokeColor;
+            ctx.fill();
+
+            // 흰색 동공
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.restore();
+
+        } else if (this.type === 'normal') {
+            // [일반 몬스터] 회전하는 3개의 삼각 파편과 중심 구체
+            // 1. 중심핵 구체
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = lineWidth;
+            ctx.fill();
+            if (this.flashTimer <= 0) ctx.stroke();
+
+            // 2. 중심핵 내부 안구
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : strokeColor;
+            ctx.fill();
+
+            // 3. 회전하는 3개의 삼각 파편
+            let baseAngle = (Date.now() * 0.0035);
+            for (let i = 0; i < 3; i++) {
+                let a = baseAngle + (i * Math.PI * 2 / 3);
+                let dist = this.radius * 0.95;
+                let px = Math.cos(a) * dist;
+                let py = Math.sin(a) * dist;
+                
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(a);
+                
+                ctx.beginPath();
+                ctx.moveTo(this.radius * 0.22, 0);
+                ctx.lineTo(-this.radius * 0.15, -this.radius * 0.15);
+                ctx.lineTo(-this.radius * 0.15, this.radius * 0.15);
+                ctx.closePath();
+                
+                ctx.fillStyle = fillColor;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = lineWidth * 0.8;
+                ctx.fill();
+                if (this.flashTimer <= 0) ctx.stroke();
+                ctx.restore();
+            }
+
+        } else if (this.type === 'chaser') {
+            // [돌격형 몬스터] 이동 각도를 바라보는 날렵한 화살촉 형태
+            ctx.save();
+            ctx.rotate(this.angle || 0);
+
+            ctx.beginPath();
+            ctx.moveTo(this.radius * 1.3, 0); // 전면 기수
+            ctx.lineTo(-this.radius * 0.8, -this.radius * 0.75); // 좌현 날개
+            ctx.lineTo(-this.radius * 0.4, 0); // 배기구 홈
+            ctx.lineTo(-this.radius * 0.8, this.radius * 0.75); // 우현 날개
+            ctx.closePath();
+
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = lineWidth;
+            ctx.fill();
+            if (this.flashTimer <= 0) ctx.stroke();
+
+            // 기체 중앙 원형 코어
+            ctx.beginPath();
+            ctx.arc(-this.radius * 0.1, 0, this.radius * 0.28, 0, Math.PI * 2);
+            ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : strokeColor;
+            ctx.fill();
+            ctx.restore();
+
+        } else if (this.type === 'shooter') {
+            // [원거리 사격 몬스터] 육각형 방어막 장막 및 충전 발광 안구
+            ctx.save();
+            let rotAngle = (Date.now() * 0.001);
+            ctx.rotate(rotAngle);
+
+            // 1. 육각형 장막 렌더링
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                let a = (i * Math.PI / 3);
+                let x = Math.cos(a) * this.radius;
+                let y = Math.sin(a) * this.radius;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = fillColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = lineWidth;
+            ctx.fill();
+            if (this.flashTimer <= 0) ctx.stroke();
+            ctx.restore();
+
+            // 2. 내부 코어 안구 (사격 임박 충전 시 흰색 깜빡임)
+            let coreRadius = this.radius * 0.35;
+            let isCharging = this.shootCooldown <= 30; // 사격 30프레임 이내
+            ctx.beginPath();
+            ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+            
+            if (isCharging && Math.floor(Date.now() / 45) % 2 === 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 18;
+            } else {
+                ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : strokeColor;
+            }
+            ctx.fill();
+        }
 
         // 디버프 상태이상 시각 오라 효과 렌더링
         if (this.flashTimer <= 0) {
@@ -2764,6 +3019,8 @@ class GameEngine {
         this.timeWarpFreeCastActive = false; // [신규 기획] Mana Helm 5레벨 무료 지속 시간왜곡 체크용 플래그
         this.hasRerolledThisRoom = false;   // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 리롤 트래킹 플래그
         this.gameOverActive = false;        // [신규 추가] 사망 연출 다중 중복 트리거 방지용 플래그
+        this.hitStopFrames = 0;             // [신규 추가] Hit Stop(역경직) 프레임 카운터 초기화
+        this.hitStopCooldown = 0;           // [신규 추가] Hit Stop 쿨다운 타이머 초기화
         
         this.inSecretRoom = false; // 비밀방 보너스 층 상태 추적 플래그
         this.forceSecretWallNextRoom = false; // 치트 강제 비밀방 등장 플래그
@@ -3064,6 +3321,7 @@ class GameEngine {
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 쿨다운 변수 리셋
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
+        this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
         
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
@@ -3790,6 +4048,17 @@ class GameEngine {
         // 레이어 팝업이 활성화되어 있으면 즉시 루프를 리턴 차단하여 물리적인 시간을 완벽하게 얼려버립니다.
         if (isOverlayOpen) {
             return;
+        }
+
+        // [신규 추가] Hit Stop(역경직) 감쇠 및 물리 업데이트 일시 정지
+        if (this.hitStopFrames > 0) {
+            this.hitStopFrames--;
+            return;
+        }
+        
+        // [신규 추가] Hit Stop 쿨다운 타이머 매 프레임 감쇠
+        if (this.hitStopCooldown > 0) {
+            this.hitStopCooldown--;
         }
 
         // [신규 기믹] 보상 상자 획득 시 3선택1 카드 보상창 팝업 지연 연출 업데이트
@@ -4620,6 +4889,7 @@ class GameEngine {
                             this.showFloatingText("❄️ FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
                             this.shakeScreen(12, 5.0);
                             Sound.play('explosion');
+                            this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
                             
                             // 은백색 파쇄 스파크 얼음 파편
                             for (let k = 0; k < 12; k++) {
@@ -4762,6 +5032,7 @@ class GameEngine {
                             this.showFloatingText("❄️ FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
                             this.shakeScreen(12, 5.0);
                             Sound.play('explosion');
+                            this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
                             
                             // 은백색 파쇄 스파크 파편 사출
                             for (let k = 0; k < 12; k++) {
@@ -4785,6 +5056,7 @@ class GameEngine {
                         if (isSpearTip) {
                             this.showFloatingText("⚡ SPEAR-TIP CRITICAL! ⚡", m.x, m.y - 35, '#00f0ff');
                             this.shakeScreen(8, 3.8);
+                            this.triggerHitStop(2); // 창끝 크리티컬 히트 스톱 (2프레임)
                         }
 
                         Sound.play('hit');
@@ -5377,6 +5649,15 @@ class GameEngine {
         if (m.dead) return; // [신규] 중복 정산 및 사망 처리 방지
         m.dead = true; // [신규] 지연 삭제 마킹
 
+        // 몬스터 처치 Hit Stop 역경직 적용 (쿨다운 유틸 사용 및 밸런스 조정)
+        if (m.isBoss) {
+            this.triggerHitStop(12);
+        } else if (m.isElite) {
+            this.triggerHitStop(4);
+        } else {
+            this.triggerHitStop(1); // 일반 몬스터는 순간적인 1프레임 정지
+        }
+
         // [신규] 사망 시 화상 5중첩이면 연쇄 대폭발 트리거 작동
         if (m.statusEffects && m.statusEffects.burnStack >= 5) {
             this.triggerFireExplosion(m.x, m.y);
@@ -5544,6 +5825,9 @@ class GameEngine {
 
         this.player.hp = Math.max(0, this.player.hp - finalDamage);
         
+        // 피격 Hit Stop 적용 (쿨다운 유틸 사용 및 5프레임으로 완화)
+        this.triggerHitStop(5);
+        
         // [신규 추가] 실제 피격 데미지가 정산되었으므로 피격 무적 타이머 45프레임(약 0.75초) 가동
         this.player.invincibleTimer = 45;
         
@@ -5619,11 +5903,26 @@ class GameEngine {
 
     // 데미지 텍스트 팝업 띄우기용 헬퍼
     showFloatingText(text, x, y, color) {
-        // floating text는 Particles에 텍스트 타입으로 임시 활용
-        let txtPart = new Particle(x, y, color, 12, 0, -0.6, 40);
+        // [개선] 텍스트가 단순히 수직 상승하지 않고, 사방으로 포물선 튕김 물리가 작동하도록 vx, vy 랜덤 및 점프력 부여
+        let rx = (Math.random() - 0.5) * 1.6;
+        let ry = -2.5 - Math.random() * 1.0;
+        let txtPart = new Particle(x, y, color, 12, rx, ry, 48);
         txtPart.type = 'text';
         txtPart.text = text;
         this.particles.push(txtPart);
+    }
+
+    // [신규 추가] 타격감(Juice)을 위한 Hit Stop 트리거 헬퍼 (다단 히트 랙 방지 쿨다운 적용)
+    triggerHitStop(frames) {
+        if (this.hitStopCooldown > 0) {
+            // 이미 쿨다운 타이머가 도는 중이라면 더 긴 역경직 프레임만 대입하고 추가 쿨다운 갱신은 보류
+            if (frames > this.hitStopFrames) {
+                this.hitStopFrames = frames;
+            }
+            return;
+        }
+        this.hitStopFrames = frames;
+        this.hitStopCooldown = 12; // 12프레임(약 0.2초) 동안 추가 히트스톱 발동 제한 (랙 체감 방멸)
     }
 
     // 원거리 스플래시 탄환 범위 데미지 연산
@@ -6157,12 +6456,14 @@ class GameEngine {
                 if (isSpearTip) {
                     this.showFloatingText("🎯 SPEAR-TIP CRITICAL! 🎯", m.x, m.y - 35, '#00f0ff');
                     this.shakeScreen(8, 3.8);
+                    this.triggerHitStop(2); // 창끝 크리티컬 히트 스톱 (2프레임)
                 }
                 
                 if (hasShattered) {
                     this.showFloatingText("❄️ FREEZE SHATTER! 300%", m.x, m.y - 35, '#00f0ff');
                     this.shakeScreen(12, 5.0);
                     Sound.play('explosion');
+                    this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
                     
                     for (let k = 0; k < 12; k++) {
                         let rAngle = Math.random() * Math.PI * 2;
