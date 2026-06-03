@@ -1139,7 +1139,7 @@ class Player {
             window.gameEngine.particles.push(new Particle(this.x, this.y, '#00f0ff', 1.5, (Math.random()-0.5)*0.4, (Math.random()-0.5)*0.4, 12, 'dust'));
         }
 
-        // [수정] 체력 자연 재생 (HP Regen) - 오직 전투 중이고, 플레이어가 가만히 서 있을 때에만 자연 치유 작동
+        // [수정] 체력 자연 재생 (HP Regen) - 전투 중이면 이동 여부와 관계없이 자연 치유 작동
         let isCombat = window.gameEngine && (window.gameEngine.monsters.length > 0 || window.gameEngine.spawnQueue.length > 0);
         let currentRegen = this.hpRegen;
 
@@ -1148,7 +1148,7 @@ class Player {
             currentRegen *= 3;
         }
 
-        if (this.hp < this.maxHp && currentRegen > 0 && isCombat && this.isStopped) {
+        if (this.hp < this.maxHp && currentRegen > 0 && isCombat) {
             this.hp = Math.min(this.maxHp, this.hp + (currentRegen / 60));
         }
 
@@ -6485,7 +6485,7 @@ class GameEngine {
             { id: 'ms', title: '민첩 (MOV) 기동', icon: '🏃', desc: '이동 속도가 강화됩니다.' },
             { id: 'evd', title: '민첩 (EVD) 회피', icon: '🦅', desc: '몬스터 공격 회피율이 상승합니다.' },
             { id: 'hp', title: '체력 (HP) 증대', icon: '❤️', desc: '최대 체력을 늘리고, 현재 체력을 소량 치유합니다.' },
-            { id: 'luk', title: '운 (LUK) 축복', icon: '🍀', desc: '다음 보상 시 고등급 카드가 나올 행운이 영구 축적됩니다.' },
+            { id: 'luk', title: '운 (LUK) 축복', icon: '🍀', desc: '다음 보상 시 고등급 카드가 나올 행운이 영구 축적됩니다. (최대 4.0까지 보상 등급에 영향)' },
             { id: 'stamina', title: '스테미너 증폭', icon: '🔋', desc: '달릴 수 있는 최대 활력이 확장됩니다.' },
             { id: 'hpRegen', title: '체력 재생 (REGEN)', icon: '🩺', desc: '초당 체력 회복 능력을 부여합니다.' },
             { id: 'range', title: '사거리 연장 (RNG)', icon: '🔭', desc: '탄환 사거리 및 검 베기 공격 반경을 연장시킵니다.' }
@@ -6657,7 +6657,7 @@ class GameEngine {
                 break;
             case 'luk':
                 value = 0.10 * mult; // 종합 밸런스 패치 (기본 0.15에서 0.10으로 하향)
-                desc = `카드 행운 계수가 +${value.toFixed(2)} 올라가 고등급 획득에 크게 기여합니다.`;
+                desc = `카드 행운 계수가 +${value.toFixed(2)} 올라가 고등급 획득에 크게 기여합니다. (최대 4.0까지 보상 등급에 영향)`;
                 break;
             case 'stamina':
                 value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
