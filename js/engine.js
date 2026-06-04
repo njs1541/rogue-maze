@@ -5,15 +5,15 @@ class GameEngine {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
-        
+
         // 디자인 해상도 비율 800 * 600 고정 스케일링 설정
         this.canvas.width = 800;
         this.canvas.height = 600;
- 
+
         // 키보드 마우스 입력 상태 변수
         this.keys = {};
         this.mouse = { x: 0, y: 0, isDown: false };
-        
+
         // 게임 상태 파라미터
         this.roomNum = 1;
         this.score = 0;
@@ -22,12 +22,12 @@ class GameEngine {
         this.isCleared = false;
         this.bossWarningTimer = 0; // [v0.95] 보스 출현 테두리 경보 타이머
         this.gameClearActive = false; // [v0.95] 최종 클리어 중복 방지 플래그
-        
+
         // [신규 기믹] 보상 상자 획득 후 카드 선택 오버레이 활성화 지연 타이머 시스템
         this.rewardSelectorDelayTimer = -1;
         this.rewardSelectorIsFromHiddenChest = false;
         this.roomRewardSpawned = false; // [신규] 방 클리어 보상 스폰 유일성 플래그
-        
+
         // 엔티티 관리 리스트
         this.player = new Player(400, 300);
         this.monsters = [];
@@ -40,30 +40,30 @@ class GameEngine {
         this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 리스트
         this.traps = [];   // [신규] 함정 엔티티 리스트
         this.obstacles = []; // [신규] 25등분 격자 장애물 리스트
-        
+
         // [신규 기획] 포털 특화 보상 및 상점 관리 리스트
-        this.currentRoomType = 'stat'; 
+        this.currentRoomType = 'stat';
         this.rewardChests = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 연속 출현 제어를 위한 쿨다운 추적 변수 추가
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 리스트
-        
+
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
         this.lastEnteredPortalDir = null; // 방에 진입했던 입구 추적 (그 입구에선 몬스터 스폰 차단)
-        
+
         // 몬스터 스폰 지연 큐 (Sequential Spawn Queue)
         this.spawnQueue = [];
         this.spawnTimer = 0;
         this.currentSpawnTotal = 0;
         this.currentSpawnRemaining = 0;
-        
+
         // 3차 피드백: 스폰 패턴 및 누적량 제어 변수
         this.spawnMethod = 1; // 1: 지속, 2: 2초 지연, 3: 웨이브 대기
         this.spawnedInRoom = 0; // 이번 방에서 실제 스폰이 이루어진 누적 몬스터 수
         this.method2DelayDone = false; // 방식 2에서 2초 딜레이를 먹였는지 체크 플래그
-        
+
         // 흔들림 이펙트 강도
         this.shakeTimer = 0;
         this.shakeIntensity = 0;
@@ -71,18 +71,18 @@ class GameEngine {
         // 콤보 및 기타 이펙트 수치
         this.comboCount = 0;
         this.comboTimer = 0;
-        
+
         // v0.3: 난이도/보상 시너지 기믹 속성 초기화
         this.isEliteRoom = false;
         this.lastEnteredPortalClass = 'low';
-        
+
         this.timeDilationActive = false; // [추가] 시간 왜곡(지연) 마법 활성화 플래그
         this.timeWarpFreeCastActive = false; // [신규 기획] Mana Helm 5레벨 무료 지속 시간왜곡 체크용 플래그
         this.hasRerolledThisRoom = false;   // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 리롤 트래킹 플래그
         this.gameOverActive = false;        // [신규 추가] 사망 연출 다중 중복 트리거 방지용 플래그
         this.hitStopFrames = 0;             // [신규 추가] Hit Stop(역경직) 프레임 카운터 초기화
         this.hitStopCooldown = 0;           // [신규 추가] Hit Stop 쿨다운 타이머 초기화
-        
+
         this.inSecretRoom = false; // 비밀방 보너스 층 상태 추적 플래그
         this.forceSecretWallNextRoom = false; // 치트 강제 비밀방 등장 플래그
 
@@ -90,7 +90,7 @@ class GameEngine {
         this.lastTime = performance.now();
         this.accumulatedTime = 0;
         this.timestep = 1000 / 60; // 60FPS (약 16.67ms)
-        
+
         this.initInputEvents();
         this.setupInitialRoom();
         this.initCheatSystemEvents();
@@ -101,7 +101,7 @@ class GameEngine {
     initInputEvents() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
-            
+
             // Spacebar를 누르면 마력 특수기 가동 (오버레이가 없고 실제 게임 실행 중일 때만 허용)
             if (e.key === ' ' || e.code === 'Space') {
                 const isOverlayOpen = this.checkAnyOverlayOpen();
@@ -117,7 +117,7 @@ class GameEngine {
                     return;
                 }
                 e.preventDefault();
-                
+
                 // 치트 메뉴를 새로 여는 시점에만 다른 오버레이가 켜져 있는지 확인하여 차단
                 const cheatOverlay = document.getElementById('cheat-overlay');
                 const isAlreadyOpen = cheatOverlay && !cheatOverlay.classList.contains('hidden');
@@ -134,7 +134,7 @@ class GameEngine {
                     return;
                 }
                 e.preventDefault();
-                
+
                 // 옵션 메뉴를 새로 여는 시점에만 다른 오버레이가 켜져 있는지 확인하여 차단
                 const optionOverlay = document.getElementById('option-overlay');
                 const isAlreadyOpen = optionOverlay && !optionOverlay.classList.contains('hidden');
@@ -151,7 +151,7 @@ class GameEngine {
                     return;
                 }
                 e.preventDefault();
-                
+
                 // 상태 조회 창을 열 수 있는지 조건 검사
                 const statusOverlay = document.getElementById('in-game-status-overlay');
                 const isAlreadyOpen = statusOverlay && !statusOverlay.classList.contains('hidden');
@@ -195,12 +195,12 @@ class GameEngine {
             // 버튼, 슬라이더, 또는 HUD 오버레이 영역을 클릭 시 사격이 중복 격발되는 오동작 차단 가드 적용
             if (e.target) {
                 const targetTagName = e.target.tagName;
-                if (targetTagName === 'INPUT' || targetTagName === 'BUTTON' || targetTagName === 'SELECT' || 
+                if (targetTagName === 'INPUT' || targetTagName === 'BUTTON' || targetTagName === 'SELECT' ||
                     e.target.closest('.overlay-panel') || e.target.closest('#hud-header') || e.target.closest('#hud-footer')) {
                     return;
                 }
             }
-            
+
             if (e.button === 0) { // 마우스 좌클릭
                 this.mouse.isDown = true;
                 Sound.init(); // 브라우저 자동 재생 규정 우회
@@ -240,7 +240,7 @@ class GameEngine {
             gotoMainBtn.addEventListener('click', () => {
                 document.getElementById('result-overlay').classList.add('hidden');
                 document.getElementById('start-overlay').classList.remove('hidden');
-                
+
                 // 처음 화면 복귀 시 HUD 헤더와 푸터 숨기기
                 const hudHeader = document.getElementById('hud-header');
                 const hudFooter = document.getElementById('hud-footer');
@@ -277,7 +277,7 @@ class GameEngine {
         }
 
         // [신규] 파이어베이스 랭킹 시스템 UI 이벤트 리스너 연동
-        
+
         // 닉네임 입력 실시간 필터 (영어 대문자와 숫자만 허용)
         const rankNicknameInput = document.getElementById('rank-nickname');
         if (rankNicknameInput) {
@@ -338,7 +338,7 @@ class GameEngine {
             btn.addEventListener('click', (e) => {
                 const filterType = btn.getAttribute('data-filter');
                 const includeLocal = (filterType === 'all');
-                
+
                 // 필터링된 데이터 재호출 및 리더보드 다시 렌더링
                 this.showLeaderboard(includeLocal);
             });
@@ -362,7 +362,7 @@ class GameEngine {
         this.roomNum = 1;
         this.score = 0;
         this.kills = 0;
-        
+
         this.player = new Player(400, 300);
         this.monsters = [];
         this.bullets = [];
@@ -374,7 +374,7 @@ class GameEngine {
         this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 초기화
         this.traps = [];   // [신규] 함정 리스트 초기화
         this.obstacles = []; // [신규] 25등분 격자 장애물 리스트 초기화
-        
+
         // [신규 기획] 보상 및 상점 리스트 리셋
         this.currentRoomType = 'stat';
         this.rewardChests = [];
@@ -383,27 +383,27 @@ class GameEngine {
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 쿨다운 변수 리셋
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
-        
+
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
-        
+
         // 3차 피드백: 스폰 초기화
         this.spawnMethod = 1;
         this.spawnedInRoom = 0;
         this.method2DelayDone = false;
-        
+
         // v0.3: 난이도/보상 시너지 기믹 속성 초기화
         this.isEliteRoom = false;
         this.lastEnteredPortalClass = 'low';
-        
+
         this.timeDilationActive = false; // [추가] 시작 시 시간 왜곡 비활성화
-        
+
         this.inSecretRoom = false; // 비밀방 보너스 층 상태 추적 플래그
         this.forceSecretWallNextRoom = false; // 치트 강제 비밀방 등장 플래그
 
         this.updateHUD();
         this.setupInitialRoom();
-        
+
         // [보정] 게임 재시작 시 타임스텝 누적 시간 리셋
         this.lastTime = performance.now();
         this.accumulatedTime = 0;
@@ -422,17 +422,17 @@ class GameEngine {
     generatePortalTypes() {
         // 기본 4개 포털 타입 후보군
         let types = ['stat', 'stat', 'stat', 'equipment'];
-        
+
         // 쿨다운이 끝났을(0 이하) 때에만 35% 확률로 무기 방 등장 후보 삽입
         if (this.weaponRoomCooldown <= 0 && Math.random() < 0.35) {
             types[0] = 'weapon';
         }
-        
+
         // 25% 확률로 stat 하나가 shop(상점)으로 변경
         if (Math.random() < 0.25) {
             types[1] = 'shop';
         }
-        
+
         // 무작위 셔플링
         types.sort(() => 0.5 - Math.random());
         return types;
@@ -446,22 +446,22 @@ class GameEngine {
             new RoomPortal('left', this.getRandomScoreValue()),
             new RoomPortal('right', this.getRandomScoreValue())
         ];
-        
+
         // [신규 기획] 포털 특화 유형 무작위 분배 (쿨다운 및 확률 가중치 반영)
         let types = this.generatePortalTypes();
         this.portals.forEach((p, idx) => {
             p.portalType = types[idx];
         });
-        
+
         // v0.3: 문 랭킹 랭크 부여
         this.rankPortals();
-        
+
         // 적이 없는 상태이므로 즉시 모든 문 개방
         this.portals.forEach(p => p.active = true);
         this.monsters = [];
         this.spawnQueue = [];
         this.traps = []; // [신규] 함정 리스트 초기화
-        
+
         // 콤보 리셋
         this.comboCount = 0;
         this.comboTimer = 0;
@@ -476,17 +476,17 @@ class GameEngine {
         if (this.lastEnteredPortalDir) {
             activePortals = activePortals.filter(p => p.direction !== this.lastEnteredPortalDir);
         }
-        
+
         // 내림차순 정렬 (높은 몬스터 수 우선)
         activePortals.sort((a, b) => b.scoreValue - a.scoreValue);
-        
+
         // 랭크 할당
         activePortals.forEach((p, idx) => {
             if (idx === 0) p.difficultyClass = 'high';
             else if (idx === 1) p.difficultyClass = 'mid';
             else p.difficultyClass = 'low';
         });
-        
+
         // 제외된 포털이 있다면 기본 low
         this.portals.forEach(p => {
             if (!p.difficultyClass) p.difficultyClass = 'low';
@@ -504,11 +504,11 @@ class GameEngine {
         let stageGroup = Math.floor((this.roomNum - 1) / 10);
         let minVal = 1 + stageGroup * 5;
         let maxVal = Math.min(65, 20 + stageGroup * 5);
-        
+
         // 보정: minVal이 maxVal을 넘지 않도록 안전 제한
         if (minVal > maxVal) minVal = maxVal - 4;
         if (minVal < 1) minVal = 1;
-        
+
         return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
     }
 
@@ -516,7 +516,7 @@ class GameEngine {
     transitionToNextRoom(portal) {
         // [신규 기획] 현재 방의 유형을 방금 진입한 포털의 보상 유형으로 갱신!
         const enteringSecretRoom = (portal.portalType === 'secret_room');
-        
+
         if (enteringSecretRoom) {
             this.inSecretRoom = true;
             this.currentRoomType = 'secret_room';
@@ -533,7 +533,7 @@ class GameEngine {
 
         const scoreBonus = portal.scoreValue;
         this.score += scoreBonus; // 획득 점수 축적
-        
+
         // 진입한 문의 난이도 등급 저장 (보상 등급 강화에 적용)
         this.lastEnteredPortalClass = portal.difficultyClass || 'low';
 
@@ -557,7 +557,7 @@ class GameEngine {
         } else {
             // 입장 방향을 제외한 나머지 3개 스폰 대상 포털 추출 (비밀방 포털인 경우엔 4방향 전부 검토)
             const targetPortals = this.portals.filter(p => p.direction !== this.lastEnteredPortalDir);
-            
+
             if (targetPortals.length > 0) {
                 // 시계 방향 정렬 순서 준비 (겹쳤을 때 플레이어 입장 방향의 왼쪽부터 시계방향순 타이브레이커)
                 const dirOrder = ['top', 'right', 'bottom', 'left'];
@@ -601,7 +601,7 @@ class GameEngine {
             this.roomNum++; // 일반 방 진행 시에만 정상 층수 가산
             this.inSecretRoom = false; // 비밀방 룰에서 복귀
         }
-        
+
         // 100 스테이지 달성 시 최종 승리 클리어
         if (this.roomNum > 100) {
             this.triggerGameClear();
@@ -636,7 +636,7 @@ class GameEngine {
             const directions = ['top', 'bottom', 'left', 'right'];
             const chosenDir = directions[Math.floor(Math.random() * 4)];
             const exitPortal = new RoomPortal(chosenDir, this.getRandomScoreValue());
-            
+
             // 100% 무작위 보상 배정 (스탯, 무기, 장비)
             let types = ['stat', 'weapon', 'equipment'];
             exitPortal.portalType = types[Math.floor(Math.random() * 3)];
@@ -653,7 +653,7 @@ class GameEngine {
                 new RoomPortal('left', this.getRandomScoreValue()),
                 new RoomPortal('right', this.getRandomScoreValue())
             ];
-            
+
             // [신규 기획] 포털 특화 유형 무작위 분배 (쿨다운 및 확률 가중치 반영)
             let types = this.generatePortalTypes();
             this.portals.forEach((p, idx) => {
@@ -694,7 +694,7 @@ class GameEngine {
             }
             let candidates = [
                 { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
-                { col: 1, row: 2 },                     { col: 3, row: 2 },
+                { col: 1, row: 2 }, { col: 3, row: 2 },
                 { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }
             ];
             candidates.sort(() => 0.5 - Math.random());
@@ -741,22 +741,22 @@ class GameEngine {
                 { wallX: 40, wallY: 180, dir: 'left' },    // 좌측 벽면
                 { wallX: 760, wallY: 420, dir: 'right' }   // 우측 벽면
             ];
-            
+
             // 격자 장애물과 간섭 차단을 위한 안전한 후보지만 필터링
             let safeSpots = spots.filter(spot => {
                 for (let obs of this.obstacles) {
                     let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
                     if (distWall <= 85) { // 안전 마진 85px 상향 정교화
-                        return false; 
+                        return false;
                     }
                 }
                 return true;
             });
-            
-            let chosenSpot = safeSpots.length > 0 
+
+            let chosenSpot = safeSpots.length > 0
                 ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
                 : spots[Math.floor(Math.random() * spots.length)];
-            
+
             // 비밀 균열 외벽 생성 (방향 정보 전달)
             this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
             // 보물 상자는 위치 노출 방지를 위해 평소에 생성하지 않음 (스펙 변경으로 삭제 완료)
@@ -770,7 +770,7 @@ class GameEngine {
     setupBossRoom() {
         this.currentSpawnTotal = 1;
         this.currentSpawnRemaining = 1;
-        
+
         // 보스는 문이 아닌 중앙 부근에서 출현시킴
         const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
         boss.makeBoss(this.roomNum);
@@ -791,10 +791,10 @@ class GameEngine {
         this.spawnQueue = [];
         this.currentSpawnTotal = totalCount;
         this.currentSpawnRemaining = totalCount;
-        
+
         // 보스 몬스터가 아닌 일반 방의 경우 이전 진입 포털을 제외한 나머지 3개 문 방향을 추출
         const spawnDirections = ['top', 'bottom', 'left', 'right'].filter(dir => dir !== this.lastEnteredPortalDir);
-        
+
         let remainingToSpawn = totalCount;
 
         // [엘리트 기믹] 만약 엘리트 방이고 다음 방이 5의 배수 방이면 처음에 녹색 거대 엘리트 몬스터 스폰 예약 삽입
@@ -812,12 +812,12 @@ class GameEngine {
                 });
             }
         }
-        
+
         // 1마리 ~ 5마리 사이의 몬스터 팩(Pac) 단위로 소량 쪼개어 스폰 큐에 담아 순차 출현
         while (remainingToSpawn > 0) {
             let pacSize = Math.floor(Math.random() * 5) + 1; // 1~5마리
             pacSize = Math.min(pacSize, remainingToSpawn);
-            
+
             // 3곳 입구 중 무작위 방향 1곳 선택
             let randomDir = spawnDirections[Math.floor(Math.random() * spawnDirections.length)];
             let spawnCoords = this.getSpawnCoordinates(randomDir);
@@ -860,7 +860,7 @@ class GameEngine {
         }
 
         this.spawnTimer++;
-        
+
         let currentPac = this.spawnQueue[0];
         if (this.spawnTimer >= currentPac.delay) {
             // 이번 주기 몬스터 소환
@@ -868,7 +868,7 @@ class GameEngine {
                 // 소환 흩어짐 폭을 더 넓게 설정하여 과도한 뭉침 방지 (80px 반경 분산)
                 let rx = currentPac.x + (Math.random() * 80 - 40);
                 let ry = currentPac.y + (Math.random() * 80 - 40);
-                
+
                 // 5개 방마다 몬스터 등급 티어 상승 계산식
                 let currentTier = Math.floor((this.roomNum - 1) / 5) + 1;
                 let enemy = new Monster(rx, ry, currentTier, this.roomNum);
@@ -877,7 +877,7 @@ class GameEngine {
                 if (currentPac.forceElite) {
                     enemy.makeElite();
                 }
-                
+
                 this.monsters.push(enemy);
 
                 // 소환되는 문 입구 스파크 파티클 효과 연출
@@ -894,7 +894,7 @@ class GameEngine {
             // [3차 피드백] 방식 2: 10마리 스폰 도달 시 다음 소환 타이밍을 임시 2초(120프레임)로 지연
             if (this.spawnMethod === 2 && this.spawnedInRoom >= 10 && !this.method2DelayDone) {
                 // 현재 타이머를 -90으로 당겨서, 다음 소환까지 120프레임(2초)이 걸리도록 강제 지연
-                this.spawnTimer = -90; 
+                this.spawnTimer = -90;
                 this.method2DelayDone = true; // 지연 먹임 처리
             } else {
                 this.spawnTimer = 0;
@@ -902,7 +902,7 @@ class GameEngine {
 
             // 이번 스폰 팩 완료 처리 및 큐에서 제거
             this.spawnQueue.shift();
-            
+
             // 소환 피드백 화면 진동
             this.shakeScreen(5, 2);
         }
@@ -950,7 +950,7 @@ class GameEngine {
                     let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.knockbackX = Math.cos(angle) * 8;
                     m.knockbackY = Math.sin(angle) * 8;
-                    
+
                     // 폭발 파티클 조각
                     for (let k = 0; k < 8; k++) {
                         let spd = Math.random() * 5 + 2;
@@ -960,7 +960,7 @@ class GameEngine {
             }
             // 문 및 게이지 강제 갱신
             this.updateHUD();
-        } 
+        }
         else if (this.player.magicType === 'timeWarp') {
             // [수정] 이미 활성화된 상태라면 수동 비활성화 차단 (마나가 0이 될 때까지 강제 사용)
             if (this.timeDilationActive) {
@@ -973,18 +973,18 @@ class GameEngine {
                 this.showFloatingText("NEED 100+ MP", this.player.x, this.player.y - 20, '#ff0055');
                 return;
             }
-            
+
             // [신규 기획] Mana Helm 5레벨 돌파: 20% 확률로 마나 무료 시전! (시간 왜곡 지속 소모 면제)
             this.timeWarpFreeCastActive = false;
             if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
                 this.timeWarpFreeCastActive = true;
                 this.showFloatingText("FREE MANA WARP!", this.player.x, this.player.y - 30, '#00f0ff');
             }
-            
+
             this.timeDilationActive = true;
             this.shakeScreen(25, 4);
             this.showFloatingText("🔮 TIME WARP ACTIVE", this.player.x, this.player.y - 30, '#b026ff');
-            
+
             // 시간왜곡 발동 피드백 아르페지오 사운드 재생
             Sound.play('victory');
         }
@@ -996,7 +996,7 @@ class GameEngine {
         let synergyMultiplier = 1.0;
         let synergyName = "";
         let synergyColor = "#00f0ff";
-        
+
         if (type === 'gun') {
             // 1. [네온 탄막 초토화 폭격기 (Neon Bomber)]
             // 조건: 멀티샷 3발 이상, 유도 추적탄 보유, 스플래시 대폭발 반경 보유
@@ -1032,7 +1032,7 @@ class GameEngine {
         // 시너지가 성사되었고 60fps 중 약 1.5% 확률로 전투를 저해하지 않는 팝업 피드백 연출
         if (synergyMultiplier > 1.0 && Math.random() < 0.015) {
             this.showFloatingText(synergyName, p.x, p.y - 30, synergyColor);
-            
+
             // 시너지 발동 오라 네온 파티클
             for (let k = 0; k < 4; k++) {
                 let angle = Math.random() * Math.PI * 2;
@@ -1056,12 +1056,12 @@ class GameEngine {
     gameLoop() {
         const currentTime = performance.now();
         let deltaTime = currentTime - this.lastTime;
-        
+
         // 브라우저 백그라운드 탭 전환 등으로 인한 과도한 시간 누적 방지 (최대 100ms 가드)
         if (deltaTime > 100) {
             deltaTime = this.timestep;
         }
-        
+
         this.lastTime = currentTime;
         this.accumulatedTime += deltaTime;
 
@@ -1093,7 +1093,7 @@ class GameEngine {
         const optionOverlay = document.getElementById('option-overlay'); // [신규] 시스템 옵션 모달 연동
         const secretShopOverlay = document.getElementById('secret-shop-overlay'); // [결함 수정] 네온 암시장 모달 검증 변수 추가
         const statusOverlay = document.getElementById('in-game-status-overlay'); // [신규] 인게임 상태창 모달
-        
+
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
             (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
@@ -1116,7 +1116,7 @@ class GameEngine {
             this.hitStopFrames--;
             return;
         }
-        
+
         // [신규 추가] Hit Stop 쿨다운 타이머 매 프레임 감쇠
         if (this.hitStopCooldown > 0) {
             this.hitStopCooldown--;
@@ -1141,22 +1141,22 @@ class GameEngine {
             if (this.player.burstIntervalTimer >= 5) { // 약 0.08초 간격 (5프레임)
                 this.player.burstIntervalTimer = 0;
                 this.player.burstRemaining--;
-                
+
                 if (this.player.burstType === 'gun') {
                     // 총 탄환 팩 격발
                     let isLightning = this.player.weaponType === 'lightning';
                     let isFire = this.player.weaponType === 'fire';
                     let isIce = this.player.weaponType === 'ice';
                     let isDual = this.player.weaponType === 'dual';
-                    
+
                     let synergyMult = this.checkBuildSynergy('gun');
                     let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
                     let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                    
+
                     // [2차 밸런스 패치] 멀티샷 및 점사 개수에 따른 대미지 역보정(감쇄) 연동 적용
                     let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
                     let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
-                    
+
                     let finalDamage = this.player.atk * (isLightning ? 0.9 : 1.0) * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
                     for (let angle of this.player.burstBulletsToLaunch) {
@@ -1174,12 +1174,12 @@ class GameEngine {
                         let vx = Math.cos(angle) * speed;
                         let vy = Math.sin(angle) * speed;
                         let bulletLife = this.player.range / speed;
-                        
+
                         let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
                         if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
                             bulletRadius = 4.8;
                         }
-                        
+
                         this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                             pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0),
                             homing: this.player.homing,
@@ -1197,18 +1197,18 @@ class GameEngine {
                     }
                     Sound.play('shoot');
                     this.shakeScreen(3, (isLightning || isFire || isIce) ? 1.5 : 1.2);
-                } 
+                }
                 else if (this.player.burstType === 'melee') {
                     // [근접 무기 융합 난무 격발]
                     let startAngle = this.player.angle;
                     let hasSword = (this.player.weaponLevels.sword > 0);
                     let hasSpear = (this.player.weaponLevels.spear > 0);
                     let hasWhip = (this.player.weaponLevels.whip > 0);
-                    
+
                     let swordAngles = [];
                     let whipAngles = [];
                     let spearAngles = [];
-                    
+
                     // 각도 재계산
                     if (this.player.multishot === 1) {
                         swordAngles.push(startAngle);
@@ -1219,7 +1219,7 @@ class GameEngine {
                             swordAngles.push(startAngle - (arcSpan / 2) + (step * i));
                         }
                     }
-                    
+
                     let whipMultiArc = 0.15 + (this.player.multishot - 1) * 0.03 + (this.player.weaponUnlocks.whip.multi ? 0.10 : 0);
                     if (this.player.multishot === 1) {
                         whipAngles.push(startAngle);
@@ -1229,23 +1229,23 @@ class GameEngine {
                             whipAngles.push(startAngle - (whipMultiArc / 2) + (step * i));
                         }
                     }
-                    
+
                     if (this.player.weaponUnlocks.spear.multi) {
                         spearAngles = [startAngle - 0.2, startAngle, startAngle + 0.2];
                     } else {
                         spearAngles = [startAngle];
                     }
-                    
+
                     // 1. 창 즉발 및 투사체 융합
                     if (hasSpear) {
                         this.player.isSpearActive = true;
                         this.player.spearTimer = 8;
                         this.player.spearAngle = startAngle;
                         this.player.spearAngles = [...spearAngles];
-                        
+
                         let targetRange = 80 + (this.player.range - 350) * 0.3;
                         if (this.player.weaponUnlocks.spear.range) targetRange += 20;
-                        
+
                         for (let angle of spearAngles) {
                             for (let i = 0; i < 6; i++) {
                                 let distOffset = i * (targetRange / 6);
@@ -1257,12 +1257,12 @@ class GameEngine {
                             }
                         }
                         this.triggerSpearInstantAttack(spearAngles);
-                        
+
                         let synergyMult = this.checkBuildSynergy('spear');
                         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                         let baseMult = 0.7;
                         let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
-                        
+
                         for (let angle of spearAngles) {
                             let speed = 10.0;
                             let vx = Math.cos(angle) * speed;
@@ -1278,14 +1278,14 @@ class GameEngine {
                             }));
                         }
                     }
-                    
+
                     // 2. 채찍 즉발 융합
                     if (hasWhip) {
                         this.player.isSlashActive = true;
                         this.player.slashTimer = 12;
                         this.player.slashAngle = startAngle;
                         this.player.slashAngles = [...whipAngles];
-                        
+
                         let radius = this.player.weaponUnlocks.whip.range ? 220 : 150;
                         for (let angle of whipAngles) {
                             for (let i = 0; i < 8; i++) {
@@ -1301,14 +1301,14 @@ class GameEngine {
                         }
                         this.triggerWhipInstantAttack(whipAngles);
                     }
-                    
+
                     // 3. 검 이펙트 및 검기 투사체 융합
                     if (hasSword) {
                         this.player.isSlashActive = true;
                         this.player.slashTimer = 12;
                         this.player.slashAngle = startAngle;
                         this.player.slashAngles = [...swordAngles];
-                        
+
                         for (let angle of swordAngles) {
                             for (let i = -5; i <= 5; i++) {
                                 let offset = angle + (i * 0.15);
@@ -1319,12 +1319,12 @@ class GameEngine {
                                 this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
                             }
                         }
-                        
+
                         let synergyMult = this.checkBuildSynergy('sword');
                         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                         let baseMult = 0.8;
                         let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
-                        
+
                         if (this.player.weaponUnlocks.sword.wave) {
                             for (let angle of swordAngles) {
                                 let speed = 6.0;
@@ -1341,7 +1341,7 @@ class GameEngine {
                             }
                         }
                     }
-                    
+
                     Sound.play('slash');
                     if (hasSword) {
                         this.shakeScreen(5, 2.5);
@@ -1365,7 +1365,7 @@ class GameEngine {
                 if (this.mineInstallTimer >= mineCd) {
                     this.mineInstallTimer = 0;
                     this.traps.push(new NeonTrap(this.player.x, this.player.y, 'mine', this.player));
-                    this.showFloatingText("MINE PLACED! 🪤", this.player.x, this.player.y - 25, '#ffdf00');
+                    this.showFloatingText("MINE PLACED! 💣", this.player.x, this.player.y - 25, '#ffdf00');
                 }
             } else {
                 this.mineInstallTimer = 0;
@@ -1376,15 +1376,15 @@ class GameEngine {
                 this.laserInstallTimer = (this.laserInstallTimer || 0) + 1;
                 if (this.laserInstallTimer >= 360) {
                     this.laserInstallTimer = 0;
-                    
+
                     let type = Math.random() < 0.5 ? 'laser_h' : 'laser_v';
                     let lx = this.player.x;
                     let ly = this.player.y;
-                    
+
                     // 벽 밖으로 삐져나가는 것 방지
                     lx = Math.max(50, Math.min(750, lx));
                     ly = Math.max(50, Math.min(550, ly));
-                    
+
                     this.traps.push(new NeonTrap(lx, ly, type, this.player));
                     this.showFloatingText("LASER WIRE SET! ⚡", this.player.x, this.player.y - 25, '#00f0ff');
                 }
@@ -1407,7 +1407,7 @@ class GameEngine {
         let canShoot = hasRangedWeapon;
         if (this.mouse.isDown && canShoot && !isOverlayOpen) {
             this.player.continuousShootTimer = (this.player.continuousShootTimer || 0) + 1;
-            
+
             // 10레벨 초월 속사 연속 3초(180프레임) 돌파 시 노란 네온 파티클 오버라이드 격발
             if (this.player.equipLevels.ring_aspd === 10 && this.player.continuousShootTimer >= 180) {
                 if (Math.random() < 0.35) {
@@ -1430,19 +1430,19 @@ class GameEngine {
         if (this.timeDilationActive) {
             // 매 프레임 마력 감쇄 (약 6초간 유지: 100 MP / 360 프레임 = 프레임당 약 0.278)
             let mpDrain = 0.278;
-            
+
             // [신규 기획] Mana Ring 10레벨 초월: 시간 왜곡 마나 유지비 50% 절감!
             if (this.player.equipLevels.ring_mp === 10) {
                 mpDrain *= 0.5;
             }
-            
+
             // [신규 기획] Mana Helm 5레벨 돌파 무료 시전 적용 시 마나 감쇄 없음!
             if (this.timeWarpFreeCastActive) {
                 mpDrain = 0;
             }
 
             this.player.mp = Math.max(0, this.player.mp - mpDrain);
-            
+
             // 시간 감속 공간에서 뿜어져 나오는 보랏빛 네온 공간 기믹 파티클
             if (Math.random() < 0.2) {
                 let angle = Math.random() * Math.PI * 2;
@@ -1450,8 +1450,8 @@ class GameEngine {
                 let px = this.player.x + Math.cos(angle) * radius;
                 let py = this.player.y + Math.sin(angle) * radius;
                 this.particles.push(new Particle(
-                    px, py, 
-                    '#b026ff', 1.5, 
+                    px, py,
+                    '#b026ff', 1.5,
                     -Math.cos(angle) * 0.4, -Math.sin(angle) * 0.4, 20, 'dust'
                 ));
             }
@@ -1468,7 +1468,7 @@ class GameEngine {
         for (let pet of this.pets) {
             pet.update(this.player, this.bullets, this.monsters, this.bullets, this.particles);
         }
-        
+
         // 1. 순차 스폰 실시간 연산
         this.processSpawnQueue();
 
@@ -1508,14 +1508,14 @@ class GameEngine {
         if (isSprinting) {
             currentSpeed *= 1.6; // 질주 시 60% 가속
             this.player.stamina = Math.max(0, this.player.stamina - 0.75); // 스태미너 고속 소모
-            
+
             // 질주 먼지 파티클
             if (Math.random() < 0.25) {
                 let dAngle = this.player.angle + Math.PI + (Math.random() * 0.5 - 0.25);
                 this.particles.push(new Particle(
-                    this.player.x - Math.cos(this.player.angle) * 8, 
-                    this.player.y - Math.sin(this.player.angle) * 8, 
-                    'rgba(0, 240, 255, 0.4)', 2, 
+                    this.player.x - Math.cos(this.player.angle) * 8,
+                    this.player.y - Math.sin(this.player.angle) * 8,
+                    'rgba(0, 240, 255, 0.4)', 2,
                     Math.cos(dAngle) * 0.8, Math.sin(dAngle) * 0.8, 20, 'dust'
                 ));
             }
@@ -1544,16 +1544,16 @@ class GameEngine {
         for (let obs of this.obstacles) {
             let distX = this.player.x - obs.x;
             let distY = this.player.y - obs.y;
-            
+
             // NeonObstacle 크기(width: 80, height: 65)와 플레이어 반경(radius)을 고려한 한계 겹침 거리 계산
             let minXDist = (obs.width / 2) + this.player.radius - 2;
             let minYDist = (obs.height / 2) + this.player.radius - 2;
-            
+
             if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
                 // 겹친 정도(overlap)를 계산하여 덜 겹친 축 방향으로 비껴내기
                 let overlapX = minXDist - Math.abs(distX);
                 let overlapY = minYDist - Math.abs(distY);
-                
+
                 if (overlapX < overlapY) {
                     this.player.x += distX > 0 ? overlapX : -overlapX;
                 } else {
@@ -1566,14 +1566,14 @@ class GameEngine {
         for (let wall of this.secretWalls) {
             let distX = this.player.x - wall.x;
             let distY = this.player.y - wall.y;
-            
+
             let minXDist = (wall.width / 2) + this.player.radius - 2;
             let minYDist = (wall.height / 2) + this.player.radius - 2;
-            
+
             if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
                 let overlapX = minXDist - Math.abs(distX);
                 let overlapY = minYDist - Math.abs(distY);
-                
+
                 if (overlapX < overlapY) {
                     this.player.x += distX > 0 ? overlapX : -overlapX;
                 } else {
@@ -1626,7 +1626,7 @@ class GameEngine {
                     let targetAngle = Math.atan2(b.y - this.player.y, b.x - this.player.x);
                     let angleDiff = Math.abs(targetAngle - this.player.slashAngle);
                     angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-                    
+
                     if (Math.abs(angleDiff) < 1.1) {
                         Sound.play('dodge'); // 튕김 금속 틱음
                         for (let k = 0; k < 4; k++) {
@@ -1653,13 +1653,13 @@ class GameEngine {
                             wall.hitCount++;
                             wall.flashTimer = 5;
                             Sound.play('hit');
-                            
+
                             for (let k = 0; k < 4; k++) {
                                 let randAngle = Math.random() * Math.PI * 2;
                                 let pSpeed = Math.random() * 2 + 1;
                                 this.particles.push(new Particle(b.x, b.y, wall.glowColor, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
                             }
-                            
+
                             // 3회 적중 시 최초 지지직 글리치 오라 개막
                             if (wall.hitCount === 3) {
                                 this.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
@@ -1667,9 +1667,9 @@ class GameEngine {
                             } else {
                                 this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
                             }
-                            
+
                             this.bullets.splice(i, 1);
-                            
+
                             if (wall.hp <= 0) {
                                 Sound.play('explosion');
                                 this.shakeScreen(10, 4.5);
@@ -1680,7 +1680,7 @@ class GameEngine {
                                     this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                 }
                                 this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
-                                
+
                                 // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
                                 let cx = 400, cy = 300;
                                 let foundSafe = false;
@@ -1689,7 +1689,7 @@ class GameEngine {
                                     let ry = 100 + Math.random() * 400;
                                     let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
                                     if (distToPlayer < 100) continue;
-                                    
+
                                     let distToObs = true;
                                     for (let obs of this.obstacles) {
                                         if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
@@ -1704,26 +1704,26 @@ class GameEngine {
                                         break;
                                     }
                                 }
-                                
+
                                 // 🛡️ [비상용 폴백 예외 처리] 안전 좌표 55회 추출 실패 시, 부서진 비밀방 벽(Glitch Wall)이 있던 좌표를 기준으로 포털을 스폰하여 절대 맵을 이탈하지 않도록 조치
                                 if (!foundSafe) {
                                     cx = wall.x;
                                     cy = wall.y;
                                 }
-                                
+
                                 // 비밀방 포털 100% 소환
                                 let secretPortal = new RoomPortal('secret', 0, cx, cy);
                                 secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
                                 this.portals.push(secretPortal);
                                 this.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
-                                
+
                                 // 포털 소환 보랏빛 차원 파편 솟구침 연출
                                 for (let k2 = 0; k2 < 20; k2++) {
                                     let pAngle2 = Math.random() * Math.PI * 2;
                                     let pSpeed2 = Math.random() * 3.5 + 2;
                                     this.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
                                 }
-                                
+
                                 this.secretWalls.splice(j, 1);
                             }
                             break;
@@ -1731,7 +1731,7 @@ class GameEngine {
                     }
                 }
             }
-            
+
             // 화면 밖으로 나가거나 수명이 다하거나 비활성화(소멸 예약)되면 소멸
             if (!b.active || b.x < 35 || b.x > 765 || b.y < 35 || b.y > 565 || b.life <= 0) {
                 this.bullets.splice(i, 1);
@@ -1745,10 +1745,10 @@ class GameEngine {
                 if (Math.random() < 0.01) {
                     m.statusEffects.shock = Math.max(m.statusEffects.shock || 0, 120);
                     this.showFloatingText("TIME STOPPED! ⏳", m.x, m.y - 25, '#b026ff');
-                    
+
                     // 정지 시 은은한 보라 파티클
                     for (let k = 0; k < 3; k++) {
-                        this.particles.push(new Particle(m.x, m.y, '#b026ff', 2, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, 15, 'spark'));
+                        this.particles.push(new Particle(m.x, m.y, '#b026ff', 2, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, 15, 'spark'));
                     }
                 }
             }
@@ -1758,7 +1758,7 @@ class GameEngine {
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             let m = this.monsters[i];
             if (!m || m.dead) continue; // [신규] 사망했거나 존재하지 않는 몬스터 즉시 제외
-            
+
             // 몬스터끼리 과하게 뭉치는 현상 해결 (겹침 방지 Separation 물리 연산 추가)
             for (let j = i - 1; j >= 0; j--) {
                 let other = this.monsters[j];
@@ -1770,15 +1770,15 @@ class GameEngine {
                     let pushAngle = Math.atan2(m.y - other.y, m.x - other.x);
                     let overlap = minDist - mDist;
                     // 아주 부드럽게 양방향으로 25%씩 밀어내어 골고루 펼쳐지게 격리
-                    let pushForce = overlap * 0.25; 
-                    
+                    let pushForce = overlap * 0.25;
+
                     m.x += Math.cos(pushAngle) * pushForce;
                     m.y += Math.sin(pushAngle) * pushForce;
                     other.x -= Math.cos(pushAngle) * pushForce;
                     other.y -= Math.sin(pushAngle) * pushForce;
                 }
             }
-            
+
             m.update(this.player, this.bullets);
 
             // [5-3단계] 몬스터와 격자 장애물 지형 충돌 처리 (슬라이딩 물리)
@@ -1786,14 +1786,14 @@ class GameEngine {
             for (let obs of this.obstacles) {
                 let distX = m.x - obs.x;
                 let distY = m.y - obs.y;
-                
+
                 let minXDist = (obs.width / 2) + m.radius - 2;
                 let minYDist = (obs.height / 2) + m.radius - 2;
-                
+
                 if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
                     let overlapX = minXDist - Math.abs(distX);
                     let overlapY = minYDist - Math.abs(distY);
-                    
+
                     if (overlapX < overlapY) {
                         m.x += distX > 0 ? overlapX : -overlapX;
                     } else {
@@ -1806,7 +1806,7 @@ class GameEngine {
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
             if (dist < m.radius + this.player.radius) {
                 this.damagePlayer(m.atk, m.x, m.y);
-                
+
                 // 몬스터는 플레이어에게 밀려남 (충돌 반발력)
                 let repAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                 m.knockbackX = Math.cos(repAngle) * 3;
@@ -1823,7 +1823,7 @@ class GameEngine {
                         let targetAngle = Math.atan2(wall.y - this.player.y, wall.x - this.player.x);
                         let angleDiff = Math.abs(targetAngle - this.player.slashAngle);
                         angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-                        
+
                         if (Math.abs(angleDiff) < 1.1) {
                             if (!wall.hitCooldown) {
                                 wall.hitCooldown = 12;
@@ -1831,13 +1831,13 @@ class GameEngine {
                                 wall.hitCount++;
                                 wall.flashTimer = 5;
                                 Sound.play('hit');
-                                
+
                                 for (let k = 0; k < 4; k++) {
                                     let randAngle = Math.random() * Math.PI * 2;
                                     let pSpeed = Math.random() * 2 + 1;
                                     this.particles.push(new Particle(wall.x, wall.y, wall.glowColor, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
                                 }
-                                
+
                                 // 3회 적중 시 최초 지지직 글리치 오라 개막
                                 if (wall.hitCount === 3) {
                                     this.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
@@ -1845,7 +1845,7 @@ class GameEngine {
                                 } else {
                                     this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
                                 }
-                                
+
                                 if (wall.hp <= 0) {
                                     Sound.play('explosion');
                                     this.shakeScreen(10, 4.5);
@@ -1856,7 +1856,7 @@ class GameEngine {
                                         this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
                                     }
                                     this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
-                                    
+
                                     // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
                                     let cx = 400, cy = 300;
                                     let foundSafe = false;
@@ -1865,7 +1865,7 @@ class GameEngine {
                                         let ry = 100 + Math.random() * 400;
                                         let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
                                         if (distToPlayer < 100) continue;
-                                        
+
                                         let distToObs = true;
                                         for (let obs of this.obstacles) {
                                             if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
@@ -1880,26 +1880,26 @@ class GameEngine {
                                             break;
                                         }
                                     }
-                                    
+
                                     // 🛡️ [비상용 폴백 예외 처리] 안전 좌표 55회 추출 실패 시, 부서진 비밀방 벽(Glitch Wall)이 있던 좌표를 기준으로 포털을 스폰하여 절대 맵을 이탈하지 않도록 조치
                                     if (!foundSafe) {
                                         cx = wall.x;
                                         cy = wall.y;
                                     }
-                                    
+
                                     // 비밀방 포털 100% 소환
                                     let secretPortal = new RoomPortal('secret', 0, cx, cy);
                                     secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
                                     this.portals.push(secretPortal);
                                     this.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
-                                    
+
                                     // 포털 소환 보랏빛 차원 파편 솟구침 연출
                                     for (let k2 = 0; k2 < 20; k2++) {
                                         let pAngle2 = Math.random() * Math.PI * 2;
                                         let pSpeed2 = Math.random() * 3.5 + 2;
                                         this.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
                                     }
-                                    
+
                                     this.secretWalls.splice(j, 1);
                                 }
                             }
@@ -1920,7 +1920,7 @@ class GameEngine {
                     if (Math.abs(angleDiff) < 1.1) {
                         // [모델 C] 칼 베기 시너지 곱연산 대미지 배율 적용
                         let synergyMult = this.checkBuildSynergy('sword');
-                        
+
                         // 검 베기 디버프 부여 (vulnerability: 4초간 25% 데미지 증폭)
                         m.statusEffects.vulnerability = 240;
 
@@ -1956,7 +1956,7 @@ class GameEngine {
                             this.shakeScreen(12, 5.0);
                             Sound.play('explosion');
                             this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
-                            
+
                             // 은백색 파쇄 스파크 얼음 파편
                             for (let k = 0; k < 12; k++) {
                                 let angle = Math.random() * Math.PI * 2;
@@ -1964,22 +1964,22 @@ class GameEngine {
                                 this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
                             }
                         }
-                        
+
                         // [신규 기획] Reach Gloves 10레벨 초월: 근접 타격 시 전방 충격파 방출!
                         if (this.player.equipLevels.gloves === 10) {
                             if (!m.hasShockwaveTriggeredThisFrame) {
                                 m.hasShockwaveTriggeredThisFrame = true;
                                 setTimeout(() => { m.hasShockwaveTriggeredThisFrame = false; }, 200); // 0.2초 쿨다운
-                                
+
                                 this.triggerBulletSplash(m.x, m.y, 65, this.player.atk * 0.40 * helmDmgBonus);
                                 this.showFloatingText("SHOCKWAVE!", m.x, m.y - 30, '#ffdf00');
                             }
                         }
-                        
+
                         // [Spectral Blade 시너지: 검 베기 타격 시 25% 확률로 유도탄 1발 추가 사출]
                         if (synergyMult >= 1.3 && Math.random() < 0.25) {
                             let bAngle = Math.random() * Math.PI * 2;
-                            this.bullets.push(new Bullet(m.x, m.y, Math.cos(bAngle)*5, Math.sin(bAngle)*5, this.player.atk * 0.5, true, {
+                            this.bullets.push(new Bullet(m.x, m.y, Math.cos(bAngle) * 5, Math.sin(bAngle) * 5, this.player.atk * 0.5, true, {
                                 homing: true,
                                 color: '#ff0055',
                                 radius: 3
@@ -1991,7 +1991,7 @@ class GameEngine {
                             let speed = Math.random() * 4 + 2;
                             this.particles.push(new Particle(m.x, m.y, '#b026ff', 2.5, Math.cos(targetAngle + Math.random() - 0.5) * speed, Math.sin(targetAngle + Math.random() - 0.5) * speed, 20));
                         }
-                         // 몬스터 처사 체크
+                        // 몬스터 처사 체크
                         if (m.hp <= 0) {
                             this.killMonster(m, i);
                             continue; // 이미 사망 처리되어 몬스터 루프 탈출
@@ -2003,47 +2003,47 @@ class GameEngine {
             // [충돌 검사 C] 탄환 물리 충돌
             for (let j = this.bullets.length - 1; j >= 0; j--) {
                 let b = this.bullets[j];
-                
+
                 // 플레이어 탄환 -> 몬스터 타격
                 if (b.isPlayerBullet) {
                     let bDist = Math.hypot(m.x - b.x, m.y - b.y);
                     if (bDist < m.radius + b.radius) {
-                        
+
                         // [W-02 채찍(Whip) 견인 및 그랩 물리 로직]
                         if (b.isWhip) {
                             let pullAngle = this.player.angle;
                             let pullX = this.player.x + Math.cos(pullAngle) * 35;
                             let pullY = this.player.y + Math.sin(pullAngle) * 35;
-                            
+
                             m.x = pullX;
                             m.y = pullY;
-                            
+
                             // 맵 마진 이탈 방지 가두기
                             const wallMargin = 40;
                             m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
                             m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
-                            
+
                             // 1.5초 기절(90프레임) 및 백색 플래시
                             m.statusEffects.shock = 90;
                             m.flashTimer = 8;
-                            
+
                             // 3초간 공속 +20% 상승 (최대 3중첩) 연계 버프
                             this.player.whipSpeedStack = Math.min(3, (this.player.whipSpeedStack || 0) + 1);
                             this.player.whipSpeedTimer = 180; // 180프레임 = 3초
-                            
+
                             this.showFloatingText(`GRAB PULL! ⛓️ HASTE [${this.player.whipSpeedStack}/3]`, this.player.x, this.player.y - 30, '#ff00aa');
                             Sound.play('dodge');
-                            
+
                             // 사슬 폭발 조각들
                             for (let k = 0; k < 8; k++) {
                                 let angle = Math.random() * Math.PI * 2;
                                 let speed = Math.random() * 4 + 2;
                                 this.particles.push(new Particle(m.x, m.y, '#ff00aa', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15, 'spark'));
                             }
-                            
+
                             // 사슬 투사체 소멸
                             this.bullets.splice(j, 1);
-                            
+
                             // 데미지 가함
                             m.hp -= b.damage;
                             if (m.hp <= 0) {
@@ -2101,7 +2101,7 @@ class GameEngine {
                             this.shakeScreen(12, 5.0);
                             Sound.play('explosion');
                             this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
-                            
+
                             // 은백색 파쇄 스파크 파편 사출
                             for (let k = 0; k < 12; k++) {
                                 let angle = Math.random() * Math.PI * 2;
@@ -2115,7 +2115,7 @@ class GameEngine {
                             let chains = 3 + (this.player.weaponLevels.lightning || 1); // 1레벨: 4회 ~ 5레벨: 8회 전이
                             this.triggerChainLightning(b.x, b.y, m, chains, b.damage * 0.85);
                         }
-                        
+
                         // 넉백 발생 (창은 벽꽝을 유도하기 위해 강력한 넉백 7.5 가동)
                         let hitAngle = Math.atan2(m.y - b.y, m.x - b.x);
                         let kbForce = b.isSpear ? 7.5 : 2.0;
@@ -2146,7 +2146,7 @@ class GameEngine {
                             b.pierce--;
                         } else if (b.monsterBounceLimit > 0 && b.monsterBounceCount < b.monsterBounceLimit) {
                             b.monsterBounceCount++;
-                            
+
                             // 주변의 다른 유효 몬스터 탐색 (방금 명중한 몬스터 제외)
                             let nextMonster = null;
                             let minDist = Infinity;
@@ -2158,17 +2158,17 @@ class GameEngine {
                                     nextMonster = otherM;
                                 }
                             }
-                            
+
                             if (nextMonster) {
                                 let speed = Math.hypot(b.vx, b.vy);
                                 let bounceAngle = Math.atan2(nextMonster.y - b.y, nextMonster.x - b.x);
                                 b.vx = Math.cos(bounceAngle) * speed;
                                 b.vy = Math.sin(bounceAngle) * speed;
-                                
+
                                 // 도탄 피드백 시각 효과음 연출
                                 this.showFloatingText("M-BOUNCE! 💥", b.x, b.y - 15, '#ff00aa');
                                 Sound.play('hit');
-                                
+
                                 // 날아갈 수 있도록 탄 수명 연장
                                 b.life = Math.max(b.life, this.player.range / speed * 0.6) + 12;
                             } else {
@@ -2184,7 +2184,7 @@ class GameEngine {
                             break; // 몬스터가 이미 삭제되었으므로 탄환 히트 체크 루프 탈출
                         }
                     }
-                } 
+                }
                 // 몬스터 탄환 -> 플레이어 피격
                 else {
                     let bDist = Math.hypot(this.player.x - b.x, this.player.y - b.y);
@@ -2212,7 +2212,7 @@ class GameEngine {
                 // 아직 보상 오브젝트가 생성되지 않은 상태일 때 (방금 몬스터 격퇴 완료된 시점)
                 if (!this.roomRewardSpawned && this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
                     this.roomRewardSpawned = true; // [버그 수정] 단 1회 보상 스폰 즉시 잠금
-                    
+
                     // A. 코인 정산 연산 (수정 2: 퍼펙트 보상 30% 하향 적용)
                     let baseCoins = this.currentSpawnTotal * 2;
                     let bonusCoins = 0;
@@ -2239,7 +2239,7 @@ class GameEngine {
                         // 리플로우 유도
                         void coinGainPopup.offsetWidth;
                         coinGainPopup.classList.add('animate');
-                        
+
                         // [신규] 팝업 애니메이션 1회성 마비 해결 클린업 타이머 탑재
                         if (coinGainPopup.cleanupTimer) clearTimeout(coinGainPopup.cleanupTimer);
                         coinGainPopup.cleanupTimer = setTimeout(() => {
@@ -2257,13 +2257,13 @@ class GameEngine {
                             coinHudItem.classList.remove('pulse');
                         }, 500);
                     }
-                    
+
                     // B. 안내 연출 최소화 (수정 1: 매번 뜨는 큰 팝업 피로도 방지를 위해 간결한 플로팅 텍스트 처리)
                     if (this.player.perfectClearFlag) {
-                        this.showFloatingText(`+${totalGained} COINS (Perfect!)`, this.player.x, this.player.y - 30, '#ffdf00');
+                        this.showFloatingText(`+${totalGained} 📀 (Perfect!)`, this.player.x, this.player.y - 30, '#ffdf00');
                         Sound.play('coin');
                     } else {
-                        this.showFloatingText(`+${totalGained} COINS`, this.player.x, this.player.y - 30, '#ffdf00');
+                        this.showFloatingText(`+${totalGained} 📀`, this.player.x, this.player.y - 30, '#ffdf00');
                         Sound.play('coin');
                     }
 
@@ -2277,13 +2277,13 @@ class GameEngine {
                         } else if (shopRand > 0.6) {
                             machineType = 'weapon';
                         }
-                        
+
                         this.vendingMachines.push(new VendingMachine(400, 300, machineType));
                         this.showFloatingText("VENDING MACHINE ARRIVED!", 400, 240, '#ffdf00');
-                        
+
                         // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭
                         this.potions.push(new NeonPotion(400, 370));
-                        
+
                         // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
                         this.portals.forEach(p => p.active = true);
                     } else {
@@ -2335,7 +2335,7 @@ class GameEngine {
             let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
             if (dist < this.player.radius + 18) { // 상자 가로폭 충돌 반경 보정
                 chest.active = false;
-                
+
                 // 네온 파편 스파크 폭발 이펙트
                 for (let k = 0; k < 25; k++) {
                     let pAngle = Math.random() * Math.PI * 2;
@@ -2343,7 +2343,7 @@ class GameEngine {
                     this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
                 }
                 Sound.play('victory');
-                
+
                 // [신규 기믹] 보상 상자 획득 시 맵 상의 모든 네온코인을 플레이어에게 즉시 끌어당김
                 this.coinsList.forEach(coin => {
                     coin.isAttractedToPlayer = true;
@@ -2352,7 +2352,7 @@ class GameEngine {
                 // 바로 카드 오버레이를 띄우지 않고 45프레임(약 0.75초) 지연 후 트리거되도록 딜레이 시스템 활성화
                 this.rewardSelectorDelayTimer = 45;
                 this.rewardSelectorIsFromHiddenChest = false;
-                
+
                 // 상자 삭제
                 this.rewardChests.splice(i, 1);
             }
@@ -2370,13 +2370,13 @@ class GameEngine {
                         let cards = this.generateRewardCardsData(this.currentSpawnTotal);
                         if (cards.length > 0) {
                             let chosenCard = cards[0]; // 1번째 슬롯 카드를 무작위 획득 배정
-                            
+
                             this.player.coins -= price;
                             vm.purchaseCount++;
                             this.vendingCooldown = 60; // 1.0초 쿨다운으로 연사/중복 들이받기 방지
-                            
+
                             Sound.play('powerup');
-                            
+
                             // [수정] 결함 4: 자판기 구매 시 마이너스 코인 연출 상단 결합!
                             const coinGainPopup = document.getElementById('coin-gain-popup');
                             if (coinGainPopup) {
@@ -2387,7 +2387,7 @@ class GameEngine {
                                 coinGainPopup.classList.remove('animate');
                                 void coinGainPopup.offsetWidth;
                                 coinGainPopup.classList.add('animate');
-                                
+
                                 // [신규] 팝업 애니메이션 1회성 마비 해결 클린업 타이머 탑재
                                 if (coinGainPopup.cleanupTimer) clearTimeout(coinGainPopup.cleanupTimer);
                                 coinGainPopup.cleanupTimer = setTimeout(() => {
@@ -2396,17 +2396,17 @@ class GameEngine {
                                     coinGainPopup.innerText = '';
                                 }, 1000);
                             }
-                            
+
                             // [수정] 결함 해결: 들이받는 즉시 플레이어를 자판기 정반대 방향으로 38px 물리적으로 팅겨나가게 밀어냄! (연속 자동 구매 예방)
                             let bounceAngle = Math.atan2(this.player.y - vm.y, this.player.x - vm.x);
                             this.player.x += Math.cos(bounceAngle) * 38;
                             this.player.y += Math.sin(bounceAngle) * 38;
-                            
+
                             // 맵 경계선 마진 밖으로 탈출하는 것을 방지하기 위해 플레이어 맵 가두기 보정 추가
                             const wallMargin = 40;
                             this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
                             this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
-                            
+
                             // 팅겨나갈 때 귀여운 튕김 스파크 6개 발생
                             for (let k = 0; k < 6; k++) {
                                 let angle = bounceAngle + (Math.random() * 0.8 - 0.4);
@@ -2414,14 +2414,14 @@ class GameEngine {
                                 this.particles.push(new Particle(this.player.x, this.player.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
                             }
                             Sound.play('dodge'); // 통 튕기는 회피 효과음 출력
-                            
+
                             // 자판기 위에 카드 모양 퐁 날려보내기 파티클
                             for (let k = 0; k < 15; k++) {
-                                let pAngle = -Math.PI/2 + (Math.random() - 0.5) * 1.2;
+                                let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
                                 let pSpeed = Math.random() * 4 + 2;
                                 this.particles.push(new Particle(vm.x, vm.y - 20, vm.color, 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
                             }
-                            
+
                             // [수정] 즉시 획득 대신 상점 구매 완료 오버레이 호출하여 유저 승인/확인 유도!
                             this.triggerShopPurchaseConfirmation(chosenCard, vm.color);
                         }
@@ -2429,7 +2429,7 @@ class GameEngine {
                         // 잔액 부족 알림
                         this.vendingCooldown = 30;
                         Sound.play('hit');
-                        this.showFloatingText(`NOT ENOUGH COIN (NEED 🪙${price})`, this.player.x, this.player.y - 30, '#ff0055');
+                        this.showFloatingText(`NOT ENOUGH 📀 (NEED 📀${price})`, this.player.x, this.player.y - 30, '#ff0055');
                     }
                 }
             }
@@ -2494,31 +2494,31 @@ class GameEngine {
         // [추가] 힐링 물약 자석 블랙홀 흡입 및 업데이트 물리 연산
         for (let i = this.potions.length - 1; i >= 0; i--) {
             let pot = this.potions[i];
-            
+
             // 물약 생성자 속성 누락 대비 방어 코드
             if (pot.vx === undefined) pot.vx = 0;
             if (pot.vy === undefined) pot.vy = 0;
-            
+
             let potDist = Math.hypot(this.player.x - pot.x, this.player.y - pot.y);
             let pullRadius = 70; // 평소 자석 반경 70px
-            
+
             if (this.timeDilationActive) {
                 pullRadius = 1000; // 시간 왜곡 시 초강력 블랙홀 흡입
             }
-            
+
             if (potDist < pullRadius) {
                 let pullForce = this.timeDilationActive ? 12.0 : 4.0;
                 let angleToPlayer = Math.atan2(this.player.y - pot.y, this.player.x - pot.x);
                 pot.vx += Math.cos(angleToPlayer) * pullForce * 0.15;
                 pot.vy += Math.sin(angleToPlayer) * pullForce * 0.15;
-                
+
                 let currentSpeed = Math.hypot(pot.vx, pot.vy);
                 let maxSpeed = this.timeDilationActive ? 15.0 : 6.0;
                 if (currentSpeed > maxSpeed) {
                     pot.vx = (pot.vx / currentSpeed) * maxSpeed;
                     pot.vy = (pot.vy / currentSpeed) * maxSpeed;
                 }
-                
+
                 pot.x += pot.vx;
                 pot.y += pot.vy;
             } else {
@@ -2536,25 +2536,25 @@ class GameEngine {
             if (potDist < this.player.radius + pot.radius) {
                 // 최대 체력의 10% 치유 처리
                 let healAmount = this.player.maxHp * 0.10;
-                
+
                 // [신규 기획] Health Ring 5레벨 돌파: 힐 포션 치유 효율 50% 버프 적용!
                 if (this.player.equipLevels.ring_hp >= 5) {
                     healAmount *= 1.5;
                 }
-                
+
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
-                
+
                 // 치유 성공 텍스트 및 효과음
                 this.showFloatingText(`HEAL +${Math.ceil(healAmount)}`, this.player.x, this.player.y - 25, '#39ff14');
                 Sound.play('powerup');
-                
+
                 // 경쾌한 네온 그린 스파크 파티클 폭발
                 for (let k = 0; k < 12; k++) {
                     let pAngle = Math.random() * Math.PI * 2;
                     let pSpeed = Math.random() * 3 + 1;
                     this.particles.push(new Particle(pot.x, pot.y, '#39ff14', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
                 }
-                
+
                 // 물약 소멸
                 this.potions.splice(i, 1);
             }
@@ -2563,26 +2563,26 @@ class GameEngine {
         // [W-08 신규 구현] 드롭 코인 실시간 업데이트 및 플레이어 습득 충돌 검사
         for (let i = this.coinsList.length - 1; i >= 0; i--) {
             let coin = this.coinsList[i];
-            
+
             // 코인 물리 및 자석 이동 처리
             coin.update(this.player, this.timeDilationActive);
-            
+
             // 플레이어와 충돌 시 획득
             let dist = Math.hypot(this.player.x - coin.x, this.player.y - coin.y);
             if (dist < this.player.radius + coin.radius) {
                 this.player.coins += coin.amount;
-                
+
                 // 골드 획득 텍스트
-                this.showFloatingText(`+${coin.amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
+                this.showFloatingText(`+${coin.amount} 📀`, this.player.x, this.player.y - 25, '#ffdf00');
                 Sound.play('coin');
-                
+
                 // 황금색 스파크 파티클 연출
                 for (let k = 0; k < 6; k++) {
                     let pAngle = Math.random() * Math.PI * 2;
                     let pSpeed = Math.random() * 2 + 1;
                     this.particles.push(new Particle(coin.x, coin.y, '#ffdf00', 1.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15));
                 }
-                
+
                 // [신규 기획] 실시간 코인 HUD 연출 트리거
                 const coinGainPopup = document.getElementById('coin-gain-popup');
                 if (coinGainPopup) {
@@ -2593,7 +2593,7 @@ class GameEngine {
                     coinGainPopup.classList.remove('animate');
                     void coinGainPopup.offsetWidth; // 리플로우
                     coinGainPopup.classList.add('animate');
-                    
+
                     // [신규] 팝업 애니메이션 1회성 마비 해결 클린업 타이머 탑재
                     if (coinGainPopup.cleanupTimer) clearTimeout(coinGainPopup.cleanupTimer);
                     coinGainPopup.cleanupTimer = setTimeout(() => {
@@ -2602,7 +2602,7 @@ class GameEngine {
                         coinGainPopup.innerText = '';
                     }, 1000);
                 }
-                
+
                 // 코인 삭제
                 this.coinsList.splice(i, 1);
             }
@@ -2623,13 +2623,13 @@ class GameEngine {
             let speed = Math.random() * 4 + 1.5;
             this.particles.push(new Particle(x, y, '#ff5e00', 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 25, 'spark'));
         }
-        
+
         const fireExplosionRadius = 120;
         const fireExplosionDmg = this.player.atk * 1.8;
-        
+
         this.showFloatingText("🔥 FIRE EXPLOSION! 🔥", x, y - 30, '#ff5e00');
         this.shakeScreen(10, 4.0);
-        
+
         // 사망 몬스터 주변 적들에게 연쇄 대폭발 데미지
         for (let m of this.monsters) {
             let dist = Math.hypot(m.x - x, m.y - y);
@@ -2638,12 +2638,12 @@ class GameEngine {
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
                 m.flashTimer = 5;
-                
+
                 // 넉백 반사
                 let angle = Math.atan2(m.y - y, m.x - x);
                 m.knockbackX += Math.cos(angle) * 4.5;
                 m.knockbackY += Math.sin(angle) * 4.5;
-                
+
                 // 전이 화상 스택 1개 자동 축적
                 m.statusEffects.burn = 240; // 4초 지속
                 m.statusEffects.burnStack = Math.min(5, (m.statusEffects.burnStack || 0) + 1);
@@ -2654,7 +2654,7 @@ class GameEngine {
     // [신규 기획] 비밀방 글리치 장치 보상 테이블 격발 (꽝 50%, 코인 35%, 체력 거래 15%)
     triggerSecretGlitchReward(device) {
         Sound.play('victory');
-        
+
         // 보랏빛 폭발 파티클 이펙트
         for (let k = 0; k < 30; k++) {
             let pAngle = Math.random() * Math.PI * 2;
@@ -2663,26 +2663,26 @@ class GameEngine {
         }
 
         let rand = Math.random();
-        
+
         if (rand < 0.50) {
             // 1. 꽝 (50% 확률)
             this.showFloatingText("SYSTEM ERROR: NO REWARD ❌", device.x, device.y - 30, '#ff0055');
             Sound.play('hit');
             this.shakeScreen(15, 5.0);
-            
+
             // 지지직거리는 오작동 스파크 파편 사출
             for (let k = 0; k < 15; k++) {
                 let pAngle = Math.random() * Math.PI * 2;
                 let pSpeed = Math.random() * 3 + 1;
                 this.particles.push(new Particle(device.x, device.y, '#ff0055', 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
             }
-        } 
+        }
         else if (rand < 0.85) {
             // 2. 네온 코인 (35% 확률) - 다량의 코인 드롭
             let coinCount = Math.floor(Math.random() * 21) + 40; // 40~60 코인 드롭
-            this.showFloatingText(`SYSTEM CRACK: GAINED 🪙 ${coinCount} COINS!`, device.x, device.y - 30, '#ffdf00');
+            this.showFloatingText(`SYSTEM CRACK: GAINED ${coinCount} 📀!`, device.x, device.y - 30, '#ffdf00');
             Sound.play('coin');
-            
+
             // 코인이 방 중앙에서 통통 튕겨 나오도록 드롭
             for (let k = 0; k < coinCount; k++) {
                 let angle = Math.random() * Math.PI * 2;
@@ -2692,15 +2692,15 @@ class GameEngine {
                 coin.vy = Math.sin(angle) * speed;
                 this.coinsList.push(coin);
             }
-        } 
+        }
         else {
             // 3. 체력 거래 상점 (15% 확률) - 특별 비밀 자판기 소환
             this.showFloatingText("🔮 CHAOTIC BLACK MARKET OPENED!", device.x, device.y - 35, '#b026ff');
             Sound.play('boss_alert');
-            
+
             // 특별 자판기가 방 중앙에 스폰됨 (Max HP 15를 영구 깎고 에픽/레전더리 카드 거래)
             this.secretVendingMachines.push(new SecretVendingMachine(400, 300));
-            
+
             // 소환 스파크 파편
             for (let k = 0; k < 20; k++) {
                 let pAngle = Math.random() * Math.PI * 2;
@@ -2751,7 +2751,7 @@ class GameEngine {
                 comboTitle = `${this.comboCount} GODLIKE COMBO! 🔮`;
             }
             this.showFloatingText(comboTitle, this.player.x, this.player.y - 45, comboColor);
-            
+
             // 콤보 돌파 시 플레이어 주변에 이펙트 스파크 방출
             for (let k = 0; k < 5; k++) {
                 let angle = Math.random() * Math.PI * 2;
@@ -2759,19 +2759,19 @@ class GameEngine {
                 this.particles.push(new Particle(this.player.x, this.player.y, comboColor, 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
             }
         }
-        
+
         // 점수 획득 (티어 보정치 반영 - 엘리트는 생성 시 이미 scoreValue가 5배임)
         this.score += m.scoreValue * 2;
-        
+
         // 몬스터 처치 시 마력(MP) 게이지 충전
         let mpGain = 4 + (this.player.luk * 0.5); // 운 스탯이 높을수록 마력 충전량 상승
         if (m.isElite) mpGain *= 5; // 엘리트 몬스터 처치 시 MP 충전량 5배!
-        
+
         // [신규 기획] Mana Ring 5레벨 돌파: 처치 시 마나 3% 즉시 환급!
         if (this.player.equipLevels.ring_mp >= 5) {
             mpGain += this.player.maxMp * 0.03;
         }
-        
+
         this.player.mp = Math.min(this.player.maxMp, this.player.mp + mpGain);
 
         // [W-04 검 흡혈 베기 기믹]
@@ -2789,9 +2789,9 @@ class GameEngine {
         if (m.isElite && this.player.equipLevels.necklace >= 5) {
             coinDropCount += 20;
             this.potions.push(new NeonPotion(m.x, m.y));
-            this.showFloatingText(`LUCKY DROP! 🪙`, m.x, m.y - 45, '#ffdf00');
+            this.showFloatingText(`LUCKY DROP! 📀`, m.x, m.y - 45, '#ffdf00');
         }
-        
+
         for (let k = 0; k < coinDropCount; k++) {
             this.coinsList.push(new NeonCoin(m.x, m.y, 1));
         }
@@ -2808,13 +2808,13 @@ class GameEngine {
         if (m.isElite) {
             this.showFloatingText("ELITE DEFEATED!", m.x, m.y - 25, '#39ff14');
             this.shakeScreen(15, 6.5);
-            
+
             // [신규 기획] Luck Amulet 5레벨 돌파: 정예 처치 시 드롭 2배 (물약 추가 드롭 + 특별 코인 20개 환수)
             if (this.player.equipLevels.necklace >= 5) {
                 this.potions.push(new NeonPotion(m.x, m.y));
                 let luckCoins = 20;
                 this.player.coins += luckCoins;
-                this.showFloatingText(`+${luckCoins} LUCKY COINS!`, m.x, m.y - 45, '#ffdf00');
+                this.showFloatingText(`+${luckCoins} LUCKY 📀!`, m.x, m.y - 45, '#ffdf00');
                 Sound.play('coin');
             }
         } else {
@@ -2853,10 +2853,10 @@ class GameEngine {
         if (Math.random() < evdRate) {
             // 회피 대성공! 1~2px 붉은색 잔상 실루엣 및 DODGE 피드백 가동
             this.player.triggerEvade(fromX, fromY);
-            
+
             // [신규 추가] 회피 성공 시에도 피격처럼 무적 타이머 45프레임(약 0.75초) 가동
             this.player.invincibleTimer = 45;
-            
+
             // [신규 기획] Evasion Ring 5레벨 돌파: 회피 대성공 시 주변 적 1.5초간 기절 네온 섬광 작렬!
             if (this.player.equipLevels.ring_evd >= 5) {
                 this.showFloatingText("PHANTOM STUN FLASH!", this.player.x, this.player.y - 35, '#ff0055');
@@ -2870,7 +2870,7 @@ class GameEngine {
             } else {
                 this.showFloatingText("DODGE", this.player.x, this.player.y - 20, '#ff0055');
             }
-            
+
             // [E-08 신규 구현] Speed Ring 10레벨 초월: 스치기 회피 성공 시 초신성 3초간 50% 폭발적 가속 활성화!
             if (this.player.equipLevels.ring_speed === 10) {
                 this.player.supernovaTimer = 180;
@@ -2883,10 +2883,10 @@ class GameEngine {
         // 힘(ATK) 스탯이나 방어 스탯에 의해 경감
         this.player.perfectClearFlag = false; // [신규 기획] 실제로 데미지를 입으면 퍼펙트 클리어 플래그 해제!
         this.player.lastHitTimer = 0;         // [신규 기획] 피격 당했으므로 무사고 타이머 리셋!
-        
+
         let defense = (this.player.maxHp - 100) * 0.15; // 최대 HP가 기본값 100보다 클수록 15% 방어력 감소율 획득
         let finalDamage = Math.max(1, amount - defense);
-        
+
         // [신규 기획] Plate Armor 5레벨 돌파: 체력 30% 이하일 때 최종 데미지 20% 영구 감산 보호!
         if (this.player.equipLevels.armor >= 5 && (this.player.hp / this.player.maxHp) < 0.3) {
             finalDamage *= 0.8;
@@ -2900,24 +2900,24 @@ class GameEngine {
         }
 
         this.player.hp = Math.max(0, this.player.hp - finalDamage);
-        
+
         // 피격 Hit Stop 적용 (쿨다운 유틸 사용 및 5프레임으로 완화)
         this.triggerHitStop(5);
-        
+
         // [신규 추가] 실제 피격 데미지가 정산되었으므로 피격 무적 타이머 45프레임(약 0.75초) 가동
         this.player.invincibleTimer = 45;
-        
+
         // [W-01 가시 탱커 반사 기믹]
         if (this.player.weaponLevels.thorns > 0) {
             let thornsLvl = this.player.weaponLevels.thorns;
             const thornsRadius = 120 + (thornsLvl - 1) * 15; // 1레벨: 120px ~ 5레벨: 180px 반사 반경
             const reflectDamage = finalDamage * (1.0 + (thornsLvl - 1) * 0.20); // 1레벨: 100% ~ 5레벨: 180% 반사 피해율
-            
+
             this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', thornsRadius, 0, 0, 20, 'explosionRing'));
-            
+
             // 5레벨 마스터 시에만 3초 가시 오라 도발 필드 활성화
             if (thornsLvl === 5) {
-                this.player.thornsFieldTimer = 180; 
+                this.player.thornsFieldTimer = 180;
             }
 
             // 보복형 유도 가시 사출 확률 (1레벨: 10% ~ 5레벨: 30%)
@@ -2943,13 +2943,13 @@ class GameEngine {
                     if (m.statusEffects.vulnerability > 0) fDmg *= 1.25;
                     m.hp -= fDmg;
                     m.flashTimer = 5;
-                    
+
                     let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.knockbackX += Math.cos(angle) * 3.5;
                     m.knockbackY += Math.sin(angle) * 3.5;
 
                     this.showFloatingText(`REFLECT -${Math.ceil(fDmg)}`, m.x, m.y - 20, '#ff00aa');
-                    
+
                     if (m.hp <= 0) {
                         this.killMonster(m, i);
                     }
@@ -3011,7 +3011,7 @@ class GameEngine {
     triggerBulletSplash(x, y, radius, damage) {
         Sound.play('explosion');
         this.particles.push(new Particle(x, y, '#00f0ff', radius, 0, 0, 30, 'explosionRing'));
-        
+
         for (let m of this.monsters) {
             let dist = Math.hypot(m.x - x, m.y - y);
             if (dist < radius + m.radius) {
@@ -3022,7 +3022,7 @@ class GameEngine {
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
                 m.flashTimer = 5;
-                
+
                 // 폭발 밀쳐냄 물리 적용
                 let pushAngle = Math.atan2(m.y - y, m.x - x);
                 m.knockbackX += Math.cos(pushAngle) * 3.5;
@@ -3034,18 +3034,18 @@ class GameEngine {
     // [W-07 신규 구현] 체인 라이트닝(연쇄 벼락) 전이 트리거
     triggerChainLightning(startX, startY, currentEnemy, chainsLeft, damage) {
         if (chainsLeft <= 0 || this.monsters.length === 0) return;
-        
+
         // 전이 타격 노랑 네온 낙뢰 이펙트 파티클
         for (let k = 0; k < 6; k++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 3 + 1;
             this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
         }
-        
+
         // 주변 몬스터 중 가장 가까운 다른 몬스터 탐색 (번개 전이 거리 180px 제한)
         let nextTarget = null;
         let minDist = 180; // 최대 전이 거리
-        
+
         for (let other of this.monsters) {
             if (other === currentEnemy) continue;
             let dist = Math.hypot(other.x - currentEnemy.x, other.y - currentEnemy.y);
@@ -3054,7 +3054,7 @@ class GameEngine {
                 nextTarget = other;
             }
         }
-        
+
         if (nextTarget) {
             // 연쇄 번개 전류 와이어 시각 효과 파티클 (두 몬스터 사이에 선 형태로 5개 뿌림)
             let dx = nextTarget.x - currentEnemy.x;
@@ -3065,16 +3065,16 @@ class GameEngine {
                 let py = currentEnemy.y + dy * step;
                 this.particles.push(new Particle(px, py, '#ffdf00', 1.8, 0, 0, 15, 'spark'));
             }
-            
+
             // 다음 타겟에게 감전 피해 및 0.75초 기절(Stun) 부여
             let finalDmg = damage;
             if (nextTarget.statusEffects.vulnerability > 0) finalDmg *= 1.25;
             nextTarget.hp -= finalDmg;
             nextTarget.flashTimer = 5;
             nextTarget.statusEffects.shock = Math.max(nextTarget.statusEffects.shock || 0, 45); // 감전 마비
-            
+
             Sound.play('hit');
-            
+
             // 몬스터 처사 체크
             if (nextTarget.hp <= 0) {
                 let idx = this.monsters.indexOf(nextTarget);
@@ -3082,7 +3082,7 @@ class GameEngine {
                     this.killMonster(nextTarget, idx);
                 }
             }
-            
+
             // 재귀적으로 다음 전이 격발 (약 0.06초 후 전이되도록 지연 실행 연출 및 생존 검증 추가)
             setTimeout(() => {
                 if (this.isPlaying && this.monsters.includes(nextTarget)) {
@@ -3104,7 +3104,7 @@ class GameEngine {
         let isIce = activeMagics.includes('ice') || this.player.weaponType === 'ice';
         let isWhip = false; // 채찍은 즉발형 근접 베기 무기로 개편되었으므로 탄환 발사를 전면 중단함
         let isDual = this.player.weaponType === 'dual' || (activeMagics.length > 1);
-        
+
         // 번개/불/얼음 마법 격발 시 마력(MP) 소모 및 잔량 차단 체크
         if (isLightning || isFire || isIce) {
             let isFreeMana = false;
@@ -3113,14 +3113,14 @@ class GameEngine {
                 isFreeMana = true;
                 this.showFloatingText("FREE MANA CAST! 🔮", this.player.x, this.player.y - 30, '#00f0ff');
             }
-            
+
             if (this.player.mp < 3.0 && !isFreeMana) {
                 this.player.shootCooldown = 25; // 발사 불능 대기 프레임
                 this.showFloatingText("NEED MP! 🔮", this.player.x, this.player.y - 25, '#ffdf00');
                 Sound.play('hit');
                 return;
             }
-            
+
             if (!isFreeMana) {
                 this.player.mp = Math.max(0, this.player.mp - 3.0);
             }
@@ -3129,7 +3129,7 @@ class GameEngine {
         // 지능(aspd) 및 채찍 버프가 감안된 실효 공격 속도 연산
         let activeAspd = this.player.getEffectiveAspd();
         let cooldownFrames = Math.max(10, 60 / activeAspd);
-        
+
         // E-09 Haste Ring 5레벨 돌파: 시전 딜레이 15% 영구 단축
         if (this.player.equipLevels.ring_aspd >= 5) {
             cooldownFrames *= 0.85;
@@ -3141,7 +3141,7 @@ class GameEngine {
         }
 
         this.player.shootCooldown = cooldownFrames;
-        
+
         let startAngle = this.player.angle;
         let bulletsToLaunch = [];
 
@@ -3193,7 +3193,7 @@ class GameEngine {
                     let vx = Math.cos(angle) * speed;
                     let vy = Math.sin(angle) * speed;
                     let bulletLife = 200 / speed; // 그랩 사거리 약 200px
-                    
+
                     this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                         color: '#ff00aa',
                         radius: 6,
@@ -3206,7 +3206,7 @@ class GameEngine {
                         bounceLimit: this.player.wallBounceLimit,
                         monsterBounceLimit: this.player.monsterBounceLimit
                     }));
-                    
+
                     // 사슬 네온 조각들
                     for (let i = 0; i < 4; i++) {
                         this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 1.8, vx * 0.5, vy * 0.5, 10, 'dust'));
@@ -3263,7 +3263,7 @@ class GameEngine {
                         let bulletIsLightning = this.player.weaponType === 'lightning';
                         let bulletIsFire = this.player.weaponType === 'fire';
                         let bulletIsIce = this.player.weaponType === 'ice';
-                        
+
                         if (isDual || activeMagics.length > 0) {
                             let pool = [...activeMagics];
                             if (pool.length > 0) {
@@ -3288,12 +3288,12 @@ class GameEngine {
                         let vx = Math.cos(angle) * speed;
                         let vy = Math.sin(angle) * speed;
                         let bulletLife = this.player.range / speed;
-                        
+
                         let bulletRadius = bulletIsLightning ? 5.5 : (bulletIsFire ? 7.0 : (bulletIsIce ? 5.0 : 4));
                         if (this.player.equipLevels.gloves >= 5 && !bulletIsLightning && !bulletIsFire && !bulletIsIce) {
                             bulletRadius = 4.8;
                         }
-                        
+
                         this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                             pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
                             homing: this.player.homing,
@@ -3338,14 +3338,14 @@ class GameEngine {
     // [신규 기획] 채찍 즉발 베기 및 견인/기절 물리 충돌 판정
     triggerWhipInstantAttack(anglesToLaunch) {
         let whipRadius = this.player.weaponUnlocks.whip.range ? 220 : 150;
-        
+
         let synergyMult = this.checkBuildSynergy('gun'); // 채찍은 총기 카드의 시너지를 받음
         let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-        
+
         let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
         let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
-        
+
         let whipLvl = this.player.weaponLevels.whip || 1;
         let whipLevelMult = 1 + (whipLvl - 1) * 0.15;
         let baseDmg = this.player.atk * 0.3; // 추가 하향 조정 (0.5 -> 0.3)
@@ -3358,15 +3358,15 @@ class GameEngine {
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             let m = this.monsters[i];
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
-            
+
             // 사거리 판정
             if (dist < whipRadius + m.radius) {
                 let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                 let inWhipArc = false;
-                
+
                 // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 기본 0.2 라디안에서 카드 성장에 따라 미세 확장
                 let whipArcLimit = 0.2 + (this.player.multishot - 1) * 0.05 + (this.player.weaponUnlocks.whip.multi ? 0.15 : 0);
-                
+
                 // 그어진 모든 채찍 호 각도 검사
                 for (let angle of anglesToLaunch) {
                     let angleDiff = Math.abs(targetAngle - angle);
@@ -3376,7 +3376,7 @@ class GameEngine {
                         break;
                     }
                 }
-                
+
                 if (inWhipArc) {
                     let isPulled = false;
                     // 동시 견인 수량 제한 범위 내에서만 플레이어 70px 앞 안전 거리로 견인
@@ -3384,25 +3384,25 @@ class GameEngine {
                         let pullAngle = this.player.angle;
                         let pullX = this.player.x + Math.cos(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
                         let pullY = this.player.y + Math.sin(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
-                        
+
                         m.x = pullX;
                         m.y = pullY;
-                        
+
                         // 외벽 충돌 맵 탈출 방지 마진 클램프 (wallMargin = 40)
                         const wallMargin = 40;
                         m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
                         m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
-                        
+
                         pulledCount++;
                         isPulled = true;
                     }
-                    
+
                     if (isPulled) {
                         let shockDuration = 90 + (whipLvl - 1) * 15; // 1레벨: 90프레임 (1.5초) ~ 5레벨: 150프레임 (2.5초)
                         m.statusEffects.shock = shockDuration; // [수정] 기절 프레임 부여 (견인된 적만 스턴)
                     }
                     m.flashTimer = 8;
-                    
+
                     // Whip 진화 능력 해금 연동
                     // 1) whip.haste: 견인 성공 시 공속 스택 중첩
                     if (this.player.weaponUnlocks.whip.haste) {
@@ -3417,13 +3417,13 @@ class GameEngine {
                     if (this.player.weaponUnlocks.whip.break) {
                         m.statusEffects.vulnerability = Math.max(m.statusEffects.vulnerability || 0, 300);
                     }
-                    
+
                     // 3) whip.shock: 주변 적들에게 40% 스플래시 피해 및 연쇄 기절 전이
                     if (this.player.weaponUnlocks.whip.shock) {
                         let splashRadius = 60;
                         let splashDmg = finalDamage * 0.4;
                         this.particles.push(new Particle(m.x, m.y, '#ff00aa', splashRadius, 0, 0, 15, 'explosionRing'));
-                        
+
                         for (let k = this.monsters.length - 1; k >= 0; k--) {
                             let otherM = this.monsters[k];
                             if (otherM !== m) {
@@ -3434,7 +3434,7 @@ class GameEngine {
                                     otherM.statusEffects.shock = shockDuration;
                                     otherM.flashTimer = 8;
                                     this.showFloatingText(`SPLASH -${Math.ceil(splashDmg)}`, otherM.x, otherM.y - 20, '#ff00aa');
-                                    
+
                                     if (otherM.hp <= 0) {
                                         this.killMonster(otherM, k);
                                         if (k < i) i--;
@@ -3443,14 +3443,14 @@ class GameEngine {
                             }
                         }
                     }
-                    
+
                     // 네온 분홍빛 스파크 파티클 비산
                     for (let k = 0; k < 8; k++) {
                         let rAngle = Math.random() * Math.PI * 2;
                         let rSpeed = Math.random() * 4 + 2;
                         this.particles.push(new Particle(m.x, m.y, '#ff00aa', 2, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 15, 'spark'));
                     }
-                    
+
                     m.hp -= finalDamage;
                     if (m.hp <= 0) {
                         this.killMonster(m, i);
@@ -3465,72 +3465,72 @@ class GameEngine {
         // [S-01 창 사거리 축소 밸런스 공식] 기본 80px, 성장 시 최대 180px 제한 수식
         let spearRange = 80 + (this.player.range - 350) * 0.3;
         if (this.player.weaponUnlocks.spear.range) spearRange += 20;
-        
+
         let synergyMult = this.checkBuildSynergy('sword'); // 창은 검기 카드의 시너지를 받음
         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
         let spearLvl = this.player.weaponLevels.spear || 1;
         let spearLevelMult = 1 + (spearLvl - 1) * 0.15;
         let weaponDmg = this.player.atk * 0.7 * spearLevelMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus; // [수정] 창 대미지 레벨 비례 15% 가중
-        
+
         let px = this.player.x;
         let py = this.player.y;
 
         for (let angle of anglesToLaunch) {
             let cosA = Math.cos(angle);
             let sinA = Math.sin(angle);
-            
+
             let hits = [];
             // 선분 대 원 충돌 판정 연산
             for (let i = this.monsters.length - 1; i >= 0; i--) {
                 let m = this.monsters[i];
                 let mx = m.x;
                 let my = m.y;
-                
+
                 let dx = mx - px;
                 let dy = my - py;
-                
+
                 // 찌르기 직선 선분 위로 몬스터의 정사영 투영 비율 t 구하기
                 let t = (dx * cosA * spearRange + dy * sinA * spearRange) / (spearRange * spearRange);
                 t = Math.max(0, Math.min(1, t)); // 선분 내부로 제한
-                
+
                 // 투영 좌표점 (tx, ty)
                 let tx = px + t * cosA * spearRange;
                 let ty = py + t * sinA * spearRange;
-                
+
                 // 정사영점에서 몬스터 중심까지의 기하학적 최소 거리
                 let distToLine = Math.hypot(mx - tx, my - ty);
-                
+
                 // 몬스터의 피격 판정 (반지름 + 6px 마진 적용)
                 if (distToLine < m.radius + 6) {
                     let distToPlayer = Math.hypot(mx - px, my - py);
                     hits.push({ index: i, monster: m, distance: distToPlayer, t: t });
                 }
             }
-            
+
             // 플레이어와 가까운 순서대로 관통 판정을 위한 정렬
             hits.sort((a, b) => a.distance - b.distance);
-            
+
             // 창의 관통력 제한 (기본 관통 + spear 진화로 2개 추가 제공)
             let maxPierce = Math.min(5, this.player.pierceCount + 2);
             let allowedHits = hits.slice(0, maxPierce + 1);
-            
+
             for (let hit of allowedHits) {
                 let m = hit.monster;
                 let idx = hit.index;
                 let distToPlayer = hit.distance;
-                
+
                 let isSpearTip = false;
                 let finalDmg = weaponDmg;
-                
+
                 // 1) spear.tip: 찌르기 사거리의 80%~100% 끝부분 타격 시 2배 치명타 피해 및 강넉백
                 if (distToPlayer >= spearRange * 0.80 && this.player.weaponUnlocks.spear.tip) {
                     finalDmg *= 2.0;
                     isSpearTip = true;
                 }
-                
+
                 // 취약 효과 데미지 25% 가산
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
-                
+
                 // 빙결 분쇄(ice.shatter) 연동: 30% 확률로 300% 대미지
                 let hasShattered = false;
                 if (m.isFrozenActive > 0 && this.player.weaponUnlocks.ice.shatter) {
@@ -3541,48 +3541,48 @@ class GameEngine {
                         m.statusEffects.shock = 0;
                     }
                 }
-                
+
                 m.hp -= finalDmg;
                 m.flashTimer = 5;
-                
+
                 // 넉백 벡터 적용 (spear.knockback 해금 시 넉백 물리 12.0)
                 let kbForce = this.player.weaponUnlocks.spear.knockback ? 12.0 : 7.5;
                 m.knockbackX = cosA * kbForce;
                 m.knockbackY = sinA * kbForce;
-                
+
                 if (isSpearTip) {
                     this.showFloatingText("🎯 SPEAR-TIP CRITICAL! 🎯", m.x, m.y - 35, '#00f0ff');
                     this.shakeScreen(8, 3.8);
                     this.triggerHitStop(2); // 창끝 크리티컬 히트 스톱 (2프레임)
                 }
-                
+
                 if (hasShattered) {
                     this.showFloatingText("❄️ FREEZE SHATTER! 300%", m.x, m.y - 35, '#00f0ff');
                     this.shakeScreen(12, 5.0);
                     Sound.play('explosion');
                     this.triggerHitStop(3); // 빙결 파쇄 히트 스톱 (3프레임)
-                    
+
                     for (let k = 0; k < 12; k++) {
                         let rAngle = Math.random() * Math.PI * 2;
                         let rSpeed = Math.random() * 4 + 2;
                         this.particles.push(new Particle(m.x, m.y, '#ffffff', 2.5, Math.cos(rAngle) * rSpeed, Math.sin(rAngle) * rSpeed, 20, 'spark'));
                     }
                 }
-                
+
                 // 2) spear.wall: 벽꽝 충돌 시 1.5배(50% 추가) 피해
                 if (this.player.weaponUnlocks.spear.wall) {
                     let nextX = m.x + m.knockbackX * 3;
                     let nextY = m.y + m.knockbackY * 3;
                     const wallMargin = 40;
                     let hitWall = (nextX <= wallMargin + m.radius || nextX >= 800 - wallMargin - m.radius ||
-                                   nextY <= wallMargin + m.radius || nextY >= 600 - wallMargin - m.radius);
-                                   
+                        nextY <= wallMargin + m.radius || nextY >= 600 - wallMargin - m.radius);
+
                     if (hitWall) {
                         let wallCrashDmg = finalDmg * 0.5;
                         m.hp -= wallCrashDmg;
                         this.showFloatingText("💥 WALL IMPACT! +50%", m.x, m.y - 20, '#ffdf00');
                         Sound.play('explosion');
-                        
+
                         for (let k = 0; k < 6; k++) {
                             let rAngle = Math.random() * Math.PI * 2;
                             let rSpeed = Math.random() * 3 + 1;
@@ -3590,15 +3590,15 @@ class GameEngine {
                         }
                     }
                 }
-                
+
                 Sound.play('hit');
-                
+
                 // 청록색 찌르기 스파크 파티클 생성
                 for (let k = 0; k < 5; k++) {
                     let rSpeed = Math.random() * 3 + 1;
                     this.particles.push(new Particle(m.x, m.y, '#00f0ff', 2, cosA * rSpeed + (Math.random() - 0.5) * 2, sinA * rSpeed + (Math.random() - 0.5) * 2, 15));
                 }
-                
+
                 if (m.hp <= 0) {
                     this.killMonster(m, idx);
                 }
@@ -3626,17 +3626,17 @@ class GameEngine {
             baseCd = Math.min(baseCd, 50);
             minCd = Math.min(minCd, 15);
         }
-        
+
         let cooldownFrames = Math.max(minCd, baseCd / this.player.aspd);
         this.player.slashCooldown = cooldownFrames;
-        
+
         let startAngle = this.player.angle;
-        
+
         // 각 무기별 독자 다발 각도 계산
         let swordAngles = [];
         let whipAngles = [];
         let spearAngles = [];
-        
+
         // 1. 검 다발 각도
         if (this.player.multishot === 1) {
             swordAngles.push(startAngle);
@@ -3647,7 +3647,7 @@ class GameEngine {
                 swordAngles.push(startAngle - (arcSpan / 2) + (step * i));
             }
         }
-        
+
         // 2. 채찍 다발 각도
         let whipMultiArc = 0.15 + (this.player.multishot - 1) * 0.03 + (this.player.weaponUnlocks.whip.multi ? 0.10 : 0);
         if (this.player.multishot === 1) {
@@ -3658,14 +3658,14 @@ class GameEngine {
                 whipAngles.push(startAngle - (whipMultiArc / 2) + (step * i));
             }
         }
-        
+
         // 3. 창 다발 각도 (multi 해금 시 3개 고정)
         if (this.player.weaponUnlocks.spear.multi) {
             spearAngles = [startAngle - 0.2, startAngle, startAngle + 0.2];
         } else {
             spearAngles = [startAngle];
         }
-        
+
         let fireSlashPack = (sAngles, wAngles, spAngles) => {
             // [창 즉발 및 관통 투사체 융합 격발]
             if (hasSpear) {
@@ -3673,10 +3673,10 @@ class GameEngine {
                 this.player.spearTimer = 8;
                 this.player.spearAngle = startAngle;
                 this.player.spearAngles = [...spAngles];
-                
+
                 let targetRange = 80 + (this.player.range - 350) * 0.3;
                 if (this.player.weaponUnlocks.spear.range) targetRange += 20;
-                
+
                 for (let angle of spAngles) {
                     for (let i = 0; i < 6; i++) {
                         let distOffset = i * (targetRange / 6);
@@ -3687,16 +3687,16 @@ class GameEngine {
                         this.particles.push(new Particle(px, py, '#00f0ff', 1.8, vx, vy, 12, 'dust'));
                     }
                 }
-                
+
                 // 즉발 찌르기 물리 타격
                 this.triggerSpearInstantAttack(spAngles);
-                
+
                 // 관통 투사체 날리기
                 let synergyMult = this.checkBuildSynergy('spear');
                 let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                 let baseMult = 0.7; // 창 대미지 비율
                 let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
-                
+
                 for (let angle of spAngles) {
                     let speed = 10.0;
                     let vx = Math.cos(angle) * speed;
@@ -3713,14 +3713,14 @@ class GameEngine {
                     }));
                 }
             }
-            
+
             // [채찍 즉발 견인 및 그랩 융합 격발]
             if (hasWhip) {
                 this.player.isSlashActive = true;
                 this.player.slashTimer = 12;
                 this.player.slashAngle = startAngle;
                 this.player.slashAngles = [...wAngles];
-                
+
                 let radius = this.player.weaponUnlocks.whip.range ? 220 : 150;
                 for (let angle of wAngles) {
                     for (let i = 0; i < 8; i++) {
@@ -3734,18 +3734,18 @@ class GameEngine {
                         this.particles.push(new Particle(px, py, '#ff00aa', 1.8, vx, vy, 15, 'dust'));
                     }
                 }
-                
+
                 // 채찍 즉발 그랩/기절 물리 타격
                 this.triggerWhipInstantAttack(wAngles);
             }
-            
+
             // [검 베기 파편 및 검기 파동 융합 격발]
             if (hasSword) {
                 this.player.isSlashActive = true;
                 this.player.slashTimer = 12;
                 this.player.slashAngle = startAngle;
                 this.player.slashAngles = [...sAngles];
-                
+
                 for (let angle of sAngles) {
                     for (let i = -5; i <= 5; i++) {
                         let offset = angle + (i * 0.15);
@@ -3756,12 +3756,12 @@ class GameEngine {
                         this.particles.push(new Particle(px, py, '#b026ff', 2, vx, vy, 15, 'slashWave'));
                     }
                 }
-                
+
                 let synergyMult = this.checkBuildSynergy('sword');
                 let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                 let baseMult = 0.8;
                 let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
-                
+
                 // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
                 if (this.player.weaponUnlocks.sword.wave) {
                     for (let angle of sAngles) {
@@ -3779,7 +3779,7 @@ class GameEngine {
                     }
                 }
             }
-            
+
             Sound.play('slash');
             if (hasSword) {
                 this.shakeScreen(5, 2.5);
@@ -3789,7 +3789,7 @@ class GameEngine {
                 this.shakeScreen(4, 1.5);
             }
         };
-        
+
         // [신규] 프레임 기반 틱 격발 예약 (융합 근접 무기 틱 난무)
         if (this.player.burstCount > 1) {
             this.player.burstRemaining = this.player.burstCount - 1;
@@ -3800,7 +3800,7 @@ class GameEngine {
         } else {
             this.player.burstRemaining = 0;
         }
-        
+
         fireSlashPack(swordAngles, whipAngles, spearAngles);
     }
 
@@ -3809,9 +3809,9 @@ class GameEngine {
         document.getElementById('room-counter').innerText = `${this.roomNum} / 100`;
         document.getElementById('score-counter').innerText = this.score;
         document.getElementById('monster-counter').innerText = `${this.monsters.length} / ${this.currentSpawnTotal}`;
-        
+
         // [신규 기획] 실시간 보유 네온 코인 동기화
-        document.getElementById('coin-counter').innerText = `🪙 ${this.player.coins || 0}`;
+        document.getElementById('coin-counter').innerText = `📀 ${this.player.coins || 0}`;
 
         // 생명력 HP 연산
         let hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
@@ -3826,7 +3826,7 @@ class GameEngine {
         // 마력 MP 연산
         let mpPct = Math.max(0, (this.player.mp / this.player.maxMp) * 100);
         document.getElementById('mp-bar-fill').style.width = `${mpPct}%`;
-        
+
         let mpTextStr = `${Math.ceil(this.player.mp)} / ${this.player.maxMp}`;
         if (this.timeDilationActive) {
             mpTextStr = "🔮 TIME WARPING...";
@@ -3857,7 +3857,7 @@ class GameEngine {
         document.getElementById('stat-wpn').innerText = wpnStr;
 
         document.getElementById('stat-bullets').innerText = `${this.player.multishot} / ${this.player.burstCount}`;
-        
+
         let pText = this.player.pierceCount;
         let hText = this.player.homing ? "O" : "X";
         let sText = this.player.splashRadius > 0 ? `${this.player.splashRadius}px` : "X";
@@ -3874,7 +3874,7 @@ class GameEngine {
         // [엘리트/보스 보상 기획 연계] 5의 배수 방 여부 체크
         const isWeaponReward = (this.roomNum % 5 === 0) || isFromHiddenChest;
         let bonusText = "";
-        
+
         if (isFromHiddenChest) {
             bonusText = "🎁 보물상자 발견! 고가치 무기/장비 확정 획득";
             document.getElementById('reward-header').innerText = "보물상자 개방 완료! 상위 무기/장비 선택";
@@ -3888,7 +3888,7 @@ class GameEngine {
             bonusText = `몬스터 소탕 보너스: +${multiplierPct}% (스탯 등급 강화)`;
             document.getElementById('reward-header').innerText = "방 소탕 완료! 보상을 선택하세요";
         }
-        
+
         document.getElementById('reward-multiplier').innerText = bonusText;
 
         // 카드 슬롯을 빌드
@@ -3901,7 +3901,7 @@ class GameEngine {
                 if (!data) return; // 예외 방지
 
                 cardEl.className = `reward-card card-${data.rarity.toLowerCase()}`;
-                
+
                 // 카드 엘리먼트 데이터 채우기
                 const rarityTag = cardEl.querySelector('.card-rarity');
                 rarityTag.className = `card-rarity ${data.rarity.toLowerCase()}`;
@@ -3915,10 +3915,10 @@ class GameEngine {
                 cardEl.onclick = (e) => {
                     e.stopPropagation();
                     overlay.classList.add('hidden');
-                    
+
                     // [수정] 결함 해결: 카드 클릭 즉시 버프 적용 및 포털 개방! (중복 스폰 버그 원천 봉쇄)
                     this.applyRewardCard(data);
-                    
+
                     // 대형 카드 획득 정보 확인 창 호출
                     this.showAcquiredCardDetail(data);
                 };
@@ -3933,19 +3933,19 @@ class GameEngine {
         if (rerollBtn) {
             if (this.player.equipLevels.necklace === 10 && !this.hasRerolledThisRoom) {
                 rerollBtn.classList.remove('hidden');
-                
+
                 // 리롤 클릭 이벤트
                 rerollBtn.onclick = (e) => {
                     e.stopPropagation();
                     this.hasRerolledThisRoom = true;
-                    
+
                     // 리롤 성공 오디오
                     Sound.play('powerup');
                     this.showFloatingText("DESTINY RE-ROLLED!", this.player.x, this.player.y - 35, '#ffdf00');
-                    
+
                     cardsData = this.generateRewardCardsData(this.currentSpawnTotal, isFromHiddenChest);
                     renderCards(cardsData);
-                    
+
                     // 리롤 사용했으므로 버튼 소멸
                     rerollBtn.classList.add('hidden');
                 };
@@ -3976,7 +3976,7 @@ class GameEngine {
             { id: 'spear', title: '네온 창(Spear) 장착', icon: '🔱', desc: '직선상의 깊숙한 관통 찌르기로 적을 멀리 밀치고 벽 격돌 기절을 유도합니다.' },
             { id: 'thorns', title: '네온 가시(Thorns) 장착', icon: '🌵', desc: '피격 대미지를 100% 주변 적에게 반사하고, 10% 확률로 보복 유도 가시를 쏘며, 피격 시 3초간 도발(가시 오라 장막) 필드를 활성화합니다.' },
             { id: 'whip', title: '네온 채찍(Whip) 장착', icon: '🧣', desc: '직선 그랩 사슬을 사출하여 적을 발앞으로 강제 견인하고, 1.5초 기절 및 3초 공속 +20% 상승(최대 3중첩) 버프를 부여합니다.' },
-            { id: 'trap', title: '네온 함정(Trap) 설치', icon: '🪤', desc: '이동 흔적상에 2초 주기로 80px 기절 지뢰를 매설하고, 가로/세로 벽 사이에 전류 감전 레이저 트립와이어를 설치합니다.' },
+            { id: 'trap', title: '네온 함정(Trap) 설치', icon: '💣', desc: '이동 흔적상에 2초 주기로 80px 기절 지뢰를 매설하고, 가로/세로 벽 사이에 전류 감전 레이저 트립와이어를 설치합니다.' },
             { id: 'lightning', title: '네온 번개마법 (Lightning)', icon: '⚡', desc: '마나를 소모해 적들 사이를 연쇄 전이하며 단체 감전 기절을 주는 벼락을 발사합니다.' },
             { id: 'fire', title: '네온 불마법 (Fire)', icon: '🔥', desc: '마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 연쇄 폭발을 일으키는 불꽃을 격발합니다.' },
             { id: 'ice', title: '네온 얼음마법 (Ice)', icon: '❄️', desc: '마나(MP)를 소모해 적을 동결 정지시키며 동결된 적 타격 시 3배 파쇄 피해를 입칩니다.' },
@@ -4008,13 +4008,13 @@ class GameEngine {
         // [신규 기획] 현재 방 유형(currentRoomType)에 맞춘 특화 보상 풀 배정
         let pool = [];
         let isSpecialReward = (this.currentRoomType === 'weapon' || this.currentRoomType === 'equipment') || isFromHiddenChest;
-        
+
         if (isFromHiddenChest) {
             // 보물상자는 무기와 장비 카드를 골고루 혼합
             pool = [...weaponCards, ...equipmentCards];
         } else if (this.currentRoomType === 'weapon') {
             pool = [...weaponCards];
-            
+
             // 보유 상태에 따른 무기 강화 연계 시너지 카드 동적 해금 주입 (이미 최고 단계 획득 시 풀에서 배제)
             const p = this.player;
             if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.swordDmgUpgrade < 1.4) {
@@ -4063,10 +4063,10 @@ class GameEngine {
         if (this.player.equipLevels.necklace === 10 && this.hasRerolledThisRoom) {
             portalLuckBonus += 0.8;
         }
-        
+
         for (let i = 0; i < cardsToSelect; i++) {
             let item = shuffled[i];
-            
+
             // 등급 확률 주입
             let rand = Math.random() + portalLuckBonus; // 보정 상향
             let rarity = 'COMMON';
@@ -4092,7 +4092,7 @@ class GameEngine {
 
             // 등급별 능력치 증가 수치 계산 바인딩
             let detail = this.getCardSpecificEffect(item.id, rarity, multiplier);
-            
+
             chosenCards.push({
                 id: item.id,
                 title: `${rarity === 'COMMON' ? '' : '[' + rarity + '] '}${item.title}`,
@@ -4423,11 +4423,11 @@ class GameEngine {
             case 'trap':
                 p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
                 if (p.weaponLevels.trap === 5) {
-                    this.showFloatingText("🪤 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText("💣 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
                 } else if (p.weaponLevels.trap > 1) {
-                    this.showFloatingText(`🪤 TRAPS UPGRADED! (Lv.${p.weaponLevels.trap}) 🪤`, p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText(`💣 TRAPS UPGRADED! (Lv.${p.weaponLevels.trap}) 💣`, p.x, p.y - 30, '#ffdf00');
                 } else {
-                    this.showFloatingText("TRAPS UNLOCKED 🪤", p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText("TRAPS UNLOCKED 💣", p.x, p.y - 30, '#ffdf00');
                 }
                 break;
             case 'lightning':
@@ -4650,20 +4650,20 @@ class GameEngine {
     triggerGameOver() {
         if (this.gameOverActive) return; // 중복 호출 원천 방지
         this.gameOverActive = true;
-        
+
         Sound.stopBGM(); // [추가] 사망 시 은은하게 돌던 Synth BGM 루프 즉시 종료
         Sound.play('gameover');
         this.shakeScreen(60, 7); // 강렬한 카메라 사망 흔들림 진동 주입
-        
+
         // 플레이어 캐릭터 사망 시 사방으로 폭사하며 터져 나가는 붉은 네온 파편 파티클 25개 생성
         for (let k = 0; k < 25; k++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 5 + 2.5; // 사방 폭사 퍼짐 속도
             let life = Math.random() * 45 + 30; // 0.5초 ~ 1.2초 생존
             this.particles.push(new Particle(
-                this.player.x, this.player.y, 
-                '#ff0055', 2.8, 
-                Math.cos(angle) * speed, Math.sin(angle) * speed, 
+                this.player.x, this.player.y,
+                '#ff0055', 2.8,
+                Math.cos(angle) * speed, Math.sin(angle) * speed,
                 life, 'spark'
             ));
         }
@@ -4673,11 +4673,11 @@ class GameEngine {
         // [결함 완치] 사망 파티클과 화면 진동이 매끄럽게 흐른 뒤 1.2초 후(1200ms) 자연스럽게 결과 대시보드가 오버랩되게 지연 처리
         setTimeout(() => {
             this.isPlaying = false; // 연출 완료 시점에 루프 정지 지정
-            
+
             document.getElementById('result-title').innerText = "GAME OVER";
             document.getElementById('result-title').className = "text-glow-red";
             document.getElementById('result-message').innerText = "깊고 어두운 미로 속에서 힘이 다해 쓰러졌습니다...";
-            
+
             this.populateResultOverlay();
             this.gameOverActive = false; // 플래그 초기화
         }, 1200);
@@ -4715,11 +4715,11 @@ class GameEngine {
         // 1.5초간 화려한 축제 연출이 가동된 뒤, 자연스럽게 통계 오버레이를 열고 루프 정지
         setTimeout(() => {
             this.isPlaying = false;
-            
+
             document.getElementById('result-title').innerText = "VICTORY ESCAPE!";
             document.getElementById('result-title').className = "text-glow-green";
             document.getElementById('result-message').innerText = "100개의 미로 방을 돌파하고 네온의 던전을 무사히 탈출했습니다!";
-            
+
             this.populateResultOverlay();
         }, 1500);
     }
@@ -4729,7 +4729,7 @@ class GameEngine {
         document.getElementById('res-room').innerText = `${Math.min(100, this.roomNum)} / 100`;
         document.getElementById('res-score').innerText = this.score;
         document.getElementById('res-kills').innerText = this.kills;
-        
+
         let wpnStr = "총 (Gun)";
         if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
         if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
@@ -4761,7 +4761,7 @@ class GameEngine {
         const resultGrid = document.getElementById('result-equipments-grid');
         if (resultGrid) {
             resultGrid.innerHTML = '';
-            
+
             // 1. 활성화된 무기 6종 탐색
             const wpns = [
                 { key: 'sword', name: '네온 검', icon: '⚔️' },
@@ -4788,7 +4788,7 @@ class GameEngine {
                     resultGrid.appendChild(card);
                 }
             });
-            
+
             // 만약 아무 무기도 활성화 안 되어 있다면 기본 총기 추가
             if (wpnCount === 0) {
                 const card = document.createElement('div');
@@ -4802,7 +4802,7 @@ class GameEngine {
                 `;
                 resultGrid.appendChild(card);
             }
-            
+
             // 2. 활성화된 보조 장비 10종 탐색
             const equips = [
                 { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
@@ -4845,7 +4845,7 @@ class GameEngine {
         if (!nicknameInput || !submitBtn || !feedbackMsg) return;
 
         const name = nicknameInput.value.trim().toUpperCase();
-        
+
         // 입력 박스 보더 색상 초기화
         nicknameInput.style.borderColor = 'rgba(0, 240, 255, 0.4)';
 
@@ -4883,7 +4883,7 @@ class GameEngine {
         submitBtn.disabled = true;
         submitBtn.style.opacity = '0.5';
         submitBtn.style.cursor = 'not-allowed';
-        
+
         feedbackMsg.innerText = "⚡ 네온 서버 통신 전송 중...";
         feedbackMsg.style.color = '#00f0ff';
         feedbackMsg.classList.remove('hidden');
@@ -4911,7 +4911,7 @@ class GameEngine {
 
             if (result.success) {
                 Sound.play('powerup');
-                
+
                 if (result.mode === 'online') {
                     feedbackMsg.innerText = "🏆 명예의 전당 온라인 실시간 동기화 등록 성공!";
                     feedbackMsg.style.color = '#39ff14';
@@ -4935,7 +4935,7 @@ class GameEngine {
             feedbackMsg.innerText = "❌ 등록 에러: " + (error.message || '알 수 없는 서버 에러');
             feedbackMsg.style.color = '#ff0055';
             nicknameInput.style.borderColor = '#ff0055';
-            
+
             nicknameInput.disabled = false;
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
@@ -4981,7 +4981,7 @@ class GameEngine {
                 rankings.forEach((rank, index) => {
                     const tr = document.createElement('tr');
                     const rankNum = index + 1;
-                    
+
                     // 1, 2, 3위에 따라 특수 글로우 및 행 스타일 지정
                     if (rankNum === 1) {
                         tr.className = "rank-row-1";
@@ -5035,7 +5035,7 @@ class GameEngine {
     // --------------------------------------------------------------------------
     render() {
         this.ctx.save();
-        
+
         // 화면 진동(Screen Shake) 효과 번역
         if (this.shakeTimer > 0) {
             let dx = (Math.random() * 2 - 1) * this.shakeIntensity;
@@ -5065,7 +5065,7 @@ class GameEngine {
         this.ctx.rect(40, 40, 720, 520);
         this.ctx.fillStyle = '#08090e';
         this.ctx.fill();
-        
+
         // 시간 왜곡 시 벽 테두리가 보랏빛 네온으로 맥박치며 번쩍임
         let wallStrokeColor = 'rgba(0, 240, 255, 0.1)';
         if (this.timeDilationActive) {
@@ -5156,7 +5156,7 @@ class GameEngine {
             this.ctx.font = '800 11px "Outfit"';
             this.ctx.textAlign = 'center';
             this.ctx.shadowBlur = 8;
-            
+
             let methodStr = "SPAWN TYPE: NORMAL (CONTINUOUS)";
             let methodColor = '#00f0ff';
             if (this.spawnMethod === 2) {
@@ -5181,7 +5181,7 @@ class GameEngine {
             this.ctx.textAlign = 'center';
             this.ctx.shadowBlur = 10;
             this.ctx.shadowColor = '#39ff14';
-            
+
             // [결함 완치] Y좌표를 275에서 중앙 오브젝트와 절대 겹치지 않는 상단 공간인 130으로 상향 보정!
             if (this.roomNum === 1 && this.kills === 0) {
                 this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", 400, 130);
@@ -5196,17 +5196,17 @@ class GameEngine {
         // [v0.95 신규 구현] 보스 경보 발동 시 화면 테두리 붉은색 네온 경보 및 경고 텍스트
         if (this.bossWarningTimer > 0) {
             this.ctx.save();
-            
+
             // 0.5초(30프레임) 주기 명멸 알파값 연산 (0.25 <-> 0.8)
             let warningAlpha = (Math.floor(this.bossWarningTimer / 15) % 2 === 0) ? 0.8 : 0.25;
-            
+
             // 화면 외벽에 두꺼운 8px 네온 붉은 사각형 렌더링
             this.ctx.strokeStyle = `rgba(255, 0, 85, ${warningAlpha})`;
             this.ctx.lineWidth = 8;
             this.ctx.shadowBlur = 20;
             this.ctx.shadowColor = '#ff0055';
             this.ctx.strokeRect(4, 4, 792, 592);
-            
+
             // 화면 중앙에 거대한 WARNING 네온 붉은 경고 텍스트
             this.ctx.font = '900 36px "Outfit"';
             this.ctx.fillStyle = `rgba(255, 0, 85, ${warningAlpha})`;
@@ -5214,7 +5214,7 @@ class GameEngine {
             this.ctx.shadowBlur = 15;
             this.ctx.shadowColor = '#ff0055';
             this.ctx.fillText("WARNING! BOSS ENCOUNTER 🚨", 400, 240);
-            
+
             this.ctx.restore();
         }
 
@@ -5242,7 +5242,7 @@ class GameEngine {
         if (cardData.rarity === 'RARE') glowColor = 'rgba(57, 255, 20, 0.4)';
         if (cardData.rarity === 'EPIC') glowColor = 'rgba(176, 38, 255, 0.4)';
         if (cardData.rarity === 'LEGENDARY') glowColor = 'rgba(255, 223, 0, 0.5)';
-        
+
         cardView.style.setProperty('--card-shadow', `0 0 35px ${glowColor}`);
         cardView.className = `reward-card large-card card-${cardData.rarity.toLowerCase()}`;
 
@@ -5253,7 +5253,7 @@ class GameEngine {
             detailOverlay.classList.add('hidden');
             detailOverlay.removeEventListener('click', closeHandler);
         };
-        
+
         // 100ms 딜레이를 주어야 팝업을 연 클릭이 바로 버블링되어 닫히는 현상 방지
         setTimeout(() => {
             detailOverlay.addEventListener('click', closeHandler);
@@ -5285,10 +5285,10 @@ class GameEngine {
 
         const handleConfirm = () => {
             shopOverlay.classList.add('hidden');
-            
+
             // 실제로 카드를 획득하여 버프 적용!
             this.applyRewardCard(cardData);
-            
+
             confirmBtn.onclick = null; // [수정] 대입형 onclick 프로퍼티 안전하게 null 처리 해제
             shopOverlay.onclick = null;
         };
@@ -5333,7 +5333,7 @@ class GameEngine {
         rarityTag.style.background = `rgba(176, 38, 255, 0.2)`;
         rarityTag.style.borderColor = '#b026ff';
         rarityTag.style.color = '#b026ff';
-        
+
         iconDiv.innerText = chosenCard.icon;
         titleH3.innerText = chosenCard.title;
         descP.innerText = chosenCard.desc;
@@ -5398,7 +5398,7 @@ class GameEngine {
         rejectBtn.onclick = (e) => {
             e.stopPropagation();
             overlay.classList.add('hidden');
-            
+
             this.showFloatingText("DEAL REJECTED", this.player.x, this.player.y - 30, '#a0aec0');
             Sound.play('dodge');
 
@@ -5414,7 +5414,7 @@ class GameEngine {
     toggleCheatMenu() {
         const cheatOverlay = document.getElementById('cheat-overlay');
         if (!cheatOverlay) return;
-        
+
         if (cheatOverlay.classList.contains('hidden')) {
             // 메뉴 열기
             this.syncCheatUIFromPlayer();
@@ -5428,7 +5428,7 @@ class GameEngine {
     // 플레이어 스탯 및 상태를 치트 UI에 적용
     syncCheatUIFromPlayer() {
         const p = this.player;
-        
+
         // 1. 기본 스탯 동기화
         document.getElementById('cheat-atk').value = p.atk;
         document.getElementById('cheat-aspd').value = p.aspd.toFixed(2);
@@ -5476,7 +5476,7 @@ class GameEngine {
 
         // 5. 무적 모드 동기화
         document.getElementById('cheat-godmode').checked = p.isGodMode || false;
-        
+
         // 6. 다음 층 비밀방 강제 동기화
         const cheatSecret = document.getElementById('cheat-forcesecret');
         if (cheatSecret) {
@@ -5496,11 +5496,11 @@ class GameEngine {
         tabBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const targetTabId = btn.getAttribute('data-tab');
-                
+
                 // 버튼 active 클래스 리셋 및 부여
                 tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 // 컨텐트 active 클래스 리셋 및 부여
                 const contents = document.querySelectorAll('.cheat-tab-content');
                 contents.forEach(c => c.classList.remove('active'));
@@ -5517,16 +5517,16 @@ class GameEngine {
             p.evd = parseFloat(document.getElementById('cheat-evd').value) || p.evd;
             p.luk = parseFloat(document.getElementById('cheat-luk').value) || p.luk;
             p.hpRegen = parseFloat(document.getElementById('cheat-regen').value) || p.hpRegen;
-            
+
             p.maxHp = parseInt(document.getElementById('cheat-max-hp').value) || p.maxHp;
             p.hp = Math.min(p.maxHp, parseFloat(document.getElementById('cheat-hp').value) || p.hp);
-            
+
             p.maxMp = parseInt(document.getElementById('cheat-max-mp').value) || p.maxMp;
             p.mp = Math.min(p.maxMp, parseFloat(document.getElementById('cheat-mp').value) || p.mp);
-            
+
             p.maxStamina = parseInt(document.getElementById('cheat-max-stamina').value) || p.maxStamina;
             p.stamina = Math.min(p.maxStamina, parseFloat(document.getElementById('cheat-stamina').value) || p.stamina);
-            
+
             this.updateHUD();
             this.showFloatingText("STATS UPDATED! ⚡", p.x, p.y - 40, '#00f0ff');
         });
@@ -5537,7 +5537,7 @@ class GameEngine {
             btn.addEventListener('click', () => {
                 const wpnType = btn.getAttribute('data-wpn');
                 this.applyWeaponCheat(wpnType);
-                
+
                 // 버튼 액티브 동기화
                 wpnBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -5577,7 +5577,7 @@ class GameEngine {
 
         document.getElementById('cheat-trap-btn').addEventListener('click', () => {
             this.player.weaponLevels.trap = 5;
-            this.showFloatingText("TRAP MASTER ACTIVE! 🪤", this.player.x, this.player.y - 40, '#ffdf00');
+            this.showFloatingText("TRAP MASTER ACTIVE! 💣", this.player.x, this.player.y - 40, '#ffdf00');
         });
 
         document.getElementById('cheat-thorns-btn').addEventListener('click', () => {
@@ -5591,12 +5591,12 @@ class GameEngine {
         eqSliders.forEach(slider => {
             const eqKey = slider.id.replace('cheat-eq-', '');
             const label = document.getElementById(`cheat-lbl-${eqKey}`);
-            
+
             // 실시간 숫자 변경 표기
             slider.addEventListener('input', () => {
                 label.innerText = slider.value;
             });
-            
+
             // 변경 완료 시 스탯 및 효과 동기화
             slider.addEventListener('change', () => {
                 const targetLvl = parseInt(slider.value);
@@ -5658,7 +5658,7 @@ class GameEngine {
                 this.toggleOptionMenu();
             });
         }
-        
+
         // 옵션 모달 닫기 버튼 클릭
         const closeBtn = document.getElementById('option-close-btn');
         if (closeBtn) {
@@ -5666,7 +5666,7 @@ class GameEngine {
                 this.toggleOptionMenu();
             });
         }
-        
+
         // 효과음 볼륨 슬라이더 실시간 조작
         const sfxSlider = document.getElementById('volume-sfx');
         const sfxLabel = document.getElementById('volume-sfx-val');
@@ -5681,7 +5681,7 @@ class GameEngine {
                 Sound.play('coin');
             });
         }
-        
+
         // 배경음악 볼륨 슬라이더 실시간 조작
         const bgmSlider = document.getElementById('volume-bgm');
         const bgmLabel = document.getElementById('volume-bgm-val');
@@ -5692,7 +5692,7 @@ class GameEngine {
                 bgmLabel.innerText = Math.round(val * 100) + '%';
             });
         }
-        
+
         // 게임 재시작 버튼 클릭
         const restartBtn = document.getElementById('option-restart-btn');
         if (restartBtn) {
@@ -5708,7 +5708,7 @@ class GameEngine {
     toggleOptionMenu() {
         const optionOverlay = document.getElementById('option-overlay');
         if (!optionOverlay) return;
-        
+
         if (optionOverlay.classList.contains('hidden')) {
             // 옵션 메뉴 열기
             this.syncOptionUIFromSound();
@@ -5722,8 +5722,8 @@ class GameEngine {
     // [신규 추가] 임의의 게임 오버레이/모달창이 활성화되어 있는지 여부를 판정하는 헬퍼 함수
     checkAnyOverlayOpen() {
         const overlays = [
-            'start-overlay', 'reward-overlay', 'result-overlay', 
-            'card-detail-overlay', 'shop-confirm-overlay', 
+            'start-overlay', 'reward-overlay', 'result-overlay',
+            'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
         ];
         return overlays.some(id => {
@@ -5735,8 +5735,8 @@ class GameEngine {
     // [신규 추가] 특정 모달(exceptId)을 제외하고 활성화된 다른 오버레이가 있는지 판정하는 헬퍼 함수
     checkAnyOverlayOpenExcept(exceptId) {
         const overlays = [
-            'start-overlay', 'reward-overlay', 'result-overlay', 
-            'card-detail-overlay', 'shop-confirm-overlay', 
+            'start-overlay', 'reward-overlay', 'result-overlay',
+            'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
         ];
         return overlays.some(id => {
@@ -5754,21 +5754,21 @@ class GameEngine {
         if (statusOverlay.classList.contains('hidden')) {
             // 상태창 열기
             statusOverlay.classList.remove('hidden');
-            
+
             // HUD 정보 동기화
             const statusRoom = document.getElementById('status-room');
             const statusScore = document.getElementById('status-score');
             const statusCoin = document.getElementById('status-coin');
-            
+
             if (statusRoom) statusRoom.innerText = `${Math.min(100, this.roomNum)} / 100`;
             if (statusScore) statusScore.innerText = this.score;
-            if (statusCoin) statusCoin.innerText = `🪙 ${this.player ? this.player.coins : 0}`;
-            
+            if (statusCoin) statusCoin.innerText = `📀 ${this.player ? this.player.coins : 0}`;
+
             // 장비 그리드 렌더링
             const statusGrid = document.getElementById('status-equipments-grid');
             if (statusGrid) {
                 statusGrid.innerHTML = '';
-                
+
                 // 무기 6종
                 const wpns = [
                     { key: 'sword', name: '네온 검', icon: '⚔️' },
@@ -5848,12 +5848,12 @@ class GameEngine {
     syncOptionUIFromSound() {
         const sfxVal = Sound.sfxVolume;
         const bgmVal = Sound.bgmVolume;
-        
+
         const sfxSlider = document.getElementById('volume-sfx');
         const bgmSlider = document.getElementById('volume-bgm');
         const sfxLabel = document.getElementById('volume-sfx-val');
         const bgmLabel = document.getElementById('volume-bgm-val');
-        
+
         if (sfxSlider && sfxLabel) {
             sfxSlider.value = sfxVal;
             sfxLabel.innerText = Math.round(sfxVal * 100) + '%';
@@ -5868,11 +5868,11 @@ class GameEngine {
     addCoinsCheat(amount) {
         this.player.coins += amount;
         Sound.play('coin');
-        this.showFloatingText(`+${amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
-        
+        this.showFloatingText(`+${amount} 📀`, this.player.x, this.player.y - 25, '#ffdf00');
+
         // HUD 갱신
         this.updateHUD();
-        
+
         // 실시간 코인 HUD 연출
         const coinGainPopup = document.getElementById('coin-gain-popup');
         if (coinGainPopup) {
@@ -5883,7 +5883,7 @@ class GameEngine {
             coinGainPopup.classList.remove('animate');
             void coinGainPopup.offsetWidth; // 리플로우 강제
             coinGainPopup.classList.add('animate');
-            
+
             if (coinGainPopup.cleanupTimer) clearTimeout(coinGainPopup.cleanupTimer);
             coinGainPopup.cleanupTimer = setTimeout(() => {
                 coinGainPopup.classList.remove('animate');
@@ -5896,7 +5896,7 @@ class GameEngine {
     // 무기 유형 변경 치트
     applyWeaponCheat(wpnType) {
         const p = this.player;
-        
+
         // 무기 레벨 초기화
         p.weaponLevels = {
             sword: 0,
@@ -5929,7 +5929,7 @@ class GameEngine {
             return;
         } else if (wpnType === 'trap') {
             p.weaponLevels.trap = 5;
-            this.showFloatingText("TRAPS ENABLED 🪤", p.x, p.y - 40, '#ffdf00');
+            this.showFloatingText("TRAPS ENABLED 💣", p.x, p.y - 40, '#ffdf00');
             return;
         } else if (wpnType === 'time') {
             p.hasTimeWarp = true;
@@ -5943,7 +5943,7 @@ class GameEngine {
                 p.weaponLevels[wpnType] = 5;
             }
         }
-        
+
         p.weaponType = wpnType;
         p.updateWeaponType();
         this.updateHUD();
@@ -5955,10 +5955,10 @@ class GameEngine {
         const p = this.player;
         const oldLevel = p.equipLevels[equipName] || 0;
         if (oldLevel === newLevel) return;
-        
+
         p.equipLevels[equipName] = newLevel;
         const diff = newLevel - oldLevel;
-        
+
         switch (equipName) {
             case 'armor':
                 p.maxHp += diff * 4;
@@ -5993,7 +5993,7 @@ class GameEngine {
                 p.evd = Math.min(0.75, Math.max(0, p.evd + diff * 0.01));
                 break;
         }
-        
+
         if (newLevel === 5) {
             this.showFloatingText(`${equipName.toUpperCase()} LV.5 SPECIAL UNLOCKED`, p.x, p.y - 40, '#ff5e00');
         } else if (newLevel === 10) {
@@ -6001,7 +6001,7 @@ class GameEngine {
         } else {
             this.showFloatingText(`${equipName.toUpperCase()} -> LV.${newLevel}`, p.x, p.y - 40, '#39ff14');
         }
-        
+
         this.updateHUD();
     }
 
@@ -6011,16 +6011,16 @@ class GameEngine {
             this.showFloatingText("ROOM ALREADY CLEARED", this.player.x, this.player.y - 20, '#ff0055');
             return;
         }
-        
+
         // 폭발 파티클
         for (let m of this.monsters) {
             this.particles.push(new Particle(m.x, m.y, m.color, m.radius * 2, 0, 0, 20, 'explosionRing'));
         }
-        
+
         this.monsters = [];
         this.spawnQueue = [];
         this.currentSpawnRemaining = 0;
-        
+
         Sound.play('explosion');
         this.showFloatingText("CHEAT: ROOM CLEARED! 💥", this.player.x, this.player.y - 40, '#ffdf00');
     }
@@ -6031,14 +6031,14 @@ class GameEngine {
             this.showFloatingText("INVALID STAGE (1~99 ONLY)", this.player.x, this.player.y - 20, '#ff0055');
             return;
         }
-        
+
         // 룸 전환용 가상 포털 생성 후 연동
         let mockPortal = { direction: 'top', scoreValue: 0, portalType: 'stat', difficultyClass: 'low' };
         this.roomNum = targetStage - 1; // transitionToNextRoom 내부에서 roomNum++이 되어 타겟 도달
-        
+
         this.toggleCheatMenu(); // 워프 전 치트창 닫기
         this.transitionToNextRoom(mockPortal);
-        
+
         this.showFloatingText(`WARPED TO ROOM ${targetStage} 🌀`, this.player.x, this.player.y - 40, '#ffdf00');
     }
 }

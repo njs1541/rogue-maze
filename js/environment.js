@@ -685,7 +685,7 @@ class VendingMachine {
         ctx.fillStyle = '#ffffff';
         ctx.font = '800 9px "Outfit"';
         ctx.textAlign = 'center';
-        ctx.fillText(`🪙 ${this.getPrice()}`, 0, -this.height/2 * scale + 31);
+        ctx.fillText(`📀 ${this.getPrice()}`, 0, -this.height/2 * scale + 31);
 
         // 동전 주입구 및 반환구 데코레이션
         ctx.beginPath();

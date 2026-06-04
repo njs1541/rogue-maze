@@ -2689,7 +2689,7 @@ class VendingMachine {
         ctx.fillStyle = '#ffffff';
         ctx.font = '800 9px "Outfit"';
         ctx.textAlign = 'center';
-        ctx.fillText(`🪙 ${this.getPrice()}`, 0, -this.height/2 * scale + 31);
+        ctx.fillText(`📀 ${this.getPrice()}`, 0, -this.height/2 * scale + 31);
 
         // 동전 주입구 및 반환구 데코레이션
         ctx.beginPath();
@@ -4314,7 +4314,7 @@ class GameEngine {
                 if (this.mineInstallTimer >= mineCd) {
                     this.mineInstallTimer = 0;
                     this.traps.push(new NeonTrap(this.player.x, this.player.y, 'mine', this.player));
-                    this.showFloatingText("MINE PLACED! 🪤", this.player.x, this.player.y - 25, '#ffdf00');
+                    this.showFloatingText("MINE PLACED! 💣", this.player.x, this.player.y - 25, '#ffdf00');
                 }
             } else {
                 this.mineInstallTimer = 0;
@@ -5378,7 +5378,7 @@ class GameEngine {
                         // 잔액 부족 알림
                         this.vendingCooldown = 30;
                         Sound.play('hit');
-                        this.showFloatingText(`NOT ENOUGH COIN (NEED 🪙${price})`, this.player.x, this.player.y - 30, '#ff0055');
+                        this.showFloatingText(`NOT ENOUGH 📀 (NEED 📀${price})`, this.player.x, this.player.y - 30, '#ff0055');
                     }
                 }
             }
@@ -5522,7 +5522,7 @@ class GameEngine {
                 this.player.coins += coin.amount;
                 
                 // 골드 획득 텍스트
-                this.showFloatingText(`+${coin.amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
+                this.showFloatingText(`+${coin.amount} 📀`, this.player.x, this.player.y - 25, '#ffdf00');
                 Sound.play('coin');
                 
                 // 황금색 스파크 파티클 연출
@@ -5629,7 +5629,7 @@ class GameEngine {
         else if (rand < 0.85) {
             // 2. 네온 코인 (35% 확률) - 다량의 코인 드롭
             let coinCount = Math.floor(Math.random() * 21) + 40; // 40~60 코인 드롭
-            this.showFloatingText(`SYSTEM CRACK: GAINED 🪙 ${coinCount} COINS!`, device.x, device.y - 30, '#ffdf00');
+            this.showFloatingText(`SYSTEM CRACK: GAINED ${coinCount} 📀!`, device.x, device.y - 30, '#ffdf00');
             Sound.play('coin');
             
             // 코인이 방 중앙에서 통통 튕겨 나오도록 드롭
@@ -5738,7 +5738,7 @@ class GameEngine {
         if (m.isElite && this.player.equipLevels.necklace >= 5) {
             coinDropCount += 20;
             this.potions.push(new NeonPotion(m.x, m.y));
-            this.showFloatingText(`LUCKY DROP! 🪙`, m.x, m.y - 45, '#ffdf00');
+            this.showFloatingText(`LUCKY DROP! 📀`, m.x, m.y - 45, '#ffdf00');
         }
         
         for (let k = 0; k < coinDropCount; k++) {
@@ -6760,7 +6760,7 @@ class GameEngine {
         document.getElementById('monster-counter').innerText = `${this.monsters.length} / ${this.currentSpawnTotal}`;
         
         // [신규 기획] 실시간 보유 네온 코인 동기화
-        document.getElementById('coin-counter').innerText = `🪙 ${this.player.coins || 0}`;
+        document.getElementById('coin-counter').innerText = `📀 ${this.player.coins || 0}`;
 
         // 생명력 HP 연산
         let hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
@@ -6925,7 +6925,7 @@ class GameEngine {
             { id: 'spear', title: '네온 창(Spear) 장착', icon: '🔱', desc: '직선상의 깊숙한 관통 찌르기로 적을 멀리 밀치고 벽 격돌 기절을 유도합니다.' },
             { id: 'thorns', title: '네온 가시(Thorns) 장착', icon: '🌵', desc: '피격 대미지를 100% 주변 적에게 반사하고, 10% 확률로 보복 유도 가시를 쏘며, 피격 시 3초간 도발(가시 오라 장막) 필드를 활성화합니다.' },
             { id: 'whip', title: '네온 채찍(Whip) 장착', icon: '🧣', desc: '직선 그랩 사슬을 사출하여 적을 발앞으로 강제 견인하고, 1.5초 기절 및 3초 공속 +20% 상승(최대 3중첩) 버프를 부여합니다.' },
-            { id: 'trap', title: '네온 함정(Trap) 설치', icon: '🪤', desc: '이동 흔적상에 2초 주기로 80px 기절 지뢰를 매설하고, 가로/세로 벽 사이에 전류 감전 레이저 트립와이어를 설치합니다.' },
+            { id: 'trap', title: '네온 함정(Trap) 설치', icon: '💣', desc: '이동 흔적상에 2초 주기로 80px 기절 지뢰를 매설하고, 가로/세로 벽 사이에 전류 감전 레이저 트립와이어를 설치합니다.' },
             { id: 'lightning', title: '네온 번개마법 (Lightning)', icon: '⚡', desc: '마나를 소모해 적들 사이를 연쇄 전이하며 단체 감전 기절을 주는 벼락을 발사합니다.' },
             { id: 'fire', title: '네온 불마법 (Fire)', icon: '🔥', desc: '마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 연쇄 폭발을 일으키는 불꽃을 격발합니다.' },
             { id: 'ice', title: '네온 얼음마법 (Ice)', icon: '❄️', desc: '마나(MP)를 소모해 적을 동결 정지시키며 동결된 적 타격 시 3배 파쇄 피해를 입칩니다.' },
@@ -7372,11 +7372,11 @@ class GameEngine {
             case 'trap':
                 p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
                 if (p.weaponLevels.trap === 5) {
-                    this.showFloatingText("🪤 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText("💣 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
                 } else if (p.weaponLevels.trap > 1) {
-                    this.showFloatingText(`🪤 TRAPS UPGRADED! (Lv.${p.weaponLevels.trap}) 🪤`, p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText(`💣 TRAPS UPGRADED! (Lv.${p.weaponLevels.trap}) 💣`, p.x, p.y - 30, '#ffdf00');
                 } else {
-                    this.showFloatingText("TRAPS UNLOCKED 🪤", p.x, p.y - 30, '#ffdf00');
+                    this.showFloatingText("TRAPS UNLOCKED 💣", p.x, p.y - 30, '#ffdf00');
                 }
                 break;
             case 'lightning':
@@ -8526,7 +8526,7 @@ class GameEngine {
 
         document.getElementById('cheat-trap-btn').addEventListener('click', () => {
             this.player.weaponLevels.trap = 5;
-            this.showFloatingText("TRAP MASTER ACTIVE! 🪤", this.player.x, this.player.y - 40, '#ffdf00');
+            this.showFloatingText("TRAP MASTER ACTIVE! 💣", this.player.x, this.player.y - 40, '#ffdf00');
         });
 
         document.getElementById('cheat-thorns-btn').addEventListener('click', () => {
@@ -8711,7 +8711,7 @@ class GameEngine {
             
             if (statusRoom) statusRoom.innerText = `${Math.min(100, this.roomNum)} / 100`;
             if (statusScore) statusScore.innerText = this.score;
-            if (statusCoin) statusCoin.innerText = `🪙 ${this.player ? this.player.coins : 0}`;
+            if (statusCoin) statusCoin.innerText = `📀 ${this.player ? this.player.coins : 0}`;
             
             // 장비 그리드 렌더링
             const statusGrid = document.getElementById('status-equipments-grid');
@@ -8817,7 +8817,7 @@ class GameEngine {
     addCoinsCheat(amount) {
         this.player.coins += amount;
         Sound.play('coin');
-        this.showFloatingText(`+${amount} 🪙`, this.player.x, this.player.y - 25, '#ffdf00');
+        this.showFloatingText(`+${amount} 📀`, this.player.x, this.player.y - 25, '#ffdf00');
         
         // HUD 갱신
         this.updateHUD();
@@ -8878,7 +8878,7 @@ class GameEngine {
             return;
         } else if (wpnType === 'trap') {
             p.weaponLevels.trap = 5;
-            this.showFloatingText("TRAPS ENABLED 🪤", p.x, p.y - 40, '#ffdf00');
+            this.showFloatingText("TRAPS ENABLED 💣", p.x, p.y - 40, '#ffdf00');
             return;
         } else if (wpnType === 'time') {
             p.hasTimeWarp = true;

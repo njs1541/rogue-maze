@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <script>
         // 원격 런타임 에러 추적용 디버거
-        window.onerror = function(message, source, lineno, colno, error) {
+        window.onerror = function (message, source, lineno, colno, error) {
             alert("🚨 네온 엔진 런타임 에러 감지!\n\n에러 메시지: " + message + "\n발생 위치: " + source + " (Line " + lineno + ", Col " + colno + ")\n\n이 에러 메시지를 복사해서 개발자에게 알려주세요!");
             return false;
         };
@@ -14,11 +15,12 @@
     <!-- 고급 현대적인 타이포그래피 Google Font 적용 -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    
+
     <!-- Firebase Compat v10 Core & Firestore CDN 추가 (최신화 완료) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
+
 <body>
     <div id="game-container">
         <!-- 상단 정보 HUD -->
@@ -37,7 +39,7 @@
             </div>
             <div class="hud-item" style="position: relative;">
                 <span class="label">COIN</span>
-                <span id="coin-counter" class="value text-glow-yellow">🪙 0</span>
+                <span id="coin-counter" class="value text-glow-yellow">📀 0</span>
                 <span id="coin-gain-popup" class="coin-gain-text hidden"></span>
             </div>
             <!-- [신규 추가] 옵션 설정 및 일시정지 조작 버튼 -->
@@ -49,7 +51,7 @@
         <!-- 메인 게임 캔버스 -->
         <div id="canvas-container">
             <canvas id="game-canvas"></canvas>
-            
+
             <!-- 조작 가이드 안내 (게임 시작 시 오버레이) -->
             <div id="start-overlay" class="overlay-panel">
                 <h1 class="game-title text-glow-purple">NEON ROGUE-MAZE</h1>
@@ -61,10 +63,17 @@
                     <div class="guide-item"><span>Mouse Left Click</span> 일반 공격 (연사)</div>
                     <div class="guide-item"><span>Spacebar</span> 마력 특수기 (광역 폭발)</div>
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 560px; margin-top: 15px; flex-wrap: nowrap;">
-                    <button id="start-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem;">게임 시작</button>
-                    <button id="main-codex-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇 카드 도감</button>
-                    <button id="main-leaderboard-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 리더보드</button>
+                <div
+                    style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 560px; margin-top: 15px; flex-wrap: nowrap;">
+                    <button id="start-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem;">게임
+                        시작</button>
+                    <button id="main-codex-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇
+                        카드 도감</button>
+                    <button id="main-leaderboard-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆
+                        리더보드</button>
                 </div>
             </div>
         </div>
@@ -108,22 +117,34 @@
             <!-- 우측: 세부 능력치 정보 대시보드 (3열 확장 프리미엄 설계) -->
             <div id="stats-dashboard">
                 <div class="stat-column">
-                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk" class="stat-value">10</span></div>
-                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd" class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms" class="stat-value">3.0</span></div>
-                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd" class="stat-value">5%</span></div>
+                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk"
+                            class="stat-value">10</span></div>
+                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd"
+                            class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms"
+                            class="stat-value">3.0</span></div>
+                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd"
+                            class="stat-value">5%</span></div>
                 </div>
                 <div class="stat-column">
-                    <div class="stat-row" title="보상 획득 행운율"><span class="stat-name">운 (LUK)</span><span id="stat-luk" class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="초당 체력 자연 재생량"><span class="stat-name">재생 (REG)</span><span id="stat-regen" class="stat-value">0.0/s</span></div>
-                    <div class="stat-row" title="탄환 사거리 및 검 베기 반경"><span class="stat-name">사거리 (RNG)</span><span id="stat-range" class="stat-value">350px</span></div>
-                    <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span id="stat-pets" class="stat-value">0기</span></div>
+                    <div class="stat-row" title="보상 획득 행운율"><span class="stat-name">운 (LUK)</span><span id="stat-luk"
+                            class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="초당 체력 자연 재생량"><span class="stat-name">재생 (REG)</span><span
+                            id="stat-regen" class="stat-value">0.0/s</span></div>
+                    <div class="stat-row" title="탄환 사거리 및 검 베기 반경"><span class="stat-name">사거리 (RNG)</span><span
+                            id="stat-range" class="stat-value">350px</span></div>
+                    <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span
+                            id="stat-pets" class="stat-value">0기</span></div>
                 </div>
                 <div class="stat-column">
-                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
-                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span id="stat-bullets" class="stat-value">1 / 1</span></div>
-                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span id="stat-effects" class="stat-value">0 / X / X</span></div>
-                    <div class="stat-row" title="안전 경계 충돌 마찰력"><span class="stat-name">보안 (SEC)</span><span class="stat-value text-glow-green">안전</span></div>
+                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span
+                            id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
+                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span
+                            id="stat-bullets" class="stat-value">1 / 1</span></div>
+                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span
+                            id="stat-effects" class="stat-value">0 / X / X</span></div>
+                    <div class="stat-row" title="안전 경계 충돌 마찰력"><span class="stat-name">보안 (SEC)</span><span
+                            class="stat-value text-glow-green">안전</span></div>
                 </div>
             </div>
         </footer>
@@ -167,85 +188,125 @@
                 </div>
             </div>
             <!-- [개선] 카드 보상 리롤 및 건너뛰기 액션 홀더 -->
-            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px; width: 100%; max-width: 480px; margin: 25px auto 0 auto;">
-                <button id="reroll-btn" class="neon-btn" style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲 다시 굴리기 (0)</button>
-                <button id="skip-btn" class="neon-btn" style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️ 건너뛰기 (0)</button>
+            <div
+                style="display: flex; gap: 15px; justify-content: center; margin-top: 25px; width: 100%; max-width: 480px; margin: 25px auto 0 auto;">
+                <button id="reroll-btn" class="neon-btn"
+                    style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲
+                    다시 굴리기 (0)</button>
+                <button id="skip-btn" class="neon-btn"
+                    style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️
+                    건너뛰기 (0)</button>
             </div>
         </div>
- 
+
         <!-- 게임 오버 및 최종 클리어 모달 오버레이 -->
         <div id="result-overlay" class="hidden">
             <div class="result-box" style="max-width: 580px; width: 95%;">
                 <h1 id="result-title" class="text-glow-red">GAME OVER</h1>
                 <p id="result-message">어두운 미로 속에서 쓰러졌습니다...</p>
-                
+
                 <div class="result-stats" style="margin-bottom: 15px;">
                     <div class="res-row"><span>최종 도달 방:</span><span id="res-room" class="res-val">15 / 100</span></div>
-                    <div class="res-row"><span>누적 획득 점수:</span><span id="res-score" class="res-val text-glow-green">1540</span></div>
-                    <div class="res-row"><span>처치한 몬스터:</span><span id="res-kills" class="res-val text-glow-red">124</span></div>
-                    <div class="res-row"><span>최종 무기 상태:</span><span id="res-wpn" class="res-val text-glow-blue">검 + 총 (하이브리드)</span></div>
+                    <div class="res-row"><span>누적 획득 점수:</span><span id="res-score"
+                            class="res-val text-glow-green">1540</span></div>
+                    <div class="res-row"><span>처치한 몬스터:</span><span id="res-kills"
+                            class="res-val text-glow-red">124</span></div>
+                    <div class="res-row"><span>최종 무기 상태:</span><span id="res-wpn" class="res-val text-glow-blue">검 + 총
+                            (하이브리드)</span></div>
                 </div>
 
                 <!-- 최종 획득 장비 현황 조회 영역 -->
-                <h3 class="text-glow-purple" style="font-size: 1.1rem; margin-top: 15px; margin-bottom: 8px; font-weight: 600; text-align: center;">🛡️ 최종 습득 장비 현황</h3>
-                <div id="result-equipments-grid" class="status-grid" style="max-height: 140px; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <h3 class="text-glow-purple"
+                    style="font-size: 1.1rem; margin-top: 15px; margin-bottom: 8px; font-weight: 600; text-align: center;">
+                    🛡️ 최종 습득 장비 현황</h3>
+                <div id="result-equipments-grid" class="status-grid"
+                    style="max-height: 140px; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
                     <!-- JS에서 동적 바인딩 -->
                 </div>
 
                 <!-- [신규] 명예의 전당 랭킹 등록 폼 (기본 hidden) -->
-                <div id="rank-submit-area" class="rank-submit-container hidden" style="margin-top: 15px; padding: 15px; border: 1px dashed rgba(0, 240, 255, 0.25); border-radius: 8px; background: rgba(0, 240, 255, 0.02);">
-                    <h3 class="text-glow-cyan" style="font-size: 1.1rem; margin-top: 0; margin-bottom: 10px; font-weight: 600; text-align: center;">🏆 명예의 전당 랭킹 등록</h3>
-                    <div class="rank-input-row" style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 380px; margin: 0 auto;">
-                        <input type="text" id="rank-nickname" placeholder="닉네임 (영문 대문자+숫자)" maxlength="10" autocomplete="off" style="flex: 1; padding: 10px; border: 1px solid rgba(0, 240, 255, 0.4); background: rgba(0, 5, 15, 0.7); color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; text-align: center; border-radius: 4px; outline: none; transition: border-color 0.25s, box-shadow 0.25s;">
-                        <button id="submit-rank-btn" class="neon-btn small" style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); margin: 0; padding: 8px 20px; font-size: 0.9rem;">등록</button>
+                <div id="rank-submit-area" class="rank-submit-container hidden"
+                    style="margin-top: 15px; padding: 15px; border: 1px dashed rgba(0, 240, 255, 0.25); border-radius: 8px; background: rgba(0, 240, 255, 0.02);">
+                    <h3 class="text-glow-cyan"
+                        style="font-size: 1.1rem; margin-top: 0; margin-bottom: 10px; font-weight: 600; text-align: center;">
+                        🏆 명예의 전당 랭킹 등록</h3>
+                    <div class="rank-input-row"
+                        style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 380px; margin: 0 auto;">
+                        <input type="text" id="rank-nickname" placeholder="닉네임 (영문 대문자+숫자)" maxlength="10"
+                            autocomplete="off"
+                            style="flex: 1; padding: 10px; border: 1px solid rgba(0, 240, 255, 0.4); background: rgba(0, 5, 15, 0.7); color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; text-align: center; border-radius: 4px; outline: none; transition: border-color 0.25s, box-shadow 0.25s;">
+                        <button id="submit-rank-btn" class="neon-btn small"
+                            style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); margin: 0; padding: 8px 20px; font-size: 0.9rem;">등록</button>
                     </div>
-                    <p id="rank-feedback-msg" class="rank-feedback-text hidden" style="font-size: 0.8rem; margin-top: 8px; margin-bottom: 0; font-weight: 600; text-align: center;"></p>
+                    <p id="rank-feedback-msg" class="rank-feedback-text hidden"
+                        style="font-size: 0.8rem; margin-top: 8px; margin-bottom: 0; font-weight: 600; text-align: center;">
+                    </p>
                 </div>
 
-                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; width: 100%; flex-wrap: wrap;">
-                    <button id="restart-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap;">다시 도전</button>
-                    <button id="open-rank-form-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">🏆 랭킹 등록</button>
-                    <button id="result-leaderboard-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 랭킹 보기</button>
-                    <button id="goto-main-btn" class="neon-btn" style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🏠 처음으로</button>
+                <div
+                    style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; width: 100%; flex-wrap: wrap;">
+                    <button id="restart-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap;">다시
+                        도전</button>
+                    <button id="open-rank-form-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">🏆
+                        랭킹 등록</button>
+                    <button id="result-leaderboard-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆
+                        랭킹 보기</button>
+                    <button id="goto-main-btn" class="neon-btn"
+                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🏠
+                        처음으로</button>
                 </div>
             </div>
         </div>
 
         <!-- [신규] 게임 도중 획득 장비 확인 및 일시정지 모달 오버레이 -->
-        <div id="in-game-status-overlay" class="overlay-panel hidden" style="background: rgba(5, 6, 12, 0.9); z-index: 99;">
+        <div id="in-game-status-overlay" class="overlay-panel hidden"
+            style="background: rgba(5, 6, 12, 0.9); z-index: 99;">
             <div class="ranking-modal-container" style="max-width: 600px; width: 95%;">
                 <div class="ranking-modal-header">
-                    <h2 class="text-glow-cyan" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📊 CURRENT EQUIPMENT STATUS</h2>
+                    <h2 class="text-glow-cyan" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📊 CURRENT
+                        EQUIPMENT STATUS</h2>
                     <span id="status-modal-close" class="cheat-close" style="cursor: pointer;">&times;</span>
                 </div>
-                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
+                <p
+                    style="color: #a0aec0; font-size: 0.85rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
                     현재까지 습득한 무기, 보조 장비의 상세 레벨 및 현재 점수를 조회합니다. (일시정지 상태)
                 </p>
-                
+
                 <!-- 현재 점수 표시 HUD 복사판 -->
-                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; background: rgba(255, 255, 255, 0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                <div
+                    style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; background: rgba(255, 255, 255, 0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
                     <div style="text-align: center; flex: 1;">
                         <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">ROOM</div>
-                        <div id="status-room" class="text-glow-blue" style="font-size: 1.2rem; font-weight: 800;">1 / 100</div>
+                        <div id="status-room" class="text-glow-blue" style="font-size: 1.2rem; font-weight: 800;">1 /
+                            100</div>
                     </div>
-                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255, 255, 255, 0.08); border-right: 1px solid rgba(255, 255, 255, 0.08);">
+                    <div
+                        style="text-align: center; flex: 1; border-left: 1px solid rgba(255, 255, 255, 0.08); border-right: 1px solid rgba(255, 255, 255, 0.08);">
                         <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">SCORE</div>
-                        <div id="status-score" class="text-glow-green" style="font-size: 1.2rem; font-weight: 800;">0</div>
+                        <div id="status-score" class="text-glow-green" style="font-size: 1.2rem; font-weight: 800;">0
+                        </div>
                     </div>
                     <div style="text-align: center; flex: 1;">
                         <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">COIN</div>
-                        <div id="status-coin" class="text-glow-yellow" style="font-size: 1.2rem; font-weight: 800;">🪙 0</div>
+                        <div id="status-coin" class="text-glow-yellow" style="font-size: 1.2rem; font-weight: 800;">📀 0
+                        </div>
                     </div>
                 </div>
 
-                <div class="ranking-list-container" style="min-height: 260px; max-height: 360px; overflow-y: auto; width: 100%; padding: 10px;">
+                <div class="ranking-list-container"
+                    style="min-height: 260px; max-height: 360px; overflow-y: auto; width: 100%; padding: 10px;">
                     <div id="status-equipments-grid" class="status-grid">
                         <!-- JS로 동적 생성 -->
                     </div>
                 </div>
-                
+
                 <div style="text-align: center; margin-top: 20px;">
-                    <button id="status-modal-close-btn" class="neon-btn" style="border-color: #00f0ff; color: #00f0ff; font-size: 0.95rem; padding: 8px 35px; margin: 0;">닫기 (Return)</button>
+                    <button id="status-modal-close-btn" class="neon-btn"
+                        style="border-color: #00f0ff; color: #00f0ff; font-size: 0.95rem; padding: 8px 35px; margin: 0;">닫기
+                        (Return)</button>
                 </div>
             </div>
         </div>
@@ -281,28 +342,46 @@
                     </div>
                 </div>
                 <p class="click-to-close-text">확인 버튼을 클릭하거나 화면을 클릭하여 상품을 수령하세요.</p>
-                <button id="shop-confirm-btn" class="neon-btn" style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.3); margin-top: 10px;">수령 완료</button>
+                <button id="shop-confirm-btn" class="neon-btn"
+                    style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.3); margin-top: 10px;">수령
+                    완료</button>
             </div>
         </div>
 
         <!-- [신규] 네온 암시장 차원 거래 계약 모달 (최대 HP 희생 기믹) -->
         <div id="secret-shop-overlay" class="overlay-panel hidden">
-            <div class="detail-card-container secret-shop-theme" style="border-color: #b026ff; box-shadow: 0 0 35px rgba(176, 38, 255, 0.3);">
-                <h2 class="text-glow-purple blinking-neon" style="color: #b026ff; font-weight: 800; font-size: 1.8rem; margin-bottom: 5px;">🔮 차원의 암시장 계약 🔮</h2>
-                <p style="color: #a0aec0; font-size: 0.82rem; margin-top: -5px; margin-bottom: 15px; text-align: center;">이계의 상인이 플레이어의 피를 대가로 강력한 전설 능력을 제안합니다.</p>
-                <div id="secret-shop-card-view" class="reward-card large-card card-legendary" style="margin: 0 auto; max-width: 250px;">
-                    <div class="card-glow" style="background: radial-gradient(circle, rgba(176, 38, 255, 0.45) 0%, transparent 70%);"></div>
+            <div class="detail-card-container secret-shop-theme"
+                style="border-color: #b026ff; box-shadow: 0 0 35px rgba(176, 38, 255, 0.3);">
+                <h2 class="text-glow-purple blinking-neon"
+                    style="color: #b026ff; font-weight: 800; font-size: 1.8rem; margin-bottom: 5px;">🔮 차원의 암시장 계약 🔮
+                </h2>
+                <p
+                    style="color: #a0aec0; font-size: 0.82rem; margin-top: -5px; margin-bottom: 15px; text-align: center;">
+                    이계의 상인이 플레이어의 피를 대가로 강력한 전설 능력을 제안합니다.</p>
+                <div id="secret-shop-card-view" class="reward-card large-card card-legendary"
+                    style="margin: 0 auto; max-width: 250px;">
+                    <div class="card-glow"
+                        style="background: radial-gradient(circle, rgba(176, 38, 255, 0.45) 0%, transparent 70%);">
+                    </div>
                     <div class="card-inner" style="border-color: #b026ff;">
-                        <span id="secret-shop-card-rarity" class="card-rarity legendary" style="background: rgba(176, 38, 255, 0.2); border-color: #b026ff; color: #b026ff;">LEGENDARY</span>
+                        <span id="secret-shop-card-rarity" class="card-rarity legendary"
+                            style="background: rgba(176, 38, 255, 0.2); border-color: #b026ff; color: #b026ff;">LEGENDARY</span>
                         <div id="secret-shop-card-icon" class="card-icon" style="color: #b026ff;">✨</div>
                         <h3 id="secret-shop-card-title" class="card-title">계약할 능력</h3>
                         <p id="secret-shop-card-desc" class="card-desc">능력 상세 설명</p>
                     </div>
                 </div>
-                <p class="warning-blood-text" style="color: #ff0055; font-size: 0.88rem; font-weight: 800; text-shadow: 0 0 8px rgba(255, 0, 85, 0.65); margin-top: 15px; margin-bottom: 12px; text-align: center;">⚠️ 거래의 대가: 최대 체력(Max HP) -15 영구 삭감</p>
-                <div class="option-actions" style="display: flex; gap: 15px; justify-content: center; margin-top: 5px; width: 100%;">
-                    <button id="secret-shop-accept-btn" class="neon-btn danger" style="border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.25); padding: 8px 20px; font-size: 0.9rem;">서약 수락 (HP 바치기)</button>
-                    <button id="secret-shop-reject-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; padding: 8px 20px; font-size: 0.9rem; background: transparent;">계약 거절 (돌아가기)</button>
+                <p class="warning-blood-text"
+                    style="color: #ff0055; font-size: 0.88rem; font-weight: 800; text-shadow: 0 0 8px rgba(255, 0, 85, 0.65); margin-top: 15px; margin-bottom: 12px; text-align: center;">
+                    ⚠️ 거래의 대가: 최대 체력(Max HP) -15 영구 삭감</p>
+                <div class="option-actions"
+                    style="display: flex; gap: 15px; justify-content: center; margin-top: 5px; width: 100%;">
+                    <button id="secret-shop-accept-btn" class="neon-btn danger"
+                        style="border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.25); padding: 8px 20px; font-size: 0.9rem;">서약
+                        수락 (HP 바치기)</button>
+                    <button id="secret-shop-reject-btn" class="neon-btn"
+                        style="border-color: #a0aec0; color: #a0aec0; padding: 8px 20px; font-size: 0.9rem; background: transparent;">계약
+                        거절 (돌아가기)</button>
                 </div>
             </div>
         </div>
@@ -311,38 +390,46 @@
         <div id="option-overlay" class="overlay-panel hidden">
             <div class="option-container">
                 <h2 class="option-title text-glow-purple">⚙️ SYSTEM OPTIONS</h2>
-                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: -15px; margin-bottom: 5px;">게임을 일시정지하고 사운드 및 진행을 제어합니다.</p>
-                
+                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: -15px; margin-bottom: 5px;">게임을 일시정지하고 사운드 및
+                    진행을 제어합니다.</p>
+
                 <div class="option-content">
                     <!-- 효과음 볼륨 조절 -->
                     <div class="option-group">
                         <label for="volume-sfx" class="option-label">🔊 효과음 볼륨 (SFX)</label>
                         <div class="slider-row">
-                            <input type="range" id="volume-sfx" min="0" max="1" step="0.05" value="1.0" class="neon-slider">
+                            <input type="range" id="volume-sfx" min="0" max="1" step="0.05" value="1.0"
+                                class="neon-slider">
                             <span id="volume-sfx-val" class="slider-val text-glow-cyan">100%</span>
                         </div>
                     </div>
-                    
+
                     <!-- 배경음악 볼륨 조절 (향후 배경음 파일 연동 대비) -->
                     <div class="option-group">
                         <label for="volume-bgm" class="option-label">🎵 배경음악 볼륨 (BGM)</label>
                         <div class="slider-row">
-                            <input type="range" id="volume-bgm" min="0" max="1" step="0.05" value="0.5" class="neon-slider">
+                            <input type="range" id="volume-bgm" min="0" max="1" step="0.05" value="0.5"
+                                class="neon-slider">
                             <span id="volume-bgm-val" class="slider-val text-glow-green">50%</span>
                         </div>
                     </div>
 
                     <!-- [성능 최적화] 저사양 모드 (Glow 효과 끄기) 추가 -->
-                    <div class="option-group" style="flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px; margin-top: 15px;">
-                        <label for="perf-low-spec" class="option-label" style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <div class="option-group"
+                        style="flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px; margin-top: 15px;">
+                        <label for="perf-low-spec" class="option-label"
+                            style="margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                             <span>⚡ 성능 최적화 모드 (Glow 끄기)</span>
                         </label>
-                        <input type="checkbox" id="perf-low-spec" style="width: 20px; height: 20px; cursor: pointer; accent-color: #00f0ff;">
+                        <input type="checkbox" id="perf-low-spec"
+                            style="width: 20px; height: 20px; cursor: pointer; accent-color: #00f0ff;">
                     </div>
                 </div>
-                
+
                 <div class="option-actions">
-                    <button id="option-codex-btn" class="neon-btn" style="border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇 카드 도감</button>
+                    <button id="option-codex-btn" class="neon-btn"
+                        style="border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇
+                        카드 도감</button>
                     <button id="option-restart-btn" class="neon-btn danger">🔄 게임 재시작</button>
                     <button id="option-close-btn" class="neon-btn">닫기 (Close)</button>
                 </div>
@@ -356,7 +443,7 @@
                     <h2 class="text-glow-purple">⚡ NEON DEBUG & CHEAT SYSTEM ⚡</h2>
                     <span class="cheat-close" id="cheat-close-btn">&times;</span>
                 </div>
-                
+
                 <!-- 탭 버튼 헤더 -->
                 <div class="cheat-tabs">
                     <button class="cheat-tab-btn active" data-tab="cheat-tab-stats">스탯 조절</button>
@@ -364,7 +451,7 @@
                     <button class="cheat-tab-btn" data-tab="cheat-tab-equipments">장비 레벨</button>
                     <button class="cheat-tab-btn" data-tab="cheat-tab-utils">치트 유틸</button>
                 </div>
-                
+
                 <div class="cheat-content-container">
                     <!-- 탭 1: 스탯 조절 -->
                     <div id="cheat-tab-stats" class="cheat-tab-content active">
@@ -418,9 +505,10 @@
                                 </div>
                             </div>
                         </div>
-                        <button id="cheat-apply-stats" class="neon-btn font-small" style="margin-top: 15px; border-color: #00f0ff; color: #00f0ff;">스탯 일괄 적용</button>
+                        <button id="cheat-apply-stats" class="neon-btn font-small"
+                            style="margin-top: 15px; border-color: #00f0ff; color: #00f0ff;">스탯 일괄 적용</button>
                     </div>
-                    
+
                     <!-- 탭 2: 무기/투사체 -->
                     <div id="cheat-tab-weapons" class="cheat-tab-content">
                         <div class="cheat-weapon-section">
@@ -434,14 +522,18 @@
                                 <button class="cheat-wpn-btn" data-wpn="lightning">⚡ 번개마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="fire">🔥 불마법</button>
                                 <button class="cheat-wpn-btn" data-wpn="ice">❄️ 얼음마법</button>
-                                <button class="cheat-wpn-btn" data-wpn="icefiredance" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 아앤파 댄스 (초월)</button>
-                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 아앤파 초월 조건 즉시 충전</button>
+                                <button class="cheat-wpn-btn" data-wpn="icefiredance"
+                                    style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀
+                                    아앤파 댄스 (초월)</button>
+                                <button id="cheat-prep-evo"
+                                    style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬
+                                    아앤파 초월 조건 즉시 충전</button>
                                 <button class="cheat-wpn-btn" data-wpn="thorns">🌵 가시 (Thorns)</button>
                                 <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
-                                <button class="cheat-wpn-btn" data-wpn="trap">🪤 함정 (Trap)</button>
+                                <button class="cheat-wpn-btn" data-wpn="trap">💣 함정 (Trap)</button>
                             </div>
                         </div>
-                        
+
                         <div class="cheat-grid" style="margin-top: 15px;">
                             <div class="cheat-field-group">
                                 <label for="cheat-multishot">탄환 동시 발사 (Multishot)</label>
@@ -471,71 +563,94 @@
                                 <label for="cheat-monster-bounce">몬스터 튕기기 (M-Bounce)</label>
                                 <input type="number" id="cheat-monster-bounce" min="0" max="20" step="1">
                             </div>
-                            <div class="cheat-field-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                            <div class="cheat-field-group"
+                                style="flex-direction: row; align-items: center; justify-content: space-between;">
                                 <label for="cheat-homing" style="margin-bottom: 0;">유도 추적탄 (Homing)</label>
                                 <input type="checkbox" id="cheat-homing" class="cheat-toggle-checkbox">
                             </div>
                         </div>
-                        
-                        <div class="cheat-weapon-section" style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
+
+                        <div class="cheat-weapon-section"
+                            style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
                             <span class="section-title">특수 보조 장착</span>
                             <div class="cheat-btn-group">
                                 <button id="cheat-pet-btn" class="cheat-action-btn">🤖 디펜더 펫 추가 소환</button>
                                 <button id="cheat-whip-btn" class="cheat-action-btn">🧣 채찍 속성 즉시 부여</button>
-                                <button id="cheat-trap-btn" class="cheat-action-btn">🪤 지뢰/레이저 함정 활성화</button>
+                                <button id="cheat-trap-btn" class="cheat-action-btn">💣 지뢰/레이저 함정 활성화</button>
                                 <button id="cheat-thorns-btn" class="cheat-action-btn">🌵 가시 피해 반사 오라 부여</button>
                             </div>
                         </div>
-                        <button id="cheat-apply-weapons" class="neon-btn font-small" style="margin-top: 15px; border-color: #b026ff; color: #b026ff;">투사체 스탯 적용</button>
+                        <button id="cheat-apply-weapons" class="neon-btn font-small"
+                            style="margin-top: 15px; border-color: #b026ff; color: #b026ff;">투사체 스탯 적용</button>
                     </div>
-                    
+
                     <!-- 탭 3: 장비 레벨 -->
                     <div id="cheat-tab-equipments" class="cheat-tab-content">
                         <p class="cheat-tab-desc">각 장비의 레벨을 조절합니다. (5레벨 돌파 / 10레벨 초월 효과 즉시 연동)</p>
                         <div class="cheat-equip-list">
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🛡️ 최대체력 갑옷 (Armor)</span> <span id="cheat-lbl-armor" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-armor" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>🛡️ 최대체력 갑옷 (Armor)</span> <span id="cheat-lbl-armor"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-armor" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🥾 최대스테미너 신발 (Boots)</span> <span id="cheat-lbl-boots" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-boots" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>🥾 최대스테미너 신발 (Boots)</span> <span id="cheat-lbl-boots"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-boots" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🧤 공격범위 장갑 (Gloves)</span> <span id="cheat-lbl-gloves" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-gloves" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>🧤 공격범위 장갑 (Gloves)</span> <span id="cheat-lbl-gloves"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-gloves" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🪖 최대마력 투구 (Helm)</span> <span id="cheat-lbl-helm" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-helm" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>🪖 최대마력 투구 (Helm)</span> <span id="cheat-lbl-helm"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-helm" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>📿 행운 목걸이 (Necklace)</span> <span id="cheat-lbl-necklace" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-necklace" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>📿 행운 목걸이 (Necklace)</span> <span id="cheat-lbl-necklace"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-necklace" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 마력회복 반지 (Ring MP)</span> <span id="cheat-lbl-ring_mp" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_mp" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>💍 마력회복 반지 (Ring MP)</span> <span id="cheat-lbl-ring_mp"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-ring_mp" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 체력회복 반지 (Ring HP)</span> <span id="cheat-lbl-ring_hp" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_hp" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>💍 체력회복 반지 (Ring HP)</span> <span id="cheat-lbl-ring_hp"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-ring_hp" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 이동속도 반지 (Ring Speed)</span> <span id="cheat-lbl-ring_speed" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_speed" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>💍 이동속도 반지 (Ring Speed)</span> <span
+                                        id="cheat-lbl-ring_speed" class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-ring_speed" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 공격속도 반지 (Ring ASPD)</span> <span id="cheat-lbl-ring_aspd" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_aspd" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>💍 공격속도 반지 (Ring ASPD)</span> <span
+                                        id="cheat-lbl-ring_aspd" class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-ring_aspd" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                             <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 회피증가 반지 (Ring EVD)</span> <span id="cheat-lbl-ring_evd" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_evd" class="cheat-range-slider" min="0" max="10" step="1">
+                                <div class="equip-info"><span>💍 회피증가 반지 (Ring EVD)</span> <span id="cheat-lbl-ring_evd"
+                                        class="equip-val">0</span></div>
+                                <input type="range" id="cheat-eq-ring_evd" class="cheat-range-slider" min="0" max="10"
+                                    step="1">
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- 탭 4: 치트 유틸 -->
                     <div id="cheat-tab-utils" class="cheat-tab-content">
                         <div class="cheat-util-row">
@@ -556,31 +671,44 @@
                             <div class="cheat-util-card">
                                 <span class="card-label">네온 코인 획득</span>
                                 <div class="cheat-btn-pair">
-                                    <button id="cheat-add-coin-100" class="cheat-action-btn small">🪙 +100</button>
-                                    <button id="cheat-add-coin-1000" class="cheat-action-btn small">🪙 +1000</button>
+                                    <button id="cheat-add-coin-100" class="cheat-action-btn small">📀 +100</button>
+                                    <button id="cheat-add-coin-1000" class="cheat-action-btn small">📀 +1000</button>
                                 </div>
                             </div>
                             <!-- [신규 추가] 리롤 & 건너뛰기 횟수 치트 세팅 -->
                             <div class="cheat-util-card">
                                 <span class="card-label">리롤 & 건너뛰기 횟수</span>
-                                <div style="display: flex; gap: 5px; align-items: center; justify-content: center; margin-top: 5px;">
-                                    <input type="number" id="cheat-reroll-count" min="0" max="99" value="0" style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;" title="리롤 횟수">
+                                <div
+                                    style="display: flex; gap: 5px; align-items: center; justify-content: center; margin-top: 5px;">
+                                    <input type="number" id="cheat-reroll-count" min="0" max="99" value="0"
+                                        style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;"
+                                        title="리롤 횟수">
                                     <span style="color: #64748b;">/</span>
-                                    <input type="number" id="cheat-skip-count" min="0" max="99" value="0" style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;" title="건너뛰기 횟수">
-                                    <button id="cheat-apply-rolls" class="cheat-action-btn small" style="margin: 0; padding: 4px 8px; border-color: #ffdf00; color: #ffdf00;">적용</button>
+                                    <input type="number" id="cheat-skip-count" min="0" max="99" value="0"
+                                        style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;"
+                                        title="건너뛰기 횟수">
+                                    <button id="cheat-apply-rolls" class="cheat-action-btn small"
+                                        style="margin: 0; padding: 4px 8px; border-color: #ffdf00; color: #ffdf00;">적용</button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="cheat-util-row" style="margin-top: 15px;">
                             <div class="cheat-util-card full-width">
                                 <span class="card-label">방 클리어 & 보상 시스템 통제</span>
                                 <div class="cheat-action-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                    <button id="cheat-clear-room" class="cheat-action-btn" style="background: rgba(255, 0, 108, 0.15); border-color: #ff006c; color: #ff006c; flex: 1;">💥 현재 방 즉시 소탕 (Clear Room)</button>
-                                    <button id="cheat-spawn-reward" class="cheat-action-btn" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁 보상 선택 즉시 소환</button>
+                                    <button id="cheat-clear-room" class="cheat-action-btn"
+                                        style="background: rgba(255, 0, 108, 0.15); border-color: #ff006c; color: #ff006c; flex: 1;">💥
+                                        현재 방 즉시 소탕 (Clear Room)</button>
+                                    <button id="cheat-spawn-reward" class="cheat-action-btn"
+                                        style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁
+                                        보상 선택 즉시 소환</button>
                                     <div class="cheat-warp-group" style="flex: 1.2; display: flex; gap: 5px;">
-                                        <input type="number" id="cheat-warp-stage-input" min="1" max="99" value="1" style="width: 60px; text-align: center;">
-                                        <button id="cheat-warp-stage-btn" class="cheat-action-btn" style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0; flex: 1;">🌀 스테이지 워프</button>
+                                        <input type="number" id="cheat-warp-stage-input" min="1" max="99" value="1"
+                                            style="width: 60px; text-align: center;">
+                                        <button id="cheat-warp-stage-btn" class="cheat-action-btn"
+                                            style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0; flex: 1;">🌀
+                                            스테이지 워프</button>
                                     </div>
                                 </div>
                             </div>
@@ -595,31 +723,40 @@
     <div id="card-codex-overlay" class="overlay-panel hidden">
         <div class="ranking-modal-container">
             <div class="ranking-modal-header">
-                <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📇 NEON CARD CODEX 📇</h2>
+                <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📇 NEON CARD CODEX
+                    📇</h2>
                 <span id="codex-modal-close" class="cheat-close">&times;</span>
             </div>
             <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
                 미로에서 획득 가능한 모든 무기/장비/스탯 카드 정보<br>
-                <a href="cards_list.html" target="_blank" style="color: #00f0ff; text-decoration: none; margin-right: 15px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 240, 255, 0.4);">📇 신규 기획서 상세 보기</a>
-                <a href="weapon_combinations.html" target="_blank" style="color: #ffdf00; text-decoration: none; font-weight: bold; text-shadow: 0 0 5px rgba(255, 223, 0, 0.4);">🔮 전설 진화/시너지 가이드</a>
+                <a href="cards_list.html" target="_blank"
+                    style="color: #00f0ff; text-decoration: none; margin-right: 15px; font-weight: bold; text-shadow: 0 0 5px rgba(0, 240, 255, 0.4);">📇
+                    신규 기획서 상세 보기</a>
+                <a href="weapon_combinations.html" target="_blank"
+                    style="color: #ffdf00; text-decoration: none; font-weight: bold; text-shadow: 0 0 5px rgba(255, 223, 0, 0.4);">🔮
+                    전설 진화/시너지 가이드</a>
             </p>
-            
+
             <!-- 탭 필터 버튼 -->
             <div class="ranking-filter-container">
                 <button class="codex-filter-btn codex-tab-btn active" data-tab="weapon">⚔️ 무기 10종</button>
                 <button class="codex-filter-btn codex-tab-btn" data-tab="equipment">🛡️ 장비 10종</button>
                 <button class="codex-filter-btn codex-tab-btn" data-tab="status">🔋 캐릭터 스탯</button>
             </div>
-            
+
             <!-- 스크롤 가능한 카드 그리드 영역 -->
-            <div class="ranking-list-container" style="min-height: 320px; max-height: 420px; overflow-y: auto; width: 100%; padding: 10px; display: block;">
-                <div id="codex-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%;">
+            <div class="ranking-list-container"
+                style="min-height: 320px; max-height: 420px; overflow-y: auto; width: 100%; padding: 10px; display: block;">
+                <div id="codex-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%;">
                     <!-- JS로 동적 생성 -->
                 </div>
             </div>
-            
+
             <div style="text-align: center; margin-top: 20px;">
-                <button id="codex-modal-close-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">닫기 (Close)</button>
+                <button id="codex-modal-close-btn" class="neon-btn"
+                    style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">닫기
+                    (Close)</button>
             </div>
         </div>
     </div>
@@ -628,31 +765,42 @@
     <div id="ranking-modal-overlay" class="overlay-panel hidden">
         <div class="ranking-modal-container">
             <div class="ranking-modal-header">
-                <h2 class="text-glow-yellow" style="font-size: 1.8rem; margin: 0; font-weight: 800;">🏆 HALL OF NEON LEADERBOARD 🏆</h2>
+                <h2 class="text-glow-yellow" style="font-size: 1.8rem; margin: 0; font-weight: 800;">🏆 HALL OF NEON
+                    LEADERBOARD 🏆</h2>
                 <span id="ranking-modal-close" class="cheat-close">&times;</span>
             </div>
-            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">전 세계 네온 러너들의 실시간 최고 스코어 Top 10 기록</p>
-            
+            <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">전
+                세계 네온 러너들의 실시간 최고 스코어 Top 10 기록</p>
+
             <!-- [신규] 랭킹 필터 전환 탭 버튼 -->
             <div class="ranking-filter-container">
                 <button class="rank-filter-btn active" data-filter="all">로컬 포함</button>
                 <button class="rank-filter-btn" data-filter="online">온라인만</button>
             </div>
-            
-            <div class="ranking-list-container" style="min-height: 250px; max-height: 380px; overflow-y: auto; width: 100%; padding: 5px 10px; display: block;">
+
+            <div class="ranking-list-container"
+                style="min-height: 250px; max-height: 380px; overflow-y: auto; width: 100%; padding: 5px 10px; display: block;">
                 <!-- 로딩 상태 -->
                 <div id="ranking-loading" class="ranking-status-msg" style="text-align: center;">
-                    <div class="neon-spinner" style="margin: 0 auto; width: 40px; height: 40px; border: 3px solid rgba(0, 240, 255, 0.1); border-top-color: #00f0ff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p style="color: #00f0ff; text-shadow: 0 0 8px rgba(0, 240, 255, 0.4); font-weight: 600; margin-top: 15px; font-size: 0.9rem;">네온 서버 데이터 동기화 중...</p>
+                    <div class="neon-spinner"
+                        style="margin: 0 auto; width: 40px; height: 40px; border: 3px solid rgba(0, 240, 255, 0.1); border-top-color: #00f0ff; border-radius: 50%; animation: spin 1s linear infinite;">
+                    </div>
+                    <p
+                        style="color: #00f0ff; text-shadow: 0 0 8px rgba(0, 240, 255, 0.4); font-weight: 600; margin-top: 15px; font-size: 0.9rem;">
+                        네온 서버 데이터 동기화 중...</p>
                 </div>
                 <!-- 빈 상태 -->
                 <div id="ranking-empty" class="ranking-status-msg hidden" style="text-align: center;">
-                    <p style="color: #ff0055; text-shadow: 0 0 8px rgba(255, 0, 85, 0.4); font-weight: 600; font-size: 1rem;">등록된 랭킹 기록이 없습니다.<br>첫 번째 전설이 되어 보세요!</p>
+                    <p
+                        style="color: #ff0055; text-shadow: 0 0 8px rgba(255, 0, 85, 0.4); font-weight: 600; font-size: 1rem;">
+                        등록된 랭킹 기록이 없습니다.<br>첫 번째 전설이 되어 보세요!</p>
                 </div>
                 <!-- 랭킹 테이블 -->
-                <table id="ranking-table" class="ranking-table hidden" style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; font-size: 0.9rem; text-align: center; color: #e2e8f0;">
+                <table id="ranking-table" class="ranking-table hidden"
+                    style="width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; font-size: 0.9rem; text-align: center; color: #e2e8f0;">
                     <thead>
-                        <tr style="border-bottom: 2px solid rgba(0, 240, 255, 0.3); color: #00f0ff; text-shadow: 0 0 5px rgba(0, 240, 255, 0.3);">
+                        <tr
+                            style="border-bottom: 2px solid rgba(0, 240, 255, 0.3); color: #00f0ff; text-shadow: 0 0 5px rgba(0, 240, 255, 0.3);">
                             <th style="padding: 10px 4px; width: 12%;">Rank</th>
                             <th style="padding: 10px 4px; width: 25%;">Runner</th>
                             <th style="padding: 10px 4px; width: 18%;">Score</th>
@@ -666,9 +814,11 @@
                     </tbody>
                 </table>
             </div>
-            
+
             <div style="text-align: center; margin-top: 20px;">
-                <button id="ranking-modal-close-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">닫기 (Close)</button>
+                <button id="ranking-modal-close-btn" class="neon-btn"
+                    style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 30px; background: transparent; margin: 0;">닫기
+                    (Close)</button>
             </div>
         </div>
     </div>
@@ -685,4 +835,5 @@
     <script src="js/engine.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>

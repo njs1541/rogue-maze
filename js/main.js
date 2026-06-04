@@ -32,7 +32,7 @@ const CODEX_DATA = {
         { name: "신속의 부츠 (Boots)", icon: "🥾", rarity: "common", desc: "최대 스태미너를 증가시킵니다. 5레벨 달리기 시 무적 대시, 10레벨 대시 스택 추가 해금." },
         { name: "공격의 장갑 (Gloves)", icon: "🧤", rarity: "common", desc: "공격 범위 및 사거리를 확장합니다. 5레벨 탄환 크기 확대, 10레벨 넉백 피해량 2배 적용." },
         { name: "지혜의 투구 (Helm)", icon: "🪖", rarity: "common", desc: "최대 마력(MP)을 상승시킵니다. 5레벨 20% 마나 프리 시전, 10레벨 마나 완충 시 피해 25% 증폭." },
-        { name: "행운의 목걸이 (Necklace)", icon: "📿", rarity: "rare", desc: "행운(LUK) 스탯을 올려 보상 가치를 높이고, 10레벨 시 방 클리어 시 15% 코인 대박이 터집니다." },
+        { name: "행운의 목걸이 (Necklace)", icon: "📿", rarity: "rare", desc: "행운(LUK) 스탯을 올려 보상 가치를 높이고, 10레벨 시 방 클리어 시 15% 📀 대박이 터집니다." },
         { name: "마력 반지 (Ring MP)", icon: "💍", rarity: "rare", desc: "초당 마력 자연 재생량을 올려줍니다. 5레벨 회피 시 마나 +5 획득, 10레벨 마나 자동 가속." },
         { name: "생명 반지 (Ring HP)", icon: "💍", rarity: "rare", desc: "초당 체력 자연 재생량을 높여줍니다. 5레벨 피격 시 +10 보복 힐, 10레벨 무사고 5초 시 힐 3배." },
         { name: "신속의 반지 (Ring Speed)", icon: "💍", rarity: "rare", desc: "캐릭터의 이동 속도를 올려줍니다. 5레벨 2초 질주 시 바람의 상처 아우라(+10% 힘)가 켜집니다." },
