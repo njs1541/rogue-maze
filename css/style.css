@@ -1476,15 +1476,14 @@ input:checked + .cheat-switch-slider:before {
     text-align: right;
 }
 
-.option-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    flex-wrap: nowrap;
+.option-container .option-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 15px;
 }
 
-.option-actions button {
-    flex: 1;
+.option-container .option-actions button {
     padding: 10px 6px;
     font-size: 0.9rem;
     cursor: pointer;
@@ -2175,6 +2174,102 @@ body.low-spec .neon-btn:hover {
     color: #718096;
     font-weight: 800;
 }
+
+/* ==========================================================================
+   [신규] 몬스터 도감(Monster Bestiary) 프리미엄 스타일
+   ========================================================================== */
+#monster-bestiary-overlay .ranking-modal-container {
+    border: 2px solid var(--neon-red) !important;
+    box-shadow: 0 0 35px rgba(255, 0, 85, 0.25), inset 0 0 20px rgba(255, 0, 85, 0.15) !important;
+}
+
+.bestiary-layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.bestiary-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 몬스터 리스트 개별 버튼 아이템 */
+.bestiary-item-btn {
+    background: rgba(20, 22, 33, 0.6);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    color: #cbd5e0;
+    width: 100%;
+}
+
+.bestiary-item-btn:hover {
+    background: rgba(255, 0, 85, 0.08);
+    border-color: var(--neon-red);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+}
+
+.bestiary-item-btn.active {
+    background: rgba(255, 0, 85, 0.15) !important;
+    border-color: var(--neon-red) !important;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.35) !important;
+}
+
+.bestiary-item-btn .icon {
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+}
+
+.bestiary-item-btn .name {
+    font-size: 0.92rem;
+    font-family: var(--font-primary);
+}
+
+.bestiary-detail {
+    flex: 1.5;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* 몬스터 도감 모바일 반응형 대응 */
+@media (max-width: 600px) {
+    .bestiary-layout {
+        flex-direction: column !important;
+        max-height: 65vh !important;
+    }
+    
+    .bestiary-list {
+        max-height: 140px !important;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        padding-bottom: 10px;
+    }
+    
+    .bestiary-detail {
+        max-height: 260px !important;
+    }
+    
+    .option-container .option-actions {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+}
+
 
 
 

@@ -51,6 +51,75 @@ const CODEX_DATA = {
     ]
 };
 
+// 몬스터 도감 데이터 정의
+const BESTIARY_DATA = [
+    {
+        id: "normal",
+        name: "일반 몬스터 (Normal)",
+        type: "normal",
+        icon: "🔴",
+        color: "#ff0055",
+        desc: "미로의 기본적인 침입자입니다. 아무런 특수 기믹은 없지만, 무리를 지어 플레이어의 위치를 향해 끊임없이 돌진합니다. 기본기에 충실한 카이팅으로 거리를 유지하며 처치하는 것이 바람직합니다.",
+        hp: "15 ~ (층 비례 인플레이션)",
+        atk: "5 ~ (층 비례 인플레이션)",
+        speed: "1.2 ~ 2.2 (방 번호에 따라 점진적 증가)",
+        tier: "방 1부터 출현",
+        ability: "기본 플레이어 추적"
+    },
+    {
+        id: "chaser",
+        name: "돌격형 몬스터 (Chaser)",
+        type: "chaser",
+        icon: "🔸",
+        color: "#ffaa00",
+        desc: "날렵한 화살촉 형태를 띤 몬스터입니다. 속도가 40% 빠르고 체력이 25% 낮은 대신, 2~3초마다 플레이어를 조준하고 폭발적인 네온 불꽃을 뿜으며 돌진 대시(Dash) 공격을 시도합니다. 대시 타이밍에 맞춰 피하는 회피 컨트롤이 핵심입니다.",
+        hp: "일반 몬스터 대비 75% 수준",
+        atk: "5 ~ (돌격 시 피격 주의)",
+        speed: "1.68 ~ 3.08 (대시 시 순간 돌발 가속)",
+        tier: "방 6부터 출현 (낮은 확률로 방 5 이하)",
+        ability: "주기적인 플레이어 방향 대시 돌진"
+    },
+    {
+        id: "shooter",
+        name: "원거리 몬스터 (Shooter)",
+        type: "shooter",
+        icon: "🔷",
+        color: "#b026ff",
+        desc: "보라색 육각형 실드로 전신을 감싼 원거리 사격형 몬스터입니다. 플레이어와 일정한 안전 거리를 유지하며, 사격 게이지가 완충되면 보라색 구체 탄환을 발사합니다. 플레이어가 다가오면 도망치는 지능적인 무빙을 보여줍니다.",
+        hp: "일반 몬스터 대비 120% 수준",
+        atk: "3.5 ~ (원거리 보라색 탄환)",
+        speed: "0.96 ~ 1.76 (좌우 회전 회피 무빙)",
+        tier: "방 11부터 출현 (낮은 확률로 방 10 이하)",
+        ability: "거리 유지 카이팅, 보라색 직진 탄환 사격"
+    },
+    {
+        id: "elite",
+        name: "엘리트 몬스터 (Elite)",
+        type: "elite",
+        icon: "🟢",
+        color: "#39ff14",
+        desc: "미로의 방에 랜덤하게 잠입한 거대 정예 몬스터입니다. 온몸이 네온 초록색으로 격렬하게 진동하며, 크기가 1.5배로 커지고 최대 체력 3배, 공격력 2배가 적용되어 매우 강력합니다. 처치 시 일반 몬스터의 5배에 달하는 리스크 보상을 제공합니다.",
+        hp: "일반/추격/사격 몬스터의 3배",
+        atk: "해당 개체 기본 공격력의 2배",
+        speed: "기본 타입 속도와 동일",
+        tier: "모든 방에서 낮은 확률로 난입",
+        ability: "3배 체력, 1.5배 크기, 2배 위력, 처치 점수 5배 기여"
+    },
+    {
+        id: "boss",
+        name: "보스 몬스터 (Boss)",
+        type: "boss",
+        icon: "👑",
+        color: "#ff3300",
+        desc: "미로의 매 5층(5의 배수 방)마다 입구를 지키고 서 있는 대형 수호자입니다. 본체 바깥에 시계 방향으로 돌아가는 점선 링과 반시계 방향으로 돌아가는 8각 톱니 링을 가동하며, 플레이어를 천천히 압박하면서 광역으로 3방향 부채꼴 탄막을 연사합니다.",
+        hp: "100 + 방 번호 * 12 (층 비례 인플레이션)",
+        atk: "15 + 방 번호 * 0.8",
+        speed: "1.0 + 층 비례 속도 상승",
+        tier: "매 5의 배수 방 (5, 10, 15... 100층 최종 보스)",
+        ability: "이중 역회전 톱니 링 전개, 3방향 부채꼴 탄막 광역 연사"
+    }
+];
+
 // 통합 UI/UX 시스템 초기화 및 바인딩
 function initNeonGameUISystem() {
     try {
@@ -153,6 +222,199 @@ function initNeonGameUISystem() {
             renderCodex(targetTab);
         });
     });
+
+    // 1-2) 몬스터 도감 (Bestiary) 이벤트 바인딩
+    const mainMonsterBtn = document.getElementById('main-monster-btn');
+    const optionMonsterBtn = document.getElementById('option-monster-btn');
+    const bestiaryOverlay = document.getElementById('monster-bestiary-overlay');
+    const bestiaryClose = document.getElementById('bestiary-modal-close');
+    const bestiaryCloseBtn = document.getElementById('bestiary-modal-close-btn');
+
+    let wasOptionOpenBeforeBestiary = false;
+    let bestiaryCanvas = document.getElementById('bestiary-monster-canvas');
+    let bestiaryCtx = bestiaryCanvas ? bestiaryCanvas.getContext('2d') : null;
+    let previewMonster = null;
+    let previewAnimationFrameId = null;
+
+    // 실시간 몬스터 렌더링 루프
+    const startMonsterPreview = (monsterType) => {
+        if (!bestiaryCtx) return;
+        if (previewAnimationFrameId) {
+            cancelAnimationFrame(previewAnimationFrameId);
+        }
+
+        if (typeof Monster === 'undefined') {
+            console.error("Monster class is not loaded yet.");
+            return;
+        }
+
+        let tier = 1;
+        if (monsterType === 'boss') tier = 5;
+        // x, y, tier, roomNum
+        previewMonster = new Monster(55, 55, tier, 1);
+
+        if (monsterType === 'elite') {
+            previewMonster.makeElite();
+            previewMonster.radius = 22; // 110x110 캔버스에 알맞게 크기 보정
+        } else if (monsterType === 'boss') {
+            previewMonster.makeBoss(5);
+            previewMonster.radius = 28; // 110x110 캔버스에 알맞게 크기 보정
+        } else {
+            previewMonster.type = monsterType;
+            previewMonster.radius = 16;
+            // 타입별 색상 고정
+            if (monsterType === 'chaser') {
+                previewMonster.color = '#ffaa00';
+                previewMonster.glowColor = '#ffaa00';
+            } else if (monsterType === 'shooter') {
+                previewMonster.color = '#b026ff';
+                previewMonster.glowColor = '#b026ff';
+            } else {
+                previewMonster.color = '#ff0055';
+                previewMonster.glowColor = '#ff0055';
+            }
+        }
+
+        const loop = () => {
+            if (!bestiaryCtx) return;
+            bestiaryCtx.clearRect(0, 0, 110, 110);
+
+            // 미니 사이버펑크 격자 배경 그리기
+            bestiaryCtx.fillStyle = '#05060c';
+            bestiaryCtx.fillRect(0, 0, 110, 110);
+
+            bestiaryCtx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
+            bestiaryCtx.lineWidth = 1;
+            for (let i = 15; i < 110; i += 15) {
+                bestiaryCtx.beginPath();
+                bestiaryCtx.moveTo(i, 0);
+                bestiaryCtx.lineTo(i, 110);
+                bestiaryCtx.stroke();
+                bestiaryCtx.beginPath();
+                bestiaryCtx.moveTo(0, i);
+                bestiaryCtx.lineTo(110, i);
+                bestiaryCtx.stroke();
+            }
+
+            if (previewMonster) {
+                // 회전 각도 시뮬레이션
+                if (!previewMonster.angle) previewMonster.angle = 0;
+                previewMonster.angle += 0.02;
+
+                // Shooter 충전 연출용 shootCooldown 강제 차감 루프
+                if (previewMonster.type === 'shooter') {
+                    if (previewMonster.shootCooldown === undefined || previewMonster.shootCooldown <= 0) {
+                        previewMonster.shootCooldown = 100;
+                    }
+                    previewMonster.shootCooldown -= 0.5;
+                }
+
+                // 몬스터 렌더링
+                previewMonster.draw(bestiaryCtx);
+            }
+
+            previewAnimationFrameId = requestAnimationFrame(loop);
+        };
+
+        loop();
+    };
+
+    // 도감 상세정보 렌더링
+    const renderBestiaryDetail = (monster) => {
+        const detailEmpty = document.getElementById('bestiary-detail-empty');
+        const detailContent = document.getElementById('bestiary-detail-content');
+        if (!detailEmpty || !detailContent) return;
+
+        detailEmpty.classList.add('hidden');
+        detailContent.classList.remove('hidden');
+
+        document.getElementById('bestiary-monster-name').innerText = monster.name;
+        document.getElementById('bestiary-monster-tier').innerText = `등급: ${monster.tier}`;
+        document.getElementById('bestiary-monster-ability').innerText = `특징: ${monster.ability}`;
+        document.getElementById('bestiary-monster-desc').innerText = monster.desc;
+        
+        document.getElementById('bestiary-monster-hp').innerText = monster.hp;
+        document.getElementById('bestiary-monster-atk').innerText = monster.atk;
+        document.getElementById('bestiary-monster-speed').innerText = monster.speed;
+
+        // 실시간 프리뷰 캔버스 시작
+        startMonsterPreview(monster.type);
+    };
+
+    // 도감 리스트 렌더링
+    const renderBestiaryList = () => {
+        const listDiv = document.getElementById('bestiary-list');
+        if (!listDiv) return;
+
+        listDiv.innerHTML = '';
+        BESTIARY_DATA.forEach(monster => {
+            const btn = document.createElement('button');
+            btn.className = 'bestiary-item-btn';
+            btn.innerHTML = `
+                <span class="icon">${monster.icon}</span>
+                <span class="name" style="color: ${monster.color};">${monster.name.split(' ')[0]}</span>
+            `;
+            btn.addEventListener('click', () => {
+                // 기존 active 제거
+                const activeBtn = listDiv.querySelector('.bestiary-item-btn.active');
+                if (activeBtn) activeBtn.classList.remove('active');
+                btn.classList.add('active');
+
+                Sound.play('dodge');
+                renderBestiaryDetail(monster);
+            });
+            listDiv.appendChild(btn);
+        });
+    };
+
+    const openBestiary = () => {
+        Sound.play('powerup');
+        if (optionOverlay && !optionOverlay.classList.contains('hidden')) {
+            wasOptionOpenBeforeBestiary = true;
+            optionOverlay.classList.add('hidden');
+        } else {
+            wasOptionOpenBeforeBestiary = false;
+        }
+
+        if (bestiaryOverlay) {
+            bestiaryOverlay.classList.remove('hidden');
+        }
+
+        // 리스트 렌더링
+        renderBestiaryList();
+
+        // 디테일 초기화
+        const detailEmpty = document.getElementById('bestiary-detail-empty');
+        const detailContent = document.getElementById('bestiary-detail-content');
+        if (detailEmpty && detailContent) {
+            detailEmpty.classList.remove('hidden');
+            detailContent.classList.add('hidden');
+        }
+
+        if (previewAnimationFrameId) {
+            cancelAnimationFrame(previewAnimationFrameId);
+            previewAnimationFrameId = null;
+        }
+    };
+
+    const closeBestiary = () => {
+        Sound.play('dodge');
+        if (bestiaryOverlay) {
+            bestiaryOverlay.classList.add('hidden');
+        }
+        if (wasOptionOpenBeforeBestiary && optionOverlay) {
+            optionOverlay.classList.remove('hidden');
+        }
+        if (previewAnimationFrameId) {
+            cancelAnimationFrame(previewAnimationFrameId);
+            previewAnimationFrameId = null;
+        }
+    };
+
+    if (mainMonsterBtn) mainMonsterBtn.addEventListener('click', openBestiary);
+    if (optionMonsterBtn) optionMonsterBtn.addEventListener('click', openBestiary);
+    if (bestiaryClose) bestiaryClose.addEventListener('click', closeBestiary);
+    if (bestiaryCloseBtn) bestiaryCloseBtn.addEventListener('click', closeBestiary);
 
 
     // 2) 실시간 랭킹 리더보드 (Leaderboard) 이벤트 바인딩
