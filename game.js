@@ -1003,9 +1003,7 @@ class Player {
         };
 
         // [신규] Phase 5 물리 기믹 및 초월 상태 변수 선언
-        this.hasThorns = false;
         this.thornsFieldTimer = 0;
-        this.hasTrap = false;
         this.whipSpeedStack = 0;
         this.whipSpeedTimer = 0;
         this.continuousShootTimer = 0;
@@ -1029,7 +1027,9 @@ class Player {
             whip: 0,
             lightning: 0,
             fire: 0,
-            ice: 0
+            ice: 0,
+            thorns: 0,
+            trap: 0
         };
         this.multishot = 1;      // 부채꼴로 동시 발사될 탄환 수
         this.burstCount = 1;     // 한 번 사격 시 연속 점사 횟수
@@ -1094,7 +1094,9 @@ class Player {
 
     // [신규] 플레이어가 해금하여 보유한 무기 조합에 맞춤형 대표 무기 상태 자동 분석 갱신
     updateWeaponType() {
-        if (this.weaponLevels.fire === 5 && this.weaponLevels.ice === 5 && this.weaponType === 'icefiredance') {
+        // [수정] 불마법 5레벨 & 얼음마법 5레벨 도달 시 자동으로 초월 융합 무기(icefiredance)로 진화 설정
+        if (this.weaponLevels.fire === 5 && this.weaponLevels.ice === 5) {
+            this.weaponType = 'icefiredance';
             return;
         }
 
@@ -1593,7 +1595,8 @@ class Monster {
             this.statusEffects.burn -= timeScale;
             // 30프레임(0.5초)마다 중첩(burnStack) 비례 화상 피해 가동
             if (Math.floor(this.statusEffects.burn) % 30 === 0) {
-                let burnDmg = 1.2 * (this.statusEffects.burnStack || 1);
+                let fLvl = (window.gameEngine && window.gameEngine.player) ? (window.gameEngine.player.weaponLevels.fire || 1) : 1;
+                let burnDmg = 1.2 * (this.statusEffects.burnStack || 1) * (1 + (fLvl - 1) * 0.15);
                 this.hp -= burnDmg;
                 this.flashTimer = 3;
                 
@@ -1606,11 +1609,13 @@ class Monster {
             }
         }
 
-        // [신규] 완전 동결(Frozen) 2.5초 기절 판정 및 정지 상태 타이머 감쇠
+        // [신규] 완전 동결(Frozen) 기절 판정 및 정지 상태 타이머 감쇠
         if (this.statusEffects.freeze >= 100) {
             this.statusEffects.freeze = 0;
-            this.statusEffects.shock = Math.max(this.statusEffects.shock || 0, 150); // 2.5초 스턴
-            this.isFrozenActive = 150; // 2.5초 얼음껍질 렌더링 유지
+            let iceLvl = (window.gameEngine && window.gameEngine.player) ? (window.gameEngine.player.weaponLevels.ice || 1) : 1;
+            let freezeDuration = 120 + iceLvl * 30; // 1레벨: 150프레임 (2.5초) ~ 5레벨: 270프레임 (4.5초)
+            this.statusEffects.shock = Math.max(this.statusEffects.shock || 0, freezeDuration); // 2.5초~4.5초 스턴
+            this.isFrozenActive = freezeDuration; // 얼음껍질 렌더링 유지
             if (window.gameEngine) {
                 window.gameEngine.showFloatingText("FROZEN! ❄️", this.x, this.y - 25, '#00f0ff');
                 Sound.play('hit');
@@ -2839,8 +2844,10 @@ class NeonTrap {
 
     triggerMine(game) {
         this.active = false;
-        let splashRadius = 80;
-        let damage = this.player.atk * 1.5;
+        let trapLvl = this.player.weaponLevels.trap || 1;
+        let splashRadius = 50 + trapLvl * 10; // 1레벨: 60px ~ 5레벨: 100px
+        let damage = this.player.atk * 1.5 * (1 + (trapLvl - 1) * 0.15); // 레벨당 15% 대미지 증가
+        let shockDuration = 48 + trapLvl * 12; // 1레벨: 60프레임 (1.0초) ~ 5레벨: 108프레임 (1.8초)
         
         game.showFloatingText("MINE DETONATED! 💥", this.x, this.y - 25, '#ffdf00');
         game.shakeScreen(15, 5);
@@ -2854,11 +2861,11 @@ class NeonTrap {
             game.particles.push(new Particle(this.x, this.y, '#ffdf00', 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
         }
 
-        // 80px 내의 모든 적 기절 대폭발
+        // 범위 내의 모든 적 기절 대폭발
         for (let m of game.monsters) {
             let dist = Math.hypot(m.x - this.x, m.y - this.y);
             if (dist < splashRadius + m.radius) {
-                m.statusEffects.shock = 90; // 1.5초 기절
+                m.statusEffects.shock = shockDuration; // [수정] 레벨별 기절 시간
                 let finalDmg = damage;
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
@@ -2874,11 +2881,14 @@ class NeonTrap {
 
     triggerLaser(hitMonster, game) {
         this.active = false;
+        let trapLvl = this.player.weaponLevels.trap || 1;
         game.showFloatingText("TRIPWIRE DETONATED! ⚡", hitMonster.x, hitMonster.y - 25, '#00f0ff');
         game.shakeScreen(8, 3);
         
-        // 체인 라이트닝 전류 마비 격발 (4회 전이, 100% 플레이어 atk 데미지)
-        game.triggerChainLightning(this.x, this.y, hitMonster, 4, this.player.atk * 1.0);
+        // 체인 라이트닝 전류 마비 격발 (1레벨: 4회 ~ 5레벨: 8회 전이, 레벨별 대미지 스케일링)
+        let chains = 3 + trapLvl;
+        let damage = this.player.atk * 1.0 * (1 + (trapLvl - 1) * 0.15);
+        game.triggerChainLightning(this.x, this.y, hitMonster, chains, damage);
         
         // 번개 스파크
         for (let k = 0; k < 8; k++) {
@@ -4294,11 +4304,14 @@ class GameEngine {
         }
 
         // [W-10 함정설치 지뢰/레이저 주기적 드롭 및 설치]
-        if (this.player.hasTrap && !isOverlayOpen) {
-            // 지뢰 설치: 가만히 있지 않고 움직이는 동안 2초(120프레임) 마다 발밑에 매설
+        if (this.player.weaponLevels.trap > 0 && !isOverlayOpen) {
+            let trapLvl = this.player.weaponLevels.trap;
+            let mineCd = 240 - (trapLvl * 30); // 1레벨: 210프레임 (3.5초) ~ 5레벨: 90프레임 (1.5초)
+
+            // 지뢰 설치: 가만히 있지 않고 움직이는 동안 레벨에 따른 주기마다 발밑에 매설
             if (!this.player.isStopped) {
                 this.mineInstallTimer = (this.mineInstallTimer || 0) + 1;
-                if (this.mineInstallTimer >= 120) {
+                if (this.mineInstallTimer >= mineCd) {
                     this.mineInstallTimer = 0;
                     this.traps.push(new NeonTrap(this.player.x, this.player.y, 'mine', this.player));
                     this.showFloatingText("MINE PLACED! 🪤", this.player.x, this.player.y - 25, '#ffdf00');
@@ -4307,8 +4320,8 @@ class GameEngine {
                 this.mineInstallTimer = 0;
             }
 
-            // 레이저 트립와이어 설치: 전투 중이고 몬스터가 있을 때 6초(360프레임) 마다 플레이어 위치 부근에 벽 가로지르도록 매설
-            if (this.monsters.length > 0 || this.spawnQueue.length > 0) {
+            // 레이저 트립와이어 설치: 5레벨(마스터)인 경우에만 설치, 전투 중이고 몬스터가 있을 때 6초(360프레임) 마다 플레이어 위치 부근에 벽 가로지르도록 매설
+            if (trapLvl === 5 && (this.monsters.length > 0 || this.spawnQueue.length > 0)) {
                 this.laserInstallTimer = (this.laserInstallTimer || 0) + 1;
                 if (this.laserInstallTimer >= 360) {
                     this.laserInstallTimer = 0;
@@ -4866,7 +4879,9 @@ class GameEngine {
                             helmDmgBonus = 1.25;
                         }
 
-                        let finalDmg = this.player.atk * 1.5 * synergyMult * helmDmgBonus;
+                        let swordLvl = this.player.weaponLevels.sword || 1;
+                        let levelMult = 1 + (swordLvl - 1) * 0.15;
+                        let finalDmg = this.player.atk * 1.5 * levelMult * synergyMult * helmDmgBonus;
                         if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
 
                         // [신규] 근접 검 베기 물리 타격 시 동결(Frozen) 3배 파쇄 치명타 콤보 판정
@@ -4991,7 +5006,9 @@ class GameEngine {
                             m.statusEffects.burn = 240; // 4초 지속 화상
                             m.statusEffects.burnStack = Math.min(5, (m.statusEffects.burnStack || 0) + 1); // 화상 1중첩 가산
                         } else if (b.isIce) {
-                            m.statusEffects.freeze = Math.min(100, (m.statusEffects.freeze || 0) + 25); // 빙결 축적율 +25%
+                            let iceLvl = this.player.weaponLevels.ice || 1;
+                            let freezeAmount = 20 + iceLvl * 5; // 1레벨: 25% ~ 5레벨: 45% 축적
+                            m.statusEffects.freeze = Math.min(100, (m.statusEffects.freeze || 0) + freezeAmount);
                         } else {
                             if (b.splash > 0) {
                                 m.statusEffects.shock = 60; // 기절 1초
@@ -5044,7 +5061,8 @@ class GameEngine {
 
                         // [W-07 신규 구현] 번개 마법 탄환인 경우 체인 라이트닝(연쇄 벼락) 전이 발동
                         if (b.isLightning) {
-                            this.triggerChainLightning(b.x, b.y, m, 4, b.damage * 0.85); // 4회 전이, 85% 감쇄 대미지
+                            let chains = 3 + (this.player.weaponLevels.lightning || 1); // 1레벨: 4회 ~ 5레벨: 8회 전이
+                            this.triggerChainLightning(b.x, b.y, m, chains, b.damage * 0.85);
                         }
                         
                         // 넉백 발생 (창은 벽꽝을 유도하기 위해 강력한 넉백 7.5 가동)
@@ -5823,6 +5841,13 @@ class GameEngine {
             finalDamage *= 0.8;
         }
 
+        // [수정] Thorns 레벨에 비례한 추가 피해 경감 (레벨당 6%, 최대 24%)
+        if (this.player.weaponLevels.thorns > 0) {
+            let thornsLvl = this.player.weaponLevels.thorns;
+            let reduction = (thornsLvl - 1) * 0.06;
+            finalDamage *= (1 - reduction);
+        }
+
         this.player.hp = Math.max(0, this.player.hp - finalDamage);
         
         // 피격 Hit Stop 적용 (쿨다운 유틸 사용 및 5프레임으로 완화)
@@ -5832,15 +5857,21 @@ class GameEngine {
         this.player.invincibleTimer = 45;
         
         // [W-01 가시 탱커 반사 기믹]
-        if (this.player.hasThorns) {
-            const thornsRadius = 120;
-            const reflectDamage = finalDamage; // 받은 대미지 100% 반사
+        if (this.player.weaponLevels.thorns > 0) {
+            let thornsLvl = this.player.weaponLevels.thorns;
+            const thornsRadius = 120 + (thornsLvl - 1) * 15; // 1레벨: 120px ~ 5레벨: 180px 반사 반경
+            const reflectDamage = finalDamage * (1.0 + (thornsLvl - 1) * 0.20); // 1레벨: 100% ~ 5레벨: 180% 반사 피해율
             
             this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', thornsRadius, 0, 0, 20, 'explosionRing'));
-            this.player.thornsFieldTimer = 180; // 3초간 가시 장막 활성화
+            
+            // 5레벨 마스터 시에만 3초 가시 오라 도발 필드 활성화
+            if (thornsLvl === 5) {
+                this.player.thornsFieldTimer = 180; 
+            }
 
-            // 10% 확률 보복형 유도 가시 사출 (명중을 유발한 몬스터 좌표 방향)
-            if (Math.random() < 0.10) {
+            // 보복형 유도 가시 사출 확률 (1레벨: 10% ~ 5레벨: 30%)
+            let revengeChance = 0.10 + (thornsLvl - 1) * 0.05;
+            if (Math.random() < revengeChance) {
                 let angle = Math.atan2(fromY - this.player.y, fromX - this.player.x);
                 this.bullets.push(new Bullet(this.player.x, this.player.y, Math.cos(angle) * 7.0, Math.sin(angle) * 7.0, this.player.atk * 1.2, true, {
                     homing: true,
@@ -5852,7 +5883,7 @@ class GameEngine {
                 this.showFloatingText("THORN REVENGE! 🌵", this.player.x, this.player.y - 30, '#ff00aa');
             }
 
-            // 반경 120px 내의 모든 적들에게 피해 배분/반사
+            // 반경 내의 모든 적들에게 피해 배분/반사
             for (let i = this.monsters.length - 1; i >= 0; i--) {
                 let m = this.monsters[i];
                 let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
@@ -6093,8 +6124,17 @@ class GameEngine {
             let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
             let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
 
+            // [수정] 무기 레벨 비례 공격력 상승 (레벨당 +15%)
+            let wLvl = 1;
+            if (this.player.weaponType === 'icefiredance') wLvl = 5;
+            else if (isLightning) wLvl = this.player.weaponLevels.lightning || 1;
+            else if (isFire) wLvl = this.player.weaponLevels.fire || 1;
+            else if (isIce) wLvl = this.player.weaponLevels.ice || 1;
+            else if (isWhip) wLvl = this.player.weaponLevels.whip || 1;
+            let levelMult = 1 + (wLvl - 1) * 0.15;
+
             let baseDmg = isWhip ? (this.player.atk * 0.75) : (this.player.atk * (isLightning ? 0.9 : 1.0));
-            let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
             for (let angle of bulletsToLaunch) {
                 if (isWhip) {
@@ -6207,7 +6247,7 @@ class GameEngine {
                             pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
                             homing: this.player.homing,
                             homingSpeed: this.player.homingAngleSpeed,
-                            splash: this.player.splashRadius + (bulletIsFire ? 30 : 0), // 불탄은 기본 30px 스플래시 폭사 반경 장착
+                            splash: this.player.splashRadius + (bulletIsFire ? (30 + (this.player.weaponLevels.fire - 1) * 10) : 0), // [수정] 불탄은 기본 30px + 레벨당 10px 스플래시 반경 추가
                             color: bulletIsFire ? '#ff5e00' : (bulletIsIce ? '#00f0ff' : (bulletIsLightning ? '#ffdf00' : '#00f0ff')),
                             radius: bulletRadius,
                             life: bulletLife,
@@ -6255,8 +6295,10 @@ class GameEngine {
         let multishotDmgFactor = Math.max(0.5, 1.0 - (this.player.multishot - 1) * 0.08);
         let burstDmgFactor = Math.max(0.6, 1.0 - (this.player.burstCount - 1) * 0.05);
         
+        let whipLvl = this.player.weaponLevels.whip || 1;
+        let whipLevelMult = 1 + (whipLvl - 1) * 0.15;
         let baseDmg = this.player.atk * 0.3; // 추가 하향 조정 (0.5 -> 0.3)
-        let finalDamage = baseDmg * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+        let finalDamage = baseDmg * whipLevelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
 
         // [W-06 채찍 동시 견인 제한 공식] 기본 1마리, 다발 및 진화에 비례해 증가
         let maxPullCount = 1 + (this.player.multishot - 1) + (this.player.weaponUnlocks.whip.multi ? 1 : 0);
@@ -6305,7 +6347,8 @@ class GameEngine {
                     }
                     
                     if (isPulled) {
-                        m.statusEffects.shock = 90; // 1.5초 기절 프레임 부여 (견인된 적만 스턴)
+                        let shockDuration = 90 + (whipLvl - 1) * 15; // 1레벨: 90프레임 (1.5초) ~ 5레벨: 150프레임 (2.5초)
+                        m.statusEffects.shock = shockDuration; // [수정] 기절 프레임 부여 (견인된 적만 스턴)
                     }
                     m.flashTimer = 8;
                     
@@ -6335,8 +6378,9 @@ class GameEngine {
                             if (otherM !== m) {
                                 let sDist = Math.hypot(otherM.x - m.x, otherM.y - m.y);
                                 if (sDist < splashRadius + otherM.radius) {
+                                    let shockDuration = 90 + (whipLvl - 1) * 15;
                                     otherM.hp -= splashDmg;
-                                    otherM.statusEffects.shock = 90;
+                                    otherM.statusEffects.shock = shockDuration;
                                     otherM.flashTimer = 8;
                                     this.showFloatingText(`SPLASH -${Math.ceil(splashDmg)}`, otherM.x, otherM.y - 20, '#ff00aa');
                                     
@@ -6373,7 +6417,9 @@ class GameEngine {
         
         let synergyMult = this.checkBuildSynergy('sword'); // 창은 검기 카드의 시너지를 받음
         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-        let weaponDmg = this.player.atk * 0.7 * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus; // 창 대미지 추가 하향 조정 (0.9 -> 0.7)
+        let spearLvl = this.player.weaponLevels.spear || 1;
+        let spearLevelMult = 1 + (spearLvl - 1) * 0.15;
+        let weaponDmg = this.player.atk * 0.7 * spearLevelMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus; // [수정] 창 대미지 레벨 비례 15% 가중
         
         let px = this.player.x;
         let py = this.player.y;
@@ -7045,21 +7091,86 @@ class GameEngine {
                 value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
                 desc = `최대 대시용 기력이 +${value}만큼 증가합니다.`;
                 break;
-            case 'sword':
-                desc = `주무기에 광역 반원 베기 모션(검)을 영구 장착합니다. (복합 하이브리드 공격 가능)`;
+            case 'sword': {
+                let lvl = this.player.weaponLevels.sword || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `주무기에 광역 반원 베기 모션(검)을 영구 장착합니다. (복합 공격 가능) (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `검기 대미지가 +15% 상승하고 베기 물리 범위가 확장됩니다. (현재 레벨: ${lvl} -> ${nextLvl})` + (nextLvl === 5 ? " [5레벨: 검기 파동 발사]" : "");
+                }
                 break;
-            case 'spear':
-                desc = `일직선상으로 멀리 관통 찌르기(창)를 장착합니다. 적 벽 격돌 기절 및 창끝 2배 크리가 추가됩니다.`;
+            }
+            case 'spear': {
+                let lvl = this.player.weaponLevels.spear || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `일직선 관통 찌르기(창)를 장착합니다. 벽 충돌 기절 및 창끝 2배 크리가 추가됩니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `창 찌르기 대미지가 +15% 상승하고 넉백 성능이 강화됩니다. (현재 레벨: ${lvl} -> ${nextLvl})` + (nextLvl === 5 ? " [5레벨: 3방향 창 찌르기]" : "");
+                }
                 break;
-            case 'lightning':
-                desc = `마나(MP)를 소모해 감전 기절을 거는 광역 연쇄 벼락 마법을 발사합니다.`;
+            }
+            case 'whip': {
+                let lvl = this.player.weaponLevels.whip || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `직선 그랩 사슬을 사출하여 적을 발앞으로 견인하고 기절 및 공속 버프를 부여합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `채찍 대미지가 +15% 상승하고 그랩 후 공속 증가율이 강화됩니다. (현재 레벨: ${lvl} -> ${nextLvl})` + (nextLvl === 5 ? " [5레벨: 3방향 다중 채찍]" : "");
+                }
                 break;
-            case 'fire':
-                desc = `마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 대폭발을 유도하는 화염 탄환을 발사합니다.`;
+            }
+            case 'thorns': {
+                let lvl = this.player.weaponLevels.thorns || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `피격 대미지를 100% 주변 적에게 반사하고 보복 가시를 쏘는 가시 보호막을 장착합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `가시 반사 피해가 +20% 상승하고 피해 경감률이 추가로 보강됩니다. (현재 레벨: ${lvl} -> ${nextLvl})` + (nextLvl === 5 ? " [5레벨: 도발 가시 오라 장막]" : "");
+                }
                 break;
-            case 'ice':
-                desc = `마나(MP)를 소모해 적의 속도를 늦추다 완전히 정지시키며, 동결된 적 타격 시 3배의 깨짐 파쇄 피해를 입힙니다.`;
+            }
+            case 'trap': {
+                let lvl = this.player.weaponLevels.trap || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `이동 경로 상에 기절 지뢰를 매설하는 능력을 획득합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `지뢰 매설 주기가 단축되고 폭발 범위 및 기절 지속시간이 증가합니다. (현재 레벨: ${lvl} -> ${nextLvl})` + (nextLvl === 5 ? " [5레벨: 감전 레이저 트립와이어]" : "");
+                }
                 break;
+            }
+            case 'lightning': {
+                let lvl = this.player.weaponLevels.lightning || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `마나(MP)를 소모해 적들 사이를 연쇄 전이하며 단체 감전 기절을 주는 벼락을 발사합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `벼락 대미지가 +15% 상승하고 연쇄 벼락 전이 횟수가 +1회 증가합니다. (현재 레벨: ${lvl} -> ${nextLvl})`;
+                }
+                break;
+            }
+            case 'fire': {
+                let lvl = this.player.weaponLevels.fire || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 연쇄 폭발을 일으키는 화염탄을 발사합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `화염탄 대미지가 +15% 상승하고 스플래시 폭발 반경이 늘어납니다. (현재 레벨: ${lvl} -> ${nextLvl})`;
+                }
+                break;
+            }
+            case 'ice': {
+                let lvl = this.player.weaponLevels.ice || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `마나(MP)를 소모해 적을 감속시키며, 동결된 적 타격 시 3배의 깨짐 파쇄 피해를 입힙니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `빙결탄 대미지가 +15% 상승하고 빙결 게이지 축적율이 높아집니다. (현재 레벨: ${lvl} -> ${nextLvl})`;
+                }
+                break;
+            }
             case 'multishot':
                 // [3차 밸런싱] 추가 발사 탄환 수 최대 5발 ➔ 최대 2발로 축소 (Math.max(1, Math.floor(기존값 * 0.5)) 적용)
                 value = Math.max(1, Math.floor(Math.ceil((rarity === 'COMMON' ? 1 : (rarity === 'RARE' ? 2 : 3)) * (mult >= 2.0 ? 1.5 : 1.0)) * 0.5));
@@ -7199,72 +7310,74 @@ class GameEngine {
                 break;
             case 'sword':
                 p.weaponLevels.sword = Math.min(5, (p.weaponLevels.sword || 0) + 1);
-                this.showFloatingText("SWORD UNLOCKED 🪓", p.x, p.y - 30, '#b026ff');
+                if (p.weaponLevels.sword === 5) {
+                    this.showFloatingText("🪓 SWORD MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#b026ff');
+                } else if (p.weaponLevels.sword > 1) {
+                    this.showFloatingText(`🪓 SWORD UPGRADED! (Lv.${p.weaponLevels.sword}) 🪓`, p.x, p.y - 30, '#b026ff');
+                } else {
+                    this.showFloatingText("SWORD UNLOCKED 🪓", p.x, p.y - 30, '#b026ff');
+                }
                 p.updateWeaponType();
                 break;
             case 'spear':
                 p.weaponLevels.spear = Math.min(5, (p.weaponLevels.spear || 0) + 1);
-                if (p.weaponLevels.spear > 1) {
-                    // 진화 해금 테크트리: tip -> range -> knockback -> wall -> multi
-                    if (!p.weaponUnlocks.spear.tip) {
-                        p.weaponUnlocks.spear.tip = true;
-                        this.showFloatingText("SPEAR EVOLVE: TIP CRITICAL! 🎯", p.x, p.y - 30, '#00f0ff');
-                    } else if (!p.weaponUnlocks.spear.range) {
-                        p.weaponUnlocks.spear.range = true;
-                        this.showFloatingText("SPEAR EVOLVE: RANGE UP! 📏", p.x, p.y - 30, '#00f0ff');
-                    } else if (!p.weaponUnlocks.spear.knockback) {
-                        p.weaponUnlocks.spear.knockback = true;
-                        this.showFloatingText("SPEAR EVOLVE: HEAVY KNOCKBACK! 🛡️", p.x, p.y - 30, '#00f0ff');
-                    } else if (!p.weaponUnlocks.spear.wall) {
-                        p.weaponUnlocks.spear.wall = true;
-                        this.showFloatingText("SPEAR EVOLVE: WALL CRASH! 💥", p.x, p.y - 30, '#00f0ff');
-                    } else if (!p.weaponUnlocks.spear.multi) {
-                        p.weaponUnlocks.spear.multi = true;
-                        this.showFloatingText("SPEAR EVOLVE: TRIPLE STRIKE! 🔱🔱🔱", p.x, p.y - 30, '#00f0ff');
-                    } else {
-                        p.atk = Math.round(p.atk * 1.1);
-                        this.showFloatingText("SPEAR MAXIMIZED! ATK +10% ⚡", p.x, p.y - 30, '#00f0ff');
-                    }
+                if (p.weaponLevels.spear === 2) {
+                    p.weaponUnlocks.spear.tip = true;
+                    p.weaponUnlocks.spear.range = true;
+                    this.showFloatingText("SPEAR EVOLVE: CRITICAL & RANGE UP! 🎯📏", p.x, p.y - 30, '#00f0ff');
+                } else if (p.weaponLevels.spear === 3) {
+                    p.weaponUnlocks.spear.knockback = true;
+                    this.showFloatingText("SPEAR EVOLVE: HEAVY KNOCKBACK! 🛡️", p.x, p.y - 30, '#00f0ff');
+                } else if (p.weaponLevels.spear === 4) {
+                    p.weaponUnlocks.spear.wall = true;
+                    this.showFloatingText("SPEAR EVOLVE: WALL CRASH! 💥", p.x, p.y - 30, '#00f0ff');
+                } else if (p.weaponLevels.spear === 5) {
+                    p.weaponUnlocks.spear.multi = true;
+                    this.showFloatingText("👑 SPEAR MASTERED: TRIPLE STRIKE! 🔱🔱🔱", p.x, p.y - 30, '#00f0ff');
                 } else {
                     this.showFloatingText("SPEAR UNLOCKED 🔱", p.x, p.y - 30, '#00f0ff');
                 }
                 p.updateWeaponType();
                 break;
             case 'thorns':
-                p.hasThorns = true;
-                this.showFloatingText("THORNS UNLOCKED 🌵", p.x, p.y - 30, '#ff00aa');
+                p.weaponLevels.thorns = Math.min(5, (p.weaponLevels.thorns || 0) + 1);
+                if (p.weaponLevels.thorns === 5) {
+                    this.showFloatingText("🌵 THORNS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ff00aa');
+                } else if (p.weaponLevels.thorns > 1) {
+                    this.showFloatingText(`🌵 THORNS UPGRADED! (Lv.${p.weaponLevels.thorns}) 🌵`, p.x, p.y - 30, '#ff00aa');
+                } else {
+                    this.showFloatingText("THORNS UNLOCKED 🌵", p.x, p.y - 30, '#ff00aa');
+                }
                 break;
             case 'whip':
                 p.weaponLevels.whip = Math.min(5, (p.weaponLevels.whip || 0) + 1);
-                if (p.weaponLevels.whip > 1) {
-                    // 진화 해금 테크트리: haste -> range -> break -> shock -> multi
-                    if (!p.weaponUnlocks.whip.haste) {
-                        p.weaponUnlocks.whip.haste = true;
-                        this.showFloatingText("WHIP EVOLVE: ATTACK HASTE! ⚡", p.x, p.y - 30, '#ff00aa');
-                    } else if (!p.weaponUnlocks.whip.range) {
-                        p.weaponUnlocks.whip.range = true;
-                        this.showFloatingText("WHIP EVOLVE: RANGE UP! 📏", p.x, p.y - 30, '#ff00aa');
-                    } else if (!p.weaponUnlocks.whip.break) {
-                        p.weaponUnlocks.whip.break = true;
-                        this.showFloatingText("WHIP EVOLVE: VULNERABILITY! 💔", p.x, p.y - 30, '#ff00aa');
-                    } else if (!p.weaponUnlocks.whip.shock) {
-                        p.weaponUnlocks.whip.shock = true;
-                        this.showFloatingText("WHIP EVOLVE: SHOCK SPLASH! 💥", p.x, p.y - 30, '#ff00aa');
-                    } else if (!p.weaponUnlocks.whip.multi) {
-                        p.weaponUnlocks.whip.multi = true;
-                        this.showFloatingText("WHIP EVOLVE: MULTI SLASH! 🧣🧣🧣", p.x, p.y - 30, '#ff00aa');
-                    } else {
-                        p.atk = Math.round(p.atk * 1.1);
-                        this.showFloatingText("WHIP MAXIMIZED! ATK +10% ⚡", p.x, p.y - 30, '#ff00aa');
-                    }
+                if (p.weaponLevels.whip === 2) {
+                    p.weaponUnlocks.whip.haste = true;
+                    p.weaponUnlocks.whip.range = true;
+                    this.showFloatingText("WHIP EVOLVE: HASTE & RANGE UP! ⚡📏", p.x, p.y - 30, '#ff00aa');
+                } else if (p.weaponLevels.whip === 3) {
+                    p.weaponUnlocks.whip.break = true;
+                    this.showFloatingText("WHIP EVOLVE: VULNERABILITY! 💔", p.x, p.y - 30, '#ff00aa');
+                } else if (p.weaponLevels.whip === 4) {
+                    p.weaponUnlocks.whip.shock = true;
+                    this.showFloatingText("WHIP EVOLVE: SHOCK SPLASH! 💥", p.x, p.y - 30, '#ff00aa');
+                } else if (p.weaponLevels.whip === 5) {
+                    p.weaponUnlocks.whip.multi = true;
+                    this.showFloatingText("👑 WHIP MASTERED: MULTI SLASH! 🧣🧣🧣", p.x, p.y - 30, '#ff00aa');
                 } else {
                     this.showFloatingText("WHIP UNLOCKED 🧣", p.x, p.y - 30, '#ff00aa');
                 }
                 p.updateWeaponType();
                 break;
             case 'trap':
-                p.hasTrap = true;
-                this.showFloatingText("TRAPS UNLOCKED 🪤", p.x, p.y - 30, '#ffdf00');
+                p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
+                if (p.weaponLevels.trap === 5) {
+                    this.showFloatingText("🪤 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
+                } else if (p.weaponLevels.trap > 1) {
+                    this.showFloatingText(`🪤 TRAPS UPGRADED! (Lv.${p.weaponLevels.trap}) 🪤`, p.x, p.y - 30, '#ffdf00');
+                } else {
+                    this.showFloatingText("TRAPS UNLOCKED 🪤", p.x, p.y - 30, '#ffdf00');
+                }
                 break;
             case 'lightning':
                 p.weaponLevels.lightning = Math.min(5, (p.weaponLevels.lightning || 0) + 1);
@@ -8412,12 +8525,12 @@ class GameEngine {
         });
 
         document.getElementById('cheat-trap-btn').addEventListener('click', () => {
-            this.player.hasTrap = true;
+            this.player.weaponLevels.trap = 5;
             this.showFloatingText("TRAP MASTER ACTIVE! 🪤", this.player.x, this.player.y - 40, '#ffdf00');
         });
 
         document.getElementById('cheat-thorns-btn').addEventListener('click', () => {
-            this.player.hasThorns = true;
+            this.player.weaponLevels.thorns = 5;
             this.player.thornsFieldTimer = 1800; // 30초 대리 필드
             this.showFloatingText("THORNS AURA BURST! 🌵", this.player.x, this.player.y - 40, '#ff00aa');
         });
@@ -8740,7 +8853,9 @@ class GameEngine {
             whip: 0,
             lightning: 0,
             fire: 0,
-            ice: 0
+            ice: 0,
+            thorns: 0,
+            trap: 0
         };
 
         if (wpnType === 'dual') {
@@ -8751,16 +8866,18 @@ class GameEngine {
             p.weaponLevels.lightning = 5;
             p.weaponLevels.fire = 5;
             p.weaponLevels.ice = 5;
+            p.weaponLevels.thorns = 5;
+            p.weaponLevels.trap = 5;
         } else if (wpnType === 'icefiredance') {
             // 아앤파 초월은 불과 얼음 5레벨 활성화
             p.weaponLevels.fire = 5;
             p.weaponLevels.ice = 5;
         } else if (wpnType === 'thorns') {
-            p.hasThorns = true;
+            p.weaponLevels.thorns = 5;
             this.showFloatingText("THORNS ENABLED 🌵", p.x, p.y - 40, '#ff00aa');
             return;
         } else if (wpnType === 'trap') {
-            p.hasTrap = true;
+            p.weaponLevels.trap = 5;
             this.showFloatingText("TRAPS ENABLED 🪤", p.x, p.y - 40, '#ffdf00');
             return;
         } else if (wpnType === 'time') {
