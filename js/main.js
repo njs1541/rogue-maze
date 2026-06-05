@@ -76,7 +76,7 @@ const BESTIARY_DATA = [
         hp: "일반 몬스터 대비 75% 수준",
         atk: "5 ~ (돌격 시 피격 주의)",
         speed: "1.68 ~ 3.08 (대시 시 순간 돌발 가속)",
-        tier: "방 6부터 출현 (낮은 확률로 방 5 이하)",
+        tier: "방 4부터 출현 (낮은 확률로 방 3 이하)",
         ability: "주기적인 플레이어 방향 대시 돌진"
     },
     {
@@ -89,8 +89,112 @@ const BESTIARY_DATA = [
         hp: "일반 몬스터 대비 120% 수준",
         atk: "3.5 ~ (원거리 보라색 탄환)",
         speed: "0.96 ~ 1.76 (좌우 회전 회피 무빙)",
-        tier: "방 11부터 출현 (낮은 확률로 방 10 이하)",
+        tier: "방 7부터 출현 (낮은 확률로 방 6 이하)",
         ability: "거리 유지 카이팅, 보라색 직진 탄환 사격"
+    },
+    {
+        id: "exploder",
+        name: "자폭 스파크 (Exploder)",
+        type: "exploder",
+        icon: "💛",
+        color: "#ffea00",
+        desc: "위험천만한 노란색 마름모 몬스터입니다. 플레이어에게 바짝 접근하면 자폭 시퀀스에 돌입하여 몸을 격렬하게 깜빡이며 정지합니다. 1초 뒤 범위 내의 적(플레이어 및 주변 몬스터)에게 대폭발 피해를 입히고 산화합니다. 깜빡이기 시작할 때 신속히 대시나 카이팅으로 회피해야 합니다.",
+        hp: "일반 몬스터 대비 80% 수준",
+        atk: "1.5배의 치명적인 자폭 피해",
+        speed: "1.44 ~ 2.64 (매우 민첩함)",
+        tier: "방 4부터 출현",
+        ability: "근접 시 정지 후 1초 카운트다운 폭발"
+    },
+    {
+        id: "splitter",
+        name: "분열 슬라임 (Splitter)",
+        type: "splitter",
+        icon: "🌐",
+        color: "#00f0ff",
+        desc: "말랑말랑하게 요동치는 하늘색 버블 형태의 중형 몬스터입니다. 기본 체력이 50%나 높고 느리지만, 처치하는 즉시 2마리의 미니 슬라임으로 분열되어 플레이어를 기습합니다. 분열된 개체까지 완전히 처리해야 방이 정화됩니다.",
+        hp: "일반 몬스터 대비 150% 수준",
+        atk: "5 ~ (층 비례 인플레이션)",
+        speed: "0.84 ~ 1.54 (다소 느림)",
+        tier: "방 7부터 출현",
+        ability: "사망 시 신속한 미니 슬라임 2개체로 분열"
+    },
+    {
+        id: "mini",
+        name: "미니 슬라임 (Mini)",
+        type: "mini",
+        icon: "💠",
+        color: "#00e1ff",
+        desc: "분열되거나 소환사에 의해 출현하는 초소형 슬라임입니다. 체력과 공격력은 매우 약하지만, 크기가 극도로 작아 조준하기 어렵고 기존 속도보다 45%나 빠르게 플레이어를 향해 돌진해 옵니다. 연사형 무기로 빠르게 쓸어 담는 것이 좋습니다.",
+        hp: "일반 몬스터 대비 35% 수준",
+        atk: "일반 몬스터 대비 60% 수준",
+        speed: "1.74 ~ 3.19 (극단적인 돌진 속도)",
+        tier: "분열 및 소환 시 출현",
+        ability: "극도로 작고 날쌘 몸집으로 돌진"
+    },
+    {
+        id: "scatterer",
+        name: "방사 사격자 (Scatterer)",
+        type: "scatterer",
+        icon: "💗",
+        color: "#ff00aa",
+        desc: "사방으로 돌출된 마젠타빛 십자성 형태의 몬스터입니다. 플레이어와 조심스럽게 거리를 유지하며, 주기적으로 3방향의 부채꼴 탄막을 한 번에 동시 발사합니다. 탄막 사이의 사각지대로 피하며 거리를 좁혀 처치해야 합니다.",
+        hp: "일반 몬스터 대비 110% 수준",
+        atk: "부채꼴 3방향 방사형 사격",
+        speed: "1.02 ~ 1.87 (보통)",
+        tier: "방 10부터 출현",
+        ability: "3방향 부채꼴 다발 탄막 사격"
+    },
+    {
+        id: "teleporter",
+        name: "차원 도약자 (Teleporter)",
+        type: "teleporter",
+        icon: "💚",
+        color: "#00ffcc",
+        desc: "회전하는 민트색 모래시계 형태의 몬스터입니다. 플레이어를 은밀히 쫓아오며, 3초 간격으로 흔적을 감춘 뒤 플레이어 주변 150~250px 반경의 사각지대로 불쑥 워프하여 나타납니다. 갑작스러운 텔레포트 피격에 대시를 준비하십시오.",
+        hp: "일반 몬스터 대비 90% 수준",
+        atk: "5 ~ (층 비례 인플레이션)",
+        speed: "1.14 ~ 2.09 (기본 추적 속도)",
+        tier: "방 13부터 출현",
+        ability: "3초마다 플레이어 근방으로 차원 순간이동"
+    },
+    {
+        id: "tanker",
+        name: "중장갑 탱커 (Tanker)",
+        type: "tanker",
+        icon: "⬜",
+        color: "#e2e8f0",
+        desc: "강철빛 네온 팔각형 몸체에 방패형 코어를 가진 거대 적입니다. 느린 이속을 가졌으나 맷집(HP)이 무려 3배에 달하며, 어떤 피격이나 충격에도 밀려나지 않는 완전한 넉백 면제 능력을 보유하고 있습니다. 장애물을 끼고 원거리에서 화력을 쏟아부어야 합니다.",
+        hp: "일반 몬스터 대비 300% (3배)",
+        atk: "8 ~ (몸뚱이 충돌 시 큰 피해)",
+        speed: "0.72 ~ 1.32 (매우 묵직하고 느림)",
+        tier: "방 16부터 출현",
+        ability: "넉백 완전 면제, 3배의 초고체력"
+    },
+    {
+        id: "summoner",
+        name: "차원 소환사 (Summoner)",
+        type: "summoner",
+        icon: "💜",
+        color: "#8b5cf6",
+        desc: "사이버네틱 오각형 본체 중앙에 차원 균열을 가진 몬스터입니다. 플레이어가 접근하면 멀어지려 도망다니며, 주기적으로 차원 균열을 열어 미니 슬라임을 필드에 실시간으로 소환해 냅니다. 소환사가 미니 몬스터로 필드를 덮기 전에 1순위로 처단하십시오.",
+        hp: "일반 몬스터 대비 130% 수준",
+        atk: "직접 공격 없음 (소환 전담)",
+        speed: "0.9 ~ 1.65 (도망 이동)",
+        tier: "방 20부터 출현",
+        ability: "도망 이동 및 주기적 미니 슬라임 소환"
+    },
+    {
+        id: "healer",
+        name: "나노 치유사 (Healer)",
+        type: "healer",
+        icon: "💚",
+        color: "#10b981",
+        desc: "에메랄드빛 십자가 구조를 품은 둥근 구형 서포터 몬스터입니다. 전선 뒤에 숨어 플레이어로부터 도망치며, 3~4초마다 초록색 치유 파동 링을 방출하여 반경 내 상처입은 다른 몬스터들의 체력을 회복시킵니다. 전투가 길어지지 않도록 최우선 타겟으로 삼아야 합니다.",
+        hp: "일반 몬스터 대비 110% 수준",
+        atk: "직접 공격 없음 (아군 광역 힐 전담)",
+        speed: "0.96 ~ 1.76 (도망 이동)",
+        tier: "방 22부터 출현",
+        ability: "3초마다 광역 치유 파동 방출 (주변 적 체력 회복)"
     },
     {
         id: "elite",
@@ -107,7 +211,7 @@ const BESTIARY_DATA = [
     },
     {
         id: "boss",
-        name: "보스 몬스터 (Boss)",
+        name: "네온 센티넬 (Neon Sentinel)",
         type: "boss",
         icon: "👑",
         color: "#ff3300",
@@ -117,6 +221,110 @@ const BESTIARY_DATA = [
         speed: "1.0 + 층 비례 속도 상승",
         tier: "매 5의 배수 방 (5, 10, 15... 100층 최종 보스)",
         ability: "이중 역회전 톱니 링 전개, 3방향 부채꼴 탄막 광역 연사"
+    },
+    {
+        id: "boss_chaser",
+        name: "하이퍼 체이서 (Hyper Chaser)",
+        type: "boss_chaser",
+        icon: "⚡",
+        color: "#ffaa00",
+        desc: "10층 단위로 등장하는 기동형 돌격 보스입니다. 초고속 무빙을 기본 탑재하고 있으며, 1.5초 간격으로 플레이어의 경로를 예측해 초광속 돌격 궤적을 그리며 맹렬하게 대시 찌르기를 시도합니다. 돌격선 궤적이 표시될 때 신속히 회피 대시를 시전해야 안전합니다.",
+        hp: "120 + 방 번호 * 14 (층 비례 인플레이션)",
+        atk: "18 + 방 번호 * 0.9",
+        speed: "1.5 + 층 비례 속도 상승",
+        tier: "10층 단위 보스",
+        ability: "예측 궤적 초광속 돌격 대시 공격"
+    },
+    {
+        id: "boss_slime",
+        name: "마더 슬라임 (Mother Slime)",
+        type: "boss_slime",
+        icon: "🦠",
+        color: "#00f0ff",
+        desc: "30층을 지키는 세포 분열형 거대 슬라임 보스입니다. 느릿느릿 플레이어를 압박하며, 주기적으로 8방향 탄막을 방사합니다. 체력이 0 이하가 되면 소멸하는 대신 2마리의 미니 슬라임 보스로 완전히 세포 분열되어 2차 기습을 감행합니다. 분열된 개체까지 완전히 정화해야 승리합니다.",
+        hp: "150 + 방 번호 * 16 (층 비례 인플레이션)",
+        atk: "12 + 방 번호 * 0.7",
+        speed: "0.7 + 층 비례 속도 상승",
+        tier: "30층 보스",
+        ability: "8방향 탄막 방사, 사망 시 2마리의 미니 슬라임 보스로 분열"
+    },
+    {
+        id: "boss_speaker",
+        name: "둠 스피커 (Doom Speaker)",
+        type: "boss_speaker",
+        icon: "📢",
+        color: "#ff00aa",
+        desc: "40층의 음파 차단 기지를 수호하는 데시벨의 보스입니다. 맵 중앙 부근에 고정되어 거대한 지진 음파 충격 링을 방출하여 플레이어를 지속적으로 넉백시키고, 경보 탄막을 난사합니다. 주기적으로 사방에 음파 레이저 트랩을 활성화하므로 신속한 기동 컨트롤이 요구됩니다.",
+        hp: "140 + 방 번호 * 15 (층 비례 인플레이션)",
+        atk: "14 + 방 번호 * 0.8",
+        speed: "1.0 (중앙 구역 고정 성향)",
+        tier: "40층 보스",
+        ability: "광역 음파 밀쳐내기 링 방출, 방사형 탄막 난사"
+    },
+    {
+        id: "boss_warper",
+        name: "보이드 워퍼 (Void Warper)",
+        type: "boss_warper",
+        icon: "🌀",
+        color: "#00ffcc",
+        desc: "60층의 시공간 차원문을 통제하는 보스입니다. 주기적으로 완전히 자취를 감춘 뒤 플레이어 뒤쪽이나 사각지대로 불쑥 워프해 나타나며 치명적인 차원 참격을 가합니다. 또한 맵 중앙에 플레이어를 끌어당기는 블랙홀 중력 구역을 형성하여 생존을 위협합니다.",
+        hp: "180 + 방 번호 * 18 (층 비례 인플레이션)",
+        atk: "16 + 방 번호 * 0.9",
+        speed: "1.1 (도약 위주)",
+        tier: "60층 보스",
+        ability: "시공간 워프 은신 습격, 중앙 블랙홀 인력 장치 형성"
+    },
+    {
+        id: "boss_portal",
+        name: "차원 차단기 (Dimensional Gate)",
+        type: "boss_portal",
+        icon: "⛩️",
+        color: "#8b5cf6",
+        desc: "70층에서 만나게 되는 철옹성 차원 차단문입니다. 본체 주위에 에너지를 공급하는 3개의 차원 발전기를 형성하고 무적 실드 장막을 펼칩니다. 실드가 켜져 있는 동안에는 플레이어의 어떤 공격도 통하지 않으므로, 주변에 퍼져있는 발전기 포탑들을 1순위로 전부 폭파시켜 실드를 무력화해야 합니다.",
+        hp: "220 + 방 번호 * 20 (층 비례 인플레이션)",
+        atk: "10 + 방 번호 * 0.5",
+        speed: "0.8 (둔중함)",
+        tier: "70층 보스",
+        ability: "무적 실드 장막 전개 (발전기 파괴로 해제), 균열 소환 사격"
+    },
+    {
+        id: "boss_hive",
+        name: "나노 하이브 (Nano Hive)",
+        type: "boss_hive",
+        icon: "🛸",
+        color: "#e2e8f0",
+        desc: "80층의 나노 로봇 생산 공장 형태를 한 거대 기계 보스입니다. 본체 체력 외에 50%의 나노 실드 게이지를 보유하며, 피해를 받지 않으면 실드를 지속적으로 자가 재생합니다. 또한 주기적으로 나노 힐러 드론들을 사출해 자신의 체력을 치료하므로 드론을 자르며 쉴드 관통 딜을 가해야 합니다.",
+        hp: "250 + 방 번호 * 22 (층 비례 인플레이션)",
+        atk: "20 + 방 번호 * 1.0",
+        speed: "0.7 (넉백 면제)",
+        tier: "80층 보스",
+        ability: "자동 재생형 나노 실드 전개, 나노 복구 드론 방출, 넉백 면제"
+    },
+    {
+        id: "boss_chaos",
+        name: "카오스 코어 (Chaos Core)",
+        type: "boss_chaos",
+        icon: "☄️",
+        color: "#ff3300",
+        desc: "90층의 삼라만상 원소를 통제하는 혼돈의 중심핵입니다. 10초 주기마다 자신의 원소 속성을 화염(지속 화상), 번개(광속 뇌격), 냉기(행동 동결)로 변경하며 속성에 맞는 치명적인 마법 탄막과 장판 효과를 필드 전역에 쏟아냅니다. 속성 변경에 따른 실시간 대처가 공략의 핵심입니다.",
+        hp: "300 + 방 번호 * 25 (층 비례 인플레이션)",
+        atk: "22 + 방 번호 * 1.1",
+        speed: "1.2",
+        tier: "90층 보스",
+        ability: "10초 주기 원소 속성 변환 (화염/번개/냉기), 광역 혼돈 원소 탄막 사격"
+    },
+    {
+        id: "boss_final",
+        name: "크로노스 (Chronos Motherboard)",
+        type: "boss_final",
+        icon: "👁️",
+        color: "#ff0055",
+        desc: "미로의 100층 최종 심장부에 군림하는 마더보드 통제 인공지능입니다. 벽면에 고정된 형태로 무한 기총 소사 탄막을 퍼부으며, 화면 절반을 뒤덮는 파멸의 쓸어내기 레이저 휩쓸기 공격을 시도합니다. 주변에 배치된 방어 터렛 포탑들이 코어를 보호하므로 전력을 다한 공격이 필요합니다.",
+        hp: "500 + 방 번호 * 30 (층 비례 인플레이션)",
+        atk: "25 + 방 번호 * 1.2",
+        speed: "0 (이동 불가 벽면 고정)",
+        tier: "100층 최종 보스",
+        ability: "파멸의 광선 레이저 휩쓸기 사격, 무한 융합 탄막 사출, 최종 실드 터렛 운용"
     }
 ];
 
@@ -256,22 +464,60 @@ function initNeonGameUISystem() {
         if (monsterType === 'elite') {
             previewMonster.makeElite();
             previewMonster.radius = 22; // 110x110 캔버스에 알맞게 크기 보정
-        } else if (monsterType === 'boss') {
-            previewMonster.makeBoss(5);
-            previewMonster.radius = 28; // 110x110 캔버스에 알맞게 크기 보정
+        } else if (monsterType === 'boss' || monsterType.startsWith('boss_')) {
+            previewMonster.makeBoss(5, monsterType);
+            previewMonster.radius = monsterType === 'boss_final' ? 32 : 25; // 110x110 캔버스에 알맞게 크기 보정
         } else {
             previewMonster.type = monsterType;
             previewMonster.radius = 16;
-            // 타입별 색상 고정
-            if (monsterType === 'chaser') {
-                previewMonster.color = '#ffaa00';
-                previewMonster.glowColor = '#ffaa00';
-            } else if (monsterType === 'shooter') {
-                previewMonster.color = '#b026ff';
-                previewMonster.glowColor = '#b026ff';
-            } else {
-                previewMonster.color = '#ff0055';
-                previewMonster.glowColor = '#ff0055';
+            switch(monsterType) {
+                case 'chaser':
+                    previewMonster.color = '#ffaa00';
+                    previewMonster.glowColor = '#ffaa00';
+                    break;
+                case 'shooter':
+                    previewMonster.color = '#b026ff';
+                    previewMonster.glowColor = '#b026ff';
+                    break;
+                case 'exploder':
+                    previewMonster.color = '#ffea00';
+                    previewMonster.glowColor = '#ffea00';
+                    break;
+                case 'splitter':
+                    previewMonster.color = '#00f0ff';
+                    previewMonster.glowColor = '#00f0ff';
+                    break;
+                case 'mini':
+                    previewMonster.color = '#00e1ff';
+                    previewMonster.glowColor = '#00e1ff';
+                    previewMonster.radius = 10;
+                    break;
+                case 'scatterer':
+                    previewMonster.color = '#ff00aa';
+                    previewMonster.glowColor = '#ff00aa';
+                    break;
+                case 'teleporter':
+                    previewMonster.color = '#00ffcc';
+                    previewMonster.glowColor = '#00ffcc';
+                    break;
+                case 'tanker':
+                    previewMonster.color = '#e2e8f0';
+                    previewMonster.glowColor = '#a0aec0';
+                    previewMonster.radius = 20;
+                    previewMonster.isTanker = true;
+                    break;
+                case 'summoner':
+                    previewMonster.color = '#8b5cf6';
+                    previewMonster.glowColor = '#8b5cf6';
+                    break;
+                case 'healer':
+                    previewMonster.color = '#10b981';
+                    previewMonster.glowColor = '#10b981';
+                    break;
+                default:
+                    previewMonster.color = '#ff0055';
+                    previewMonster.glowColor = '#ff0055';
+                    break;
             }
         }
 
@@ -301,12 +547,25 @@ function initNeonGameUISystem() {
                 if (!previewMonster.angle) previewMonster.angle = 0;
                 previewMonster.angle += 0.02;
 
-                // Shooter 충전 연출용 shootCooldown 강제 차감 루프
-                if (previewMonster.type === 'shooter') {
+                // Shooter/Scatterer 충전 연출용 shootCooldown 강제 차감 루프
+                if (previewMonster.type === 'shooter' || previewMonster.type === 'scatterer') {
                     if (previewMonster.shootCooldown === undefined || previewMonster.shootCooldown <= 0) {
                         previewMonster.shootCooldown = 100;
                     }
                     previewMonster.shootCooldown -= 0.5;
+                }
+
+                // Healer 광역 힐 링 애니메이션 반복 연출
+                if (previewMonster.type === 'healer') {
+                    if (previewMonster.healRingTimer === undefined || previewMonster.healRingTimer <= 0) {
+                        previewMonster.healRingTimer = 20;
+                    }
+                    previewMonster.healRingTimer -= 0.2;
+                }
+
+                // Exploder 자폭 임박 경고 핵 점멸 반복 연출
+                if (previewMonster.type === 'exploder') {
+                    previewMonster.explodeTimer = 30; // 항상 경고 모드 유지
                 }
 
                 // 몬스터 렌더링

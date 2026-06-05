@@ -261,7 +261,7 @@ const Sound = {
                 const gain = this.ctx.createGain();
                 // 볼륨 50% 감쇄 (0.3 -> 0.15) 및 전역 볼륨 곱 적용
                 gain.gain.setValueAtTime(0.15 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.01 * this.sfxVolume, now + 0.3);
+                gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.01 * this.sfxVolume), now + 0.3);
 
                 noise.connect(filter);
                 filter.connect(gain);
@@ -314,7 +314,7 @@ const Sound = {
 
                 // 볼륨 50% 감쇄 (0.2 -> 0.1) 및 전역 볼륨 곱 적용
                 gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.01 * this.sfxVolume, now + 0.6);
+                gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.01 * this.sfxVolume), now + 0.6);
 
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);

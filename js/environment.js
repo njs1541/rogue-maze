@@ -867,6 +867,11 @@ class NeonTrap {
                 m.hp -= finalDmg;
                 m.flashTimer = 8;
                 
+                // [버그 수정] 지뢰 폭발 피해로 사망 시 사망 처리 정산 진행
+                if (m.hp <= 0) {
+                    game.killMonster(m);
+                }
+                
                 // 강력 넉백
                 let pushAngle = Math.atan2(m.y - this.y, m.x - this.x);
                 m.knockbackX += Math.cos(pushAngle) * 5;

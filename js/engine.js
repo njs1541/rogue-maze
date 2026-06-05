@@ -768,13 +768,99 @@ class GameEngine {
 
     // 보스 소환 설정
     setupBossRoom() {
-        this.currentSpawnTotal = 1;
-        this.currentSpawnRemaining = 1;
+        this.monsters = [];
+        this.spawnQueue = [];
 
-        // 보스는 문이 아닌 중앙 부근에서 출현시킴
-        const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
-        boss.makeBoss(this.roomNum);
-        this.monsters.push(boss);
+        // 10층 단위로 다채로운 보스 출현 제어
+        if (this.roomNum === 10) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 20) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_chaser');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 30) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_slime');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 40) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_speaker');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 50) {
+            // 10,20,30,40층 보스 중 3마리를 약화시켜 한 번에 출현
+            let pool = ['boss', 'boss_chaser', 'boss_slime', 'boss_speaker'];
+            pool.sort(() => 0.5 - Math.random());
+            let chosen = pool.slice(0, 3);
+            let positions = [{ x: 260, y: 200 }, { x: 540, y: 200 }, { x: 400, y: 150 }];
+            
+            chosen.forEach((type, idx) => {
+                let boss = new Monster(positions[idx].x, positions[idx].y, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, type, true);
+                this.monsters.push(boss);
+            });
+            this.currentSpawnTotal = 3;
+            this.currentSpawnRemaining = 3;
+        }
+        else if (this.roomNum === 60) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_warper');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 70) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_portal');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 80) {
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_hive');
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 90) {
+            // 90층 웨이브 시스템 기동 (웨이브 1: 60층 보스 약화 버전 스폰)
+            this.bossWave = 1;
+            this.currentSpawnTotal = 4; // 총 4개의 보스를 잡아야 클리어
+            this.currentSpawnRemaining = 4;
+            
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
+            this.monsters.push(boss);
+        }
+        else if (this.roomNum === 100) {
+            // 최종 보스 (100층 포탑은 보스 생성자 내부에서 자체 소환)
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 100, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_final');
+            this.monsters.push(boss);
+        } else {
+            // 예외 방어코드
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum);
+            this.monsters.push(boss);
+        }
 
         // 보스 출현 경고음 및 화면 강한 진동
         this.shakeScreen(90, 8); // 보스룸 진입 시 1.5초간 대진동
@@ -946,6 +1032,12 @@ class GameEngine {
                     if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                     m.hp -= finalDmg;
                     m.flashTimer = 8;
+                    
+                    // [버그 수정] 마법 폭발 충격파 대미지로 사망 시 정산 처리 추가
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+
                     // 플레이어 중심 바깥으로 강력한 넉백 기동
                     let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.knockbackX = Math.cos(angle) * 8;
@@ -1643,6 +1735,20 @@ class GameEngine {
 
             // [Phase 7 신규 구현] 모든 플레이어 탄환 투사체와 비밀 벽 충돌 검출 (isSpear 한정 버그 수정 완료)
             if (b.isPlayerBullet) {
+                // [신규] 60층 보이드 워퍼의 탄 흡수 블랙홀 구역 충돌 검출
+                let warper = this.monsters.find(m => m.type === 'boss_warper' && m.hp > 0 && !m.dead);
+                if (warper) {
+                    let wdist = Math.hypot(b.x - warper.x, b.y - warper.y);
+                    if (wdist < 75) {
+                        for (let k = 0; k < 3; k++) {
+                            let pAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 0.5;
+                            this.particles.push(new Particle(b.x, b.y, '#00ffcc', 1.2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 10, 'spark'));
+                        }
+                        this.bullets.splice(i, 1);
+                        continue;
+                    }
+                }
                 for (let j = this.secretWalls.length - 1; j >= 0; j--) {
                     let wall = this.secretWalls[j];
                     let wDist = Math.hypot(wall.x - b.x, wall.y - b.y);
@@ -2197,16 +2303,30 @@ class GameEngine {
         }
 
         // 7. 파티클 이펙트 업데이트
+        let timeScale = this.timeDilationActive ? 0.1 : 1.0;
         for (let i = this.particles.length - 1; i >= 0; i--) {
             let p = this.particles[i];
             p.update();
+
+            // [신규] 20층 보스 하이퍼 체이서의 화상 불장판 충돌 검사
+            if (p.type === 'chaser_fire_trail') {
+                let distToPl = Math.hypot(this.player.x - p.x, this.player.y - p.y);
+                if (distToPl < p.radius + this.player.radius) {
+                    // 프레임당 지속 피해
+                    this.damagePlayer(p.atk * (1 / 60) * timeScale, p.x, p.y);
+                    if (Math.random() < 0.04) {
+                        this.showFloatingText("BURN! 🔥", this.player.x, this.player.y - 20, '#ff6a00');
+                    }
+                }
+            }
+
             if (p.life <= 0) {
                 this.particles.splice(i, 1);
             }
         }
 
         // 8. 4개 문(포털) 진입 체크 및 보상 시스템 연동
-        if (this.monsters.length === 0 && this.spawnQueue.length === 0) {
+        if (this.monsters.length === 0 && this.spawnQueue.length === 0 && !(this.roomNum === 90 && this.bossWave < 4)) {
             // 모든 적 소탕 시점에 보상 스폰 (안전실인 1방 초기 시작 상태는 제외, 비밀방 제외)
             if ((this.roomNum > 1 || this.kills > 0) && !this.inSecretRoom) {
                 // 아직 보상 오브젝트가 생성되지 않은 상태일 때 (방금 몬스터 격퇴 완료된 시점)
@@ -2631,13 +2751,20 @@ class GameEngine {
         this.shakeScreen(10, 4.0);
 
         // 사망 몬스터 주변 적들에게 연쇄 대폭발 데미지
-        for (let m of this.monsters) {
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            if (!m || m.dead) continue;
             let dist = Math.hypot(m.x - x, m.y - y);
             if (dist < fireExplosionRadius + m.radius) {
                 let finalDmg = fireExplosionDmg;
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
                 m.flashTimer = 5;
+
+                // [버그 수정] 화상 대폭발 대미지로 사망 시 정산 처리 추가
+                if (m.hp <= 0) {
+                    this.killMonster(m, i);
+                }
 
                 // 넉백 반사
                 let angle = Math.atan2(m.y - y, m.x - x);
@@ -2717,6 +2844,78 @@ class GameEngine {
     killMonster(m, index) {
         if (m.dead) return; // [신규] 중복 정산 및 사망 처리 방지
         m.dead = true; // [신규] 지연 삭제 마킹
+
+        // [신규 기획] splitter 몬스터 사망 시 mini 슬라임 2마리 분열 스폰
+        if (m.type === 'splitter') {
+            for (let k = 0; k < 2; k++) {
+                let mini = new Monster(m.x + (Math.random() * 24 - 12), m.y + (Math.random() * 24 - 12), m.tier, m.roomNum);
+                mini.type = 'mini';
+                mini.radius = 7 + Math.min(3, mini.tier);
+                mini.maxHp = Math.ceil(m.maxHp * 0.35);
+                mini.hp = mini.maxHp;
+                mini.atk = Math.ceil(m.atk * 0.6);
+                mini.speed = m.speed * 1.45;
+                mini.color = '#00e1ff';
+                mini.glowColor = '#00e1ff';
+                mini.fillColor = 'rgba(0, 225, 255, 0.12)';
+                
+                // 사방으로 튕겨나가는 넉백 관성 추가
+                let scatterAngle = Math.random() * Math.PI * 2;
+                mini.knockbackX = Math.cos(scatterAngle) * 4.5;
+                mini.knockbackY = Math.sin(scatterAngle) * 4.5;
+                
+                this.monsters.push(mini);
+            }
+            this.showFloatingText("SPLIT! 💠", m.x, m.y - 30, '#00f0ff');
+        }
+
+        // [신규] 30층 보스 슬라임(boss_slime) 사망 시 미니 보스 슬라임 2마리 스폰
+        if (m.type === 'boss_slime') {
+            for (let k = 0; k < 2; k++) {
+                let mini = new Monster(m.x + (Math.random() * 40 - 20), m.y + (Math.random() * 40 - 20), m.tier, m.roomNum);
+                mini.makeBoss(m.roomNum, 'boss_slime_mini', m.radius < 30);
+                
+                let scatterAngle = Math.random() * Math.PI * 2;
+                mini.knockbackX = Math.cos(scatterAngle) * 5.0;
+                mini.knockbackY = Math.sin(scatterAngle) * 5.0;
+                
+                this.monsters.push(mini);
+            }
+            this.showFloatingText("SPLIT SLIME! 💠", m.x, m.y - 35, '#00f0ff');
+        }
+
+        // [신규] 90층 보스 웨이브 순차 기동 제어
+        if (this.roomNum === 90 && (m.isBoss || m.type === 'boss_chaos')) {
+            if (this.bossWave < 4) {
+                this.bossWave++;
+                this.currentSpawnRemaining--;
+                
+                let nextType = 'boss_portal';
+                let nextName = "WAVE 2: 차원 차단기 👾";
+                let nextColor = '#8b5cf6';
+                if (this.bossWave === 3) {
+                    nextType = 'boss_hive';
+                    nextName = "WAVE 3: 나노 하이브 🤖";
+                    nextColor = '#e2e8f0';
+                } else if (this.bossWave === 4) {
+                    nextType = 'boss_chaos';
+                    nextName = "FINAL WAVE: 카오스 코어 🔥⚡❄️";
+                    nextColor = '#ff3300';
+                }
+
+                // 다음 웨이브 보스 스폰
+                let nextBoss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                // 카오스 코어(4웨이브)는 약화시키지 않고 본 전력으로 출현
+                nextBoss.makeBoss(this.roomNum, nextType, this.bossWave < 4);
+                this.monsters.push(nextBoss);
+
+                this.showFloatingText(nextName, 400, 250, nextColor);
+                Sound.play('boss_alert');
+                this.shakeScreen(30, 4.5);
+            } else {
+                this.currentSpawnRemaining = 0;
+            }
+        }
 
         // 몬스터 처치 Hit Stop 역경직 적용 (쿨다운 유틸 사용 및 밸런스 조정)
         if (m.isBoss) {
@@ -3012,7 +3211,9 @@ class GameEngine {
         Sound.play('explosion');
         this.particles.push(new Particle(x, y, '#00f0ff', radius, 0, 0, 30, 'explosionRing'));
 
-        for (let m of this.monsters) {
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            if (!m || m.dead) continue;
             let dist = Math.hypot(m.x - x, m.y - y);
             if (dist < radius + m.radius) {
                 // 스플래시 폭발에 의한 기절 상태 부여 (1초)
@@ -3022,6 +3223,11 @@ class GameEngine {
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
                 m.flashTimer = 5;
+
+                // [버그 수정] 스플래시 대미지로 사망 시 정산 처리 추가
+                if (m.hp <= 0) {
+                    this.killMonster(m, i);
+                }
 
                 // 폭발 밀쳐냄 물리 적용
                 let pushAngle = Math.atan2(m.y - y, m.x - x);
@@ -5214,6 +5420,102 @@ class GameEngine {
             this.ctx.shadowBlur = 15;
             this.ctx.shadowColor = '#ff0055';
             this.ctx.fillText("WARNING! BOSS ENCOUNTER 🚨", 400, 240);
+
+            this.ctx.restore();
+        }
+
+        // [신규] 보스 출현 시 상단 중앙 보스 전용 네온 HP HUD 렌더러
+        let activeBosses = this.monsters.filter(m => (m.isBoss || m.type.startsWith('boss_')) && m.hp > 0 && !m.dead);
+        if (activeBosses.length > 0) {
+            this.ctx.save();
+
+            let currentHpSum = activeBosses.reduce((sum, b) => sum + Math.max(0, b.hp), 0);
+            let maxHpSum = activeBosses.reduce((sum, b) => sum + b.maxHp, 0);
+            let hpPct = Math.max(0, currentHpSum / maxHpSum);
+
+            let shieldHpSum = activeBosses.reduce((sum, b) => sum + (b.shieldHp || 0), 0);
+            let maxShieldHpSum = activeBosses.reduce((sum, b) => sum + (b.maxShieldHp || 0), 0);
+            let shieldPct = maxShieldHpSum > 0 ? Math.max(0, shieldHpSum / maxShieldHpSum) : 0;
+
+            // 1. 보스명 결정 한글 헬퍼
+            const getBossKoreanName = (type) => {
+                if (type === 'boss') return "네온 센티넬 (Neon Sentinel)";
+                if (type === 'boss_chaser') return "하이퍼 체이서 (Hyper Chaser)";
+                if (type === 'boss_slime') return "마더 슬라임 (Mother Slime)";
+                if (type === 'boss_slime_mini') return "미니 슬라임 (Mini Slime)";
+                if (type === 'boss_speaker') return "둠 스피커 (Doom Speaker)";
+                if (type === 'boss_warper') return "보이드 워퍼 (Void Warper)";
+                if (type === 'boss_portal') return "차원 차단기 (Portal Overlord)";
+                if (type === 'boss_portal_spawner') return "차원 소환 포털 (Portal Spawner)";
+                if (type === 'boss_hive') return "나노 하이브 (Nano Hive)";
+                if (type === 'boss_hive_healer') return "나노 보조 힐러 (Nano Healer)";
+                if (type === 'boss_chaos') {
+                    let firstChaos = activeBosses.find(b => b.type === 'boss_chaos');
+                    let el = firstChaos ? firstChaos.element : 'fire';
+                    let elStr = el === 'fire' ? "화염" : (el === 'lightning' ? "번개" : "냉기");
+                    return `카오스 코어 [${elStr} 속성] (Chaos Core)`;
+                }
+                if (type === 'boss_final') return "최종 수문장: 마더보드 크로노스 (Chronos)";
+                if (type === 'boss_final_turret') return "실드 발전기 포탑 (Shield Turret)";
+                return "수호자 (Guardian)";
+            };
+
+            // 대표 보스명 표기
+            let bossNameStr = getBossKoreanName(activeBosses[0].type);
+            if (this.roomNum === 50) {
+                bossNameStr = "삼위일체 게이트 (Trinity Gate Bosses)";
+            } else if (this.roomNum === 90) {
+                bossNameStr = `웨이브 ${this.bossWave}/4 - ${bossNameStr}`;
+            }
+
+            // HUD 바 위치: X 200, Y 50, 너비 400, 높이 15
+            const bx = 200, by = 48, bw = 400, bh = 14;
+
+            // 보스 체력바 뒷배경 어두운 네온 컨테이너
+            this.ctx.fillStyle = 'rgba(10, 5, 5, 0.7)';
+            this.ctx.fillRect(bx, by, bw, bh);
+
+            this.ctx.strokeStyle = 'rgba(255, 0, 85, 0.3)';
+            this.ctx.lineWidth = 1.5;
+            this.ctx.strokeRect(bx, by, bw, bh);
+
+            // 보스 체력바 붉은 네온 그라데이션 게이지
+            if (hpPct > 0) {
+                let hpGrd = this.ctx.createLinearGradient(bx, by, bx + bw, by);
+                hpGrd.addColorStop(0, '#ff0055');
+                hpGrd.addColorStop(1, '#ff3300');
+                this.ctx.fillStyle = hpGrd;
+                this.ctx.fillRect(bx + 1, by + 1, (bw - 2) * hpPct, bh - 2);
+            }
+
+            // 쉴드가 있으면 체력바 위에 얇은 하늘색 바 추가
+            if (shieldPct > 0) {
+                this.ctx.fillStyle = '#00f0ff';
+                this.ctx.fillRect(bx + 1, by + 1, (bw - 2) * shieldPct, 3);
+            }
+
+            // 네온 글로우 효과 외곽선
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowColor = '#ff0055';
+            this.ctx.strokeStyle = '#ff0055';
+            this.ctx.lineWidth = 1.0;
+            this.ctx.strokeRect(bx, by, bw, bh);
+
+            // 보스 텍스트 정보 렌더링
+            this.ctx.shadowBlur = 8;
+            this.ctx.font = '800 11px "Outfit"';
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(bossNameStr, 400, by - 6);
+
+            // 보스 수치 정보 (HP / MAX HP)
+            this.ctx.font = '600 10px "Outfit"';
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            let hpText = `${Math.ceil(currentHpSum)} / ${maxHpSum}`;
+            if (shieldHpSum > 0) {
+                hpText += ` (🛡️ ${Math.ceil(shieldHpSum)})`;
+            }
+            this.ctx.fillText(hpText, 400, by + bh - 3);
 
             this.ctx.restore();
         }

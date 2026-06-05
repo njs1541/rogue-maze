@@ -195,6 +195,12 @@ class Player {
                         m.statusEffects.slow = Math.max(m.statusEffects.slow || 0, 10);
                         if (auraDamagePerFrame > 0) {
                             m.hp -= auraDamagePerFrame;
+                            
+                            // [버그 수정] 가시 장막 오라 피해로 사망 시 사망 처리 정산 진행
+                            if (m.hp <= 0 && window.gameEngine) {
+                                window.gameEngine.killMonster(m);
+                            }
+                            
                             if (Math.random() < 0.05) {
                                 m.flashTimer = 2;
                             }
