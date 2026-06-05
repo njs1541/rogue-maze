@@ -22,6 +22,7 @@ const Sound = {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }
+        this.loadVolumeSettings();
         // BGM 전용 Gain 노드가 없으면 실시간 생성 후 마스터 연결
         if (this.ctx && !this.bgmGainNode) {
             this.bgmGainNode = this.ctx.createGain();
@@ -30,9 +31,33 @@ const Sound = {
         }
     },
 
+    loadVolumeSettings() {
+        try {
+            const savedOptions = JSON.parse(localStorage.getItem('neon_rogue_options'));
+            if (savedOptions) {
+                if (savedOptions.sfxVolume !== undefined) this.sfxVolume = parseFloat(savedOptions.sfxVolume);
+                if (savedOptions.bgmVolume !== undefined) this.bgmVolume = parseFloat(savedOptions.bgmVolume);
+            }
+        } catch (e) {
+            console.error("볼륨 설정 로드 실패:", e);
+        }
+    },
+
+    saveVolumeSettings() {
+        try {
+            const savedOptions = JSON.parse(localStorage.getItem('neon_rogue_options')) || {};
+            savedOptions.sfxVolume = this.sfxVolume;
+            savedOptions.bgmVolume = this.bgmVolume;
+            localStorage.setItem('neon_rogue_options', JSON.stringify(savedOptions));
+        } catch (e) {
+            console.error("볼륨 설정 저장 실패:", e);
+        }
+    },
+
     // 효과음 볼륨 갱신 메소드
     setSFXVolume(val) {
         this.sfxVolume = Math.max(0, Math.min(1, parseFloat(val)));
+        this.saveVolumeSettings();
     },
 
     // 배경음악 볼륨 갱신 메소드 (BGM Gain 노드와 실시간 동기화)
@@ -41,9 +66,9 @@ const Sound = {
         if (this.bgmGainNode && this.ctx) {
             this.bgmGainNode.gain.setValueAtTime(this.bgmVolume, this.ctx.currentTime);
         }
+        this.saveVolumeSettings();
     },
 
-    // [신규] Web Audio Synth BGM 연주 시작 메소드
     startBGM() {
         this.init();
         if (!this.ctx) return;

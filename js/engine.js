@@ -91,10 +91,36 @@ class GameEngine {
         this.accumulatedTime = 0;
         this.timestep = 1000 / 60; // 60FPS (약 16.67ms)
 
+        // 옵션 및 성능 최적화 로드
+        this.lowSpecMode = false;
+        this.loadOptions();
+
+        // shadowBlur 가로채기 (성능 최적화 모드 연동)
+        if (!window.shadowBlurOverridden) {
+            const originalShadowBlurDescriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+            Object.defineProperty(CanvasRenderingContext2D.prototype, 'shadowBlur', {
+                get: function() {
+                    return originalShadowBlurDescriptor.get.call(this);
+                },
+                set: function(val) {
+                    if (window.gameEngine && window.gameEngine.lowSpecMode) {
+                        originalShadowBlurDescriptor.set.call(this, 0);
+                    } else {
+                        originalShadowBlurDescriptor.set.call(this, val);
+                    }
+                },
+                configurable: true
+            });
+            window.shadowBlurOverridden = true;
+        }
+
         this.initInputEvents();
         this.setupInitialRoom();
         this.initCheatSystemEvents();
         this.initOptionEvents(); // [신규 추가] 시스템 옵션 모달 이벤트 등록
+
+        // 이어하기 버튼 가시성 업데이트
+        this.updateContinueButtonVisibility();
     }
 
     // 입력 장치 이벤트 바인딩
@@ -218,6 +244,14 @@ class GameEngine {
             this.startGame();
         });
 
+        // 이어하기 버튼 이벤트 바인딩
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', () => {
+                this.continueGame();
+            });
+        }
+
         document.getElementById('restart-btn').addEventListener('click', () => {
             document.getElementById('result-overlay').classList.add('hidden');
             this.restartGame();
@@ -246,6 +280,9 @@ class GameEngine {
                 const hudFooter = document.getElementById('hud-footer');
                 if (hudHeader) hudHeader.classList.add('hidden');
                 if (hudFooter) hudFooter.classList.add('hidden');
+
+                // 이어하기 버튼 상태 업데이트
+                this.updateContinueButtonVisibility();
 
                 this.isPlaying = false;
                 if (this.gameLoopId) {
@@ -358,6 +395,7 @@ class GameEngine {
         if (hudHeader) hudHeader.classList.remove('hidden');
         if (hudFooter) hudFooter.classList.remove('hidden');
 
+        this.clearSavedGame();
         this.isPlaying = true;
         this.roomNum = 1;
         this.score = 0;
@@ -764,6 +802,7 @@ class GameEngine {
 
         this.updateHUD();
         Sound.play('powerup');
+        this.saveGame(scoreBonus);
     }
 
     // 보스 소환 설정
@@ -4856,6 +4895,7 @@ class GameEngine {
     triggerGameOver() {
         if (this.gameOverActive) return; // 중복 호출 원천 방지
         this.gameOverActive = true;
+        this.clearSavedGame();
 
         Sound.stopBGM(); // [추가] 사망 시 은은하게 돌던 Synth BGM 루프 즉시 종료
         Sound.play('gameover');
@@ -4893,6 +4933,7 @@ class GameEngine {
         // [v0.95] 100층 돌파 최종 대성공 극상 연출 (무지개 파편 은하수 및 3연속 victory 팡파르)
         if (this.gameClearActive) return;
         this.gameClearActive = true;
+        this.clearSavedGame();
 
         // 청아한 승리 3연음 아르페지오 팡파르 재생
         Sound.play('victory');
@@ -6004,6 +6045,15 @@ class GameEngine {
                 this.restartGame();
             });
         }
+
+        // 성능 최적화 모드 체크박스 실시간 조작
+        const perfCheckbox = document.getElementById('perf-low-spec');
+        if (perfCheckbox) {
+            perfCheckbox.addEventListener('change', () => {
+                this.lowSpecMode = perfCheckbox.checked;
+                this.saveOptions();
+            });
+        }
     }
 
     // [신규 추가] 시스템 옵션 모달 토글 메소드
@@ -6155,6 +6205,7 @@ class GameEngine {
         const bgmSlider = document.getElementById('volume-bgm');
         const sfxLabel = document.getElementById('volume-sfx-val');
         const bgmLabel = document.getElementById('volume-bgm-val');
+        const perfCheckbox = document.getElementById('perf-low-spec');
 
         if (sfxSlider && sfxLabel) {
             sfxSlider.value = sfxVal;
@@ -6163,6 +6214,289 @@ class GameEngine {
         if (bgmSlider && bgmLabel) {
             bgmSlider.value = bgmVal;
             bgmLabel.innerText = Math.round(bgmVal * 100) + '%';
+        }
+        if (perfCheckbox) {
+            perfCheckbox.checked = this.lowSpecMode;
+        }
+    }
+
+    saveOptions() {
+        try {
+            const options = {
+                sfxVolume: Sound.sfxVolume,
+                bgmVolume: Sound.bgmVolume,
+                lowSpecMode: this.lowSpecMode
+            };
+            localStorage.setItem('neon_rogue_options', JSON.stringify(options));
+        } catch (e) {
+            console.error("옵션 저장 실패:", e);
+        }
+    }
+
+    loadOptions() {
+        try {
+            const savedOptions = JSON.parse(localStorage.getItem('neon_rogue_options'));
+            if (savedOptions) {
+                this.lowSpecMode = savedOptions.lowSpecMode || false;
+                Sound.setSFXVolume(savedOptions.sfxVolume !== undefined ? savedOptions.sfxVolume : 1.0);
+                Sound.setBGMVolume(savedOptions.bgmVolume !== undefined ? savedOptions.bgmVolume : 0.5);
+            }
+        } catch (e) {
+            console.error("옵션 로드 실패:", e);
+        }
+    }
+
+    saveGame(lastRoomDifficultyScore) {
+        if (!this.isPlaying || this.roomNum > 100) return;
+        try {
+            const saveData = {
+                roomNum: this.roomNum,
+                score: this.score,
+                kills: this.kills,
+                currentRoomType: this.currentRoomType,
+                weaponRoomCooldown: this.weaponRoomCooldown,
+                isEliteRoom: this.isEliteRoom,
+                lastEnteredPortalClass: this.lastEnteredPortalClass,
+                inSecretRoom: this.inSecretRoom,
+                lastEnteredPortalDir: this.lastEnteredPortalDir,
+                lastRoomDifficultyScore: lastRoomDifficultyScore,
+                petsCount: this.pets.length,
+                hasSecretWall: this.secretWalls.length > 0,
+                exitPortalType: (this.inSecretRoom && this.portals[0]) ? this.portals[0].portalType : null,
+                exitPortalDifficultyClass: (this.inSecretRoom && this.portals[0]) ? this.portals[0].difficultyClass : null,
+                player: {
+                    maxHp: this.player.maxHp,
+                    hp: this.player.hp,
+                    maxStamina: this.player.maxStamina,
+                    stamina: this.player.stamina,
+                    atk: this.player.atk,
+                    aspd: this.player.aspd,
+                    ms: this.player.ms,
+                    evd: this.player.evd,
+                    luk: this.player.luk,
+                    mp: this.player.mp,
+                    maxMp: this.player.maxMp,
+                    magicType: this.player.magicType,
+                    coins: this.player.coins,
+                    perfectClearFlag: this.player.perfectClearFlag,
+                    equipLevels: { ...this.player.equipLevels },
+                    swordDmgUpgrade: this.player.swordDmgUpgrade,
+                    multishotArc: this.player.multishotArc,
+                    petDmgUpgrade: this.player.petDmgUpgrade,
+                    splashDmgUpgrade: this.player.splashDmgUpgrade,
+                    homingAngleSpeed: this.player.homingAngleSpeed,
+                    hpRegen: this.player.hpRegen,
+                    range: this.player.range,
+                    weaponType: this.player.weaponType,
+                    weaponLevels: { ...this.player.weaponLevels },
+                    multishot: this.player.multishot,
+                    burstCount: this.player.burstCount,
+                    pierceCount: this.player.pierceCount,
+                    homing: this.player.homing,
+                    wallBounceLimit: this.player.wallBounceLimit,
+                    monsterBounceLimit: this.player.monsterBounceLimit,
+                    splashRadius: this.player.splashRadius,
+                    weaponUnlocks: JSON.parse(JSON.stringify(this.player.weaponUnlocks)),
+                    resurrected: this.player.resurrected
+                }
+            };
+            localStorage.setItem('neon_rogue_save_game', JSON.stringify(saveData));
+        } catch (e) {
+            console.error("게임 세션 저장 실패:", e);
+        }
+    }
+
+    clearSavedGame() {
+        try {
+            localStorage.removeItem('neon_rogue_save_game');
+            this.updateContinueButtonVisibility();
+        } catch (e) {
+            console.error("게임 세션 초기화 실패:", e);
+        }
+    }
+
+    updateContinueButtonVisibility() {
+        try {
+            const continueBtn = document.getElementById('continue-btn');
+            if (continueBtn) {
+                const saveData = localStorage.getItem('neon_rogue_save_game');
+                if (saveData) {
+                    continueBtn.classList.remove('hidden');
+                } else {
+                    continueBtn.classList.add('hidden');
+                }
+            }
+        } catch (e) {
+            console.error("이어하기 버튼 상태 변경 실패:", e);
+        }
+    }
+
+    continueGame() {
+        try {
+            const savedData = JSON.parse(localStorage.getItem('neon_rogue_save_game'));
+            if (!savedData) return;
+
+            // 게임 UI 및 오버레이 정리
+            document.getElementById('start-overlay').classList.add('hidden');
+            const hudHeader = document.getElementById('hud-header');
+            const hudFooter = document.getElementById('hud-footer');
+            if (hudHeader) hudHeader.classList.remove('hidden');
+            if (hudFooter) hudFooter.classList.remove('hidden');
+
+            this.isPlaying = true;
+            this.roomNum = savedData.roomNum;
+            this.score = savedData.score;
+            this.kills = savedData.kills;
+            this.currentRoomType = savedData.currentRoomType || 'stat';
+            this.weaponRoomCooldown = savedData.weaponRoomCooldown || 0;
+            this.isEliteRoom = savedData.isEliteRoom || false;
+            this.lastEnteredPortalClass = savedData.lastEnteredPortalClass || 'low';
+            this.inSecretRoom = savedData.inSecretRoom || false;
+            this.lastEnteredPortalDir = savedData.lastEnteredPortalDir || null;
+
+            // 플레이어 객체 생성 및 복구
+            this.player = new Player(400, 300);
+            Object.assign(this.player, savedData.player);
+
+            // 몬스터 및 오브젝트 엔티티 클리어
+            this.monsters = [];
+            this.bullets = [];
+            this.particles = [];
+            this.potions = [];
+            this.coinsList = [];
+            this.secretWalls = [];
+            this.secretGlitchDevices = [];
+            this.rewardChests = [];
+            this.vendingMachines = [];
+            this.secretVendingMachines = [];
+            this.traps = [];
+            this.obstacles = [];
+
+            // 펫 엔티티 복구
+            const petCount = savedData.petsCount || 0;
+            this.pets = [];
+            for (let i = 0; i < petCount; i++) {
+                let petAngle = i * (Math.PI * 2 / 3);
+                let orbitRadius = 45 + Math.floor(i / 3) * 15;
+                this.pets.push(new Pet(petAngle, orbitRadius));
+            }
+
+            // 방 및 스폰 구조 복구
+            if (this.inSecretRoom) {
+                // 비밀방 디바이스 복구
+                this.secretGlitchDevices.push(new SecretGlitchDevice(400, 300));
+                
+                const directions = ['top', 'bottom', 'left', 'right'];
+                const chosenDir = directions[Math.floor(Math.random() * 4)];
+                const exitPortal = new RoomPortal(chosenDir, this.getRandomScoreValue());
+                
+                exitPortal.portalType = savedData.exitPortalType || 'stat';
+                exitPortal.difficultyClass = savedData.exitPortalDifficultyClass || 'mid';
+                exitPortal.active = false;
+                this.portals = [exitPortal];
+            } else if (this.roomNum % 10 === 0) {
+                // 보스방 복구
+                this.setupBossRoom();
+            } else {
+                // 일반/엘리트 방 복구
+                const lastRoomDifficultyScore = savedData.lastRoomDifficultyScore || this.getRandomScoreValue();
+                this.queueSequentialSpawns(lastRoomDifficultyScore);
+
+                // 포털 셋업
+                this.portals = [
+                    new RoomPortal('top', this.getRandomScoreValue()),
+                    new RoomPortal('bottom', this.getRandomScoreValue()),
+                    new RoomPortal('left', this.getRandomScoreValue()),
+                    new RoomPortal('right', this.getRandomScoreValue())
+                ];
+
+                let types = this.generatePortalTypes();
+                this.portals.forEach((p, idx) => {
+                    p.portalType = types[idx];
+                });
+
+                this.rankPortals();
+                this.portals.forEach(p => p.active = false);
+            }
+
+            // 장애물(격자) 재생성
+            if (this.roomNum > 1 && this.roomNum % 10 !== 0 && !this.inSecretRoom) {
+                let stageGroup = Math.floor((this.roomNum - 1) / 20);
+                let maxObstacles = Math.min(5, stageGroup + 1);
+                let obstacleCount = 0;
+                for (let i = 0; i < maxObstacles; i++) {
+                    if (Math.random() < 0.5) obstacleCount++;
+                    else break;
+                }
+                let candidates = [
+                    { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
+                    { col: 1, row: 2 }, { col: 3, row: 2 },
+                    { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }
+                ];
+                candidates.sort(() => 0.5 - Math.random());
+                for (let i = 0; i < Math.min(obstacleCount, candidates.length); i++) {
+                    let cell = candidates[i];
+                    this.obstacles.push(new NeonObstacle(cell.col, cell.row));
+                }
+            }
+
+            // 비밀 벽(균열) 재생성
+            if (savedData.hasSecretWall && this.roomNum % 10 !== 0 && this.roomNum > 1 && !this.inSecretRoom) {
+                let spots = [
+                    { wallX: 250, wallY: 40, dir: 'top' },
+                    { wallX: 550, wallY: 560, dir: 'bottom' },
+                    { wallX: 40, wallY: 180, dir: 'left' },
+                    { wallX: 760, wallY: 420, dir: 'right' }
+                ];
+                let safeSpots = spots.filter(spot => {
+                    for (let obs of this.obstacles) {
+                        let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
+                        if (distWall <= 85) return false;
+                    }
+                    return true;
+                });
+                let chosenSpot = safeSpots.length > 0
+                    ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
+                    : spots[Math.floor(Math.random() * spots.length)];
+
+                this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
+            }
+
+            // 플레이어 리스폰 위치 복구
+            if (this.lastEnteredPortalDir === 'center') {
+                this.player.x = 400;
+                this.player.y = 450;
+            } else if (this.lastEnteredPortalDir === 'top') {
+                this.player.x = 400;
+                this.player.y = 510;
+            } else if (this.lastEnteredPortalDir === 'bottom') {
+                this.player.x = 400;
+                this.player.y = 70;
+            } else if (this.lastEnteredPortalDir === 'left') {
+                this.player.x = 710;
+                this.player.y = 300;
+            } else if (this.lastEnteredPortalDir === 'right') {
+                this.player.x = 70;
+                this.player.y = 300;
+            } else {
+                this.player.x = 400;
+                this.player.y = 300;
+            }
+
+            // HUD 및 프레임 60FPS 타이머 리셋
+            this.updateHUD();
+            this.lastTime = performance.now();
+            this.accumulatedTime = 0;
+
+            if (this.gameLoopId) {
+                cancelAnimationFrame(this.gameLoopId);
+            }
+            this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
+
+            Sound.play('powerup');
+            Sound.startBGM();
+        } catch (e) {
+            console.error("이어하기 복구 중 오류 발생:", e);
         }
     }
 
