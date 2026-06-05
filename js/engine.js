@@ -884,6 +884,9 @@ class GameEngine {
             const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
             this.monsters.push(boss);
+
+            // [추가] 90층 보스전 1웨이브 시작 안내 메시지 출력 (사용자 오해 방지)
+            this.showFloatingText("WAVE 1: 보이드 워퍼 🌀 (90층 보스 시련 시작)", 400, 250, '#00ffcc');
         }
         else if (this.roomNum === 100) {
             // 최종 보스 (100층 포탑은 보스 생성자 내부에서 자체 소환)
@@ -1774,8 +1777,8 @@ class GameEngine {
 
             // [Phase 7 신규 구현] 모든 플레이어 탄환 투사체와 비밀 벽 충돌 검출 (isSpear 한정 버그 수정 완료)
             if (b.isPlayerBullet) {
-                // [신규] 60층 보이드 워퍼의 탄 흡수 블랙홀 구역 충돌 검출
-                let warper = this.monsters.find(m => m.type === 'boss_warper' && m.hp > 0 && !m.dead);
+                // [신규] 60층 보이드 워퍼의 탄 흡수 블랙홀 구역 충돌 검출 (수정: 텔레포트 후 보호막 가동 중일 때만)
+                let warper = this.monsters.find(m => m.type === 'boss_warper' && m.hp > 0 && !m.dead && m.blackholeActiveTimer > 0);
                 if (warper) {
                     let wdist = Math.hypot(b.x - warper.x, b.y - warper.y);
                     if (wdist < 75) {
@@ -2946,6 +2949,14 @@ class GameEngine {
                 let nextBoss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
                 // 카오스 코어(4웨이브)는 약화시키지 않고 본 전력으로 출현
                 nextBoss.makeBoss(this.roomNum, nextType, this.bossWave < 4);
+
+                // [수정] 이전 웨이브 보스가 소환해 둔 부하 몬스터들(발전기, 힐러, 소환 몹 등)을 일괄 소멸 처리하여 필드가 뒤섞이는 현상 방지
+                this.monsters.forEach(monster => {
+                    if (monster !== m) {
+                        monster.dead = true;
+                    }
+                });
+
                 this.monsters.push(nextBoss);
 
                 this.showFloatingText(nextName, 400, 250, nextColor);
@@ -2953,6 +2964,12 @@ class GameEngine {
                 this.shakeScreen(30, 4.5);
             } else {
                 this.currentSpawnRemaining = 0;
+                // [수정] 최종 보스인 카오스 코어가 죽었을 때도 혹시 필드에 남아있을 부하 몬스터를 일괄 소멸 처리하여 문이 안 열리는 버그 방지
+                this.monsters.forEach(monster => {
+                    if (monster !== m) {
+                        monster.dead = true;
+                    }
+                });
             }
         }
 

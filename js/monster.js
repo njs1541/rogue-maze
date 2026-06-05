@@ -7,6 +7,7 @@ class Monster {
         this.y = y;
         this.tier = tier;
         this.roomNum = roomNum;
+        this._hp = 0; // [추가] 내부 체력 변수 초기화
         
         let roomFactor = 1.0 + Math.log10(roomNum) * 1.2 + (roomNum / 20) * 0.6;
         let weaponRoomMultiplier = (window.gameEngine && window.gameEngine.currentRoomType === 'weapon') ? 1.25 : 1.0;
@@ -153,6 +154,41 @@ class Monster {
         this.dead = false; // [신규] 지연 삭제용 사망 플래그
     }
 
+    // [추가] 외부 코드 수정 없이 무적 및 실드 작동을 가로채기 위한 getter/setter 구현
+    get hp() {
+        return this._hp;
+    }
+
+    set hp(value) {
+        // 무적(isInvulnerable) 상태이고 대미지를 입는 상황이면 체력 차감 무효화
+        if (this.isInvulnerable && value < this._hp) {
+            return;
+        }
+
+        // 대미지를 입는 경우 (체력이 감소할 때)
+        if (this._hp !== undefined && value < this._hp) {
+            let dmg = this._hp - value;
+
+            // 실드(shieldHp)가 있는 경우 실드가 대미지를 우선 차감 흡수
+            if (this.shieldHp !== undefined && this.shieldHp > 0) {
+                this.shieldRechargeTimer = 300; // 피격 시 실드 재생 타이머 5초 대기 리셋
+                if (this.shieldHp >= dmg) {
+                    this.shieldHp -= dmg;
+                    dmg = 0;
+                } else {
+                    dmg -= this.shieldHp;
+                    this.shieldHp = 0;
+                }
+            }
+
+            // 실드가 깨지고 남은 대미지만 실제 체력에 가산 차감
+            this._hp = Math.max(0, this._hp - dmg);
+        } else {
+            // 체력을 새로 설정하거나 회복시키는 경우
+            this._hp = Math.max(0, value);
+        }
+    }
+
     // 엘리트 속성 주입 메서드
     makeElite() {
         this.isElite = true;
@@ -246,6 +282,8 @@ class Monster {
                 this.speed = 1.1;
                 this.color = '#00ffcc';
                 this.glowColor = '#00ffcc';
+                this.shootCooldown = 60; // [추가] 공격 사격 쿨다운
+                this.blackholeActiveTimer = 0; // [추가] 탄 흡수 보호막(블랙홀) 한시 활성 타이머
                 this.teleportCooldown = 150;
                 this.blackholeTimer = 180; // 블랙홀 흡수 구역 타이머
                 break;
@@ -388,7 +426,8 @@ class Monster {
         }
 
         // 넉백 감쇠 처리 및 이동도 시간 지연 영향 받음
-        if (this.isTanker) {
+        // [수정] 보스 몬스터(isBoss 혹은 boss_로 시작하는 부하 보스)는 넉백을 완전히 무시하도록 처리 (위치 고정 버그 및 덜덜거림 버그 방지)
+        if (this.isTanker || this.isBoss || this.type.startsWith('boss_')) {
             this.knockbackX = 0;
             this.knockbackY = 0;
         }
@@ -398,7 +437,8 @@ class Monster {
         this.knockbackY *= 0.85;
 
         // Shock (Stun / 기절) 상태 시 이동 및 행동 불능 처리
-        if (this.statusEffects.shock > 0) {
+        // [수정] 보스 몬스터는 기절에 걸리더라도 공격 패턴이나 이동 AI가 멈추지 않도록 무시 처리 (패턴 정지 버그 방지)
+        if (this.statusEffects.shock > 0 && !this.isBoss && !this.type.startsWith('boss_')) {
             // 행동 불가 상태에서도 넉백과 벽 충돌 처리는 적용
             const wallMargin = 40;
             this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
@@ -591,6 +631,11 @@ class Monster {
                     break;
 
                 case 'boss_warper': // 60층 보이드 워퍼
+                    // [추가] 탄 흡수 보호막 타이머 차감 업데이트
+                    if (this.blackholeActiveTimer > 0) {
+                        this.blackholeActiveTimer -= timeScale;
+                    }
+
                     // 플레이어와 거리 카이팅 (거리 180~250px 유지)
                     if (dist < 180) {
                         this.x -= Math.cos(angle) * activeSpeed * 0.9;
@@ -598,6 +643,22 @@ class Monster {
                     } else if (dist > 250) {
                         this.x += Math.cos(angle) * activeSpeed;
                         this.y += Math.sin(angle) * activeSpeed;
+                    }
+
+                    // [추가] 평상시 플레이어 조준 3방향 보이드 탄환 사격 패턴 (카이팅 도중 지속 피해 유도)
+                    this.shootCooldown -= timeScale;
+                    if (this.shootCooldown <= 0) {
+                        this.shootCooldown = 60 + Math.random() * 40; // 약 1초 ~ 1.6초 주기 사격
+                        for (let i = -1; i <= 1; i++) {
+                            let bAngle = angle + (i * 0.22);
+                            let vx = Math.cos(bAngle) * 3.0;
+                            let vy = Math.sin(bAngle) * 3.0;
+                            bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
+                                color: '#00ffcc',
+                                radius: 5.5
+                            }));
+                        }
+                        Sound.play('shoot');
                     }
 
                     this.teleportCooldown -= timeScale;
@@ -618,22 +679,23 @@ class Monster {
                                 let pSpeed = Math.random() * 3 + 1;
                                 window.gameEngine.particles.push(new Particle(this.x, this.y, '#00ffcc', 2.0, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
                             }
-                            // 플레이어를 내 앞 70px 위치로 강제 워프 풀링
-                            let pullX = targetX + Math.cos(warpAngle + Math.PI) * 70;
-                            let pullY = targetY + Math.sin(warpAngle + Math.PI) * 70;
                             
-                            pullX = Math.max(wallMargin + player.radius, Math.min(800 - wallMargin - player.radius, pullX));
-                            pullY = Math.max(wallMargin + player.radius, Math.min(600 - wallMargin - player.radius, pullY));
-
-                            player.x = pullX;
-                            player.y = pullY;
-                            // 플레이어에게 0.3초 (18프레임) 역경직 스턴 부여
-                            player.lastHitTimer = 0; // 피격 타이머 리셋 및 스턴 유도용
-                            if (player.statusEffects) {
-                                player.stamina = Math.max(0, player.stamina - 15); // 스태미너 탈취
+                            // [수정] 플레이어를 강제로 보스 앞으로 워프시키는 기괴한 기믹 완전 삭제
+                            // [추가] 텔레포트 도약 직후 360도 8방향 보이드 방사 탄막 발사 패턴 추가
+                            for (let i = 0; i < 8; i++) {
+                                let bAngle = (i * Math.PI / 4);
+                                let vx = Math.cos(bAngle) * 2.6;
+                                let vy = Math.sin(bAngle) * 2.6;
+                                bullets.push(new Bullet(targetX, targetY, vx, vy, this.atk * 0.7, false, {
+                                    color: '#00ffcc',
+                                    radius: 5.5
+                                }));
                             }
-                            window.gameEngine.showFloatingText("VOID PULL! 🌀", player.x, player.y - 30, '#00ffcc');
-                            Sound.play('dodge');
+                            window.gameEngine.showFloatingText("VOID BURST! 🌀", targetX, targetY - 30, '#00ffcc');
+                            Sound.play('shoot');
+
+                            // [추가] 텔레포트 도약 성공 시 1.5초(90프레임) 동안 보호막(블랙홀) 가동
+                            this.blackholeActiveTimer = 90;
                         }
 
                         this.x = targetX;
@@ -1183,7 +1245,7 @@ class Monster {
                         let pSpeed = Math.random() * 2 + 1;
                         window.gameEngine.particles.push(new Particle(this.x, this.y, '#00ffcc', 2.0, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
                     }
-                    this.showFloatingText("WARP! 💚", this.x, this.y - 25, '#00ffcc');
+                    window.gameEngine.showFloatingText("WARP! 💚", this.x, this.y - 25, '#00ffcc');
                     Sound.play('dodge');
                 }
             }
@@ -1225,7 +1287,7 @@ class Monster {
                         let pSpeed = Math.random() * 3 + 1;
                         window.gameEngine.particles.push(new Particle(this.x, this.y, '#8b5cf6', 2.0, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'spark'));
                     }
-                    this.showFloatingText("SUMMON! 💠", this.x, this.y - 25, '#8b5cf6');
+                    window.gameEngine.showFloatingText("SUMMON! 💠", this.x, this.y - 25, '#8b5cf6');
                     Sound.play('powerup');
                 }
             }
@@ -1268,7 +1330,7 @@ class Monster {
                 }
 
                 if (healedAny) {
-                    this.showFloatingText("HEAL! 💚", this.x, this.y - 25, '#10b981');
+                    window.gameEngine.showFloatingText("HEAL! 💚", this.x, this.y - 25, '#10b981');
                     Sound.play('powerup');
                     this.healRingTimer = 20;
                 }
@@ -1572,18 +1634,20 @@ class Monster {
                     ctx.fill();
 
                     // [보이드 워퍼 탄 흡수 블랙홀 구역 그리기]
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 75, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(0, 255, 204, 0.04)';
-                    ctx.strokeStyle = 'rgba(0, 255, 204, 0.35)';
-                    ctx.lineWidth = 1.0;
-                    ctx.setLineDash([3, 5]);
-                    ctx.shadowBlur = 8;
-                    ctx.shadowColor = '#00ffcc';
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.restore();
+                    if (this.blackholeActiveTimer > 0) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 75, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(0, 255, 204, 0.04)';
+                        ctx.strokeStyle = 'rgba(0, 255, 204, 0.35)';
+                        ctx.lineWidth = 1.0;
+                        ctx.setLineDash([3, 5]);
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#00ffcc';
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                     break;
 
                 case 'boss_portal': // 70층 차원 차단기
