@@ -3,12 +3,19 @@
 // --------------------------------------------------------------------------
 class GameEngine {
     constructor() {
+        // [수정] 생성자 극초반부에 전역 객체 바인딩을 진행하여, setupInitialRoom 등의 하위 초기화 시점에 
+        // 맵 크기(mapWidth, mapHeight)를 안전하게 참조할 수 있도록 보장합니다.
+        window.gameEngine = this;
+
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
 
         // 디자인 해상도 비율 800 * 600 고정 스케일링 설정
-        this.canvas.width = 800;
-        this.canvas.height = 600;
+        this.mapWidth = 800;
+        this.mapHeight = 600;
+        this.canvas.width = this.mapWidth;
+        this.canvas.height = this.mapHeight;
+        this.currentRoomMonsterPool = [];
 
         // 키보드 마우스 입력 상태 변수
         this.keys = {};
@@ -422,6 +429,16 @@ class GameEngine {
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
 
+        this.mapWidth = 800;
+        this.mapHeight = 600;
+        this.canvas.width = this.mapWidth;
+        this.canvas.height = this.mapHeight;
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.style.maxWidth = '900px';
+        }
+        this.currentRoomMonsterPool = [];
+
         this.spawnQueue = [];
         this.lastEnteredPortalDir = null;
 
@@ -533,15 +550,19 @@ class GameEngine {
 
     // 문 위에 들어갈 몬스터 수 & 획득 점수 랜덤 난이도 결정 (10스테이지마다 최대/최소 증가)
     getRandomScoreValue() {
-        // 10스테이지마다 최대 등장 몬스터가 5마리씩 증가 (최대 65마리)
-        // 1~10스테이지 (group 0): 1 ~ 20마리
-        // 11~20스테이지 (group 1): 6 ~ 25마리
-        // 21~30스테이지 (group 2): 11 ~ 30마리
-        // ...
-        // 91~100스테이지 (group 9): 46 ~ 65마리
+        // [4안 적용] 초반 1~20층 몬스터 마릿수 상한선 하향 조정
         let stageGroup = Math.floor((this.roomNum - 1) / 10);
-        let minVal = 1 + stageGroup * 5;
-        let maxVal = Math.min(65, 20 + stageGroup * 5);
+        let minVal, maxVal;
+        if (this.roomNum <= 10) {
+            minVal = 3;
+            maxVal = 10;
+        } else if (this.roomNum <= 20) {
+            minVal = 8;
+            maxVal = 15;
+        } else {
+            minVal = 11 + (stageGroup - 2) * 5;
+            maxVal = Math.min(65, 30 + (stageGroup - 2) * 5);
+        }
 
         // 보정: minVal이 maxVal을 넘지 않도록 안전 제한
         if (minVal > maxVal) minVal = maxVal - 4;
@@ -646,26 +667,74 @@ class GameEngine {
             return;
         }
 
+        // --- [신규 기믹] 3단계 동적 맵 크기 결정 ---
+        if (enteringSecretRoom) {
+            this.mapWidth = 800;
+            this.mapHeight = 600;
+        } else if (this.roomNum % 10 === 0) {
+            this.mapWidth = 1200;
+            this.mapHeight = 900;
+        } else if (scoreBonus > 32) {
+            this.mapWidth = 1000;
+            this.mapHeight = 750;
+        } else {
+            this.mapWidth = 800;
+            this.mapHeight = 600;
+        }
+
+        // 캔버스 크기 적용
+        this.canvas.width = this.mapWidth;
+        this.canvas.height = this.mapHeight;
+
+        // HTML 컨테이너 가로폭 비례 조절
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            gameContainer.style.maxWidth = (this.mapWidth + 100) + 'px';
+        }
+
+        // --- [1안/2안 적용] 방별 등장 몬스터 풀 설정 ---
+        let allowedTypes = ['normal'];
+        if (this.roomNum <= 5) {
+            allowedTypes = ['normal', 'chaser'];
+        } else if (this.roomNum <= 10) {
+            allowedTypes = ['normal', 'chaser', 'exploder'];
+        } else if (this.roomNum <= 15) {
+            allowedTypes = ['normal', 'chaser', 'exploder', 'shooter'];
+        } else if (this.roomNum <= 25) {
+            allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter'];
+        } else if (this.roomNum <= 35) {
+            allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter', 'tanker', 'scatterer'];
+        } else {
+            allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter', 'tanker', 'scatterer', 'summoner', 'healer'];
+        }
+
+        // 무작위 2~3종을 골라 풀로 지정
+        let poolCount = Math.floor(Math.random() * 2) + 2; // 2~3종
+        poolCount = Math.min(poolCount, allowedTypes.length);
+        allowedTypes.sort(() => 0.5 - Math.random());
+        this.currentRoomMonsterPool = allowedTypes.slice(0, poolCount);
+        // --------------------------------------------
+
         // 플레이어 캐릭터 좌표를 해당 포털 방향의 정반대 문 앞으로 워프 이동 (비밀 포털은 맵 중앙 워프)
         if (portal.direction === 'secret') {
-            this.player.x = 400;
-            this.player.y = 450; // 중앙 장치(400, 300)와 겹쳐서 즉시 충돌 소멸되는 현상 완벽 방지
+            this.player.x = this.mapWidth / 2;
+            this.player.y = this.mapHeight / 2 + 150; // 중앙 장치와 겹쳐서 즉시 충돌 소멸되는 현상 방지
             this.lastEnteredPortalDir = 'center';
         } else if (portal.direction === 'top') {
-            this.player.x = 400;
-            this.player.y = 510;
+            this.player.x = this.mapWidth / 2;
+            this.player.y = this.mapHeight - 90;
             this.lastEnteredPortalDir = 'bottom';
         } else if (portal.direction === 'bottom') {
-            this.player.x = 400;
+            this.player.x = this.mapWidth / 2;
             this.player.y = 70;
             this.lastEnteredPortalDir = 'top';
         } else if (portal.direction === 'left') {
-            this.player.x = 710;
-            this.player.y = 300;
+            this.player.x = this.mapWidth - 90;
+            this.player.y = this.mapHeight / 2;
             this.lastEnteredPortalDir = 'right';
         } else if (portal.direction === 'right') {
             this.player.x = 70;
-            this.player.y = 300;
+            this.player.y = this.mapHeight / 2;
             this.lastEnteredPortalDir = 'left';
         }
 
@@ -748,7 +817,7 @@ class GameEngine {
             // 비밀방은 보스 및 몬스터 스폰을 전면 스킵하고 보상 디바이스 소환
             this.monsters = [];
             this.spawnQueue = [];
-            this.secretGlitchDevices.push(new SecretGlitchDevice(400, 300));
+            this.secretGlitchDevices.push(new SecretGlitchDevice(this.mapWidth / 2, this.mapHeight / 2));
         } else if (this.roomNum % 10 === 0) {
             this.setupBossRoom();
         } else {
@@ -774,10 +843,10 @@ class GameEngine {
         if (shouldSpawnSecret) {
             // [요건 반영] 비밀방 입구가 노골적이지 않도록 구석 모퉁이가 아닌 외곽 테두리 4방향 벽면에 완벽 매설
             let spots = [
-                { wallX: 250, wallY: 40, dir: 'top' },    // 상단 벽면
-                { wallX: 550, wallY: 560, dir: 'bottom' }, // 하단 벽면
-                { wallX: 40, wallY: 180, dir: 'left' },    // 좌측 벽면
-                { wallX: 760, wallY: 420, dir: 'right' }   // 우측 벽면
+                { wallX: this.mapWidth * 0.3125, wallY: 40, dir: 'top' },    // 상단 벽면
+                { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 40, dir: 'bottom' }, // 하단 벽면
+                { wallX: 40, wallY: this.mapHeight * 0.3, dir: 'left' },    // 좌측 벽면
+                { wallX: this.mapWidth - 40, wallY: this.mapHeight * 0.7, dir: 'right' }   // 우측 벽면
             ];
 
             // 격자 장애물과 간섭 차단을 위한 안전한 후보지만 필터링
@@ -810,32 +879,34 @@ class GameEngine {
         this.monsters = [];
         this.spawnQueue = [];
 
+        let cx = this.mapWidth / 2;
+
         // 10층 단위로 다채로운 보스 출현 제어
         if (this.roomNum === 10) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss');
             this.monsters.push(boss);
         }
         else if (this.roomNum === 20) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_chaser');
             this.monsters.push(boss);
         }
         else if (this.roomNum === 30) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_slime');
             this.monsters.push(boss);
         }
         else if (this.roomNum === 40) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_speaker');
             this.monsters.push(boss);
         }
@@ -844,7 +915,7 @@ class GameEngine {
             let pool = ['boss', 'boss_chaser', 'boss_slime', 'boss_speaker'];
             pool.sort(() => 0.5 - Math.random());
             let chosen = pool.slice(0, 3);
-            let positions = [{ x: 260, y: 200 }, { x: 540, y: 200 }, { x: 400, y: 150 }];
+            let positions = [{ x: this.mapWidth * 0.325, y: 200 }, { x: this.mapWidth * 0.675, y: 200 }, { x: cx, y: 150 }];
             
             chosen.forEach((type, idx) => {
                 let boss = new Monster(positions[idx].x, positions[idx].y, Math.floor(this.roomNum / 5), this.roomNum);
@@ -857,21 +928,21 @@ class GameEngine {
         else if (this.roomNum === 60) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_warper');
             this.monsters.push(boss);
         }
         else if (this.roomNum === 70) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_portal');
             this.monsters.push(boss);
         }
         else if (this.roomNum === 80) {
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_hive');
             this.monsters.push(boss);
         }
@@ -881,25 +952,25 @@ class GameEngine {
             this.currentSpawnTotal = 4; // 총 4개의 보스를 잡아야 클리어
             this.currentSpawnRemaining = 4;
             
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
             this.monsters.push(boss);
 
             // [추가] 90층 보스전 1웨이브 시작 안내 메시지 출력 (사용자 오해 방지)
-            this.showFloatingText("WAVE 1: 보이드 워퍼 🌀 (90층 보스 시련 시작)", 400, 250, '#00ffcc');
+            this.showFloatingText("WAVE 1: 보이드 워퍼 🌀 (90층 보스 시련 시작)", cx, 250, '#00ffcc');
         }
         else if (this.roomNum === 100) {
             // 최종 보스 (100층 포탑은 보스 생성자 내부에서 자체 소환)
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 100, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 100, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_final');
             this.monsters.push(boss);
         } else {
             // 예외 방어코드
             this.currentSpawnTotal = 1;
             this.currentSpawnRemaining = 1;
-            const boss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum);
             this.monsters.push(boss);
         }
@@ -965,11 +1036,11 @@ class GameEngine {
 
     // 방향별 정확한 스폰 시작 좌표 획득
     getSpawnCoordinates(direction) {
-        // 문 입구의 중앙 부근 좌표
-        if (direction === 'top') return { x: 400, y: 55 };
-        if (direction === 'bottom') return { x: 400, y: 525 };
-        if (direction === 'left') return { x: 55, y: 300 };
-        return { x: 725, y: 300 }; // right
+        // [수정] 맵의 가변 해상도(this.mapWidth, this.mapHeight)를 연동하여 문 입구 스폰 지점을 연산합니다.
+        if (direction === 'top') return { x: this.mapWidth / 2, y: 55 };
+        if (direction === 'bottom') return { x: this.mapWidth / 2, y: this.mapHeight - 75 };
+        if (direction === 'left') return { x: 55, y: this.mapHeight / 2 };
+        return { x: this.mapWidth - 75, y: this.mapHeight / 2 }; // right
     }
 
     // 매 프레임마다 스폰 큐에서 몬스터 한 묶음씩 뿜어내기
@@ -1515,9 +1586,9 @@ class GameEngine {
                     let lx = this.player.x;
                     let ly = this.player.y;
 
-                    // 벽 밖으로 삐져나가는 것 방지
-                    lx = Math.max(50, Math.min(750, lx));
-                    ly = Math.max(50, Math.min(550, ly));
+                    // [수정] 가변 맵 크기를 참조하여 레이저 빔 가이드 선이 벽 밖으로 나가지 않도록 연동합니다.
+                    lx = Math.max(50, Math.min(this.mapWidth - 50, lx));
+                    ly = Math.max(50, Math.min(this.mapHeight - 50, ly));
 
                     this.traps.push(new NeonTrap(lx, ly, type, this.player));
                     this.showFloatingText("LASER WIRE SET! ⚡", this.player.x, this.player.y - 25, '#00f0ff');
@@ -1664,10 +1735,10 @@ class GameEngine {
         this.player.y += dy * currentSpeed;
 
         // 맵 벽 경계선 제한 충돌 처리 (정사각형 방 내부 구조 #08090e)
-        // 캔버스 크기: 800 * 600, 벽 마진 경계: 40px 두께
+        // 캔버스 크기 및 벽 마진 경계 반영
         const wallMargin = 40;
-        this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
-        this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
+        this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
+        this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
 
         // 마우스 커서 각도에 맞춰 조준 각도 갱신
         let pMouseAngle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
@@ -1829,12 +1900,12 @@ class GameEngine {
                                 }
                                 this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
 
-                                // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
-                                let cx = 400, cy = 300;
+                                // [수정] 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출 (가변 맵 크기 연동)
+                                let cx = this.mapWidth / 2, cy = this.mapHeight / 2;
                                 let foundSafe = false;
                                 for (let attempt = 0; attempt < 50; attempt++) {
-                                    let rx = 100 + Math.random() * 600;
-                                    let ry = 100 + Math.random() * 400;
+                                    let rx = 100 + Math.random() * (this.mapWidth - 200);
+                                    let ry = 100 + Math.random() * (this.mapHeight - 200);
                                     let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
                                     if (distToPlayer < 100) continue;
 
@@ -1881,7 +1952,7 @@ class GameEngine {
             }
 
             // 화면 밖으로 나가거나 수명이 다하거나 비활성화(소멸 예약)되면 소멸
-            if (!b.active || b.x < 35 || b.x > 765 || b.y < 35 || b.y > 565 || b.life <= 0) {
+                                    if (!b.active || b.x < 35 || b.x > this.mapWidth - 35 || b.y < 35 || b.y > this.mapHeight - 35 || b.life <= 0) {
                 this.bullets.splice(i, 1);
             }
         }
@@ -2006,11 +2077,11 @@ class GameEngine {
                                     this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
 
                                     // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
-                                    let cx = 400, cy = 300;
+                                    let cx = this.mapWidth / 2, cy = this.mapHeight / 2;
                                     let foundSafe = false;
                                     for (let attempt = 0; attempt < 50; attempt++) {
-                                        let rx = 100 + Math.random() * 600;
-                                        let ry = 100 + Math.random() * 400;
+                                        let rx = 100 + Math.random() * (this.mapWidth - 200);
+                                        let ry = 100 + Math.random() * (this.mapHeight - 200);
                                         let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
                                         if (distToPlayer < 100) continue;
 
@@ -2168,8 +2239,8 @@ class GameEngine {
 
                             // 맵 마진 이탈 방지 가두기
                             const wallMargin = 40;
-                            m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
-                            m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                            m.x = Math.max(wallMargin + m.radius, Math.min(this.mapWidth - wallMargin - m.radius, m.x));
+                            m.y = Math.max(wallMargin + m.radius, Math.min(this.mapHeight - wallMargin - m.radius, m.y));
 
                             // 1.5초 기절(90프레임) 및 백색 플래시
                             m.statusEffects.shock = 90;
@@ -2382,9 +2453,9 @@ class GameEngine {
                         bonusCoins = Math.floor(baseCoins * 0.3); // 30% 보너스
                     }
                     let totalGained = baseCoins + bonusCoins;
-                    // [W-08 신규 구현] 방 클리어 코인은 방 중앙(400, 300)에 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
+                    // [수정] 방 클리어 코인은 가변 맵 중앙에 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
                     for (let k = 0; k < totalGained; k++) {
-                        this.coinsList.push(new NeonCoin(400, 300, 1));
+                        this.coinsList.push(new NeonCoin(this.mapWidth / 2, this.mapHeight / 2, 1));
                     }
 
                     // [수정] 결함 4: 상단 코인 영역 얼마+얼마 표기 및 시각적 맥동 이펙트 작렬!
@@ -2440,18 +2511,18 @@ class GameEngine {
                             machineType = 'weapon';
                         }
 
-                        this.vendingMachines.push(new VendingMachine(400, 300, machineType));
-                        this.showFloatingText("VENDING MACHINE ARRIVED!", 400, 240, '#ffdf00');
+                        this.vendingMachines.push(new VendingMachine(this.mapWidth / 2, this.mapHeight / 2, machineType));
+                        this.showFloatingText("VENDING MACHINE ARRIVED!", this.mapWidth / 2, this.mapHeight / 2 - 60, '#ffdf00');
 
                         // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭
-                        this.potions.push(new NeonPotion(400, 370));
+                        this.potions.push(new NeonPotion(this.mapWidth / 2, this.mapHeight / 2 + 70));
 
                         // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
                         this.portals.forEach(p => p.active = true);
                     } else {
                         // 스탯, 무기, 방어구 중 해당 타입의 보상 상자 스폰
-                        this.rewardChests.push(new RewardChest(400, 300, this.currentRoomType));
-                        this.showFloatingText("REWARD CHEST ARRIVED!", 400, 240, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
+                        this.rewardChests.push(new RewardChest(this.mapWidth / 2, this.mapHeight / 2, this.currentRoomType));
+                        this.showFloatingText("REWARD CHEST ARRIVED!", this.mapWidth / 2, this.mapHeight / 2 - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
                     }
 
                     // [신규 기획] 상자/자판기 스폰 시 화려한 네온 글로우 파티클 분수 격발 (30개)
@@ -2459,7 +2530,7 @@ class GameEngine {
                     for (let k = 0; k < 30; k++) {
                         let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5; // 하늘 위 방향 부채꼴 분수
                         let pSpeed = Math.random() * 5 + 2.5;
-                        this.particles.push(new Particle(400, 300, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+                        this.particles.push(new Particle(this.mapWidth / 2, this.mapHeight / 2, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
                     }
                 }
             } else {
@@ -2566,8 +2637,8 @@ class GameEngine {
 
                             // 맵 경계선 마진 밖으로 탈출하는 것을 방지하기 위해 플레이어 맵 가두기 보정 추가
                             const wallMargin = 40;
-                            this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
-                            this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
+                            this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
+                            this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
 
                             // 팅겨나갈 때 귀여운 튕김 스파크 6개 발생
                             for (let k = 0; k < 6; k++) {
@@ -2635,8 +2706,8 @@ class GameEngine {
                         this.player.x += Math.cos(bounceAngle) * 38;
                         this.player.y += Math.sin(bounceAngle) * 38;
                         const wallMargin = 40;
-                        this.player.x = Math.max(wallMargin + this.player.radius, Math.min(800 - wallMargin - this.player.radius, this.player.x));
-                        this.player.y = Math.max(wallMargin + this.player.radius, Math.min(600 - wallMargin - this.player.radius, this.player.y));
+                        this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
+                        this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
 
                         // 튕김 파티클 (보라색)
                         for (let k = 0; k < 6; k++) {
@@ -2867,14 +2938,16 @@ class GameEngine {
             this.showFloatingText("🔮 CHAOTIC BLACK MARKET OPENED!", device.x, device.y - 35, '#b026ff');
             Sound.play('boss_alert');
 
-            // 특별 자판기가 방 중앙에 스폰됨 (Max HP 15를 영구 깎고 에픽/레전더리 카드 거래)
-            this.secretVendingMachines.push(new SecretVendingMachine(400, 300));
+            // [수정] 맵의 가변 중앙 좌표에 맞게 자판기를 스폰하고 파편 파티클을 소환합니다.
+            let cx = this.mapWidth / 2;
+            let cy = this.mapHeight / 2;
+            this.secretVendingMachines.push(new SecretVendingMachine(cx, cy));
 
             // 소환 스파크 파편
             for (let k = 0; k < 20; k++) {
                 let pAngle = Math.random() * Math.PI * 2;
                 let pSpeed = Math.random() * 4 + 2;
-                this.particles.push(new Particle(400, 300, '#b026ff', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'spark'));
+                this.particles.push(new Particle(cx, cy, '#b026ff', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'spark'));
             }
         }
 
@@ -2945,8 +3018,9 @@ class GameEngine {
                     nextColor = '#ff3300';
                 }
 
-                // 다음 웨이브 보스 스폰
-                let nextBoss = new Monster(400, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                // [수정] 맵 중앙 X좌표를 기준으로 보스를 스폰합니다.
+                let cx = this.mapWidth / 2;
+                let nextBoss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
                 // 카오스 코어(4웨이브)는 약화시키지 않고 본 전력으로 출현
                 nextBoss.makeBoss(this.roomNum, nextType, this.bossWave < 4);
 
@@ -2959,7 +3033,8 @@ class GameEngine {
 
                 this.monsters.push(nextBoss);
 
-                this.showFloatingText(nextName, 400, 250, nextColor);
+                // [수정] 화면 가로축 중앙에 텍스트가 표시되도록 cx를 사용합니다.
+                this.showFloatingText(nextName, cx, 250, nextColor);
                 Sound.play('boss_alert');
                 this.shakeScreen(30, 4.5);
             } else {
@@ -3652,8 +3727,8 @@ class GameEngine {
 
                         // 외벽 충돌 맵 탈출 방지 마진 클램프 (wallMargin = 40)
                         const wallMargin = 40;
-                        m.x = Math.max(wallMargin + m.radius, Math.min(800 - wallMargin - m.radius, m.x));
-                        m.y = Math.max(wallMargin + m.radius, Math.min(600 - wallMargin - m.radius, m.y));
+                        m.x = Math.max(wallMargin + m.radius, Math.min(this.mapWidth - wallMargin - m.radius, m.x));
+                        m.y = Math.max(wallMargin + m.radius, Math.min(this.mapHeight - wallMargin - m.radius, m.y));
 
                         pulledCount++;
                         isPulled = true;
@@ -3836,8 +3911,8 @@ class GameEngine {
                     let nextX = m.x + m.knockbackX * 3;
                     let nextY = m.y + m.knockbackY * 3;
                     const wallMargin = 40;
-                    let hitWall = (nextX <= wallMargin + m.radius || nextX >= 800 - wallMargin - m.radius ||
-                        nextY <= wallMargin + m.radius || nextY >= 600 - wallMargin - m.radius);
+                    let hitWall = (nextX <= wallMargin + m.radius || nextX >= this.mapWidth - wallMargin - m.radius ||
+                        nextY <= wallMargin + m.radius || nextY >= this.mapHeight - wallMargin - m.radius);
 
                     if (hitWall) {
                         let wallCrashDmg = finalDmg * 0.5;
@@ -4966,7 +5041,7 @@ class GameEngine {
             let size = Math.random() * 3 + 2;
             let life = Math.random() * 120 + 60; // 1~3초 유지
             this.particles.push(new Particle(
-                400, 300, // 캔버스 중앙
+                this.mapWidth / 2, this.mapHeight / 2, // 캔버스 중앙
                 color, size,
                 Math.cos(angle) * speed, Math.sin(angle) * speed,
                 life, 'spark'
@@ -5310,23 +5385,23 @@ class GameEngine {
 
         // 배경 페인팅 (어두운 던전 분위기 및 옅은 리프레시 흔적 트레일 연출)
         this.ctx.fillStyle = '#05060a';
-        this.ctx.fillRect(0, 0, 800, 600);
+        this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
 
         // [시각 효과] 시간 왜곡 작동 시 배경을 은은한 보랏빛 장막으로 덮음
         if (this.timeDilationActive) {
             this.ctx.fillStyle = 'rgba(176, 38, 255, 0.08)';
-            this.ctx.fillRect(0, 0, 800, 600);
+            this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
         }
 
         // 방 벽 테두리 네온 사각형 그리기 (#08090e 내부 필드 및 외부 마진벽)
         this.ctx.beginPath();
-        this.ctx.rect(38, 38, 724, 524);
+        this.ctx.rect(38, 38, this.mapWidth - 76, this.mapHeight - 76);
         this.ctx.strokeStyle = this.timeDilationActive ? 'rgba(176, 38, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
         this.ctx.lineWidth = 4;
         this.ctx.stroke();
 
         this.ctx.beginPath();
-        this.ctx.rect(40, 40, 720, 520);
+        this.ctx.rect(40, 40, this.mapWidth - 80, this.mapHeight - 80);
         this.ctx.fillStyle = '#08090e';
         this.ctx.fill();
 
@@ -5342,16 +5417,16 @@ class GameEngine {
         // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (어두운 원근감/바둑판)
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
         this.ctx.lineWidth = 1;
-        for (let x = 40; x < 760; x += 40) {
+        for (let x = 40; x < this.mapWidth - 40; x += 40) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 40);
-            this.ctx.lineTo(x, 560);
+            this.ctx.lineTo(x, this.mapHeight - 40);
             this.ctx.stroke();
         }
-        for (let y = 40; y < 560; y += 40) {
+        for (let y = 40; y < this.mapHeight - 40; y += 40) {
             this.ctx.beginPath();
             this.ctx.moveTo(40, y);
-            this.ctx.lineTo(760, y);
+            this.ctx.lineTo(this.mapWidth - 40, y);
             this.ctx.stroke();
         }
 
@@ -5433,7 +5508,7 @@ class GameEngine {
 
             this.ctx.fillStyle = methodColor;
             this.ctx.shadowColor = methodColor;
-            this.ctx.fillText(methodStr, 400, 75);
+            this.ctx.fillText(methodStr, this.mapWidth / 2, 75);
             this.ctx.restore();
         }
 
@@ -5448,11 +5523,11 @@ class GameEngine {
 
             // [결함 완치] Y좌표를 275에서 중앙 오브젝트와 절대 겹치지 않는 상단 공간인 130으로 상향 보정!
             if (this.roomNum === 1 && this.kills === 0) {
-                this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", 400, 130);
+                this.ctx.fillText("방의 문(포털)을 통과하여 다음 방으로 전진하세요! (문 위 숫자는 몬스터 수 & 획득 점수)", this.mapWidth / 2, 130);
             } else if (this.inSecretRoom) {
-                this.ctx.fillText("🔮 글리치 보너스 틈새 방에 도달했습니다. 중앙의 장치를 조작하여 보상을 확인하세요.", 400, 130);
+                this.ctx.fillText("🔮 글리치 보너스 틈새 방에 도달했습니다. 중앙의 장치를 조작하여 보상을 확인하세요.", this.mapWidth / 2, 130);
             } else {
-                this.ctx.fillText("방 소탕 완료! 원하는 문으로 들어가서 탈출을 향해 전진하세요.", 400, 130);
+                this.ctx.fillText("방 소탕 완료! 원하는 문으로 들어가서 탈출을 향해 전진하세요.", this.mapWidth / 2, 130);
             }
             this.ctx.restore();
         }
@@ -5469,7 +5544,7 @@ class GameEngine {
             this.ctx.lineWidth = 8;
             this.ctx.shadowBlur = 20;
             this.ctx.shadowColor = '#ff0055';
-            this.ctx.strokeRect(4, 4, 792, 592);
+            this.ctx.strokeRect(4, 4, this.mapWidth - 8, this.mapHeight - 8);
 
             // 화면 중앙에 거대한 WARNING 네온 붉은 경고 텍스트
             this.ctx.font = '900 36px "Outfit"';
@@ -5477,7 +5552,7 @@ class GameEngine {
             this.ctx.textAlign = 'center';
             this.ctx.shadowBlur = 15;
             this.ctx.shadowColor = '#ff0055';
-            this.ctx.fillText("WARNING! BOSS ENCOUNTER 🚨", 400, 240);
+            this.ctx.fillText("WARNING! BOSS ENCOUNTER 🚨", this.mapWidth / 2, 240);
 
             this.ctx.restore();
         }
@@ -5526,8 +5601,10 @@ class GameEngine {
                 bossNameStr = `웨이브 ${this.bossWave}/4 - ${bossNameStr}`;
             }
 
-            // HUD 바 위치: X 200, Y 50, 너비 400, 높이 15
-            const bx = 200, by = 48, bw = 400, bh = 14;
+            // HUD 바 위치: 너비 400, 높이 15, x좌표 동적 중앙 정렬
+            const bw = 400, bh = 14;
+            const bx = (this.mapWidth - bw) / 2;
+            const by = 48;
 
             // 보스 체력바 뒷배경 어두운 네온 컨테이너
             this.ctx.fillStyle = 'rgba(10, 5, 5, 0.7)';
@@ -5564,7 +5641,7 @@ class GameEngine {
             this.ctx.font = '800 11px "Outfit"';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bossNameStr, 400, by - 6);
+            this.ctx.fillText(bossNameStr, this.mapWidth / 2, by - 6);
 
             // 보스 수치 정보 (HP / MAX HP)
             this.ctx.font = '600 10px "Outfit"';
@@ -5573,7 +5650,7 @@ class GameEngine {
             if (shieldHpSum > 0) {
                 hpText += ` (🛡️ ${Math.ceil(shieldHpSum)})`;
             }
-            this.ctx.fillText(hpText, 400, by + bh - 3);
+            this.ctx.fillText(hpText, this.mapWidth / 2, by + bh - 3);
 
             this.ctx.restore();
         }
@@ -6270,6 +6347,8 @@ class GameEngine {
                 roomNum: this.roomNum,
                 score: this.score,
                 kills: this.kills,
+                mapWidth: this.mapWidth,
+                mapHeight: this.mapHeight,
                 currentRoomType: this.currentRoomType,
                 weaponRoomCooldown: this.weaponRoomCooldown,
                 isEliteRoom: this.isEliteRoom,
@@ -6364,6 +6443,17 @@ class GameEngine {
             this.roomNum = savedData.roomNum;
             this.score = savedData.score;
             this.kills = savedData.kills;
+            this.mapWidth = savedData.mapWidth || 800;
+            this.mapHeight = savedData.mapHeight || 600;
+
+            // 캔버스 크기 복구 및 가로폭 비례 조절
+            this.canvas.width = this.mapWidth;
+            this.canvas.height = this.mapHeight;
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.style.maxWidth = (this.mapWidth + 100) + 'px';
+            }
+
             this.currentRoomType = savedData.currentRoomType || 'stat';
             this.weaponRoomCooldown = savedData.weaponRoomCooldown || 0;
             this.isEliteRoom = savedData.isEliteRoom || false;
@@ -6401,7 +6491,7 @@ class GameEngine {
             // 방 및 스폰 구조 복구
             if (this.inSecretRoom) {
                 // 비밀방 디바이스 복구
-                this.secretGlitchDevices.push(new SecretGlitchDevice(400, 300));
+                this.secretGlitchDevices.push(new SecretGlitchDevice(this.mapWidth / 2, this.mapHeight / 2));
                 
                 const directions = ['top', 'bottom', 'left', 'right'];
                 const chosenDir = directions[Math.floor(Math.random() * 4)];
@@ -6457,13 +6547,13 @@ class GameEngine {
                 }
             }
 
-            // 비밀 벽(균열) 재생성
+            // 비밀 벽(균열) 재생성 (가변 맵 비율에 연동)
             if (savedData.hasSecretWall && this.roomNum % 10 !== 0 && this.roomNum > 1 && !this.inSecretRoom) {
                 let spots = [
-                    { wallX: 250, wallY: 40, dir: 'top' },
-                    { wallX: 550, wallY: 560, dir: 'bottom' },
-                    { wallX: 40, wallY: 180, dir: 'left' },
-                    { wallX: 760, wallY: 420, dir: 'right' }
+                    { wallX: this.mapWidth * 0.3125, wallY: 40, dir: 'top' },
+                    { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 40, dir: 'bottom' },
+                    { wallX: 40, wallY: this.mapHeight * 0.3, dir: 'left' },
+                    { wallX: this.mapWidth - 40, wallY: this.mapHeight * 0.7, dir: 'right' }
                 ];
                 let safeSpots = spots.filter(spot => {
                     for (let obs of this.obstacles) {
@@ -6479,25 +6569,25 @@ class GameEngine {
                 this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
             }
 
-            // 플레이어 리스폰 위치 복구
+            // 플레이어 리스폰 위치 복구 (가변 맵 크기에 비례하여 복구)
             if (this.lastEnteredPortalDir === 'center') {
-                this.player.x = 400;
-                this.player.y = 450;
+                this.player.x = this.mapWidth / 2;
+                this.player.y = this.mapHeight / 2 + 150;
             } else if (this.lastEnteredPortalDir === 'top') {
-                this.player.x = 400;
-                this.player.y = 510;
+                this.player.x = this.mapWidth / 2;
+                this.player.y = this.mapHeight - 90;
             } else if (this.lastEnteredPortalDir === 'bottom') {
-                this.player.x = 400;
+                this.player.x = this.mapWidth / 2;
                 this.player.y = 70;
             } else if (this.lastEnteredPortalDir === 'left') {
-                this.player.x = 710;
-                this.player.y = 300;
+                this.player.x = this.mapWidth - 90;
+                this.player.y = this.mapHeight / 2;
             } else if (this.lastEnteredPortalDir === 'right') {
                 this.player.x = 70;
-                this.player.y = 300;
+                this.player.y = this.mapHeight / 2;
             } else {
-                this.player.x = 400;
-                this.player.y = 300;
+                this.player.x = this.mapWidth / 2;
+                this.player.y = this.mapHeight / 2;
             }
 
             // HUD 및 프레임 60FPS 타이머 리셋

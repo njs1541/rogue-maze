@@ -8,11 +8,14 @@ class NeonObstacle {
         this.width = 80;  // 장애물 가로 크기
         this.height = 65; // 장애물 세로 크기
         
-        // 격자 기준 월드 좌표 계산 (방 크기 720x520, 좌상단 여백 40,40 기준)
-        // 5x5 격자에서 col, row는 각각 0~4 범위
-        // col=0, 4는 외곽선, row=0, 4는 외곽선이므로 장애물은 1~3 영역에만 배치됨
-        this.x = 40 + col * 144 + 72;
-        this.y = 40 + row * 104 + 52;
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+        let colWidth = (mapW - 80) / 5;
+        let rowHeight = (mapH - 80) / 5;
+
+        // 격자 기준 월드 좌표 계산 (가변 방 크기 기준)
+        this.x = 40 + col * colWidth + colWidth / 2;
+        this.y = 40 + row * rowHeight + rowHeight / 2;
         
         // 자홍색 홀로그램 테마 색상 설정
         this.color = '#ff00aa'; 
@@ -64,22 +67,25 @@ class RoomPortal {
         this.difficultyClass = 'low'; // 'high', 'mid', 'low' 랭킹 등급 저장
         this.portalType = 'stat'; // 'stat', 'weapon', 'equipment', 'shop' - 신규 특화 속성 추가
 
-        // 방향별 좌표 바인딩
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
+        // 방향별 좌표 바인딩 (동적 맵 크기에 비례)
         if (direction === 'top') {
-            this.x = 400 - this.width / 2;
+            this.x = mapW / 2 - this.width / 2;
             this.y = 35;
         } else if (direction === 'bottom') {
-            this.x = 400 - this.width / 2;
-            this.y = 547;
+            this.x = mapW / 2 - this.width / 2;
+            this.y = mapH - 53;
         } else if (direction === 'left') {
             this.x = 35;
-            this.y = 300 - this.width / 2;
+            this.y = mapH / 2 - 75 / 2;
             // 회전 처리를 위해 크기 교환
             this.width = 18;
             this.height = 75;
         } else if (direction === 'right') {
-            this.x = 747;
-            this.y = 300 - this.width / 2;
+            this.x = mapW - 53;
+            this.y = mapH / 2 - 75 / 2;
             this.width = 18;
             this.height = 75;
         } else if (direction === 'secret') {
@@ -350,10 +356,12 @@ class NeonCoin {
 
         // 벽 마진선 이탈 방지
         const wallMargin = 40;
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
         if (this.x < wallMargin + this.radius) { this.x = wallMargin + this.radius; this.vx = -this.vx; }
-        if (this.x > 800 - wallMargin - this.radius) { this.x = 800 - wallMargin - this.radius; this.vx = -this.vx; }
+        if (this.x > mapW - wallMargin - this.radius) { this.x = mapW - wallMargin - this.radius; this.vx = -this.vx; }
         if (this.y < wallMargin + this.radius) { this.y = wallMargin + this.radius; this.vy = -this.vy; }
-        if (this.y > 600 - wallMargin - this.radius) { this.y = 600 - wallMargin - this.radius; this.vy = -this.vy; }
+        if (this.y > mapH - wallMargin - this.radius) { this.y = mapH - wallMargin - this.radius; this.vy = -this.vy; }
 
         // 자석 물리 기믹 연산
         let dist = Math.hypot(player.x - this.x, player.y - this.y);
@@ -794,16 +802,19 @@ class NeonTrap {
         this.active = true;
         this.pulse = 0;
         
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
         if (type === 'laser_h') {
             this.x1 = 40;
-            this.x2 = 760;
+            this.x2 = mapW - 40;
             this.y1 = y;
             this.y2 = y;
         } else if (type === 'laser_v') {
             this.x1 = x;
             this.x2 = x;
             this.y1 = 40;
-            this.y2 = 560;
+            this.y2 = mapH - 40;
         }
     }
 

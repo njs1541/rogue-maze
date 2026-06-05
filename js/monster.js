@@ -22,20 +22,27 @@ class Monster {
         this.isElite = false;
         this.isBoss = false;
 
-        // 1. 방 번호에 따른 몬스터 타입 무작위 배정
-        let typeRand = Math.random();
-        if (roomNum < 4) {
-            this.type = 'normal';
-        } else if (roomNum < 7) {
-            this.type = typeRand < 0.5 ? 'normal' : (typeRand < 0.8 ? 'chaser' : 'exploder');
-        } else if (roomNum < 11) {
-            this.type = typeRand < 0.35 ? 'normal' : (typeRand < 0.6 ? 'chaser' : (typeRand < 0.75 ? 'shooter' : (typeRand < 0.9 ? 'exploder' : 'splitter')));
-        } else if (roomNum < 16) {
-            this.type = typeRand < 0.25 ? 'normal' : (typeRand < 0.45 ? 'chaser' : (typeRand < 0.6 ? 'shooter' : (typeRand < 0.7 ? 'exploder' : (typeRand < 0.8 ? 'splitter' : (typeRand < 0.9 ? 'teleporter' : 'scatterer')))));
-        } else if (roomNum < 22) {
-            this.type = typeRand < 0.2 ? 'normal' : (typeRand < 0.35 ? 'chaser' : (typeRand < 0.5 ? 'shooter' : (typeRand < 0.6 ? 'exploder' : (typeRand < 0.7 ? 'splitter' : (typeRand < 0.8 ? 'teleporter' : (typeRand < 0.9 ? 'scatterer' : (typeRand < 0.95 ? 'tanker' : 'summoner')))))));
+        // 1. 방 번호에 따른 몬스터 타입 배정 (2안: 방별 몬스터 풀 적용)
+        if (window.gameEngine && window.gameEngine.currentRoomMonsterPool && window.gameEngine.currentRoomMonsterPool.length > 0) {
+            let pool = window.gameEngine.currentRoomMonsterPool;
+            this.type = pool[Math.floor(Math.random() * pool.length)];
         } else {
-            this.type = typeRand < 0.15 ? 'normal' : (typeRand < 0.28 ? 'chaser' : (typeRand < 0.4 ? 'shooter' : (typeRand < 0.5 ? 'exploder' : (typeRand < 0.6 ? 'splitter' : (typeRand < 0.7 ? 'teleporter' : (typeRand < 0.8 ? 'scatterer' : (typeRand < 0.88 ? 'tanker' : (typeRand < 0.94 ? 'summoner' : 'healer'))))))));
+            // 백업 해금 테이블 (기본 1안 기준 배정)
+            let allowedTypes = ['normal'];
+            if (roomNum <= 5) {
+                allowedTypes = ['normal', 'chaser'];
+            } else if (roomNum <= 10) {
+                allowedTypes = ['normal', 'chaser', 'exploder'];
+            } else if (roomNum <= 15) {
+                allowedTypes = ['normal', 'chaser', 'exploder', 'shooter'];
+            } else if (roomNum <= 25) {
+                allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter'];
+            } else if (roomNum <= 35) {
+                allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter', 'tanker', 'scatterer'];
+            } else {
+                allowedTypes = ['normal', 'chaser', 'exploder', 'shooter', 'splitter', 'teleporter', 'tanker', 'scatterer', 'summoner', 'healer'];
+            }
+            this.type = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
         }
 
         // 2. 타입별 세부 속성 및 네온 색상 보정
@@ -354,7 +361,8 @@ class Monster {
                 this.shootCooldown = 50;
                 this.laserWarningTimer = 0;
                 this.laserActiveTimer = 0;
-                this.laserX = 400;
+                // [수정] 최종 100층 보스방의 동적 너비를 읽어와 레이저 조준 초기값을 설정합니다.
+                this.laserX = (window.gameEngine && window.gameEngine.mapWidth / 2) || 400;
                 break;
             case 'boss_final_turret': // 100층 최종보스 실드 포탑 (부하)
                 this.isBoss = false;
@@ -441,8 +449,10 @@ class Monster {
         if (this.statusEffects.shock > 0 && !this.isBoss && !this.type.startsWith('boss_')) {
             // 행동 불가 상태에서도 넉백과 벽 충돌 처리는 적용
             const wallMargin = 40;
-            this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
-            this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+            this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
+            this.y = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, this.y));
             return;
         }
 
@@ -567,15 +577,17 @@ class Monster {
                 case 'boss_speaker': // 40층 둠 스피커
                     if (!this.isFixedToCenter) {
                         // 맵 중앙으로 이동
-                        let cx = 400 - this.x;
-                        let cy = 300 - this.y;
+                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                        let cx = mapW / 2 - this.x;
+                        let cy = mapH / 2 - this.y;
                         let cdist = Math.hypot(cx, cy);
                         if (cdist > 5) {
                             this.x += (cx / cdist) * activeSpeed * 1.5;
                             this.y += (cy / cdist) * activeSpeed * 1.5;
                         } else {
-                            this.x = 400;
-                            this.y = 300;
+                            this.x = mapW / 2;
+                            this.y = mapH / 2;
                             this.isFixedToCenter = true;
                             this.rotationAngle = 0;
                         }
@@ -617,10 +629,12 @@ class Monster {
                             // 플레이어 좌표가 해당 축 범위 (두께 20px)에 걸리면 지속 틱 대미지
                             let isHit = false;
                             const thickness = 10; // 중심 기준 좌우 10px씩 총 20px
-                            for (let lx = 100; lx <= 700; lx += 100) {
+                            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                            for (let lx = 100; lx <= mapW - 100; lx += 100) {
                                 if (Math.abs(pl.x - lx) < thickness + pl.radius) isHit = true;
                             }
-                            for (let ly = 100; ly <= 500; ly += 100) {
+                            for (let ly = 100; ly <= mapH - 100; ly += 100) {
                                 if (Math.abs(pl.y - ly) < thickness + pl.radius) isHit = true;
                             }
                             if (isHit) {
@@ -669,8 +683,10 @@ class Monster {
                         let targetX = player.x + Math.cos(warpAngle) * warpDist;
                         let targetY = player.y + Math.sin(warpAngle) * warpDist;
 
-                        targetX = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, targetX));
-                        targetY = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, targetY));
+                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                        targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
+                        targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
 
                         // 텔레포트 파티클 이펙트
                         if (window.gameEngine) {
@@ -708,11 +724,13 @@ class Monster {
                 case 'boss_portal': // 70층 차원 차단기
                     // 포털 스폰이 아직 안 되었다면 즉시 모퉁이에 4개 포털 생성
                     if (!this.portalSpawned && window.gameEngine) {
+                        let mapW = window.gameEngine.mapWidth;
+                        let mapH = window.gameEngine.mapHeight;
                         const portalSpots = [
                             { x: 150, y: 150 },
-                            { x: 650, y: 150 },
-                            { x: 150, y: 450 },
-                            { x: 650, y: 450 }
+                            { x: mapW - 150, y: 150 },
+                            { x: 150, y: mapH - 150 },
+                            { x: mapW - 150, y: mapH - 150 }
                         ];
                         portalSpots.forEach(spot => {
                             let spawner = new Monster(spot.x, spot.y, this.tier, this.roomNum);
@@ -928,15 +946,16 @@ class Monster {
                     break;
 
                 case 'boss_final': // 100층 최종 보스
-                    this.x = 400;
+                    let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                    this.x = mapW / 2;
                     this.y = 100; // 벽면 고정
 
                     // 1페이즈 포탑 소환 제어
                     if (!this.turretsSpawned && window.gameEngine) {
-                        let leftTurret = new Monster(200, 150, this.tier, this.roomNum);
+                        let leftTurret = new Monster(mapW * 0.25, 150, this.tier, this.roomNum);
                         leftTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
                         
-                        let rightTurret = new Monster(600, 150, this.tier, this.roomNum);
+                        let rightTurret = new Monster(mapW * 0.75, 150, this.tier, this.roomNum);
                         rightTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
 
                         window.gameEngine.monsters.push(leftTurret);
@@ -1030,7 +1049,8 @@ class Monster {
                             // 레이저 빔 영역: 조준된 [laserX - 40 ~ laserX + 40]
                             if (window.gameEngine) {
                                 let pl = window.gameEngine.player;
-                                if (Math.abs(pl.x - this.laserX) < 40 + pl.radius && pl.y > 40 && pl.y < 560) {
+                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                                if (Math.abs(pl.x - this.laserX) < 40 + pl.radius && pl.y > 40 && pl.y < mapH - 40) {
                                     // 닿으면 지속 틱 데미지 (프레임당 보스 공격력의 12%)
                                     window.gameEngine.damagePlayer(this.atk * 0.12 * timeScale, this.x, this.y);
                                 }
@@ -1061,8 +1081,10 @@ class Monster {
 
             // 보스 이탈 방지 처리 (벽 마진 적용)
             if (this.type !== 'boss_final' && this.type !== 'boss_final_turret') {
-                this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
-                this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
+                this.y = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, this.y));
             }
             return;
         }
@@ -1119,8 +1141,10 @@ class Monster {
             }
             
             const wallMargin = 40;
-            this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
-            this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+            this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
+            this.y = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, this.y));
             return;
         }
 
@@ -1225,8 +1249,10 @@ class Monster {
                 let targetY = player.y + Math.sin(warpAngle) * warpDist;
 
                 const margin = 50;
-                targetX = Math.max(margin + this.radius, Math.min(800 - margin - this.radius, targetX));
-                targetY = Math.max(margin + this.radius, Math.min(600 - margin - this.radius, targetY));
+                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                targetX = Math.max(margin + this.radius, Math.min(mapW - margin - this.radius, targetX));
+                targetY = Math.max(margin + this.radius, Math.min(mapH - margin - this.radius, targetY));
 
                 if (window.gameEngine) {
                     for (let k = 0; k < 6; k++) {
@@ -1344,8 +1370,10 @@ class Monster {
         const wallMargin = 40;
         let preX = this.x;
         let preY = this.y;
-        this.x = Math.max(wallMargin + this.radius, Math.min(800 - wallMargin - this.radius, this.x));
-        this.y = Math.max(wallMargin + this.radius, Math.min(600 - wallMargin - this.radius, this.y));
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+        this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
+        this.y = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, this.y));
 
         // 넉백 중 벽에 부딪혀 강제 위치 교정이 일어났는지 검사
         let hasSlammedWall = false;
@@ -1582,17 +1610,21 @@ class Monster {
                             ctx.shadowColor = '#ff00aa';
                         }
 
+                        // [수정] 가변 맵 크기(mapWidth, mapHeight)를 참조하여 격자 레이저 선을 화면 끝까지 드로잉합니다.
+                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
                         // 가로 세로 격자 그리기
-                        for (let lx = 100; lx <= 700; lx += 100) {
+                        for (let lx = 100; lx <= mapW - 100; lx += 100) {
                             ctx.beginPath();
                             ctx.moveTo(lx, 40);
-                            ctx.lineTo(lx, 560);
+                            ctx.lineTo(lx, mapH - 40);
                             ctx.stroke();
                         }
-                        for (let ly = 100; ly <= 500; ly += 100) {
+                        for (let ly = 100; ly <= mapH - 100; ly += 100) {
                             ctx.beginPath();
                             ctx.moveTo(40, ly);
-                            ctx.lineTo(760, ly);
+                            ctx.lineTo(mapW - 40, ly);
                             ctx.stroke();
                         }
                         ctx.restore();
@@ -1867,18 +1899,21 @@ class Monster {
                             ctx.save();
                             ctx.translate(-this.x, -this.y); // 전역좌표 변환
                             
+                            // [수정] 100층 보스방의 동적 Y축 높이(mapH)를 반영하여 레이저를 짤림 없이 드로잉합니다.
+                            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
                             // 빨간색 반투명 점선 경고 세로 막대기 기둥
                             ctx.fillStyle = 'rgba(255, 0, 85, 0.15)';
-                            ctx.fillRect(this.laserX - 40, 40, 80, 520);
+                            ctx.fillRect(this.laserX - 40, 40, 80, mapH - 80);
                             
                             ctx.strokeStyle = 'rgba(255, 0, 85, 0.6)';
                             ctx.lineWidth = 2.0;
                             ctx.setLineDash([6, 8]);
                             ctx.beginPath();
                             ctx.moveTo(this.laserX - 40, 40);
-                            ctx.lineTo(this.laserX - 40, 560);
+                            ctx.lineTo(this.laserX - 40, mapH - 40);
                             ctx.moveTo(this.laserX + 40, 40);
-                            ctx.lineTo(this.laserX + 40, 560);
+                            ctx.lineTo(this.laserX + 40, mapH - 40);
                             ctx.stroke();
                             ctx.restore();
                         }
@@ -1887,15 +1922,17 @@ class Monster {
                             ctx.save();
                             ctx.translate(-this.x, -this.y); // 전역좌표 변환
                             
+                            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
                             // 굵은 흰색-빨간색 초강력 빔 기둥
                             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                            ctx.fillRect(this.laserX - 35, 40, 70, 520);
+                            ctx.fillRect(this.laserX - 35, 40, 70, mapH - 80);
                             
                             ctx.strokeStyle = '#ff0055';
                             ctx.lineWidth = 10;
                             ctx.shadowBlur = 35;
                             ctx.shadowColor = '#ff0055';
-                            ctx.strokeRect(this.laserX - 38, 40, 76, 520);
+                            ctx.strokeRect(this.laserX - 38, 40, 76, mapH - 80);
                             ctx.restore();
                         }
                     }
