@@ -1468,7 +1468,8 @@ class GameEngine {
                         let synergyMult = this.checkBuildSynergy('spear');
                         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                         let baseMult = 0.7;
-                        let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+                        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+                        let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
 
                         for (let angle of spearAngles) {
                             let speed = 10.0;
@@ -1530,7 +1531,8 @@ class GameEngine {
                         let synergyMult = this.checkBuildSynergy('sword');
                         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                         let baseMult = 0.8;
-                        let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+                        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+                        let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
 
                         if (this.player.weaponUnlocks.sword.wave) {
                             for (let angle of swordAngles) {
@@ -1802,9 +1804,15 @@ class GameEngine {
 
         if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged) {
             this.shootWeapon();
+            if (this.player.weaponType === 'dual') {
+                this.player.slashCooldown = Math.max(this.player.slashCooldown, this.player.shootCooldown);
+            }
         }
         if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee) {
             this.slashWeapon();
+            if (this.player.weaponType === 'dual') {
+                this.player.shootCooldown = Math.max(this.player.shootCooldown, this.player.slashCooldown);
+            }
         }
 
         // [성능 최적화] 화면 내 동시 활성 플레이어 탄환 수 하드 캡(Max 200) 제한
@@ -2153,7 +2161,8 @@ class GameEngine {
 
                         let swordLvl = this.player.weaponLevels.sword || 1;
                         let levelMult = 1 + (swordLvl - 1) * 0.15;
-                        let finalDmg = this.player.atk * 1.5 * levelMult * synergyMult * helmDmgBonus;
+                        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+                        let finalDmg = this.player.atk * 1.5 * levelMult * synergyMult * helmDmgBonus * hybridDmgFactor;
                         if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
 
                         // [신규] 근접 검 베기 물리 타격 시 동결(Frozen) 3배 파쇄 치명타 콤보 판정
@@ -3536,7 +3545,15 @@ class GameEngine {
             let levelMult = 1 + (wLvl - 1) * 0.15;
 
             let baseDmg = isWhip ? (this.player.atk * 0.75) : (this.player.atk * (isLightning ? 0.9 : 1.0));
-            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+            
+            let hybridDmgFactor = 1.0;
+            if (this.player.weaponType === 'dual') {
+                hybridDmgFactor = 0.75;
+            } else if (this.player.weaponType === 'icefiredance') {
+                hybridDmgFactor = 0.85;
+            }
+
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor * hybridDmgFactor;
 
             for (let angle of bulletsToLaunch) {
                 if (isWhip) {
@@ -3700,7 +3717,8 @@ class GameEngine {
         let whipLvl = this.player.weaponLevels.whip || 1;
         let whipLevelMult = 1 + (whipLvl - 1) * 0.15;
         let baseDmg = this.player.atk * 0.3; // 추가 하향 조정 (0.5 -> 0.3)
-        let finalDamage = baseDmg * whipLevelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor;
+        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+        let finalDamage = baseDmg * whipLevelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor * hybridDmgFactor;
 
         // [W-06 채찍 동시 견인 제한 공식] 기본 1마리, 다발 및 진화에 비례해 증가
         let maxPullCount = 1 + (this.player.multishot - 1) + (this.player.weaponUnlocks.whip.multi ? 1 : 0);
@@ -3821,7 +3839,8 @@ class GameEngine {
         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
         let spearLvl = this.player.weaponLevels.spear || 1;
         let spearLevelMult = 1 + (spearLvl - 1) * 0.15;
-        let weaponDmg = this.player.atk * 0.7 * spearLevelMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus; // [수정] 창 대미지 레벨 비례 15% 가중
+        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+        let weaponDmg = this.player.atk * 0.7 * spearLevelMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor; // [수정] 창 대미지 레벨 비례 15% 가중
 
         let px = this.player.x;
         let py = this.player.y;
@@ -4046,7 +4065,8 @@ class GameEngine {
                 let synergyMult = this.checkBuildSynergy('spear');
                 let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                 let baseMult = 0.7; // 창 대미지 비율
-                let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+                let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+                let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
 
                 for (let angle of spAngles) {
                     let speed = 10.0;
@@ -4111,7 +4131,8 @@ class GameEngine {
                 let synergyMult = this.checkBuildSynergy('sword');
                 let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                 let baseMult = 0.8;
-                let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
+                let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+                let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
 
                 // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
                 if (this.player.weaponUnlocks.sword.wave) {
