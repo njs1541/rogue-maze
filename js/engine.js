@@ -2523,6 +2523,15 @@ class GameEngine {
                         // 스탯, 무기, 방어구 중 해당 타입의 보상 상자 스폰
                         this.rewardChests.push(new RewardChest(this.mapWidth / 2, this.mapHeight / 2, this.currentRoomType));
                         this.showFloatingText("REWARD CHEST ARRIVED!", this.mapWidth / 2, this.mapHeight / 2 - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
+
+                        // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (기본 30% + 행운 계수 비례 추가 확률)
+                        let potionRand = Math.random();
+                        let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05); // 행운 비례 추가 확률 최대 +20% 제한
+                        if (potionRand < potionDropChance) {
+                            // 맵 중앙 부근에서 약간 아래쪽에 스폰 (보상 상자와 겹침 방지)
+                            this.potions.push(new NeonPotion(this.mapWidth / 2, this.mapHeight / 2 + 50));
+                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", this.mapWidth / 2, this.mapHeight / 2 - 30, '#39ff14');
+                        }
                     }
 
                     // [신규 기획] 상자/자판기 스폰 시 화려한 네온 글로우 파티클 분수 격발 (30개)
@@ -3214,8 +3223,9 @@ class GameEngine {
         this.player.perfectClearFlag = false; // [신규 기획] 실제로 데미지를 입으면 퍼펙트 클리어 플래그 해제!
         this.player.lastHitTimer = 0;         // [신규 기획] 피격 당했으므로 무사고 타이머 리셋!
 
-        let defense = (this.player.maxHp - 100) * 0.15; // 최대 HP가 기본값 100보다 클수록 15% 방어력 감소율 획득
-        let finalDamage = Math.max(1, amount - defense);
+        let defensePct = this.player.def / (this.player.def + 100); // 방어력 비율 감소 공식 (2안)
+        let maxHpBonusDefense = (this.player.maxHp - 100) * 0.15; // 최대 HP 기반 추가 고정 방어
+        let finalDamage = Math.max(1, amount * (1 - defensePct) - maxHpBonusDefense);
 
         // [신규 기획] Plate Armor 5레벨 돌파: 체력 30% 이하일 때 최종 데미지 20% 영구 감산 보호!
         if (this.player.equipLevels.armor >= 5 && (this.player.hp / this.player.maxHp) < 0.3) {
@@ -4177,6 +4187,8 @@ class GameEngine {
         document.getElementById('stat-aspd').innerText = this.player.aspd.toFixed(1);
         document.getElementById('stat-ms').innerText = this.player.ms.toFixed(1);
         document.getElementById('stat-evd').innerText = `${(this.player.evd * 100).toFixed(0)}%`;
+        let defPct = (this.player.def / (this.player.def + 100)) * 100;
+        document.getElementById('stat-def').innerText = `${this.player.def} (${defPct.toFixed(0)}%)`;
         document.getElementById('stat-luk').innerText = this.player.luk.toFixed(1);
         document.getElementById('stat-regen').innerText = `${this.player.hpRegen.toFixed(1)}/s`;
         document.getElementById('stat-range').innerText = `${this.player.range}px`;
@@ -4304,7 +4316,8 @@ class GameEngine {
             { id: 'luk', title: '운 (LUK) 축복', icon: '🍀', desc: '다음 보상 시 고등급 카드가 나올 행운이 영구 축적됩니다. (최대 4.0까지 보상 등급에 영향)' },
             { id: 'stamina', title: '스테미너 증폭', icon: '🔋', desc: '달릴 수 있는 최대 활력이 확장됩니다.' },
             { id: 'hpRegen', title: '체력 재생 (REGEN)', icon: '🩺', desc: '초당 체력 회복 능력을 부여합니다.' },
-            { id: 'range', title: '사거리 연장 (RNG)', icon: '🔭', desc: '탄환 사거리 및 검 베기 공격 반경을 연장시킵니다.' }
+            { id: 'range', title: '사거리 연장 (RNG)', icon: '🔭', desc: '탄환 사거리 및 검 베기 공격 반경을 연장시킵니다.' },
+            { id: 'def', title: '방어 (DEF) 보강', icon: '🛡️', desc: '대미지 감소율을 결정짓는 방어력을 올립니다.' }
         ];
 
         // 무기 변화 및 투사체 궤적 상위 카드 풀
@@ -4452,7 +4465,7 @@ class GameEngine {
 
         switch (id) {
             case 'atk':
-                value = Math.ceil(1.5 * mult); // 종합 밸런스 패치 (기본 2에서 1.5로 하향)
+                value = Math.ceil(3.0 * mult); // 스탯 밸런스 상향 (1.5 -> 3.0)
                 desc = `공격 피해량이 +${value} 만큼 영구히 상승합니다.`;
                 break;
             case 'aspd':
@@ -4467,8 +4480,12 @@ class GameEngine {
                 value = 0.015 * mult; // 종합 밸런스 패치 (기본 0.02에서 0.015로 하향)
                 desc = `적 공격을 물리적으로 비껴낼 회피율이 +${(value * 100).toFixed(0)}% 보강됩니다.`;
                 break;
+            case 'def':
+                value = Math.ceil(8 * mult);
+                desc = `플레이어 방어력이 +${value} 만큼 영구 상승합니다. (피해 감소율 증가)`;
+                break;
             case 'hp':
-                value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
+                value = Math.ceil(20 * mult); // 스탯 밸런스 상향 (10 -> 20)
                 desc = `최대 체력이 +${value} 늘어나며 동시에 실시간 체력을 회복합니다.`;
                 break;
             case 'luk':
@@ -4622,7 +4639,7 @@ class GameEngine {
                 desc = `유도탄의 실시간 조준 선회 각도를 30% 향상시켜, 적으로 향하는 궤적이 더 정교해집니다.`;
                 break;
             case 'equip_armor':
-                value = Math.ceil(4 * mult);
+                value = Math.ceil(8 * mult);
                 desc = `최대 체력이 +${value} 상승합니다. (현재 레벨: ${this.player.equipLevels.armor} -> ${Math.min(10, this.player.equipLevels.armor + 1)})`;
                 break;
             case 'equip_boots':
@@ -4684,6 +4701,9 @@ class GameEngine {
                 // [수정] Evasion Ring 10레벨 초월 시 회피 캡 75%, 그 외에는 60% 수렴 캡 동적 적용
                 let maxEvdLimit = p.equipLevels.ring_evd === 10 ? 0.75 : 0.6;
                 p.evd = p.evd + card.effectValue * (maxEvdLimit - p.evd);
+                break;
+            case 'def':
+                p.def += card.effectValue;
                 break;
             case 'hp':
                 p.maxHp += card.effectValue;
@@ -5871,6 +5891,7 @@ class GameEngine {
         document.getElementById('cheat-aspd').value = p.aspd.toFixed(2);
         document.getElementById('cheat-ms').value = p.ms.toFixed(2);
         document.getElementById('cheat-evd').value = p.evd.toFixed(2);
+        document.getElementById('cheat-def').value = p.def;
         document.getElementById('cheat-luk').value = p.luk.toFixed(2);
         document.getElementById('cheat-regen').value = p.hpRegen.toFixed(2);
         document.getElementById('cheat-hp').value = Math.ceil(p.hp);
@@ -5952,6 +5973,7 @@ class GameEngine {
             p.aspd = parseFloat(document.getElementById('cheat-aspd').value) || p.aspd;
             p.ms = parseFloat(document.getElementById('cheat-ms').value) || p.ms;
             p.evd = parseFloat(document.getElementById('cheat-evd').value) || p.evd;
+            p.def = parseInt(document.getElementById('cheat-def').value) || 0;
             p.luk = parseFloat(document.getElementById('cheat-luk').value) || p.luk;
             p.hpRegen = parseFloat(document.getElementById('cheat-regen').value) || p.hpRegen;
 
