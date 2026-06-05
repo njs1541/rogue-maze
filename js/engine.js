@@ -573,6 +573,8 @@ class GameEngine {
 
     // 특정 문으로 입장했을 때의 방 전환 엔진
     transitionToNextRoom(portal) {
+        if (this.gameClearActive || this.gameOverActive) return;
+
         // [신규 기획] 현재 방의 유형을 방금 진입한 포털의 보상 유형으로 갱신!
         const enteringSecretRoom = (portal.portalType === 'secret_room');
 
@@ -2550,10 +2552,12 @@ class GameEngine {
             }
 
             // 개방된 문으로 플레이어가 충돌했는지 검사
-            for (let p of this.portals) {
-                if (p.checkCollision(this.player)) {
-                    this.transitionToNextRoom(p);
-                    break;
+            if (!this.gameClearActive && !this.gameOverActive) {
+                for (let p of this.portals) {
+                    if (p.checkCollision(this.player)) {
+                        this.transitionToNextRoom(p);
+                        break;
+                    }
                 }
             }
         }
