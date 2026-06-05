@@ -36,7 +36,7 @@ class GameEngine {
         this.roomRewardSpawned = false; // [신규] 방 클리어 보상 스폰 유일성 플래그
 
         // 엔티티 관리 리스트
-        this.player = new Player(400, 300);
+        this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
         this.particles = [];
@@ -408,7 +408,7 @@ class GameEngine {
         this.score = 0;
         this.kills = 0;
 
-        this.player = new Player(400, 300);
+        this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
         this.particles = [];
@@ -6462,7 +6462,7 @@ class GameEngine {
             this.lastEnteredPortalDir = savedData.lastEnteredPortalDir || null;
 
             // 플레이어 객체 생성 및 복구
-            this.player = new Player(400, 300);
+            this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
             Object.assign(this.player, savedData.player);
 
             // 몬스터 및 오브젝트 엔티티 클리어

@@ -186,6 +186,9 @@ class Bullet {
             let currentX = this.isDna ? this.virtualX : this.x;
             let currentY = this.isDna ? this.virtualY : this.y;
 
+            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
             // 좌우 벽 충돌 감지
             if (currentX < wallMargin + this.radius) {
                 currentX = wallMargin + this.radius;
@@ -193,8 +196,8 @@ class Bullet {
                 else this.x = currentX;
                 this.vx = -this.vx;
                 collided = true;
-            } else if (currentX > 800 - wallMargin - this.radius) {
-                currentX = 800 - wallMargin - this.radius;
+            } else if (currentX > mapW - wallMargin - this.radius) {
+                currentX = mapW - wallMargin - this.radius;
                 if (this.isDna) this.virtualX = currentX;
                 else this.x = currentX;
                 this.vx = -this.vx;
@@ -208,8 +211,8 @@ class Bullet {
                 else this.y = currentY;
                 this.vy = -this.vy;
                 collided = true;
-            } else if (currentY > 600 - wallMargin - this.radius) {
-                currentY = 600 - wallMargin - this.radius;
+            } else if (currentY > mapH - wallMargin - this.radius) {
+                currentY = mapH - wallMargin - this.radius;
                 if (this.isDna) this.virtualY = currentY;
                 else this.y = currentY;
                 this.vy = -this.vy;
