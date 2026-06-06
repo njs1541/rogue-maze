@@ -459,9 +459,31 @@ class SecretWall {
         this.hitCooldown = 0; // 무적 시간 프레임
     }
 
+    update(game) {
+        if (this.hitCooldown > 0) this.hitCooldown--;
+        
+        // 차원 고글 1레벨 이상 보유 시, 1.5% 확률로 은은한 보랏빛 스파크 방출
+        const hasGoggles = game.player && game.player.equipLevels.goggles >= 1;
+        if (hasGoggles && Math.random() < 0.015) {
+            let rx = this.x + (Math.random() - 0.5) * this.width;
+            let ry = this.y + (Math.random() - 0.5) * this.height;
+            game.particles.push(new Particle(
+                rx, ry, 
+                this.glowColor, 
+                1.2, 
+                (Math.random() - 0.5) * 0.4, 
+                (Math.random() - 0.5) * 0.4, 
+                15, 
+                'spark'
+            ));
+        }
+    }
+
     draw(ctx) {
         // [완벽 은닉] 반드시 플레이어가 공격한 공격이 닿아야만(hitCount > 0) 표시되기 시작해야 함!
-        if (this.hitCount === 0) return;
+        // 단, 플레이어가 '차원 고글' 장비를 획득(equipLevels.goggles >= 1)한 상태라면 은은한 형태로 위치를 표시
+        const hasGoggles = window.gameEngine && window.gameEngine.player && window.gameEngine.player.equipLevels.goggles >= 1;
+        if (this.hitCount === 0 && !hasGoggles) return;
 
         ctx.save();
         
@@ -475,6 +497,8 @@ class SecretWall {
 
         ctx.translate(this.x + shakeX, this.y + shakeY);
 
+        let isGogglesReveal = (this.hitCount === 0 && hasGoggles);
+
         // 피격 시 백색 깜빡임 피드백
         if (this.flashTimer > 0) {
             this.flashTimer--;
@@ -482,6 +506,12 @@ class SecretWall {
             ctx.strokeStyle = '#ffffff';
             ctx.shadowBlur = 12;
             ctx.shadowColor = '#ffffff';
+        } else if (isGogglesReveal) {
+            // 고글로 탐지된 상태이고 한 번도 안 맞은 경우: 매우 은은한 보랏빛 점선 테두리
+            ctx.fillStyle = 'rgba(176, 38, 255, 0.02)';
+            ctx.strokeStyle = 'rgba(176, 38, 255, 0.35)'; // 은은한 보라 테두리
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#b026ff';
         } else {
             // 벽 테두리 마진선과 혼연일체 되도록 얇고 어둡게 처리
             ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
@@ -490,11 +520,18 @@ class SecretWall {
         }
 
         // 박스 두께 약 2px 정도로 얇게 벽 테두리와 거의 유사한 느낌 드로잉
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isGogglesReveal ? 1.5 : 2;
         ctx.beginPath();
+        if (isGogglesReveal) {
+            ctx.setLineDash([4, 4]); // 점선 효과 적용
+        }
         ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
         ctx.fill();
         ctx.stroke();
+
+        if (isGogglesReveal) {
+            ctx.setLineDash([]); // 점선 해제
+        }
 
         // 3회 이상 타격 시 추가적인 보랏빛 노이즈 선을 지지직 덧그리기
         if (this.hitCount >= 3) {

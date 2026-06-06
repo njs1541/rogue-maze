@@ -37,7 +37,8 @@ const CODEX_DATA = {
         { name: "생명 반지 (Ring HP)", icon: "💍", rarity: "rare", desc: "초당 체력 자연 재생량을 높여줍니다. 5레벨 피격 시 +10 보복 힐, 10레벨 무사고 5초 시 힐 3배." },
         { name: "신속의 반지 (Ring Speed)", icon: "💍", rarity: "rare", desc: "캐릭터의 이동 속도를 올려줍니다. 5레벨 2초 질주 시 바람의 상처 아우라(+10% 힘)가 켜집니다." },
         { name: "공속의 반지 (Ring ASPD)", icon: "💍", rarity: "rare", desc: "공격 속도를 상승시킵니다. 5레벨 치명타 시 이속 30% 증가, 10레벨 정지 시 극 공속 50% 가속." },
-        { name: "회피의 반지 (Ring EVD)", icon: "💍", rarity: "rare", desc: "회피율을 % 단위로 가산합니다. 5레벨 퍼펙트 회피 시 1초 무적, 10레벨 회피 한도 75% 돌파." }
+        { name: "회피의 반지 (Ring EVD)", icon: "💍", rarity: "rare", desc: "회피율을 % 단위로 가산합니다. 5레벨 퍼펙트 회피 시 1초 무적, 10레벨 회피 한도 75% 돌파." },
+        { name: "차원 고글 (Goggles)", icon: "🥽", rarity: "epic", desc: "차원을 스캔하여 비밀 균열 벽의 위치를 감지합니다. 5레벨 시 비밀방 생성 확률 증가, 10레벨 시 1격 파괴가 가능해집니다." }
     ],
     status: [
         { name: "공격 피해량 (ATK)", icon: "⚔️", rarity: "common", desc: "모든 일반 공격과 마법, 초월 기믹들의 기본 피해량 계수를 결정짓는 핵심 힘 스탯입니다." },

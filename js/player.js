@@ -1,6 +1,25 @@
 // --------------------------------------------------------------------------
 // 4. 플레이어 클래스 (이등변 삼각형 조종 및 스탯)
 // --------------------------------------------------------------------------
+// 무기 시스템 데이터 선언 (새로운 무기나 융합 무기 추가 시 여기에 등록)
+const WEAPON_CATEGORIES = {
+    sword: 'melee',
+    spear: 'melee',
+    whip: 'melee',
+    lightning: 'ranged',
+    fire: 'ranged',
+    ice: 'ranged',
+    thorns: 'utility',
+    trap: 'utility'
+};
+
+const WEAPON_FUSIONS = [
+    {
+        name: 'icefiredance',
+        materials: { fire: 5, ice: 5 }
+    }
+];
+
 class Player {
     constructor(x, y) {
         this.x = x;
@@ -40,7 +59,8 @@ class Player {
             ring_hp: 0,
             ring_speed: 0,
             ring_aspd: 0,
-            ring_evd: 0
+            ring_evd: 0,
+            goggles: 0
         };
 
         // [신규] Phase 5 물리 기믹 및 초월 상태 변수 선언
@@ -118,6 +138,7 @@ class Player {
         this.invincibleTimer = 0; // [신규 추가] 피격 시 무적 쿨타임 타이머
         this.burstBulletsToLaunch = []; // [추가] 점사/난무 연속 격발 탄환 궤적 배열 사전 정의
         this.resurrected = false; // [추가] Plate Armor 10레벨 극적 부활 작동 여부 트래킹
+        this.iceFireProjectilesStack = 0; // 초월 융합 업그레이드 사출수 스택 초기화
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
@@ -135,37 +156,58 @@ class Player {
 
     // [신규] 플레이어가 해금하여 보유한 무기 조합에 맞춤형 대표 무기 상태 자동 분석 갱신
     updateWeaponType() {
-        // [수정] 불마법 5레벨 & 얼음마법 5레벨 도달 시 자동으로 초월 융합 무기(icefiredance)로 진화 설정
-        if (this.weaponLevels.fire === 5 && this.weaponLevels.ice === 5) {
-            this.weaponType = 'icefiredance';
-            return;
+        // 1. 초월 융합 조건 체크
+        let fused = false;
+        for (let recipe of WEAPON_FUSIONS) {
+            let match = true;
+            for (let mat in recipe.materials) {
+                if ((this.weaponLevels[mat] || 0) < recipe.materials[mat]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                this.weaponType = recipe.name;
+                fused = true;
+                break;
+            }
         }
 
-        let hasRanged = (this.weaponLevels.fire > 0) || (this.weaponLevels.ice > 0) || (this.weaponLevels.lightning > 0);
-        let hasMelee = (this.weaponLevels.sword > 0) || (this.weaponLevels.spear > 0) || (this.weaponLevels.whip > 0);
+        if (fused) return;
+
+        // 2. 카테고리별 활성화 여부 계산
+        let activeMelee = [];
+        let activeRanged = [];
+        for (let key in this.weaponLevels) {
+            if (this.weaponLevels[key] > 0) {
+                if (WEAPON_CATEGORIES[key] === 'melee') activeMelee.push(key);
+                if (WEAPON_CATEGORIES[key] === 'ranged') activeRanged.push(key);
+            }
+        }
+
+        let hasMelee = activeMelee.length > 0;
+        let hasRanged = activeRanged.length > 0;
 
         if (hasRanged && hasMelee) {
             this.weaponType = 'dual';
         } else if (hasMelee) {
-            let highestMelee = 'sword';
-            let maxLvl = -1;
-            ['sword', 'spear', 'whip'].forEach(type => {
-                if ((this.weaponLevels[type] || 0) > maxLvl && (this.weaponLevels[type] || 0) > 0) {
-                    maxLvl = this.weaponLevels[type];
-                    highestMelee = type;
-                }
+            // 근접 무기 중 레벨이 높은 순, 같으면 명시적 룰(sword -> spear -> whip 순)에 의해 우선순위 결정
+            activeMelee.sort((a, b) => {
+                let lvlDiff = (this.weaponLevels[b] || 0) - (this.weaponLevels[a] || 0);
+                if (lvlDiff !== 0) return lvlDiff;
+                const order = ['sword', 'spear', 'whip'];
+                return order.indexOf(a) - order.indexOf(b);
             });
-            this.weaponType = highestMelee;
+            this.weaponType = activeMelee[0] || 'sword';
         } else if (hasRanged) {
-            let highestRanged = 'gun';
-            let maxLvl = -1;
-            ['fire', 'ice', 'lightning'].forEach(type => {
-                if ((this.weaponLevels[type] || 0) > maxLvl && (this.weaponLevels[type] || 0) > 0) {
-                    maxLvl = this.weaponLevels[type];
-                    highestRanged = type;
-                }
+            // 원거리 무기 중 레벨이 높은 순, 같으면 명시적 룰(fire -> ice -> lightning 순)에 의해 우선순위 결정
+            activeRanged.sort((a, b) => {
+                let lvlDiff = (this.weaponLevels[b] || 0) - (this.weaponLevels[a] || 0);
+                if (lvlDiff !== 0) return lvlDiff;
+                const order = ['fire', 'ice', 'lightning'];
+                return order.indexOf(a) - order.indexOf(b);
             });
-            this.weaponType = highestRanged;
+            this.weaponType = activeRanged[0] || 'gun';
         } else {
             this.weaponType = 'gun';
         }

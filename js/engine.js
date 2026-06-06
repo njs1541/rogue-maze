@@ -837,7 +837,7 @@ class GameEngine {
                 // 치트 UI 동기화 해제 처리
                 const cheatCheckbox = document.getElementById('cheat-forcesecret');
                 if (cheatCheckbox) cheatCheckbox.checked = false;
-            } else if (Math.random() < 0.10) {
+            } else if (Math.random() < ((this.player && this.player.equipLevels && this.player.equipLevels.goggles >= 5) ? 0.30 : 0.10)) {
                 shouldSpawnSecret = true;
             }
         }
@@ -1351,6 +1351,11 @@ class GameEngine {
 
                 if (this.player.burstType === 'gun') {
                     // 총 탄환 팩 격발
+                    let activeMagics = [];
+                    if (this.player.weaponLevels.fire > 0) activeMagics.push('fire');
+                    if (this.player.weaponLevels.ice > 0) activeMagics.push('ice');
+                    if (this.player.weaponLevels.lightning > 0) activeMagics.push('lightning');
+
                     let isLightning = this.player.weaponType === 'lightning';
                     let isFire = this.player.weaponType === 'fire';
                     let isIce = this.player.weaponType === 'ice';
@@ -1370,11 +1375,28 @@ class GameEngine {
                         let bulletIsLightning = isLightning;
                         let bulletIsFire = isFire;
                         let bulletIsIce = isIce;
-                        if (isDual) {
-                            let randType = Math.random();
-                            if (randType < 0.25) bulletIsLightning = true;
-                            else if (randType < 0.5) bulletIsFire = true;
-                            else if (randType < 0.75) bulletIsIce = true;
+                        if (isDual || activeMagics.length > 0) {
+                            let pool = [...activeMagics];
+                            if (pool.length > 0) {
+                                let chosen = pool[Math.floor(Math.random() * pool.length)];
+                                if (chosen === 'lightning') {
+                                    bulletIsLightning = true;
+                                    bulletIsFire = false;
+                                    bulletIsIce = false;
+                                } else if (chosen === 'fire') {
+                                    bulletIsLightning = false;
+                                    bulletIsFire = true;
+                                    bulletIsIce = false;
+                                } else if (chosen === 'ice') {
+                                    bulletIsLightning = false;
+                                    bulletIsFire = false;
+                                    bulletIsIce = true;
+                                }
+                            } else {
+                                bulletIsLightning = false;
+                                bulletIsFire = false;
+                                bulletIsIce = false;
+                            }
                         }
 
                         let speed = bulletIsLightning ? 8.5 : (bulletIsFire ? 6.2 : (bulletIsIce ? 7.5 : 7.0));
@@ -1791,9 +1813,9 @@ class GameEngine {
             }
         }
 
-        // [Phase 7 신규 구현] 비밀 벽 무적 타이머 프레임 감쇠
+        // [Phase 7 신규 구현] 비밀 벽 타이머 감쇠 및 상태 업데이트
         for (let wall of this.secretWalls) {
-            if (wall.hitCooldown > 0) wall.hitCooldown--;
+            wall.update(this);
         }
 
         // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
@@ -1804,15 +1826,9 @@ class GameEngine {
 
         if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged) {
             this.shootWeapon();
-            if (this.player.weaponType === 'dual') {
-                this.player.slashCooldown = Math.max(this.player.slashCooldown, this.player.shootCooldown);
-            }
         }
         if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee) {
             this.slashWeapon();
-            if (this.player.weaponType === 'dual') {
-                this.player.shootCooldown = Math.max(this.player.shootCooldown, this.player.slashCooldown);
-            }
         }
 
         // [성능 최적화] 화면 내 동시 활성 플레이어 탄환 수 하드 캡(Max 200) 제한
@@ -1878,7 +1894,11 @@ class GameEngine {
                     if (wDist < 25 + b.radius) { // 바뀐 얇은 벽 형상에 맞춘 기하 충돌 반경 보정
                         if (!wall.hitCooldown) {
                             wall.hitCooldown = 12;
-                            wall.hp--;
+                            if (this.player && this.player.equipLevels && this.player.equipLevels.goggles === 10) {
+                                wall.hp = 0;
+                            } else {
+                                wall.hp--;
+                            }
                             wall.hitCount++;
                             wall.flashTimer = 5;
                             Sound.play('hit');
@@ -2056,7 +2076,11 @@ class GameEngine {
                         if (Math.abs(angleDiff) < 1.1) {
                             if (!wall.hitCooldown) {
                                 wall.hitCooldown = 12;
-                                wall.hp--;
+                                if (this.player && this.player.equipLevels && this.player.equipLevels.goggles === 10) {
+                                    wall.hp = 0;
+                                } else {
+                                    wall.hp--;
+                                }
                                 wall.hitCount++;
                                 wall.flashTimer = 5;
                                 Sound.play('hit');
@@ -3583,49 +3607,61 @@ class GameEngine {
                     // [초월 무기] 아이스 앤드 파이어 댄스 상태라면 불과 얼음 DNA 탄환 2발 동시 격발!
                     if (this.player.weaponType === 'icefiredance') {
                         let speed = 7.5; // 불마법(6.2)과 얼음마법(7.5)의 시너지 균형 속도
-                        let vx = Math.cos(angle) * speed;
-                        let vy = Math.sin(angle) * speed;
                         let bulletLife = this.player.range / speed;
 
-                        // 1. 불마법 초월 DNA 탄환 (위상 0, 스플래시 보너스)
-                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                            pierce: this.player.pierceCount,
-                            homing: this.player.homing,
-                            homingSpeed: this.player.homingAngleSpeed,
-                            splash: this.player.splashRadius + 35, // 초월적인 네온 폭화 범위 보너스
-                            color: '#ff3300', // 고열 네온 불꽃색
-                            radius: 7.2,
-                            life: bulletLife,
-                            isLightning: false,
-                            isFire: true,
-                            isIce: false,
-                            bounceLimit: this.player.wallBounceLimit,
-                            monsterBounceLimit: this.player.monsterBounceLimit,
-                            isDna: true,
-                            dnaWavePhase: 0,
-                            dnaAmplitude: 18,
-                            dnaFrequency: 0.16
-                        }));
+                        let anglesForThisBullet = [angle];
+                        if (this.player.iceFireProjectilesStack > 0) {
+                            for (let j = 1; j <= this.player.iceFireProjectilesStack; j++) {
+                                // 양방향으로 0.12 라디안씩 벌어지며 추가 분사
+                                anglesForThisBullet.push(angle - j * 0.12);
+                                anglesForThisBullet.push(angle + j * 0.12);
+                            }
+                        }
 
-                        // 2. 얼음마법 초월 DNA 탄환 (위상 Math.PI, 관통 보너스)
-                        this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
-                            pierce: this.player.pierceCount + 2, // 초월적인 빙결 관통력 보너스
-                            homing: this.player.homing,
-                            homingSpeed: this.player.homingAngleSpeed,
-                            splash: this.player.splashRadius,
-                            color: '#00f0ff', // 청안 네온 얼음색
-                            radius: 5.5,
-                            life: bulletLife,
-                            isLightning: false,
-                            isFire: false,
-                            isIce: true,
-                            bounceLimit: this.player.wallBounceLimit,
-                            monsterBounceLimit: this.player.monsterBounceLimit,
-                            isDna: true,
-                            dnaWavePhase: Math.PI, // 180도 반대 위상
-                            dnaAmplitude: 18,
-                            dnaFrequency: 0.16
-                        }));
+                        for (let targetAngle of anglesForThisBullet) {
+                            let vx = Math.cos(targetAngle) * speed;
+                            let vy = Math.sin(targetAngle) * speed;
+
+                            // 1. 불마법 초월 DNA 탄환 (위상 0, 스플래시 보너스)
+                            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                                pierce: this.player.pierceCount,
+                                homing: this.player.homing,
+                                homingSpeed: this.player.homingAngleSpeed,
+                                splash: this.player.splashRadius + 35, // 초월적인 네온 폭화 범위 보너스
+                                color: '#ff3300', // 고열 네온 불꽃색
+                                radius: 7.2,
+                                life: bulletLife,
+                                isLightning: false,
+                                isFire: true,
+                                isIce: false,
+                                bounceLimit: this.player.wallBounceLimit,
+                                monsterBounceLimit: this.player.monsterBounceLimit,
+                                isDna: true,
+                                dnaWavePhase: 0,
+                                dnaAmplitude: 18,
+                                dnaFrequency: 0.16
+                            }));
+
+                            // 2. 얼음마법 초월 DNA 탄환 (위상 Math.PI, 관통 보너스)
+                            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                                pierce: this.player.pierceCount + 2, // 초월적인 빙결 관통력 보너스
+                                homing: this.player.homing,
+                                homingSpeed: this.player.homingAngleSpeed,
+                                splash: this.player.splashRadius,
+                                color: '#00f0ff', // 청안 네온 얼음색
+                                radius: 5.5,
+                                life: bulletLife,
+                                isLightning: false,
+                                isFire: false,
+                                isIce: true,
+                                bounceLimit: this.player.wallBounceLimit,
+                                monsterBounceLimit: this.player.monsterBounceLimit,
+                                isDna: true,
+                                dnaWavePhase: Math.PI, // 180도 반대 위상
+                                dnaAmplitude: 18,
+                                dnaFrequency: 0.16
+                            }));
+                        }
                     } else {
                         // dual 상태 및 다중 마법 활성화 시 보유 마법탄을 섞어서 발사!
                         let bulletIsLightning = this.player.weaponType === 'lightning';
@@ -4377,7 +4413,8 @@ class GameEngine {
             { id: 'equip_ring_hp', title: '체력회복 반지', icon: '💍', desc: '초당 체력 회복량을 강화합니다. (5레벨: 포션 효율 50% 업, 10레벨: 비피격 5초 시 재생 3배)' },
             { id: 'equip_ring_speed', title: '이동속도 반지', icon: '💍', desc: '이동 속도를 올립니다. (5레벨: 달릴 때 공격력 10% 업, 10레벨: 초신성 기동)' },
             { id: 'equip_ring_aspd', title: '공격속도 반지', icon: '💍', desc: '공격/연사 속도를 올립니다. (5레벨: 캐스팅 프레임 15% 단축, 10레벨: 공속 상한 해제)' },
-            { id: 'equip_ring_evd', title: '회피증가 반지', icon: '💍', desc: '회피 확률을 강화합니다. (5레벨: 회피 시 주변 기절 섬광, 10레벨: 회피 상한선 75% 확장)' }
+            { id: 'equip_ring_evd', title: '회피증가 반지', icon: '💍', desc: '회피 확률을 강화합니다. (5레벨: 회피 시 주변 기절 섬광, 10레벨: 회피 상한선 75% 확장)' },
+            { id: 'equip_goggles', title: '차원 고글', icon: '🥽', desc: '비밀 균열 벽의 위치를 감지합니다. (5레벨: 비밀방 등장 확률 30%로 상승, 10레벨: 비밀 균열 벽 타격 시 1회만에 파괴)' }
         ];
 
         // [신규 기획] 현재 방 유형(currentRoomType)에 맞춘 특화 보상 풀 배정
@@ -4703,6 +4740,10 @@ class GameEngine {
                 value = 0.01 * mult;
                 desc = `피격 물리 회피율이 +${(value * 100).toFixed(0)}% 보강됩니다. (현재 레벨: ${this.player.equipLevels.ring_evd} -> ${Math.min(10, this.player.equipLevels.ring_evd + 1)})`;
                 break;
+            case 'equip_goggles':
+                value = 0;
+                desc = `비밀방을 감지하는 능력이 활성화/강화됩니다. (현재 레벨: ${this.player.equipLevels.goggles} -> ${Math.min(10, this.player.equipLevels.goggles + 1)})`;
+                break;
         }
 
         return { value, desc, data };
@@ -4853,23 +4894,23 @@ class GameEngine {
                 break;
             case 'multishot':
                 p.multishot = Math.min(16, p.multishot + card.effectValue);
-                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType; // 총 사격 속성 강제 활성화
+                p.updateWeaponType();
                 break;
             case 'burst':
                 p.burstCount = Math.min(10, p.burstCount + card.effectValue);
-                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
+                p.updateWeaponType();
                 break;
             case 'pierce':
                 p.pierceCount += card.effectValue;
-                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
+                p.updateWeaponType();
                 break;
             case 'homing':
                 p.homing = true;
-                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
+                p.updateWeaponType();
                 break;
             case 'splash':
                 p.splashRadius = Math.max(p.splashRadius, card.effectValue);
-                p.weaponType = (p.weaponType === 'sword' || p.weaponType === 'spear' || p.weaponType === 'whip') ? 'dual' : p.weaponType;
+                p.updateWeaponType();
                 break;
             case 'hpRegen':
                 p.hpRegen += card.effectValue;
@@ -5014,6 +5055,16 @@ class GameEngine {
                     this.showFloatingText("EVD RING LV.5: PHANTOM FLASH (DODGE -> STUN)", p.x, p.y - 30, '#ff5e00');
                 } else if (p.equipLevels.ring_evd === 10) {
                     this.showFloatingText("EVD RING MAX: GHOST WALKER (75% MAX EVD)", p.x, p.y - 30, '#ffdf00');
+                }
+                break;
+            case 'equip_goggles':
+                p.equipLevels.goggles = Math.min(10, p.equipLevels.goggles + 1);
+                if (p.equipLevels.goggles === 1) {
+                    this.showFloatingText("GOGGLES LV.1: DIMENSION DETECTOR ACTIVE 🥽", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.goggles === 5) {
+                    this.showFloatingText("GOGGLES LV.5: PORTAL RESONANCE (SECRET ROOM PROBABILITY 30%)", p.x, p.y - 30, '#ff5e00');
+                } else if (p.equipLevels.goggles === 10) {
+                    this.showFloatingText("GOGGLES MAX: DIMENSION BREAKER (1-HIT BREAK UNLOCKED)", p.x, p.y - 30, '#ffdf00');
                 }
                 break;
         }
@@ -5198,7 +5249,8 @@ class GameEngine {
                 { key: 'ring_hp', name: '생명 반지', icon: '💍' },
                 { key: 'ring_speed', name: '신속 반지', icon: '💍' },
                 { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
-                { key: 'ring_evd', name: '회피 반지', icon: '💍' }
+                { key: 'ring_evd', name: '회피 반지', icon: '💍' },
+                { key: 'goggles', name: '차원 고글', icon: '🥽' }
             ];
             equips.forEach(eq => {
                 const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
@@ -6313,7 +6365,8 @@ class GameEngine {
                     { key: 'ring_hp', name: '생명 반지', icon: '💍' },
                     { key: 'ring_speed', name: '신속 반지', icon: '💍' },
                     { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
-                    { key: 'ring_evd', name: '회피 반지', icon: '💍' }
+                    { key: 'ring_evd', name: '회피 반지', icon: '💍' },
+                    { key: 'goggles', name: '차원 고글', icon: '🥽' }
                 ];
                 equips.forEach(eq => {
                     const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
@@ -6781,6 +6834,8 @@ class GameEngine {
                 break;
             case 'ring_evd':
                 p.evd = Math.min(0.75, Math.max(0, p.evd + diff * 0.01));
+                break;
+            case 'goggles':
                 break;
         }
 
