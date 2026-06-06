@@ -139,6 +139,11 @@ class Player {
         this.burstBulletsToLaunch = []; // [추가] 점사/난무 연속 격발 탄환 궤적 배열 사전 정의
         this.resurrected = false; // [추가] Plate Armor 10레벨 극적 부활 작동 여부 트래킹
         this.iceFireProjectilesStack = 0; // 초월 융합 업그레이드 사출수 스택 초기화
+        
+        // [신규 보스 기믹용 상태이상 상태 변수]
+        this.stunnedTimer = 0;
+        this.slowTimer = 0;
+        this.slowMultiplier = 1.0;
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
@@ -214,6 +219,17 @@ class Player {
     }
 
     update() {
+        // [신규 기믹] 플레이어 상태이상 타이머 감소 처리
+        if (this.stunnedTimer > 0) {
+            this.stunnedTimer--;
+        }
+        if (this.slowTimer > 0) {
+            this.slowTimer--;
+            if (this.slowTimer <= 0) {
+                this.slowMultiplier = 1.0;
+            }
+        }
+
         // [신규 기획] 피격 무사고 프레임 증가
         this.lastHitTimer++;
 

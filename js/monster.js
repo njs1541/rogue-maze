@@ -176,6 +176,11 @@ class Monster {
         if (this._hp !== undefined && value < this._hp) {
             let dmg = this._hp - value;
 
+            // 위상 굴절 보호막 (네온 센티넬 기믹) 작동 중이면 대미지 50% 경감
+            if (this.boss_refractionShieldActive) {
+                dmg = Math.max(1, Math.floor(dmg * 0.5));
+            }
+
             // 실드(shieldHp)가 있는 경우 실드가 대미지를 우선 차감 흡수
             if (this.shieldHp !== undefined && this.shieldHp > 0) {
                 this.shieldRechargeTimer = 300; // 피격 시 실드 재생 타이머 5초 대기 리셋
@@ -212,6 +217,26 @@ class Monster {
     makeBoss(roomNum, specificType = null, isWeakened = false) {
         this.isBoss = true;
         this.type = specificType || 'boss';
+
+        // 보스 기믹 및 패턴용 상태 변수들 일괄 초기화
+        this.boss_refractionShieldActive = false;
+        this.boss_refractionShieldUsed = false;
+        this.boss_refractionShieldDuration = 0;
+        this.boss_chargeTimer = 0;
+        this.boss_speedBuffCount = 0;
+        this.boss_trailTimer = 0;
+        this.boss_sonicDisruptionActive = false;
+        this.boss_spatialRiftTimer = 0;
+        this.boss_shieldDischarged = false;
+        this.boss_chaosWaveTimer = 0;
+        this.boss_finalCoreReset = false;
+        this.boss_finalGravityActive = false;
+
+        // 시각 표시 피드백용 필드
+        this.boss_warningText = "";
+        this.boss_timerText = "";
+        this.boss_castProgress = 0;
+        this.boss_castMax = 0;
         
         let roomFactor = 1.0 + (roomNum - 1) * 0.05;
         let scaleHp = 1.0;
@@ -479,77 +504,241 @@ class Monster {
 
             switch (this.type) {
                 case 'boss': // 10층 네온 센티넬 (기존 보스)
-                    if (dist > 100) {
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
-                    }
-                    this.shootCooldown -= timeScale;
-                    if (this.shootCooldown <= 0) {
-                        this.shootCooldown = 90 - Math.min(40, this.tier * 3);
-                        for (let i = -1; i <= 1; i++) {
-                            let bAngle = angle + (i * 0.25);
-                            let vx = Math.cos(bAngle) * 2.8;
-                            let vy = Math.sin(bAngle) * 2.8;
-                            bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.8, false, {
-                                color: '#ff3300',
-                                radius: 6
-                            }));
+                    // 1. 위상 굴절 보호막 기믹 업데이트
+                    if (!this.boss_refractionShieldUsed && this.hp <= this.maxHp * 0.8) {
+                        this.boss_refractionShieldActive = true;
+                        this.boss_refractionShieldUsed = true;
+                        this.boss_refractionShieldDuration = 180; // 3초
+                        if (window.gameEngine) {
+                            window.gameEngine.showFloatingText("🛡️ REFRACTION SHIELD! (50% DMG REDUCTION)", this.x, this.y - 35, '#ff3300');
+                            Sound.play('powerup');
                         }
-                        Sound.play('shoot');
+                    }
+
+                    if (this.boss_refractionShieldActive) {
+                        this.boss_refractionShieldDuration -= timeScale;
+                        this.boss_warningText = "PHASE SHIELD";
+                        this.boss_timerText = (this.boss_refractionShieldDuration / 60).toFixed(1) + "s";
+                        this.boss_castProgress = this.boss_refractionShieldDuration;
+                        this.boss_castMax = 180;
+                        if (this.boss_refractionShieldDuration <= 0) {
+                            this.boss_refractionShieldActive = false;
+                            this.boss_warningText = "";
+                            this.boss_timerText = "";
+                        }
+                    } else {
+                        this.boss_warningText = "";
+                        this.boss_timerText = "";
+                    }
+
+                    // 2. 50% 이하 분노/돌진 사격 패턴 작동
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+                        let speedMult = isFrenzy ? 1.25 : 1.0;
+
+                        if (isFrenzy) {
+                            if (this.boss_chargeTimer === undefined || this.boss_chargeTimer <= 0) this.boss_chargeTimer = 90;
+                            this.boss_chargeTimer -= timeScale;
+
+                            if (this.boss_chargeTimer <= 0) {
+                                // 대시 돌진 상태 (30프레임 동안)
+                                let dashLeft = this.boss_chargeTimer;
+                                if (dashLeft > -30) {
+                                    let dashAngle = this.boss_dashAngle !== undefined ? this.boss_dashAngle : angle;
+                                    this.x += Math.cos(dashAngle) * activeSpeed * 2.8;
+                                    this.y += Math.sin(dashAngle) * activeSpeed * 2.8;
+                                    this.boss_warningText = "DASHING! 🔥";
+                                    this.boss_timerText = "";
+                                    
+                                    // 돌진 경로 궤적 파티클
+                                    if (window.gameEngine && Math.random() < 0.4) {
+                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff3300', 3, 0, 0, 15, 'spark'));
+                                    }
+                                } else {
+                                    // 돌진 완료 후 쿨타임 리셋
+                                    this.boss_chargeTimer = 90; // 1.5초 후 재돌진
+                                    this.boss_warningText = "";
+                                }
+                            } else if (this.boss_chargeTimer <= 30) {
+                                // 돌진 준비 충전 중 (30프레임, 0.5초)
+                                this.boss_dashAngle = angle; // 조준 고정
+                                this.boss_warningText = "DASH CHARGE";
+                                this.boss_timerText = (this.boss_chargeTimer / 60).toFixed(1) + "s";
+                                this.boss_castProgress = 30 - this.boss_chargeTimer;
+                                this.boss_castMax = 30;
+                            } else {
+                                // 대기 상태 카이팅 이동
+                                if (dist > 100) {
+                                    this.x += Math.cos(angle) * activeSpeed;
+                                    this.y += Math.sin(angle) * activeSpeed;
+                                }
+                            }
+                        } else {
+                            // 50% 이상 일반 카이팅 이동
+                            if (dist > 100) {
+                                this.x += Math.cos(angle) * activeSpeed;
+                                this.y += Math.sin(angle) * activeSpeed;
+                            }
+                        }
+
+                        // 사격 패턴 (분노 시 쿨다운 가속)
+                        this.shootCooldown -= timeScale * speedMult;
+                        if (this.shootCooldown <= 0) {
+                            this.shootCooldown = 90 - Math.min(40, this.tier * 3);
+                            let count = isFrenzy ? 4 : 3;
+                            let spread = isFrenzy ? 0.22 : 0.25;
+                            let startOffset = -(count - 1) / 2;
+                            
+                            for (let i = 0; i < count; i++) {
+                                let bAngle = angle + ((startOffset + i) * spread);
+                                let vx = Math.cos(bAngle) * 2.8;
+                                let vy = Math.sin(bAngle) * 2.8;
+                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.8, false, {
+                                    color: '#ff3300',
+                                    radius: 6
+                                }));
+                            }
+                            Sound.play('shoot');
+                        }
                     }
                     break;
 
                 case 'boss_chaser': // 20층 하이퍼 체이서
-                    if (this.dashCooldown > 0) {
-                        this.dashCooldown -= timeScale;
-                    }
+                    {
+                        if (this.boss_speedBuffCount === undefined) this.boss_speedBuffCount = 0;
+                        let chaserSpeed = activeSpeed * (1.0 + this.boss_speedBuffCount * 0.06);
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
 
-                    if (this.isDashing > 0) {
-                        this.isDashing -= timeScale;
-                        // 돌진 중 강한 전진 속도 부여
-                        this.x += Math.cos(this.dashAngle) * activeSpeed * 2.8;
-                        this.y += Math.sin(this.dashAngle) * activeSpeed * 2.8;
-
-                        // 돌진 경로에 화상 장판 스폰 (5프레임 주기로 스폰하여 최적화)
-                        if (window.gameEngine && Math.floor(Date.now() / 83) % 2 === 0) {
-                            // 장판 역할을 하는 주황색 입자를 스폰. engine.js 업데이트 루프에서 이 입자들과 플레이어 충돌 검사
-                            let trail = new Particle(this.x, this.y, '#ff6a00', 16, 0, 0, 180, 'chaser_fire_trail');
-                            trail.atk = this.atk * 0.4; // 밟았을 때 대미지
-                            window.gameEngine.particles.push(trail);
+                        if (this.dashCooldown > 0) {
+                            // 50% 이하 분노 시 돌진 쿨타임 2배 속도로 차감
+                            this.dashCooldown -= timeScale * (isFrenzy ? 2.0 : 1.0);
                         }
-                    } else {
-                        // 일반 플레이어 추격
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
-                        this.dashAngle = angle; // 돌진 방향 계속 조준
 
-                        if (this.dashCooldown <= 0 && dist < 280) {
-                            this.isDashing = 30; // 30프레임 (0.5초) 돌진
-                            this.dashCooldown = 100 + Math.random() * 50; // 돌진 쿨타임
-                            Sound.play('boss_alert');
+                        // 타이머 및 가이드 텍스트 갱신
+                        if (this.isDashing > 0) {
+                            this.isDashing -= timeScale;
+                            this.x += Math.cos(this.dashAngle) * chaserSpeed * 2.8;
+                            this.y += Math.sin(this.dashAngle) * chaserSpeed * 2.8;
+
+                            this.boss_warningText = isFrenzy ? "⚡ OVERHEAT DASH! ⚡" : "DASHING! 🔥";
+                            this.boss_timerText = (this.isDashing / 60).toFixed(1) + "s";
+                            this.boss_castProgress = this.isDashing;
+                            this.boss_castMax = 30;
+
+                            // 돌진 경로 장판 스폰
+                            if (window.gameEngine && Math.floor(Date.now() / 83) % 2 === 0) {
+                                let trailType = (isFrenzy && Math.random() < 0.5) ? 'chaser_lightning_trail' : 'chaser_fire_trail';
+                                let trailColor = trailType === 'chaser_lightning_trail' ? '#00e1ff' : '#ff6a00';
+                                let trail = new Particle(this.x, this.y, trailColor, 16, 0, 0, 180, trailType);
+                                trail.atk = this.atk * 0.4;
+                                window.gameEngine.particles.push(trail);
+                            }
+                        } else {
+                            this.x += Math.cos(angle) * chaserSpeed;
+                            this.y += Math.sin(angle) * chaserSpeed;
+                            this.dashAngle = angle;
+
+                            if (this.dashCooldown <= 20 && this.dashCooldown > 0) {
+                                this.boss_warningText = "DASH READY";
+                                this.boss_castProgress = 20 - this.dashCooldown;
+                                this.boss_castMax = 20;
+                                this.boss_timerText = (this.dashCooldown / 60).toFixed(1) + "s";
+                            } else {
+                                this.boss_warningText = "";
+                                this.boss_timerText = "";
+                            }
+
+                            if (this.dashCooldown <= 0 && dist < 280) {
+                                this.isDashing = 30;
+                                this.dashCooldown = 100 + Math.random() * 50;
+                                this.boss_speedBuffCount = Math.min(5, this.boss_speedBuffCount + 1);
+                                if (window.gameEngine) {
+                                    window.gameEngine.showFloatingText("OVERDRIVE x" + this.boss_speedBuffCount + " ⚡", this.x, this.y - 35, '#ffaa00');
+                                }
+                                Sound.play('boss_alert');
+                            }
                         }
                     }
                     break;
 
                 case 'boss_slime': // 30층 마더 슬라임
-                    if (dist > 80) {
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
-                    }
-                    this.shootCooldown -= timeScale;
-                    if (this.shootCooldown <= 0) {
-                        this.shootCooldown = 75 - Math.min(25, this.tier * 2);
-                        // 8방향 탄막 발사
-                        for (let i = 0; i < 8; i++) {
-                            let bAngle = (i * Math.PI / 4);
-                            let vx = Math.cos(bAngle) * 2.5;
-                            let vy = Math.sin(bAngle) * 2.5;
-                            bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
-                                color: '#00f0ff',
-                                radius: 5.5
-                            }));
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+                        let slimeSpeed = activeSpeed * (isFrenzy ? 1.3 : 1.0);
+
+                        // 1. 점성 장판 기믹 업데이트
+                        if (this.boss_trailTimer === undefined) this.boss_trailTimer = 0;
+                        this.boss_trailTimer -= timeScale;
+                        if (this.boss_trailTimer <= 0) {
+                            this.boss_trailTimer = 15;
+                            if (window.gameEngine) {
+                                let trail = new Particle(this.x, this.y, '#00f0ff', 15, 0, 0, 120, 'slime_mud_trail');
+                                trail.atk = 0; // 데미지는 없고 둔화만
+                                window.gameEngine.particles.push(trail);
+                            }
                         }
-                        Sound.play('shoot');
+
+                        // 이동
+                        if (dist > 80) {
+                            this.x += Math.cos(angle) * slimeSpeed;
+                            this.y += Math.sin(angle) * slimeSpeed;
+                        }
+
+                        // 캐스팅 타이머 및 경고 텍스트 표시
+                        if (this.shootCooldown <= 20 && this.shootCooldown > 0) {
+                            this.boss_warningText = isFrenzy ? "FRENZY SPEW" : "SLIME SPEW";
+                            this.boss_castProgress = 20 - this.shootCooldown;
+                            this.boss_castMax = 20;
+                            this.boss_timerText = (this.shootCooldown / 60).toFixed(1) + "s";
+                        } else {
+                            this.boss_warningText = "";
+                            this.boss_timerText = "";
+                        }
+
+                        // 사격
+                        this.shootCooldown -= timeScale;
+                        if (this.shootCooldown <= 0) {
+                            this.shootCooldown = 75 - Math.min(25, this.tier * 2);
+                            
+                            // 8방향 탄막
+                            for (let i = 0; i < 8; i++) {
+                                let bAngle = (i * Math.PI / 4);
+                                let vx = Math.cos(bAngle) * 2.5;
+                                let vy = Math.sin(bAngle) * 2.5;
+                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
+                                    color: '#00f0ff',
+                                    radius: 5.5
+                                }));
+                            }
+
+                            // 50% 이하 폭주 시: 조준 4방향 십자성 탄막 추가 사격 및 잡몹 소환
+                            if (isFrenzy) {
+                                for (let i = 0; i < 4; i++) {
+                                    let bAngle = angle + (i * Math.PI / 2);
+                                    let vx = Math.cos(bAngle) * 3.2;
+                                    let vy = Math.sin(bAngle) * 3.2;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.5, false, {
+                                        color: '#00e1ff',
+                                        radius: 4.5
+                                    }));
+                                }
+
+                                // 20% 확률로 일반 미니 슬라임 1마리 소환
+                                if (Math.random() < 0.20 && window.gameEngine) {
+                                    let mini = new Monster(this.x + (Math.random() * 30 - 15), this.y + (Math.random() * 30 - 15), this.tier, this.roomNum);
+                                    mini.type = 'mini';
+                                    mini.radius = 7;
+                                    mini.maxHp = Math.ceil(this.maxHp * 0.15);
+                                    mini.hp = mini.maxHp;
+                                    mini.atk = Math.ceil(this.atk * 0.5);
+                                    mini.speed = this.speed * 1.3;
+                                    mini.color = '#00e1ff';
+                                    window.gameEngine.monsters.push(mini);
+                                    window.gameEngine.showFloatingText("SPAWN! 💠", this.x, this.y - 35, '#00e1ff');
+                                }
+                            }
+                            Sound.play('shoot');
+                        }
                     }
                     break;
 
@@ -575,187 +764,280 @@ class Monster {
                     break;
 
                 case 'boss_speaker': // 40층 둠 스피커
-                    if (!this.isFixedToCenter) {
-                        // 맵 중앙으로 이동
-                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-                        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-                        let cx = mapW / 2 - this.x;
-                        let cy = mapH / 2 - this.y;
-                        let cdist = Math.hypot(cx, cy);
-                        if (cdist > 5) {
-                            this.x += (cx / cdist) * activeSpeed * 1.5;
-                            this.y += (cy / cdist) * activeSpeed * 1.5;
-                        } else {
-                            this.x = mapW / 2;
-                            this.y = mapH / 2;
-                            this.isFixedToCenter = true;
-                            this.rotationAngle = 0;
-                        }
-                    } else {
-                        // 중앙 고정 회전 탄막
-                        this.shootCooldown -= timeScale;
-                        if (this.shootCooldown <= 0) {
-                            this.shootCooldown = 28;
-                            this.rotationAngle = (this.rotationAngle || 0) + 0.12;
-                            // 회전하는 6방향 교차 탄막 난사
-                            for (let i = 0; i < 6; i++) {
-                                let bAngle = this.rotationAngle + (i * Math.PI * 2 / 6);
-                                let vx = Math.cos(bAngle) * 2.3;
-                                let vy = Math.sin(bAngle) * 2.3;
-                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.6, false, {
-                                    color: '#ff00aa',
-                                    radius: 5
-                                }));
-                            }
-                            Sound.play('shoot');
-                        }
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
 
-                        // 격자 레이저 가동 관리
-                        this.laserTimer -= timeScale;
-                        if (this.laserTimer <= 0) {
-                            // 레이저 상태 돌입
-                            this.gridLaserActive = 100; // 100프레임 기동 (65프레임 경고선, 35프레임 실 발사 대미지)
-                            this.laserTimer = 280 + Math.random() * 80;
-                            Sound.play('boss_alert');
-                        }
-                    }
-
-                    if (this.gridLaserActive > 0) {
-                        this.gridLaserActive -= timeScale;
-                        // 실 발사 구간 (35프레임 이내)에 진입 시 플레이어 충돌 판정
-                        if (this.gridLaserActive <= 35 && this.gridLaserActive > 0 && window.gameEngine) {
-                            let pl = window.gameEngine.player;
-                            // 격자 레이저 라인: 가로 X줄 (100, 200, 300, 400, 500, 600, 700), 세로 Y줄 (100, 200, 300, 400, 500)
-                            // 플레이어 좌표가 해당 축 범위 (두께 20px)에 걸리면 지속 틱 대미지
-                            let isHit = false;
-                            const thickness = 10; // 중심 기준 좌우 10px씩 총 20px
+                        if (!this.isFixedToCenter) {
+                            // 맵 중앙으로 이동
                             let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
                             let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-                            for (let lx = 100; lx <= mapW - 100; lx += 100) {
-                                if (Math.abs(pl.x - lx) < thickness + pl.radius) isHit = true;
+                            let cx = mapW / 2 - this.x;
+                            let cy = mapH / 2 - this.y;
+                            let cdist = Math.hypot(cx, cy);
+                            if (cdist > 5) {
+                                this.x += (cx / cdist) * activeSpeed * 1.5;
+                                this.y += (cy / cdist) * activeSpeed * 1.5;
+                            } else {
+                                this.x = mapW / 2;
+                                this.y = mapH / 2;
+                                this.isFixedToCenter = true;
+                                this.rotationAngle = 0;
                             }
-                            for (let ly = 100; ly <= mapH - 100; ly += 100) {
-                                if (Math.abs(pl.y - ly) < thickness + pl.radius) isHit = true;
+                        } else {
+                            // 중앙 고정 회전 탄막
+                            this.shootCooldown -= timeScale;
+                            if (this.shootCooldown <= 0) {
+                                this.shootCooldown = isFrenzy ? 21 : 28;
+                                this.rotationAngle = (this.rotationAngle || 0) + (isFrenzy ? 0.18 : 0.12);
+                                
+                                // 분노 시 8방향, 평소 6방향
+                                let directions = isFrenzy ? 8 : 6;
+                                for (let i = 0; i < directions; i++) {
+                                    let bAngle = this.rotationAngle + (i * Math.PI * 2 / directions);
+                                    let vx = Math.cos(bAngle) * 2.3;
+                                    let vy = Math.sin(bAngle) * 2.3;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.6, false, {
+                                        color: '#ff00aa',
+                                        radius: 5
+                                    }));
+                                }
+                                Sound.play('shoot');
                             }
-                            if (isHit) {
-                                window.gameEngine.damagePlayer(this.atk * 0.08 * timeScale, this.x, this.y); // 프레임당 틱 대미지
+
+                            // 격자 레이저 가동 관리
+                            this.laserTimer -= timeScale;
+                            if (this.laserTimer <= 0) {
+                                this.gridLaserActive = 100; // 100프레임 기동 (65경고, 35발사)
+                                this.laserTimer = (isFrenzy ? 160 : 280) + Math.random() * 80;
+                                Sound.play('boss_alert');
+                            }
+                        }
+
+                        // 기믹 적용 및 경고 표시
+                        if (this.gridLaserActive > 0) {
+                            this.boss_sonicDisruptionActive = true;
+                            this.gridLaserActive -= timeScale;
+
+                            if (this.gridLaserActive > 35) {
+                                this.boss_warningText = "SONIC DISRUPTION";
+                                this.boss_timerText = ((this.gridLaserActive - 35) / 60).toFixed(1) + "s";
+                                this.boss_castProgress = 100 - this.gridLaserActive;
+                                this.boss_castMax = 65;
+                            } else {
+                                this.boss_warningText = "GRID LASER ACTIVE 🚨";
+                                this.boss_timerText = (this.gridLaserActive / 60).toFixed(1) + "s";
+                                this.boss_castProgress = this.gridLaserActive;
+                                this.boss_castMax = 35;
+                            }
+
+                            // 실 발사 구간 (35프레임 이내)에 진입 시 플레이어 충돌 판정
+                            if (this.gridLaserActive <= 35 && this.gridLaserActive > 0 && window.gameEngine) {
+                                let pl = window.gameEngine.player;
+                                let isHit = false;
+                                const thickness = 10;
+                                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                                for (let lx = 100; lx <= mapW - 100; lx += 100) {
+                                    if (Math.abs(pl.x - lx) < thickness + pl.radius) isHit = true;
+                                }
+                                for (let ly = 100; ly <= mapH - 100; ly += 100) {
+                                    if (Math.abs(pl.y - ly) < thickness + pl.radius) isHit = true;
+                                }
+                                if (isHit) {
+                                    window.gameEngine.damagePlayer(this.atk * 0.08 * timeScale, this.x, this.y);
+                                }
+                            }
+                        } else {
+                            this.boss_sonicDisruptionActive = false;
+                            if (this.isFixedToCenter) {
+                                this.boss_warningText = "";
+                                this.boss_timerText = "";
                             }
                         }
                     }
                     break;
 
                 case 'boss_warper': // 60층 보이드 워퍼
-                    // [추가] 탄 흡수 보호막 타이머 차감 업데이트
-                    if (this.blackholeActiveTimer > 0) {
-                        this.blackholeActiveTimer -= timeScale;
-                    }
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
 
-                    // 플레이어와 거리 카이팅 (거리 180~250px 유지)
-                    if (dist < 180) {
-                        this.x -= Math.cos(angle) * activeSpeed * 0.9;
-                        this.y -= Math.sin(angle) * activeSpeed * 0.9;
-                    } else if (dist > 250) {
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
-                    }
-
-                    // [추가] 평상시 플레이어 조준 3방향 보이드 탄환 사격 패턴 (카이팅 도중 지속 피해 유도)
-                    this.shootCooldown -= timeScale;
-                    if (this.shootCooldown <= 0) {
-                        this.shootCooldown = 60 + Math.random() * 40; // 약 1초 ~ 1.6초 주기 사격
-                        for (let i = -1; i <= 1; i++) {
-                            let bAngle = angle + (i * 0.22);
-                            let vx = Math.cos(bAngle) * 3.0;
-                            let vy = Math.sin(bAngle) * 3.0;
-                            bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
-                                color: '#00ffcc',
-                                radius: 5.5
-                            }));
-                        }
-                        Sound.play('shoot');
-                    }
-
-                    this.teleportCooldown -= timeScale;
-                    if (this.teleportCooldown <= 0 && dist < 350) {
-                        this.teleportCooldown = 200 + Math.random() * 60;
-                        let warpAngle = Math.random() * Math.PI * 2;
-                        let warpDist = 160 + Math.random() * 80;
-                        let targetX = player.x + Math.cos(warpAngle) * warpDist;
-                        let targetY = player.y + Math.sin(warpAngle) * warpDist;
-
-                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-                        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-                        targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
-                        targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
-
-                        // 텔레포트 파티클 이펙트
-                        if (window.gameEngine) {
-                            for (let k = 0; k < 12; k++) {
-                                let pAngle = Math.random() * Math.PI * 2;
-                                let pSpeed = Math.random() * 3 + 1;
-                                window.gameEngine.particles.push(new Particle(this.x, this.y, '#00ffcc', 2.0, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
-                            }
+                        // 탄 흡수 보호막 타이머 차감 업데이트
+                        if (this.blackholeActiveTimer > 0) {
+                            this.blackholeActiveTimer -= timeScale;
                             
-                            // [수정] 플레이어를 강제로 보스 앞으로 워프시키는 기괴한 기믹 완전 삭제
-                            // [추가] 텔레포트 도약 직후 360도 8방향 보이드 방사 탄막 발사 패턴 추가
-                            for (let i = 0; i < 8; i++) {
-                                let bAngle = (i * Math.PI / 4);
-                                let vx = Math.cos(bAngle) * 2.6;
-                                let vy = Math.sin(bAngle) * 2.6;
-                                bullets.push(new Bullet(targetX, targetY, vx, vy, this.atk * 0.7, false, {
+                            // 50% 이하 분노 시 블랙홀 흡입 인력 유발 (플레이어를 보스 방향으로 끌어당김)
+                            if (isFrenzy && window.gameEngine) {
+                                let pl = window.gameEngine.player;
+                                let pdx = this.x - pl.x;
+                                let pdy = this.y - pl.y;
+                                let pdist = Math.hypot(pdx, pdy);
+                                if (pdist > 20 && pdist < 400) {
+                                    let force = (1.2 * (1.0 - pdist / 400)) * timeScale;
+                                    pl.x += (pdx / pdist) * force;
+                                    pl.y += (pdy / pdist) * force;
+                                }
+                            }
+                        }
+
+                        // 플레이어와 거리 카이팅 (거리 180~250px 유지)
+                        if (dist < 180) {
+                            this.x -= Math.cos(angle) * activeSpeed * 0.9;
+                            this.y -= Math.sin(angle) * activeSpeed * 0.9;
+                        } else if (dist > 250) {
+                            this.x += Math.cos(angle) * activeSpeed;
+                            this.y += Math.sin(angle) * activeSpeed;
+                        }
+
+                        // 평상시 플레이어 조준 3방향 보이드 탄환 사격 패턴
+                        this.shootCooldown -= timeScale;
+                        if (this.shootCooldown <= 0) {
+                            this.shootCooldown = 60 + Math.random() * 40;
+                            for (let i = -1; i <= 1; i++) {
+                                let bAngle = angle + (i * 0.22);
+                                let vx = Math.cos(bAngle) * 3.0;
+                                let vy = Math.sin(bAngle) * 3.0;
+                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
                                     color: '#00ffcc',
                                     radius: 5.5
                                 }));
                             }
-                            window.gameEngine.showFloatingText("VOID BURST! 🌀", targetX, targetY - 30, '#00ffcc');
                             Sound.play('shoot');
-
-                            // [추가] 텔레포트 도약 성공 시 1.5초(90프레임) 동안 보호막(블랙홀) 가동
-                            this.blackholeActiveTimer = 90;
                         }
 
-                        this.x = targetX;
-                        this.y = targetY;
-                    }
+                        // 텔레포트 업데이트 (분노 시 35% 더 빠른 주기로 도약)
+                        this.teleportCooldown -= timeScale * (isFrenzy ? 1.35 : 1.0);
 
-                    // 탄 흡수 블랙홀 구역 (항상 보스 주변에 유지됨, engine.js에서 탄환을 삭제)
+                        // 캐스팅 타이머 및 경고 텍스트 표시
+                        if (this.blackholeActiveTimer > 0) {
+                            this.boss_warningText = "VOID SHIELD 🌀";
+                            this.boss_timerText = (this.blackholeActiveTimer / 60).toFixed(1) + "s";
+                            this.boss_castProgress = this.blackholeActiveTimer;
+                            this.boss_castMax = isFrenzy ? 150 : 90;
+                        } else if (this.teleportCooldown <= 30 && this.teleportCooldown > 0) {
+                            this.boss_warningText = "WARP PREPARING";
+                            this.boss_timerText = (this.teleportCooldown / 60).toFixed(1) + "s";
+                            this.boss_castProgress = 30 - this.teleportCooldown;
+                            this.boss_castMax = 30;
+                        } else {
+                            this.boss_warningText = "";
+                            this.boss_timerText = "";
+                        }
+
+                        if (this.teleportCooldown <= 0 && dist < 350) {
+                            this.teleportCooldown = 200 + Math.random() * 60;
+                            let warpAngle = Math.random() * Math.PI * 2;
+                            let warpDist = 160 + Math.random() * 80;
+                            let targetX = player.x + Math.cos(warpAngle) * warpDist;
+                            let targetY = player.y + Math.sin(warpAngle) * warpDist;
+
+                            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                            targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
+                            targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
+
+                            // 텔레포트 파티클 이펙트 및 공간 균열 기믹 설치
+                            if (window.gameEngine) {
+                                // 1. 공간 균열 기믹 추가: 원래 있던 자리에 플레이어에게 감속/대미지를 유발하는 균열 설치
+                                let rift = new Particle(this.x, this.y, '#b026ff', 30, 0, 0, 90, 'boss_spatial_rift');
+                                rift.atk = this.atk * 0.3; // 균열 틱 피해
+                                window.gameEngine.particles.push(rift);
+
+                                for (let k = 0; k < 12; k++) {
+                                    let pAngle = Math.random() * Math.PI * 2;
+                                    let pSpeed = Math.random() * 3 + 1;
+                                    window.gameEngine.particles.push(new Particle(this.x, this.y, '#00ffcc', 2.0, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15, 'spark'));
+                                }
+                                
+                                // 텔레포트 도약 직후 360도 8방향 보이드 방사 탄막 발사 패턴
+                                for (let i = 0; i < 8; i++) {
+                                    let bAngle = (i * Math.PI / 4);
+                                    let vx = Math.cos(bAngle) * 2.6;
+                                    let vy = Math.sin(bAngle) * 2.6;
+                                    bullets.push(new Bullet(targetX, targetY, vx, vy, this.atk * 0.7, false, {
+                                        color: '#00ffcc',
+                                        radius: 5.5
+                                    }));
+                                }
+                                window.gameEngine.showFloatingText("VOID BURST! 🌀", targetX, targetY - 30, '#00ffcc');
+                                Sound.play('shoot');
+
+                                // 텔레포트 도약 성공 시 1.5초(분노 시 2.5초) 동안 탄 흡수 보호막 가동
+                                this.blackholeActiveTimer = isFrenzy ? 150 : 90;
+                            }
+
+                            this.x = targetX;
+                            this.y = targetY;
+                        }
+                    }
                     break;
 
                 case 'boss_portal': // 70층 차원 차단기
-                    // 포털 스폰이 아직 안 되었다면 즉시 모퉁이에 4개 포털 생성
-                    if (!this.portalSpawned && window.gameEngine) {
-                        let mapW = window.gameEngine.mapWidth;
-                        let mapH = window.gameEngine.mapHeight;
-                        const portalSpots = [
-                            { x: 150, y: 150 },
-                            { x: mapW - 150, y: 150 },
-                            { x: 150, y: mapH - 150 },
-                            { x: mapW - 150, y: mapH - 150 }
-                        ];
-                        portalSpots.forEach(spot => {
-                            let spawner = new Monster(spot.x, spot.y, this.tier, this.roomNum);
-                            spawner.makeBoss(this.roomNum, 'boss_portal_spawner', true);
-                            window.gameEngine.monsters.push(spawner);
-                        });
-                        this.portalSpawned = true;
-                        window.gameEngine.showFloatingText("배리어가 활성화되었습니다! 포털을 파괴하세요!", this.x, this.y - 45, '#8b5cf6');
-                    }
+                    {
+                        // 포털 스폰이 아직 안 되었다면 즉시 모퉁이에 4개 포털 생성
+                        if (!this.portalSpawned && window.gameEngine) {
+                            let mapW = window.gameEngine.mapWidth;
+                            let mapH = window.gameEngine.mapHeight;
+                            const portalSpots = [
+                                { x: 150, y: 150 },
+                                { x: mapW - 150, y: 150 },
+                                { x: 150, y: mapH - 150 },
+                                { x: mapW - 150, y: mapH - 150 }
+                            ];
+                            portalSpots.forEach(spot => {
+                                let spawner = new Monster(spot.x, spot.y, this.tier, this.roomNum);
+                                spawner.makeBoss(this.roomNum, 'boss_portal_spawner', true);
+                                window.gameEngine.monsters.push(spawner);
+                            });
+                            this.portalSpawned = true;
+                            window.gameEngine.showFloatingText("배리어가 활성화되었습니다! 포털을 파괴하세요!", this.x, this.y - 45, '#8b5cf6');
+                        }
 
-                    // 무적 상태 동기화 (엔진 내에 포털 스패너 몬스터가 한 마리라도 생존해있다면 무적)
-                    if (window.gameEngine) {
-                        let spawnersAlive = window.gameEngine.monsters.some(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
-                        this.isInvulnerable = spawnersAlive;
-                    }
+                        let spawners = [];
+                        if (window.gameEngine) {
+                            spawners = window.gameEngine.monsters.filter(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
+                            this.isInvulnerable = spawners.length > 0;
+                        }
 
-                    // 도망 다니는 이동 AI
-                    if (dist < 220) {
-                        this.x -= Math.cos(angle) * activeSpeed * 0.95;
-                        this.y -= Math.sin(angle) * activeSpeed * 0.95;
-                    } else {
-                        // 플레이어 주변을 서서히 선회
-                        let orbitAngle = angle + Math.PI / 2;
-                        this.x += Math.cos(orbitAngle) * activeSpeed * 0.45;
-                        this.y += Math.sin(orbitAngle) * activeSpeed * 0.45;
+                        // 캐스팅 타이머 및 경고 텍스트 표시
+                        if (this.isInvulnerable) {
+                            this.boss_warningText = "PORTAL BARRIER🛡️";
+                            this.boss_timerText = "PORTALS: " + spawners.length;
+                            this.boss_castProgress = spawners.length;
+                            this.boss_castMax = 4;
+                        } else {
+                            this.boss_warningText = "CORE EXPOSED! 🚨";
+                            this.boss_timerText = "";
+                        }
+
+                        // 도망 다니는 이동 AI
+                        if (dist < 220) {
+                            this.x -= Math.cos(angle) * activeSpeed * 0.95;
+                            this.y -= Math.sin(angle) * activeSpeed * 0.95;
+                        } else {
+                            // 플레이어 주변을 서서히 선회
+                            let orbitAngle = angle + Math.PI / 2;
+                            this.x += Math.cos(orbitAngle) * activeSpeed * 0.45;
+                            this.y += Math.sin(orbitAngle) * activeSpeed * 0.45;
+                        }
+
+                        // [추가 기믹]: 발전기 2개 이하 생존 시 직접 조준 3방향 탄막 발사
+                        if (spawners.length > 0 && spawners.length <= 2) {
+                            if (this.shootCooldown === undefined || this.shootCooldown === null) this.shootCooldown = 60;
+                            this.shootCooldown -= timeScale;
+                            if (this.shootCooldown <= 0) {
+                                this.shootCooldown = 60; // 1초 주기
+                                for (let i = -1; i <= 1; i++) {
+                                    let bAngle = angle + (i * 0.2);
+                                    let vx = Math.cos(bAngle) * 3.0;
+                                    let vy = Math.sin(bAngle) * 3.0;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
+                                        color: '#8b5cf6',
+                                        radius: 5.5
+                                    }));
+                                }
+                                Sound.play('shoot');
+                            }
+                        }
                     }
                     break;
 
@@ -789,28 +1071,97 @@ class Monster {
                     break;
 
                 case 'boss_hive': // 80층 나노 하이브
-                    // 플레이어 추격
-                    this.x += Math.cos(angle) * activeSpeed;
-                    this.y += Math.sin(angle) * activeSpeed;
+                    {
+                        // 플레이어 추격
+                        this.x += Math.cos(angle) * activeSpeed;
+                        this.y += Math.sin(angle) * activeSpeed;
 
-                    // 실드 자연 재생 메커니즘
-                    if (this.shieldRechargeTimer > 0) {
-                        this.shieldRechargeTimer -= timeScale;
-                    } else {
-                        // 피격되지 않고 5초 경과 시 매초 실드 6% 재생
-                        this.shieldHp = Math.min(this.maxShieldHp, this.shieldHp + (this.maxShieldHp * 0.06 / 60) * timeScale);
-                    }
+                        // 실드 자연 재생 메커니즘
+                        if (this.shieldRechargeTimer > 0) {
+                            this.shieldRechargeTimer -= timeScale;
+                        } else {
+                            // 피격되지 않고 5초 경과 시 매초 실드 6% 재생
+                            this.shieldHp = Math.min(this.maxShieldHp, this.shieldHp + (this.maxShieldHp * 0.06 / 60) * timeScale);
+                        }
 
-                    // 힐러 소환
-                    this.spawnHealerCooldown -= timeScale;
-                    if (this.spawnHealerCooldown <= 0 && window.gameEngine) {
-                        this.spawnHealerCooldown = 280 + Math.random() * 60;
-                        let healerCount = window.gameEngine.monsters.filter(m => m.type === 'boss_hive_healer' && m.hp > 0).length;
-                        if (healerCount < 2) {
-                            let healer = new Monster(this.x, this.y, this.tier, this.roomNum);
-                            healer.makeBoss(this.roomNum, 'boss_hive_healer', true);
-                            window.gameEngine.monsters.push(healer);
-                            Sound.play('powerup');
+                        // [추가 기믹]: 실드가 0이 되는 순간 충격파를 방출하여 주변 탄환을 지우고 플레이어 넉백
+                        if (this.shieldHp <= 0 && !this.boss_shieldDischarged) {
+                            this.boss_shieldDischarged = true;
+                            if (window.gameEngine) {
+                                // 주변 120px 내의 플레이어 탄환 삭제
+                                window.gameEngine.bullets = window.gameEngine.bullets.filter(b => {
+                                    let d = Math.hypot(b.x - this.x, b.y - this.y);
+                                    return (b.isEnemyBullet || d >= 120);
+                                });
+
+                                // 플레이어 넉백
+                                let pl = window.gameEngine.player;
+                                let pAngle = Math.atan2(pl.y - this.y, pl.x - this.x);
+                                pl.x += Math.cos(pAngle) * 50;
+                                pl.y += Math.sin(pAngle) * 50;
+                                // 맵 밖 이탈 가두기
+                                const margin = 40;
+                                pl.x = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapWidth - margin - pl.radius, pl.x));
+                                pl.y = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapHeight - margin - pl.radius, pl.y));
+
+                                // 화면 흔들림 및 효과음
+                                window.gameEngine.shakeScreen(15, 6.0);
+                                Sound.play('explosion');
+                                window.gameEngine.showFloatingText("🛡️ SHIELD DISCHARGE WAVE!", this.x, this.y - 45, '#e2e8f0');
+
+                                // 충격파 시각 이펙트
+                                window.gameEngine.particles.push(new Particle(this.x, this.y, 'rgba(226, 232, 240, 0.4)', 120, 0, 0, 20, 'explosionRing'));
+                            }
+                        }
+
+                        // 실드 다 차면 충격파 플래그 리셋
+                        if (this.shieldHp >= this.maxShieldHp) {
+                            this.boss_shieldDischarged = false;
+                        }
+
+                        // [추가 기믹]: 실드가 소실된 동안 공격 쿨다운 단축 및 3방향 나노 레이저 사격 저항
+                        if (this.shieldHp <= 0) {
+                            if (this.boss_hiveShootCooldown === undefined || this.boss_hiveShootCooldown === null) this.boss_hiveShootCooldown = 45;
+                            this.boss_hiveShootCooldown -= timeScale * 1.25;
+                            if (this.boss_hiveShootCooldown <= 0) {
+                                this.boss_hiveShootCooldown = 45; // 0.75초 주기
+                                for (let i = -1; i <= 1; i++) {
+                                    let bAngle = angle + (i * 0.2);
+                                    let vx = Math.cos(bAngle) * 3.5;
+                                    let vy = Math.sin(bAngle) * 3.5;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.75, false, {
+                                        color: '#ff4444',
+                                        radius: 4.5
+                                    }));
+                                }
+                                Sound.play('shoot');
+                            }
+                        }
+
+                        // 힐러 소환
+                        this.spawnHealerCooldown -= timeScale;
+                        if (this.spawnHealerCooldown <= 0 && window.gameEngine) {
+                            this.spawnHealerCooldown = 280 + Math.random() * 60;
+                            let healerCount = window.gameEngine.monsters.filter(m => m.type === 'boss_hive_healer' && m.hp > 0).length;
+                            if (healerCount < 2) {
+                                let healer = new Monster(this.x, this.y, this.tier, this.roomNum);
+                                healer.makeBoss(this.roomNum, 'boss_hive_healer', true);
+                                window.gameEngine.monsters.push(healer);
+                                Sound.play('powerup');
+                            }
+                        }
+
+                        // 캐스팅 타이머 및 경고 텍스트 표시
+                        if (this.shieldHp > 0) {
+                            this.boss_warningText = "NANO SHIELD ACTIVE";
+                            this.boss_timerText = "SHIELD: " + Math.round(this.shieldHp);
+                            this.boss_castProgress = this.shieldHp;
+                            this.boss_castMax = this.maxShieldHp;
+                        } else {
+                            this.boss_warningText = "SHIELD BROKEN: OVERLOAD 🚨";
+                            this.boss_timerText = "RECHARGE: " + (this.shieldRechargeTimer / 60).toFixed(1) + "s";
+                            this.boss_castProgress = 300 - this.shieldRechargeTimer;
+                            this.boss_castMax = 300;
                         }
                     }
                     break;
@@ -865,195 +1216,367 @@ class Monster {
                     break;
 
                 case 'boss_chaos': // 90층 카오스 코어
-                    // 플레이어 카이팅 추격
-                    if (dist > 140) {
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
-                    }
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
 
-                    // 속성 변환 시스템
-                    this.elementTimer -= timeScale;
-                    if (this.elementTimer <= 0) {
-                        this.elementTimer = 600; // 10초 주기
-                        if (this.element === 'fire') {
-                            this.element = 'lightning';
-                            this.color = '#b026ff'; // 보라색
-                            this.glowColor = '#b026ff';
-                        } else if (this.element === 'lightning') {
-                            this.element = 'ice';
-                            this.color = '#00f0ff'; // 하늘색
-                            this.glowColor = '#00f0ff';
-                        } else {
-                            this.element = 'fire';
-                            this.color = '#ff3300'; // 빨간색
-                            this.glowColor = '#ff3300';
+                        // 플레이어 카이팅 추격
+                        if (dist > 140) {
+                            this.x += Math.cos(angle) * activeSpeed;
+                            this.y += Math.sin(angle) * activeSpeed;
                         }
-                        if (window.gameEngine) {
-                            let title = `ELEMENT: ${this.element.toUpperCase()}! 🔥`;
-                            if (this.element === 'lightning') title = `ELEMENT: LIGHTNING! ⚡`;
-                            if (this.element === 'ice') title = `ELEMENT: FROST! ❄️`;
-                            window.gameEngine.showFloatingText(title, this.x, this.y - 35, this.color);
-                            Sound.play('powerup');
-                        }
-                    }
 
-                    // 속성 전용 격발 AI
-                    this.shootCooldown -= timeScale;
-                    if (this.shootCooldown <= 0) {
-                        this.shootCooldown = 40 + Math.random() * 20;
+                        // 속성 변환 시스템
+                        this.elementTimer -= timeScale;
+                        if (this.elementTimer <= 0) {
+                            let oldElement = this.element;
+                            this.elementTimer = isFrenzy ? 300 : 600; // 분노 시 5초, 평소 10초
+                            
+                            if (this.element === 'fire') {
+                                this.element = 'lightning';
+                                this.color = '#b026ff';
+                                this.glowColor = '#b026ff';
+                            } else if (this.element === 'lightning') {
+                                this.element = 'ice';
+                                this.color = '#00f0ff';
+                                this.glowColor = '#00f0ff';
+                            } else {
+                                this.element = 'fire';
+                                this.color = '#ff3300';
+                                this.glowColor = '#ff3300';
+                            }
+                            this.boss_prevElement = oldElement; // 이전 원소 기억
 
-                        if (this.element === 'fire') {
-                            // 화염구: 탄속은 느리지만 피격 판정이 크고 폭발 대미지를 주는 화염구 3발
-                            for (let i = -1; i <= 1; i++) {
-                                let bAngle = angle + (i * 0.22);
-                                let vx = Math.cos(bAngle) * 2.2;
-                                let vy = Math.sin(bAngle) * 2.2;
-                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 1.1, false, {
-                                    color: '#ff3300',
-                                    radius: 9,
-                                    splashRadius: 40 // 스플래시 속성 주입
-                                }));
-                            }
-                        } else if (this.element === 'lightning') {
-                            // 번개: 탄속이 매우 빠른 감전 투사체 4발 연사
-                            for (let i = -1.5; i <= 1.5; i += 1) {
-                                let bAngle = angle + (i * 0.15);
-                                let vx = Math.cos(bAngle) * 4.6;
-                                let vy = Math.sin(bAngle) * 4.6;
-                                let bullet = new Bullet(this.x, this.y, vx, vy, this.atk * 0.65, false, {
-                                    color: '#b026ff',
-                                    radius: 4.5
-                                });
-                                bullet.isStunner = true; // [W-08/10] 피격 시 마비 45프레임 유도 속성 마크
-                                bullets.push(bullet);
-                            }
-                        } else if (this.element === 'ice') {
-                            // 냉기: 플레이어의 탈출 경로를 막는 6방향 원형 냉동 포탄 방사
-                            for (let i = 0; i < 6; i++) {
-                                let bAngle = angle + (i * Math.PI / 3);
-                                let vx = Math.cos(bAngle) * 2.6;
-                                let vy = Math.sin(bAngle) * 2.6;
-                                let bullet = new Bullet(this.x, this.y, vx, vy, this.atk * 0.75, false, {
-                                    color: '#00f0ff',
-                                    radius: 5.5
-                                });
-                                bullet.isSlower = true; // [W-08/10] 피격 시 플레이어 감속 속성 마크
-                                bullets.push(bullet);
+                            if (window.gameEngine) {
+                                // [추가 기믹]: 카오스 진동파 - 원소 교체 시 화면 흔들림과 플레이어 넉백
+                                window.gameEngine.shakeScreen(30, 4.5);
+                                let pl = window.gameEngine.player;
+                                let pAngle = Math.atan2(pl.y - this.y, pl.x - this.x);
+                                pl.x += Math.cos(pAngle) * 25;
+                                pl.y += Math.sin(pAngle) * 25;
+                                
+                                // 경계 벽 가두기 보정
+                                const margin = 40;
+                                pl.x = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapWidth - margin - pl.radius, pl.x));
+                                pl.y = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapHeight - margin - pl.radius, pl.y));
+
+                                let title = `ELEMENT: ${this.element.toUpperCase()}! 🔥`;
+                                if (this.element === 'lightning') title = `ELEMENT: LIGHTNING! ⚡`;
+                                if (this.element === 'ice') title = `ELEMENT: FROST! ❄️`;
+                                window.gameEngine.showFloatingText(title, this.x, this.y - 35, this.color);
+                                Sound.play('powerup');
                             }
                         }
-                        Sound.play('shoot');
+
+                        // 캐스팅 타이머 및 경고 텍스트 표시
+                        this.boss_warningText = "ELEMENT: " + this.element.toUpperCase() + (isFrenzy ? " (FRENZY)" : "");
+                        this.boss_timerText = "SHIFT: " + (this.elementTimer / 60).toFixed(1) + "s";
+                        this.boss_castProgress = this.elementTimer;
+                        this.boss_castMax = isFrenzy ? 300 : 600;
+
+                        // 속성 전용 격발 AI
+                        this.shootCooldown -= timeScale;
+                        if (this.shootCooldown <= 0) {
+                            this.shootCooldown = 40 + Math.random() * 20;
+
+                            if (this.element === 'fire') {
+                                for (let i = -1; i <= 1; i++) {
+                                    let bAngle = angle + (i * 0.22);
+                                    let vx = Math.cos(bAngle) * 2.2;
+                                    let vy = Math.sin(bAngle) * 2.2;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 1.1, false, {
+                                        color: '#ff3300',
+                                        radius: 9,
+                                        splashRadius: 40
+                                    }));
+                                }
+                            } else if (this.element === 'lightning') {
+                                // 번개: 5방향 빠른 전기 화살 연사 (마비 유발)
+                                for (let i = -2; i <= 2; i++) {
+                                    let bAngle = angle + (i * 0.18);
+                                    let vx = Math.cos(bAngle) * 3.5;
+                                    let vy = Math.sin(bAngle) * 3.5;
+                                    let bullet = new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
+                                        color: '#b026ff',
+                                        radius: 5.5
+                                    });
+                                    bullet.isStunner = true; // 피격 시 마비 45프레임 유도 속성
+                                    bullets.push(bullet);
+                                }
+                            } else if (this.element === 'ice') {
+                                // 냉기: 6방향 원형 냉동 포탄 방사
+                                for (let i = 0; i < 6; i++) {
+                                    let bAngle = angle + (i * Math.PI / 3);
+                                    let vx = Math.cos(bAngle) * 2.6;
+                                    let vy = Math.sin(bAngle) * 2.6;
+                                    let bullet = new Bullet(this.x, this.y, vx, vy, this.atk * 0.75, false, {
+                                        color: '#00f0ff',
+                                        radius: 5.5
+                                    });
+                                    bullet.isSlower = true; // 피격 시 플레이어 감속 속성
+                                    bullets.push(bullet);
+                                }
+                            }
+
+                            // 50% 이하 분노 시: 이전 원소 추가 발사 (이중 원소 융합 공격)
+                            if (isFrenzy && this.boss_prevElement) {
+                                let fuseAngle = angle + Math.PI; // 반대 방향
+                                let fuseColor = '#ffaa00';
+                                if (this.boss_prevElement === 'fire') fuseColor = '#ff3300';
+                                else if (this.boss_prevElement === 'lightning') fuseColor = '#b026ff';
+                                else if (this.boss_prevElement === 'ice') fuseColor = '#00f0ff';
+                                
+                                for (let i = -1; i <= 1; i++) {
+                                    let bAngle = fuseAngle + (i * 0.3);
+                                    let vx = Math.cos(bAngle) * 2.8;
+                                    let vy = Math.sin(bAngle) * 2.8;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.6, false, {
+                                        color: fuseColor,
+                                        radius: 5
+                                    }));
+                                }
+                            }
+                            Sound.play('shoot');
+                        }
                     }
                     break;
 
                 case 'boss_final': // 100층 최종 보스
-                    let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-                    this.x = mapW / 2;
-                    this.y = 100; // 벽면 고정
+                    {
+                        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+                        this.x = mapW / 2;
+                        this.y = 100; // 벽면 고정
 
-                    // 1페이즈 포탑 소환 제어
-                    if (!this.turretsSpawned && window.gameEngine) {
-                        let leftTurret = new Monster(mapW * 0.25, 150, this.tier, this.roomNum);
-                        leftTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
-                        
-                        let rightTurret = new Monster(mapW * 0.75, 150, this.tier, this.roomNum);
-                        rightTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
+                        // 1페이즈 포탑 소환 제어
+                        if (!this.turretsSpawned && window.gameEngine) {
+                            let leftTurret = new Monster(mapW * 0.25, 150, this.tier, this.roomNum);
+                            leftTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
+                            
+                            let rightTurret = new Monster(mapW * 0.75, 150, this.tier, this.roomNum);
+                            rightTurret.makeBoss(this.roomNum, 'boss_final_turret', true);
 
-                        window.gameEngine.monsters.push(leftTurret);
-                        window.gameEngine.monsters.push(rightTurret);
-                        this.turretsSpawned = true;
-                        window.gameEngine.showFloatingText("보호막 발생기 가동! 발전기를 파괴하세요!", this.x, this.y - 45, '#ff0055');
-                    }
-
-                    // 1페이즈 / 2페이즈 실드 판정
-                    if (window.gameEngine) {
-                        let turretsAlive = window.gameEngine.monsters.some(m => m.type === 'boss_final_turret' && m.hp > 0 && !m.dead);
-                        if (this.phase === 1 && !turretsAlive) {
-                            this.phase = 2;
-                            this.isInvulnerable = false;
-                            window.gameEngine.showFloatingText("WARNING: CORE EXPOSED! 🚨", this.x, this.y - 45, '#ff0055');
-                            Sound.play('explosion');
-                            window.gameEngine.shakeScreen(60, 6);
-                        }
-                        this.isInvulnerable = (this.phase === 1);
-                    }
-
-                    // 페이즈별 탄막 사격
-                    this.shootCooldown -= timeScale;
-                    if (this.shootCooldown <= 0) {
-                        this.shootCooldown = this.phase === 1 ? 55 : 35; // 2페이즈에 딜링 주기가 빨라짐
-
-                        if (this.phase === 1) {
-                            // 1페이즈: 플레이어를 향한 빠른 교차 2연사
-                            let vx1 = Math.cos(angle - 0.15) * 3.5;
-                            let vy1 = Math.sin(angle - 0.15) * 3.5;
-                            bullets.push(new Bullet(this.x, this.y, vx1, vy1, this.atk * 0.7, false, {
-                                color: '#ff3300',
-                                radius: 5
-                            }));
-                            let vx2 = Math.cos(angle + 0.15) * 3.5;
-                            let vy2 = Math.sin(angle + 0.15) * 3.5;
-                            bullets.push(new Bullet(this.x, this.y, vx2, vy2, this.atk * 0.7, false, {
-                                color: '#ff3300',
-                                radius: 5
-                            }));
-                        } else {
-                            // 2페이즈: 나선형 양방향 탄막 + 유도탄 스폰
-                            this.rotationAngle = (this.rotationAngle || 0) + 0.15;
-                            for (let i = 0; i < 2; i++) {
-                                let bAngle = this.rotationAngle + (i * Math.PI);
-                                let vx = Math.cos(bAngle) * 2.5;
-                                let vy = Math.sin(bAngle) * 2.5;
-                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
-                                    color: '#ff0055',
-                                    radius: 5
-                                }));
-                            }
-
-                            // 15% 확률로 유도구체(Homing Ball) 발사
-                            if (Math.random() < 0.15 && window.gameEngine) {
-                                let homingBullet = new Bullet(this.x, this.y, Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, this.atk * 1.2, false, {
-                                    color: '#ffdd00',
-                                    radius: 8.5
-                                });
-                                homingBullet.homing = true; // 유도 속성 마킹 (engine에서 플레이어 추적 처리)
-                                bullets.push(homingBullet);
-                            }
-                        }
-                        Sound.play('shoot');
-                    }
-
-                    // 2페이즈 전용: 세로형 거대 청소 레이저 가동 (Sweep Laser)
-                    if (this.phase === 2) {
-                        if (this.laserWarningTimer <= 0 && this.laserActiveTimer <= 0) {
-                            // 레이저 쿨타임 가동 확률 (약 3초마다)
-                            if (Math.random() < 0.007) {
-                                this.laserWarningTimer = 70; // 1.1초 경고선 렌더링
-                                this.laserX = player.x; // 현재 플레이어의 X좌표 조준 고정
-                                Sound.play('boss_alert');
-                            }
+                            window.gameEngine.monsters.push(leftTurret);
+                            window.gameEngine.monsters.push(rightTurret);
+                            this.turretsSpawned = true;
+                            window.gameEngine.showFloatingText("보호막 발생기 가동! 발전기를 파괴하세요!", this.x, this.y - 45, '#ff0055');
                         }
 
-                        if (this.laserWarningTimer > 0) {
-                            this.laserWarningTimer -= timeScale;
-                            if (this.laserWarningTimer <= 0) {
-                                this.laserActiveTimer = 35; // 0.6초간 실제 레이저 발사
-                                if (window.gameEngine) {
-                                    Sound.play('explosion');
-                                    window.gameEngine.shakeScreen(30, 4.0);
-                                }
+                        // 1페이즈 / 2페이즈 실드 판정
+                        if (window.gameEngine) {
+                            let turretsAlive = window.gameEngine.monsters.some(m => m.type === 'boss_final_turret' && m.hp > 0 && !m.dead);
+                            if (this.phase === 1 && !turretsAlive) {
+                                this.phase = 2;
+                                this.isInvulnerable = false;
+                                window.gameEngine.showFloatingText("WARNING: CORE EXPOSED! 🚨", this.x, this.y - 45, '#ff0055');
+                                Sound.play('explosion');
+                                window.gameEngine.shakeScreen(60, 6);
                             }
+                            this.isInvulnerable = (this.phase === 1);
                         }
 
-                        if (this.laserActiveTimer > 0) {
-                            this.laserActiveTimer -= timeScale;
-                            // 레이저 빔 영역: 조준된 [laserX - 40 ~ laserX + 40]
+                        // [추가 기믹]: 2페이즈 진입 시 시스템 포맷 (MP 드레인 + 본체 추가 실드 생성)
+                        if (this.phase === 2 && !this.boss_finalCoreReset) {
+                            this.boss_finalCoreReset = true;
                             if (window.gameEngine) {
                                 let pl = window.gameEngine.player;
-                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-                                if (Math.abs(pl.x - this.laserX) < 40 + pl.radius && pl.y > 40 && pl.y < mapH - 40) {
-                                    // 닿으면 지속 틱 데미지 (프레임당 보스 공격력의 12%)
-                                    window.gameEngine.damagePlayer(this.atk * 0.12 * timeScale, this.x, this.y);
+                                pl.mp = 0; // 마나 번
+                                
+                                // 보스 본체 실드 부여
+                                this.shieldHp = Math.ceil(this.maxHp * 0.20);
+                                this.maxShieldHp = this.shieldHp;
+                                this.shieldRechargeTimer = 300;
+
+                                Sound.play('explosion');
+                                window.gameEngine.showFloatingText("⚡ SYSTEM FORMAT: PLAYER MP DRAINED! ⚡", this.x, this.y - 45, '#ff0055');
+                                window.gameEngine.shakeScreen(30, 5.0);
+                            }
+                        }
+
+                        let isFrenzy75 = this.phase === 2 && this.hp <= this.maxHp * 0.75;
+                        let isFrenzy50 = this.phase === 2 && this.hp <= this.maxHp * 0.50;
+                        let isFrenzy25 = this.phase === 2 && this.hp <= this.maxHp * 0.25;
+
+                        // [추가 기믹 50% 이하]: 코어 중력 붕괴 (플레이어를 상단 중앙 보스 쪽으로 끌어당김)
+                        if (isFrenzy50 && window.gameEngine) {
+                            let pl = window.gameEngine.player;
+                            let pdx = this.x - pl.x;
+                            let pdy = this.y - pl.y;
+                            let pdist = Math.hypot(pdx, pdy);
+                            if (pdist > 50) {
+                                // 위쪽으로 강한 인력, 좌우로 약간의 인력
+                                pl.y += (pdy / pdist) * 0.75 * timeScale;
+                                pl.x += (pdx / pdist) * 0.35 * timeScale;
+
+                                // 경계 가두기 보정
+                                const margin = 40;
+                                pl.x = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapWidth - margin - pl.radius, pl.x));
+                                pl.y = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapHeight - margin - pl.radius, pl.y));
+                            }
+                        }
+
+                        // [추가 기믹 75% 이하]: 둠 스피커 기믹 차용한 세로 3선 격자 레이저
+                        if (isFrenzy75) {
+                            if (this.boss_finalGridTimer === undefined) this.boss_finalGridTimer = 240;
+                            this.boss_finalGridTimer -= timeScale;
+                            if (this.boss_finalGridTimer <= 0) {
+                                this.boss_finalGridActive = 100; // 65경고, 35발사
+                                this.boss_finalGridTimer = 240 + Math.random() * 60;
+                                Sound.play('boss_alert');
+
+                                // 3개의 세로 격자 레이저 축 설정 (플레이어 주변 기준 조준)
+                                if (window.gameEngine) {
+                                    let pl = window.gameEngine.player;
+                                    this.boss_finalGridLines = [pl.x - 120, pl.x, pl.x + 120];
+                                } else {
+                                    this.boss_finalGridLines = [mapW * 0.3, mapW * 0.5, mapW * 0.7];
                                 }
+                            }
+
+                            if (this.boss_finalGridActive > 0) {
+                                this.boss_finalGridActive -= timeScale;
+                                
+                                // 발사 단계(35프레임 이하) 틱 데미지
+                                if (this.boss_finalGridActive <= 35 && window.gameEngine) {
+                                    let pl = window.gameEngine.player;
+                                    let isHit = false;
+                                    const thickness = 10;
+                                    this.boss_finalGridLines.forEach(lineX => {
+                                        if (Math.abs(pl.x - lineX) < thickness + pl.radius && pl.y > 40 && pl.y < window.gameEngine.mapHeight - 40) {
+                                            isHit = true;
+                                        }
+                                    });
+                                    if (isHit) {
+                                        window.gameEngine.damagePlayer(this.atk * 0.05 * timeScale, this.x, this.y);
+                                    }
+                                }
+                            }
+                        }
+
+                        // 실드 재생 연산
+                        if (this.shieldHp !== undefined && this.shieldHp > 0) {
+                            if (this.shieldRechargeTimer > 0) {
+                                this.shieldRechargeTimer -= timeScale;
+                            } else {
+                                this.shieldHp = Math.min(this.maxShieldHp, this.shieldHp + (this.maxShieldHp * 0.05 / 60) * timeScale);
+                            }
+                        }
+
+                        // 페이즈별 탄막 사격 (25% 폭주 시 18프레임 주기로 가속)
+                        this.shootCooldown -= timeScale;
+                        if (this.shootCooldown <= 0) {
+                            this.shootCooldown = this.phase === 1 ? 55 : (isFrenzy25 ? 18 : 35);
+
+                            if (this.phase === 1) {
+                                let vx1 = Math.cos(angle - 0.15) * 3.5;
+                                let vy1 = Math.sin(angle - 0.15) * 3.5;
+                                bullets.push(new Bullet(this.x, this.y, vx1, vy1, this.atk * 0.7, false, {
+                                    color: '#ff3300',
+                                    radius: 5
+                                }));
+                                let vx2 = Math.cos(angle + 0.15) * 3.5;
+                                let vy2 = Math.sin(angle + 0.15) * 3.5;
+                                bullets.push(new Bullet(this.x, this.y, vx2, vy2, this.atk * 0.7, false, {
+                                    color: '#ff3300',
+                                    radius: 5
+                                }));
+                            } else {
+                                // 2페이즈: 나선 탄막 (25% 이하 시 3방향, 평소 2방향)
+                                this.rotationAngle = (this.rotationAngle || 0) + 0.15;
+                                let directions = isFrenzy25 ? 3 : 2;
+                                for (let i = 0; i < directions; i++) {
+                                    let bAngle = this.rotationAngle + (i * Math.PI * 2 / directions);
+                                    let vx = Math.cos(bAngle) * 2.5;
+                                    let vy = Math.sin(bAngle) * 2.5;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.7, false, {
+                                        color: '#ff0055',
+                                        radius: 5
+                                    }));
+                                }
+
+                                // 유도탄 사출 (25% 이하 시 35% 확률로 증가, 평소 15%)
+                                let homingChance = isFrenzy25 ? 0.35 : 0.15;
+                                if (Math.random() < homingChance && window.gameEngine) {
+                                    let homingBullet = new Bullet(this.x, this.y, Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, this.atk * 1.2, false, {
+                                        color: '#ffdd00',
+                                        radius: 8.5
+                                    });
+                                    homingBullet.homing = true;
+                                    bullets.push(homingBullet);
+                                }
+                            }
+                            Sound.play('shoot');
+                        }
+
+                        // 2페이즈 전용: 세로형 거대 청소 레이저 가동 (Sweep Laser)
+                        if (this.phase === 2) {
+                            if (this.laserWarningTimer <= 0 && this.laserActiveTimer <= 0) {
+                                if (Math.random() < 0.007) {
+                                    this.laserWarningTimer = 70;
+                                    this.laserX = player.x;
+                                    Sound.play('boss_alert');
+                                }
+                            }
+
+                            if (this.laserWarningTimer > 0) {
+                                this.laserWarningTimer -= timeScale;
+                                if (this.laserWarningTimer <= 0) {
+                                    this.laserActiveTimer = 35;
+                                    if (window.gameEngine) {
+                                        Sound.play('explosion');
+                                        window.gameEngine.shakeScreen(30, 4.0);
+                                    }
+                                }
+                            }
+
+                            if (this.laserActiveTimer > 0) {
+                                this.laserActiveTimer -= timeScale;
+                                if (window.gameEngine) {
+                                    let pl = window.gameEngine.player;
+                                    let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+                                    if (Math.abs(pl.x - this.laserX) < 40 + pl.radius && pl.y > 40 && pl.y < mapH - 40) {
+                                        window.gameEngine.damagePlayer(this.atk * 0.12 * timeScale, this.x, this.y);
+                                    }
+                                }
+                            }
+                        }
+
+                        // 시각적 타이머/경고 상태 노출 갱신
+                        if (this.phase === 1) {
+                            this.boss_warningText = "SHIELD ACTIVE: DESTROY GENERATORS 🛡️";
+                            this.boss_timerText = "";
+                        } else {
+                            if (this.laserWarningTimer > 0) {
+                                this.boss_warningText = "SWEEP LASER CHARGE";
+                                this.boss_timerText = (this.laserWarningTimer / 60).toFixed(1) + "s";
+                                this.boss_castProgress = 70 - this.laserWarningTimer;
+                                this.boss_castMax = 70;
+                            } else if (this.laserActiveTimer > 0) {
+                                this.boss_warningText = "SWEEP FIRE! 🚨";
+                                this.boss_timerText = (this.laserActiveTimer / 60).toFixed(1) + "s";
+                                this.boss_castProgress = this.laserActiveTimer;
+                                this.boss_castMax = 35;
+                            } else if (this.boss_finalGridActive > 0) {
+                                if (this.boss_finalGridActive > 35) {
+                                    this.boss_warningText = "GRID LASER WARNING";
+                                    this.boss_timerText = ((this.boss_finalGridActive - 35) / 60).toFixed(1) + "s";
+                                    this.boss_castProgress = 100 - this.boss_finalGridActive;
+                                    this.boss_castMax = 65;
+                                } else {
+                                    this.boss_warningText = "GRID LASER ACTIVE! 🚨";
+                                    this.boss_timerText = (this.boss_finalGridActive / 60).toFixed(1) + "s";
+                                    this.boss_castProgress = this.boss_finalGridActive;
+                                    this.boss_castMax = 35;
+                                }
+                            } else {
+                                if (isFrenzy25) {
+                                    this.boss_warningText = "🚨 SYSTEM OVERLOAD";
+                                } else if (isFrenzy50) {
+                                    this.boss_warningText = "⚠️ GRAVITY DISTORTION";
+                                } else if (isFrenzy75) {
+                                    this.boss_warningText = "⚡ GRID SYSTEM ONLINE";
+                                } else {
+                                    this.boss_warningText = "⚡ CORE EXPOSED";
+                                }
+                                this.boss_timerText = "";
                             }
                         }
                     }
@@ -1486,6 +2009,19 @@ class Monster {
                     ctx.fill();
                     if (this.flashTimer <= 0) ctx.stroke();
 
+                    // 위상 굴절 보호막 시각 이펙트
+                    if (this.boss_refractionShieldActive) {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.radius * 1.55, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(255, 51, 0, 0.75)';
+                        ctx.lineWidth = 3.0;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = '#ff3300';
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
                     // 4. 플레이어를 째려보는 눈(코어)
                     let eyeAngle = this.angle || 0;
                     let eyeDist = this.radius * 0.35;
@@ -1729,6 +2265,39 @@ class Monster {
                         ctx.fill();
                         ctx.restore();
                     }
+
+                    // [추가 기믹]: 발전기 간 전기 사슬 그리기
+                    if (window.gameEngine) {
+                        let spawners = window.gameEngine.monsters.filter(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
+                        if (spawners.length > 0) {
+                            ctx.save();
+                            ctx.translate(-this.x, -this.y); // 전역좌표화
+                            ctx.strokeStyle = 'rgba(139, 92, 246, 0.65)';
+                            ctx.lineWidth = 2.0;
+                            ctx.shadowBlur = 12;
+                            ctx.shadowColor = '#8b5cf6';
+                            ctx.setLineDash([4, 4]); // 번개 느낌의 점선
+
+                            // 순차적으로 전기 체인 연결
+                            for (let i = 0; i < spawners.length; i++) {
+                                let start = spawners[i];
+                                let end = spawners[(i + 1) % spawners.length];
+                                ctx.beginPath();
+                                ctx.moveTo(start.x, start.y);
+                                ctx.lineTo(end.x, end.y);
+                                ctx.stroke();
+
+                                // 미세한 번개 찌릿찌릿 파티클 효과
+                                if (Math.random() < 0.1) {
+                                    let randT = Math.random();
+                                    let px = start.x + (end.x - start.x) * randT;
+                                    let py = start.y + (end.y - start.y) * randT;
+                                    window.gameEngine.particles.push(new Particle(px, py, '#8b5cf6', 1.5, (Math.random()-0.5)*1.0, (Math.random()-0.5)*1.0, 15));
+                                }
+                            }
+                            ctx.restore();
+                        }
+                    }
                     break;
 
                 case 'boss_portal_spawner': // 70층 소환 포털 장치 (부하)
@@ -1895,6 +2464,48 @@ class Monster {
 
                     // [최종보스 2페이즈 거대 세로 청소 레이저 드로잉]
                     if (this.phase === 2) {
+                        // 중력 왜곡 오라 방출 (HP 50% 이하)
+                        if (this.hp <= this.maxHp * 0.50) {
+                            ctx.save();
+                            let baseRadius = (Date.now() * 0.05) % 150 + 50;
+                            ctx.beginPath();
+                            ctx.arc(0, -25, baseRadius, 0, Math.PI * 2);
+                            ctx.strokeStyle = `rgba(139, 92, 246, ${Math.max(0, 1.0 - baseRadius / 200)})`;
+                            ctx.lineWidth = 2.0;
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = '#8b5cf6';
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+
+                        // 세로 3선 격자 레이저 렌더링 (HP 75% 이하)
+                        if (this.hp <= this.maxHp * 0.75 && this.boss_finalGridActive > 0 && this.boss_finalGridLines) {
+                            ctx.save();
+                            ctx.translate(-this.x, -this.y); // 전역좌표 변환
+                            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+
+                            if (this.boss_finalGridActive > 35) {
+                                ctx.strokeStyle = 'rgba(255, 0, 85, 0.45)';
+                                ctx.lineWidth = 1.5;
+                                ctx.setLineDash([4, 6]);
+                                ctx.shadowBlur = 4;
+                                ctx.shadowColor = '#ff0055';
+                            } else {
+                                ctx.strokeStyle = 'rgba(255, 0, 170, 0.85)';
+                                ctx.lineWidth = 12;
+                                ctx.shadowBlur = 18;
+                                ctx.shadowColor = '#ff00aa';
+                            }
+
+                            this.boss_finalGridLines.forEach(lineX => {
+                                ctx.beginPath();
+                                ctx.moveTo(lineX, 40);
+                                ctx.lineTo(lineX, mapH - 40);
+                                ctx.stroke();
+                            });
+                            ctx.restore();
+                        }
+
                         if (this.laserWarningTimer > 0) {
                             ctx.save();
                             ctx.translate(-this.x, -this.y); // 전역좌표 변환
@@ -1959,6 +2570,45 @@ class Monster {
                     ctx.stroke();
                     ctx.restore();
                     break;
+            }
+
+            // 보스 머리 위 공통 캐스팅 게이지 바 및 경고 타이머 텍스트 렌더링
+            if (this.boss_warningText) {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                
+                // 1. 경고 텍스트 & 타이머
+                ctx.font = '800 11px "Outfit"';
+                ctx.fillStyle = '#ff3300';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#ff3300';
+                
+                let textY = -this.radius - 16;
+                // 최종 보스 머리 위 오프셋 조정
+                if (this.type === 'boss_final') textY = -this.radius - 45;
+
+                let displayText = this.boss_warningText + (this.boss_timerText ? " (" + this.boss_timerText + ")" : "");
+                ctx.fillText(displayText, 0, textY);
+
+                // 2. 캐스팅 게이지 바
+                if (this.boss_castProgress !== undefined && this.boss_castMax !== undefined && this.boss_castMax > 0) {
+                    let progress = Math.max(0, Math.min(1.0, this.boss_castProgress / this.boss_castMax));
+
+                    let barW = this.radius * 1.5;
+                    let barH = 4.5;
+                    let bx = -barW / 2;
+                    let by = textY + 6;
+
+                    // 배경 바
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.fillRect(bx, by, barW, barH);
+
+                    // 진행 바
+                    ctx.fillStyle = this.boss_warningText.includes("ACTIVE") || this.boss_warningText.includes("SHIELD") ? '#00f0ff' : '#ff3300';
+                    ctx.fillRect(bx, by, barW * progress, barH);
+                }
+                ctx.restore();
             }
         } else if (this.type === 'normal') {
             // [일반 몬스터] 회전하는 3개의 삼각 파편과 중심 구체

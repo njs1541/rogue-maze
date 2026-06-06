@@ -775,6 +775,7 @@ class GameEngine {
 
         // 탄환 전체 청소 및 기존 몬스터 삭제
         this.bullets = [];
+        this.monsters = [];
         this.particles = [];
         this.potions = []; // [추가] 방 이동 시 드롭된 물약 청소
         this.coinsList = []; // [W-08 신규 구현] 방 이동 시 코인 청소
@@ -1715,7 +1716,7 @@ class GameEngine {
         let dx = 0;
         let dy = 0;
 
-        if (!isOverlayOpen && this.player.hp > 0) {
+        if (!isOverlayOpen && this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
             if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
             if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
             if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
@@ -1730,15 +1731,23 @@ class GameEngine {
 
         // Shift 달리기 가속 및 스태미너 소모 물리 연산
         let currentSpeed = this.player.ms;
+        // [신규 기믹] 플레이어 둔화 디버프 적용
+        if (this.player.slowTimer > 0) {
+            currentSpeed *= this.player.slowMultiplier;
+        }
         // [E-08 신규 구현] Speed Ring 10레벨 초월: 초신성 기동 50% 폭발적 가속 보정!
         if (this.player.supernovaTimer > 0) {
             currentSpeed *= 1.5;
         }
-        const isSprinting = this.keys['shift'] && this.player.stamina > 3 && (dx !== 0 || dy !== 0);
+        const isSprinting = this.keys['shift'] && this.player.stamina > 3 && (dx !== 0 || dy !== 0) && !(this.player.stunnedTimer > 0);
 
         if (isSprinting) {
             currentSpeed *= 1.6; // 질주 시 60% 가속
-            this.player.stamina = Math.max(0, this.player.stamina - 0.75); // 스태미너 고속 소모
+            
+            // 둠 스피커 음파 진동 기믹에 따른 스태미나 소모 2배
+            let isSonicDisrupted = this.monsters.some(m => m.type === 'boss_speaker' && m.boss_sonicDisruptionActive);
+            let staminaCost = 0.75 * (isSonicDisrupted ? 2.0 : 1.0);
+            this.player.stamina = Math.max(0, this.player.stamina - staminaCost); // 스태미너 고속 소모
 
             // 질주 먼지 파티클
             if (Math.random() < 0.25) {
@@ -1759,6 +1768,16 @@ class GameEngine {
         // 플레이어 캐릭터 위치 이동
         this.player.x += dx * currentSpeed;
         this.player.y += dy * currentSpeed;
+
+        // [100층 최종 보스 50% 이하 기믹] 상단 중앙(또는 보스 본체) 중력 흡수 물리 연산
+        let finalBoss = this.monsters.find(m => m.type === 'boss_final' && m.hp > 0 && !m.dead);
+        if (finalBoss && (finalBoss.hp / finalBoss.maxHp) <= 0.5) {
+            let gravityAngle = Math.atan2(finalBoss.y - this.player.y, finalBoss.x - this.player.x);
+            let gravityPull = 0.95; // 극복 가능하지만 이동을 유의미하게 방해하는 인력 크기
+            let timeScale = this.timeDilationActive ? 0.1 : 1.0;
+            this.player.x += Math.cos(gravityAngle) * gravityPull * timeScale;
+            this.player.y += Math.sin(gravityAngle) * gravityPull * timeScale;
+        }
 
         // 맵 벽 경계선 제한 충돌 처리 (정사각형 방 내부 구조 #08090e)
         // 캔버스 크기 및 벽 마진 경계 반영
@@ -1824,10 +1843,10 @@ class GameEngine {
         let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
         let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged && !(this.player.stunnedTimer > 0)) {
             this.shootWeapon();
         }
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee) {
+        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee && !(this.player.stunnedTimer > 0)) {
             this.slashWeapon();
         }
 
@@ -2450,6 +2469,53 @@ class GameEngine {
             }
         }
 
+        // [70층 차원 차단기 기믹] 차원 전기 사슬(Portal Link Circuit) 충돌 판정
+        let portalBoss = this.monsters.find(m => m.type === 'boss_portal' && m.hp > 0 && !m.dead);
+        if (portalBoss && portalBoss.isInvulnerable) {
+            let spawners = this.monsters.filter(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
+            if (spawners.length > 0) {
+                let timeScale = this.timeDilationActive ? 0.1 : 1.0;
+                for (let k = 0; k < spawners.length; k++) {
+                    let start = spawners[k];
+                    let end = spawners[(k + 1) % spawners.length];
+
+                    let abX = end.x - start.x;
+                    let abY = end.y - start.y;
+                    let apX = this.player.x - start.x;
+                    let apY = this.player.y - start.y;
+
+                    let abLenSq = abX * abX + abY * abY;
+                    if (abLenSq > 0) {
+                        let t = (apX * abX + apY * abY) / abLenSq;
+                        t = Math.max(0, Math.min(1, t));
+
+                        let closestX = start.x + t * abX;
+                        let closestY = start.y + t * abY;
+
+                        let distToPlayer = Math.hypot(this.player.x - closestX, this.player.y - closestY);
+                        if (distToPlayer < this.player.radius + 3) {
+                            // 매 프레임 피해 (초당 20 대미지)
+                            this.damagePlayer(20 * (1 / 60) * timeScale, closestX, closestY);
+
+                            if (this.player.stunnedTimer <= 0) {
+                                this.player.stunnedTimer = 45;
+                                this.showFloatingText("ELECTROCUTED! ⚡", this.player.x, this.player.y - 20, '#a78bfa');
+                            }
+
+                            if (Math.random() < 0.25) {
+                                this.particles.push(new Particle(
+                                    this.player.x, this.player.y,
+                                    '#8b5cf6', 2.0,
+                                    (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5,
+                                    15, 'spark'
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // 7. 파티클 이펙트 업데이트
         let timeScale = this.timeDilationActive ? 0.1 : 1.0;
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -2464,6 +2530,43 @@ class GameEngine {
                     this.damagePlayer(p.atk * (1 / 60) * timeScale, p.x, p.y);
                     if (Math.random() < 0.04) {
                         this.showFloatingText("BURN! 🔥", this.player.x, this.player.y - 20, '#ff6a00');
+                    }
+                }
+            }
+            // 20층 보스 하이퍼 체이서 광분 패턴: 번개 감전 장판 충돌 검사
+            else if (p.type === 'chaser_lightning_trail') {
+                let distToPl = Math.hypot(this.player.x - p.x, this.player.y - p.y);
+                if (distToPl < p.radius + this.player.radius) {
+                    // 감전 기절 0.75초 및 대미지 적용
+                    this.damagePlayer((p.atk || 15) * (1 / 60) * timeScale, p.x, p.y);
+                    if (this.player.stunnedTimer <= 0) {
+                        this.player.stunnedTimer = 45; // 0.75초 기절
+                        this.showFloatingText("SHOCK! ⚡", this.player.x, this.player.y - 20, '#00e1ff');
+                    }
+                }
+            }
+            // 30층 보스 마더 슬라임 점성 웅덩이 충돌 검사
+            else if (p.type === 'slime_mud_trail') {
+                let distToPl = Math.hypot(this.player.x - p.x, this.player.y - p.y);
+                if (distToPl < p.radius + this.player.radius) {
+                    // 플레이어 5프레임 동안 감속 35%
+                    this.player.slowTimer = Math.max(this.player.slowTimer || 0, 5);
+                    this.player.slowMultiplier = 0.65;
+                    if (Math.random() < 0.02) {
+                        this.showFloatingText("SLOWED 💧", this.player.x, this.player.y - 20, '#00f0ff');
+                    }
+                }
+            }
+            // 60층 보스 보이드 워퍼 공간 균열 블랙홀 충돌 검사
+            else if (p.type === 'boss_spatial_rift') {
+                let distToPl = Math.hypot(this.player.x - p.x, this.player.y - p.y);
+                if (distToPl < p.radius + this.player.radius) {
+                    // 대미지 적용 및 둔화 40%
+                    this.damagePlayer((p.atk || 12) * (1 / 60) * timeScale, p.x, p.y);
+                    this.player.slowTimer = Math.max(this.player.slowTimer || 0, 5);
+                    this.player.slowMultiplier = 0.60;
+                    if (Math.random() < 0.02) {
+                        this.showFloatingText("SLOWED 🌀", this.player.x, this.player.y - 20, '#b026ff');
                     }
                 }
             }
@@ -6872,13 +6975,18 @@ class GameEngine {
 
     // 스테이지 워프 치트
     warpStageCheat(targetStage) {
-        if (targetStage < 1 || targetStage > 99) {
-            this.showFloatingText("INVALID STAGE (1~99 ONLY)", this.player.x, this.player.y - 20, '#ff0055');
+        if (targetStage < 1 || targetStage > 100) {
+            this.showFloatingText("INVALID STAGE (1~100 ONLY)", this.player.x, this.player.y - 20, '#ff0055');
             return;
         }
 
-        // 룸 전환용 가상 포털 생성 후 연동
-        let mockPortal = { direction: 'top', scoreValue: 0, portalType: 'stat', difficultyClass: 'low' };
+        // 룸 전환용 가상 포털 생성 후 연동 (보스방 여부에 따라 portalType 분기)
+        let mockPortal = { 
+            direction: 'top', 
+            scoreValue: (targetStage % 10 === 0) ? 0 : Math.floor(10 + targetStage * 0.4), 
+            portalType: (targetStage % 10 === 0) ? 'boss' : 'stat', 
+            difficultyClass: 'low' 
+        };
         this.roomNum = targetStage - 1; // transitionToNextRoom 내부에서 roomNum++이 되어 타겟 도달
 
         this.toggleCheatMenu(); // 워프 전 치트창 닫기
