@@ -176,9 +176,17 @@ class Monster {
         if (this._hp !== undefined && value < this._hp) {
             let dmg = this._hp - value;
 
-            // 위상 굴절 보호막 (네온 센티넬 기믹) 작동 중이면 대미지 50% 경감
+            // 위상 굴절 보호막 (네온 센티넬 기믹) 작동 중이면 대미지 70% 경감
             if (this.boss_refractionShieldActive) {
-                dmg = Math.max(1, Math.floor(dmg * 0.5));
+                let originalDmg = dmg;
+                dmg = Math.max(1, Math.floor(dmg * 0.3));
+                // 시각적 피드백: 경감된 데미지 표시
+                if (window.gameEngine) {
+                    window.gameEngine.showFloatingText(
+                        `🛡️ SHIELDED! (-${Math.floor(originalDmg - dmg)})`,
+                        this.x, this.y - 30, '#ff8800'
+                    );
+                }
             }
 
             // 실드(shieldHp)가 있는 경우 실드가 대미지를 우선 차감 흡수
@@ -242,6 +250,8 @@ class Monster {
         let scaleHp = 1.0;
         let scaleAtk = 1.0;
         let scaleRadius = 1.0;
+
+        this.isWeakened = isWeakened; // 약화 상태를 인스턴스에 저장 (AI 패턴 완화용)
 
         if (isWeakened) {
             scaleHp = 0.35;
@@ -510,7 +520,7 @@ class Monster {
                         this.boss_refractionShieldUsed = true;
                         this.boss_refractionShieldDuration = 180; // 3초
                         if (window.gameEngine) {
-                            window.gameEngine.showFloatingText("🛡️ REFRACTION SHIELD! (50% DMG REDUCTION)", this.x, this.y - 35, '#ff3300');
+                            window.gameEngine.showFloatingText("🛡️ REFRACTION SHIELD! (70% DMG REDUCTION)", this.x, this.y - 35, '#ff3300');
                             Sound.play('powerup');
                         }
                     }
@@ -805,46 +815,52 @@ class Monster {
                             }
 
                             // 격자 레이저 가동 관리
+                            // 약화 상태(다른 보스와 동시 출현)일 때 격자 쿨타임 대폭 증가
+                            let gridCoolBase = this.isWeakened ? (isFrenzy ? 280 : 420) : (isFrenzy ? 160 : 280);
                             this.laserTimer -= timeScale;
                             if (this.laserTimer <= 0) {
-                                this.gridLaserActive = 100; // 100프레임 기동 (65경고, 35발사)
-                                this.laserTimer = (isFrenzy ? 160 : 280) + Math.random() * 80;
+                                this.gridLaserActive = this.isWeakened ? 80 : 100; // 약화 시 격자 지속 시간 단축
+                                this.laserTimer = gridCoolBase + Math.random() * 80;
                                 Sound.play('boss_alert');
                             }
                         }
 
                         // 기믹 적용 및 경고 표시
+                        let gridWarnThresh = this.isWeakened ? 45 : 35; // 약화 시 경고 시간 확장
                         if (this.gridLaserActive > 0) {
                             this.boss_sonicDisruptionActive = true;
                             this.gridLaserActive -= timeScale;
 
-                            if (this.gridLaserActive > 35) {
+                            if (this.gridLaserActive > gridWarnThresh) {
                                 this.boss_warningText = "SONIC DISRUPTION";
-                                this.boss_timerText = ((this.gridLaserActive - 35) / 60).toFixed(1) + "s";
-                                this.boss_castProgress = 100 - this.gridLaserActive;
-                                this.boss_castMax = 65;
+                                this.boss_timerText = ((this.gridLaserActive - gridWarnThresh) / 60).toFixed(1) + "s";
+                                this.boss_castProgress = (this.isWeakened ? 80 : 100) - this.gridLaserActive;
+                                this.boss_castMax = (this.isWeakened ? 80 : 100) - gridWarnThresh;
                             } else {
                                 this.boss_warningText = "GRID LASER ACTIVE 🚨";
                                 this.boss_timerText = (this.gridLaserActive / 60).toFixed(1) + "s";
                                 this.boss_castProgress = this.gridLaserActive;
-                                this.boss_castMax = 35;
+                                this.boss_castMax = gridWarnThresh;
                             }
 
-                            // 실 발사 구간 (35프레임 이내)에 진입 시 플레이어 충돌 판정
-                            if (this.gridLaserActive <= 35 && this.gridLaserActive > 0 && window.gameEngine) {
+                            // 실 발사 구간에 진입 시 플레이어 충돌 판정
+                            // 격자 간격: 단독 83px (1.2배 확장), 약화 시 120px (완화)
+                            let gridSpacing = this.isWeakened ? 120 : 83;
+                            let gridThickness = this.isWeakened ? 7 : 12;
+                            let gridDmgMult = this.isWeakened ? 0.04 : 0.08;
+                            if (this.gridLaserActive <= gridWarnThresh && this.gridLaserActive > 0 && window.gameEngine) {
                                 let pl = window.gameEngine.player;
                                 let isHit = false;
-                                const thickness = 10;
                                 let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
                                 let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-                                for (let lx = 100; lx <= mapW - 100; lx += 100) {
-                                    if (Math.abs(pl.x - lx) < thickness + pl.radius) isHit = true;
+                                for (let lx = gridSpacing; lx <= mapW - gridSpacing; lx += gridSpacing) {
+                                    if (Math.abs(pl.x - lx) < gridThickness + pl.radius) isHit = true;
                                 }
-                                for (let ly = 100; ly <= mapH - 100; ly += 100) {
-                                    if (Math.abs(pl.y - ly) < thickness + pl.radius) isHit = true;
+                                for (let ly = gridSpacing; ly <= mapH - gridSpacing; ly += gridSpacing) {
+                                    if (Math.abs(pl.y - ly) < gridThickness + pl.radius) isHit = true;
                                 }
                                 if (isHit) {
-                                    window.gameEngine.damagePlayer(this.atk * 0.08 * timeScale, this.x, this.y);
+                                    window.gameEngine.damagePlayer(this.atk * gridDmgMult * timeScale, this.x, this.y);
                                 }
                             }
                         } else {
@@ -2150,14 +2166,15 @@ class Monster {
                         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
                         let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
 
-                        // 가로 세로 격자 그리기
-                        for (let lx = 100; lx <= mapW - 100; lx += 100) {
+                        // 가로 세로 격자 그리기 (간격: 단독 83px, 약화 시 120px)
+                        let gridSp = this.isWeakened ? 120 : 83;
+                        for (let lx = gridSp; lx <= mapW - gridSp; lx += gridSp) {
                             ctx.beginPath();
                             ctx.moveTo(lx, 40);
                             ctx.lineTo(lx, mapH - 40);
                             ctx.stroke();
                         }
-                        for (let ly = 100; ly <= mapH - 100; ly += 100) {
+                        for (let ly = gridSp; ly <= mapH - gridSp; ly += gridSp) {
                             ctx.beginPath();
                             ctx.moveTo(40, ly);
                             ctx.lineTo(mapW - 40, ly);
