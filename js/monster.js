@@ -893,6 +893,20 @@ class Monster {
                                     pl.y += (pdy / pdist) * force;
                                 }
                             }
+
+                            // 배리어 해제 시 취약 쿨다운 시작 (이 기간 동안 배리어 재발동 불가)
+                            if (this.blackholeActiveTimer <= 0) {
+                                this.shieldCooldown = isFrenzy ? 120 : 180; // 분노: 2초, 평시: 3초 취약 구간
+                                if (window.gameEngine) {
+                                    window.gameEngine.showFloatingText("SHIELD DOWN! 💥", this.x, this.y - 35, '#ffdd00');
+                                }
+                            }
+                        }
+
+                        // 배리어 재발동 쿨다운 차감
+                        if (this.shieldCooldown === undefined) this.shieldCooldown = 0;
+                        if (this.shieldCooldown > 0) {
+                            this.shieldCooldown -= timeScale;
                         }
 
                         // 플레이어와 거리 카이팅 (거리 180~250px 유지)
@@ -929,6 +943,12 @@ class Monster {
                             this.boss_timerText = (this.blackholeActiveTimer / 60).toFixed(1) + "s";
                             this.boss_castProgress = this.blackholeActiveTimer;
                             this.boss_castMax = isFrenzy ? 150 : 90;
+                        } else if (this.shieldCooldown > 0) {
+                            // 취약 구간 표시 (배리어 없이 데미지 가능)
+                            this.boss_warningText = "⚡ VULNERABLE!";
+                            this.boss_timerText = (this.shieldCooldown / 60).toFixed(1) + "s";
+                            this.boss_castProgress = this.shieldCooldown;
+                            this.boss_castMax = isFrenzy ? 120 : 180;
                         } else if (this.teleportCooldown <= 30 && this.teleportCooldown > 0) {
                             this.boss_warningText = "WARP PREPARING";
                             this.boss_timerText = (this.teleportCooldown / 60).toFixed(1) + "s";
@@ -977,8 +997,13 @@ class Monster {
                                 window.gameEngine.showFloatingText("VOID BURST! 🌀", targetX, targetY - 30, '#00ffcc');
                                 Sound.play('shoot');
 
-                                // 텔레포트 도약 성공 시 1.5초(분노 시 2.5초) 동안 탄 흡수 보호막 가동
-                                this.blackholeActiveTimer = isFrenzy ? 150 : 90;
+                                // 텔레포트 도약 성공 시 배리어 재발동 (쿨다운 중이면 배리어 생략)
+                                if (this.shieldCooldown <= 0) {
+                                    this.blackholeActiveTimer = isFrenzy ? 120 : 75; // 분노: 2초, 평시: 1.25초 (기존 대비 단축)
+                                } else {
+                                    // 취약 구간 중: 배리어 없이 텔포만 수행
+                                    window.gameEngine.showFloatingText("NO SHIELD!", targetX, targetY - 50, '#ffdd00');
+                                }
                             }
 
                             this.x = targetX;
@@ -1011,18 +1036,60 @@ class Monster {
                         let spawners = [];
                         if (window.gameEngine) {
                             spawners = window.gameEngine.monsters.filter(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
-                            this.isInvulnerable = spawners.length > 0;
                         }
+
+                        // 전기 사슬 ON/OFF 주기 제어
+                        if (this.chainCycleTimer === undefined) {
+                            this.chainCycleTimer = 0;
+                            this.chainActive = false; // 초반에는 사슬 비활성 (취약 구간으로 시작)
+                            this.chainPhase = 'off'; // 'on' or 'off'
+                        }
+                        this.chainCycleTimer -= timeScale;
+
+                        if (this.chainCycleTimer <= 0) {
+                            if (this.chainPhase === 'off') {
+                                // OFF → ON 전환: 사슬 활성화
+                                this.chainPhase = 'on';
+                                this.chainActive = true;
+                                this.chainCycleTimer = spawners.length >= 3 ? 480 : 360; // 3개 이상: 8초, 2개 이하: 6초
+                                if (window.gameEngine) {
+                                    window.gameEngine.showFloatingText("⚡ CHAIN LINK ACTIVE!", this.x, this.y - 40, '#8b5cf6');
+                                    Sound.play('powerup');
+                                    window.gameEngine.shakeScreen(15, 2.5);
+                                }
+                            } else {
+                                // ON → OFF 전환: 사슬 해제 (취약 구간)
+                                this.chainPhase = 'off';
+                                this.chainActive = false;
+                                this.chainCycleTimer = spawners.length >= 3 ? 240 : 300; // 3개 이상: 4초, 2개 이하: 5초 취약
+                                if (window.gameEngine) {
+                                    window.gameEngine.showFloatingText("💥 CHAIN DOWN! ATTACK NOW!", this.x, this.y - 40, '#ffdd00');
+                                    Sound.play('hit');
+                                }
+                            }
+                        }
+
+                        // 무적 판정: 스포너가 살아있고 AND 사슬이 활성화 중일 때만
+                        this.isInvulnerable = spawners.length > 0 && this.chainActive;
 
                         // 캐스팅 타이머 및 경고 텍스트 표시
                         if (this.isInvulnerable) {
-                            this.boss_warningText = "PORTAL BARRIER🛡️";
-                            this.boss_timerText = "PORTALS: " + spawners.length;
-                            this.boss_castProgress = spawners.length;
-                            this.boss_castMax = 4;
-                        } else {
+                            this.boss_warningText = "⚡ CHAIN BARRIER";
+                            this.boss_timerText = "BREAK: " + (this.chainCycleTimer / 60).toFixed(1) + "s";
+                            this.boss_castProgress = this.chainCycleTimer;
+                            this.boss_castMax = spawners.length >= 3 ? 480 : 360;
+                        } else if (spawners.length > 0 && !this.chainActive) {
+                            // 사슬 해제 중 (취약 구간)
+                            this.boss_warningText = "💥 VULNERABLE!";
+                            this.boss_timerText = "LINK: " + (this.chainCycleTimer / 60).toFixed(1) + "s";
+                            this.boss_castProgress = this.chainCycleTimer;
+                            this.boss_castMax = spawners.length >= 3 ? 240 : 300;
+                        } else if (spawners.length === 0) {
                             this.boss_warningText = "CORE EXPOSED! 🚨";
                             this.boss_timerText = "";
+                            this.boss_castProgress = 0;
+                            this.boss_castMax = 0;
+                            this.chainActive = false;
                         }
 
                         // 도망 다니는 이동 AI
@@ -1060,7 +1127,7 @@ class Monster {
                 case 'boss_portal_spawner': // 70층 포털 발전기 (부하)
                     this.summonCooldown -= timeScale;
                     if (this.summonCooldown <= 0 && window.gameEngine) {
-                        this.summonCooldown = 180 + Math.random() * 60;
+                        this.summonCooldown = 240 + Math.random() * 80; // 소환 쿨타임 증가 (기존 180+60 → 240+80)
                         let types = ['normal', 'chaser', 'shooter'];
                         let chosenType = types[Math.floor(Math.random() * 3)];
                         let spawnCoords = { x: this.x + (Math.random() * 20 - 10), y: this.y + (Math.random() * 20 - 10) };
@@ -2283,17 +2350,27 @@ class Monster {
                         ctx.restore();
                     }
 
-                    // [추가 기믹]: 발전기 간 전기 사슬 그리기
+                    // [추가 기믹]: 발전기 간 전기 사슬 그리기 (사슬 활성 시만)
                     if (window.gameEngine) {
                         let spawners = window.gameEngine.monsters.filter(m => m.type === 'boss_portal_spawner' && m.hp > 0 && !m.dead);
                         if (spawners.length > 0) {
                             ctx.save();
                             ctx.translate(-this.x, -this.y); // 전역좌표화
-                            ctx.strokeStyle = 'rgba(139, 92, 246, 0.65)';
-                            ctx.lineWidth = 2.0;
-                            ctx.shadowBlur = 12;
-                            ctx.shadowColor = '#8b5cf6';
-                            ctx.setLineDash([4, 4]); // 번개 느낌의 점선
+
+                            if (this.chainActive) {
+                                // 사슬 활성: 밝은 보라색 전기선
+                                ctx.strokeStyle = 'rgba(139, 92, 246, 0.75)';
+                                ctx.lineWidth = 2.5;
+                                ctx.shadowBlur = 15;
+                                ctx.shadowColor = '#8b5cf6';
+                                ctx.setLineDash([4, 4]);
+                            } else {
+                                // 사슬 비활성: 어두운 점선 (비활성 표시)
+                                ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)';
+                                ctx.lineWidth = 1.0;
+                                ctx.shadowBlur = 0;
+                                ctx.setLineDash([2, 8]);
+                            }
 
                             // 순차적으로 전기 체인 연결
                             for (let i = 0; i < spawners.length; i++) {
@@ -2304,8 +2381,8 @@ class Monster {
                                 ctx.lineTo(end.x, end.y);
                                 ctx.stroke();
 
-                                // 미세한 번개 찌릿찌릿 파티클 효과
-                                if (Math.random() < 0.1) {
+                                // 사슬 활성 시에만 파티클
+                                if (this.chainActive && Math.random() < 0.1) {
                                     let randT = Math.random();
                                     let px = start.x + (end.x - start.x) * randT;
                                     let py = start.y + (end.y - start.y) * randT;
