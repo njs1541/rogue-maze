@@ -1155,9 +1155,29 @@ class Monster {
 
                 case 'boss_hive': // 80층 나노 하이브
                     {
-                        // 플레이어 추격
-                        this.x += Math.cos(angle) * activeSpeed;
-                        this.y += Math.sin(angle) * activeSpeed;
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+
+                        // [개선 3] 적응형 이동: 실드 상태에 따라 행동 변화
+                        if (this.shieldHp > 0) {
+                            // 실드 있음: 느린 직선 추격
+                            this.x += Math.cos(angle) * activeSpeed;
+                            this.y += Math.sin(angle) * activeSpeed;
+                        } else {
+                            // 실드 없음: 1.5배 속도 + 지그재그 회피 기동 (실드 재생을 노림)
+                            let zigzagPhase = Math.sin(Date.now() * 0.008) * 0.8;
+                            let evasionAngle = angle + zigzagPhase;
+                            let evasionSpeed = activeSpeed * 1.5;
+                            if (dist < 180) {
+                                // 근접 시 도주
+                                this.x -= Math.cos(evasionAngle) * evasionSpeed;
+                                this.y -= Math.sin(evasionAngle) * evasionSpeed;
+                            } else {
+                                // 원거리 시 측면 기동
+                                let sideAngle = angle + Math.PI / 2 * (Math.sin(Date.now() * 0.003) > 0 ? 1 : -1);
+                                this.x += Math.cos(sideAngle) * evasionSpeed * 0.7;
+                                this.y += Math.sin(sideAngle) * evasionSpeed * 0.7;
+                            }
+                        }
 
                         // 실드 자연 재생 메커니즘
                         if (this.shieldRechargeTimer > 0) {
@@ -1167,7 +1187,7 @@ class Monster {
                             this.shieldHp = Math.min(this.maxShieldHp, this.shieldHp + (this.maxShieldHp * 0.06 / 60) * timeScale);
                         }
 
-                        // [추가 기믹]: 실드가 0이 되는 순간 충격파를 방출하여 주변 탄환을 지우고 플레이어 넉백
+                        // [개선 2] 실드가 0이 되는 순간: 충격파 + 나노 군집 폭발 (12발 원형 산탄)
                         if (this.shieldHp <= 0 && !this.boss_shieldDischarged) {
                             this.boss_shieldDischarged = true;
                             if (window.gameEngine) {
@@ -1182,17 +1202,24 @@ class Monster {
                                 let pAngle = Math.atan2(pl.y - this.y, pl.x - this.x);
                                 pl.x += Math.cos(pAngle) * 50;
                                 pl.y += Math.sin(pAngle) * 50;
-                                // 맵 밖 이탈 가두기
                                 const margin = 40;
                                 pl.x = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapWidth - margin - pl.radius, pl.x));
                                 pl.y = Math.max(margin + pl.radius, Math.min(window.gameEngine.mapHeight - margin - pl.radius, pl.y));
 
-                                // 화면 흔들림 및 효과음
-                                window.gameEngine.shakeScreen(15, 6.0);
-                                Sound.play('explosion');
-                                window.gameEngine.showFloatingText("🛡️ SHIELD DISCHARGE WAVE!", this.x, this.y - 45, '#e2e8f0');
+                                // 12발 나노 군집 방사 탄막
+                                let burstCount = isFrenzy ? 16 : 12;
+                                for (let i = 0; i < burstCount; i++) {
+                                    let bAngle = (i * Math.PI * 2 / burstCount);
+                                    let speed = 2.0 + Math.random() * 0.8;
+                                    bullets.push(new Bullet(this.x, this.y, Math.cos(bAngle) * speed, Math.sin(bAngle) * speed, this.atk * 0.5, false, {
+                                        color: '#e2e8f0',
+                                        radius: 4
+                                    }));
+                                }
 
-                                // 충격파 시각 이펙트
+                                window.gameEngine.shakeScreen(20, 6.0);
+                                Sound.play('explosion');
+                                window.gameEngine.showFloatingText("🧬 NANO SWARM BURST!", this.x, this.y - 45, '#e2e8f0');
                                 window.gameEngine.particles.push(new Particle(this.x, this.y, 'rgba(226, 232, 240, 0.4)', 120, 0, 0, 20, 'explosionRing'));
                             }
                         }
@@ -1202,14 +1229,16 @@ class Monster {
                             this.boss_shieldDischarged = false;
                         }
 
-                        // [추가 기믹]: 실드가 소실된 동안 공격 쿨다운 단축 및 3방향 나노 레이저 사격 저항
+                        // 실드가 소실된 동안 공격 쿨다운 단축 및 3방향 나노 레이저 사격
                         if (this.shieldHp <= 0) {
                             if (this.boss_hiveShootCooldown === undefined || this.boss_hiveShootCooldown === null) this.boss_hiveShootCooldown = 45;
                             this.boss_hiveShootCooldown -= timeScale * 1.25;
                             if (this.boss_hiveShootCooldown <= 0) {
-                                this.boss_hiveShootCooldown = 45; // 0.75초 주기
-                                for (let i = -1; i <= 1; i++) {
-                                    let bAngle = angle + (i * 0.2);
+                                this.boss_hiveShootCooldown = isFrenzy ? 35 : 45;
+                                let shootCount = isFrenzy ? 5 : 3;
+                                let startOff = -(shootCount - 1) / 2;
+                                for (let i = 0; i < shootCount; i++) {
+                                    let bAngle = angle + ((startOff + i) * 0.18);
                                     let vx = Math.cos(bAngle) * 3.5;
                                     let vy = Math.sin(bAngle) * 3.5;
                                     bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.75, false, {
@@ -1218,6 +1247,47 @@ class Monster {
                                     }));
                                 }
                                 Sound.play('shoot');
+                            }
+                        }
+
+                        // [개선 4] 50% 이하 분노: 나노 지뢰 살포
+                        if (isFrenzy) {
+                            if (this.boss_mineTimer === undefined) this.boss_mineTimer = 180;
+                            this.boss_mineTimer -= timeScale;
+                            if (this.boss_mineTimer <= 0 && window.gameEngine) {
+                                this.boss_mineTimer = 200 + Math.random() * 60; // 3.3~4.3초 주기
+                                let mineCount = window.gameEngine.particles.filter(p => p.type === 'boss_nano_mine' && p.life > 0).length;
+                                if (mineCount < 4) {
+                                    // 보스 현재 위치에 나노 지뢰 설치
+                                    let mine = new Particle(this.x, this.y, '#ff6666', 12, 0, 0, 600, 'boss_nano_mine');
+                                    mine.atk = this.atk * 0.6;
+                                    mine.mineRadius = 55; // 폭발 반경
+                                    window.gameEngine.particles.push(mine);
+                                    window.gameEngine.showFloatingText("💀 NANO MINE!", this.x, this.y - 25, '#ff6666');
+                                    Sound.play('boss_alert');
+                                }
+                            }
+
+                            // 나노 지뢰 근접 폭발 판정
+                            if (window.gameEngine) {
+                                let pl = window.gameEngine.player;
+                                window.gameEngine.particles.forEach(p => {
+                                    if (p.type === 'boss_nano_mine' && p.life > 0) {
+                                        let md = Math.hypot(pl.x - p.x, pl.y - p.y);
+                                        if (md < p.mineRadius + pl.radius) {
+                                            // 폭발!
+                                            window.gameEngine.damagePlayer(p.atk, p.x, p.y);
+                                            // 감속 디버프 3초
+                                            if (!pl.debuffs) pl.debuffs = {};
+                                            pl.debuffs.slow = Math.max(pl.debuffs.slow || 0, 180);
+                                            // 폭발 이펙트
+                                            window.gameEngine.particles.push(new Particle(p.x, p.y, '#ff4444', 55, 0, 0, 15, 'explosionRing'));
+                                            window.gameEngine.shakeScreen(8, 3.0);
+                                            Sound.play('explosion');
+                                            p.life = 0; // 지뢰 소멸
+                                        }
+                                    }
+                                });
                             }
                         }
 
@@ -1241,7 +1311,8 @@ class Monster {
                             this.boss_castProgress = this.shieldHp;
                             this.boss_castMax = this.maxShieldHp;
                         } else {
-                            this.boss_warningText = "SHIELD BROKEN: OVERLOAD 🚨";
+                            let warningBase = isFrenzy ? "⚠️ OVERLOAD + MINES" : "SHIELD BROKEN: OVERLOAD 🚨";
+                            this.boss_warningText = warningBase;
                             this.boss_timerText = "RECHARGE: " + (this.shieldRechargeTimer / 60).toFixed(1) + "s";
                             this.boss_castProgress = 300 - this.shieldRechargeTimer;
                             this.boss_castMax = 300;
@@ -1250,10 +1321,49 @@ class Monster {
                     break;
 
                 case 'boss_hive_healer': // 80층 보스 보조 힐러 (부하)
-                    // 필드의 보스 하이브를 찾아 그 주변을 졸졸 따름
+                    // [개선 1] 힐러: 회복 후 플레이어 돌진 공격 전환
                     if (window.gameEngine) {
                         let hive = window.gameEngine.monsters.find(m => m.type === 'boss_hive' && m.hp > 0);
-                        if (hive) {
+
+                        // 돌진 상태 초기화
+                        if (this.healerDashTimer === undefined) {
+                            this.healerDashTimer = 0;
+                            this.healerDashAngle = 0;
+                            this.healerMode = 'orbit'; // 'orbit' or 'dash'
+                        }
+
+                        if (this.healerMode === 'dash') {
+                            // 플레이어를 향해 돌진 중 (빨간색으로 변화)
+                            this.color = '#ff4444';
+                            this.glowColor = '#ff4444';
+                            this.healerDashTimer -= timeScale;
+                            this.x += Math.cos(this.healerDashAngle) * activeSpeed * 3.5;
+                            this.y += Math.sin(this.healerDashAngle) * activeSpeed * 3.5;
+
+                            // 돌진 중 플레이어 접촉 시 데미지
+                            let pl = window.gameEngine.player;
+                            let pDist = Math.hypot(pl.x - this.x, pl.y - this.y);
+                            if (pDist < this.radius + pl.radius + 5) {
+                                window.gameEngine.damagePlayer(this.atk * 1.5, this.x, this.y);
+                                window.gameEngine.shakeScreen(8, 3.0);
+                                this.healerMode = 'orbit'; // 충돌 후 복귀
+                            }
+
+                            // 돌진 시간 초과 시 궤도 복귀
+                            if (this.healerDashTimer <= 0) {
+                                this.healerMode = 'orbit';
+                                this.color = '#10b981';
+                                this.glowColor = '#10b981';
+                            }
+
+                            // 돌진 궤적 파티클
+                            if (Math.random() < 0.4) {
+                                window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff4444', 2, 0, 0, 10, 'spark'));
+                            }
+                        } else if (hive) {
+                            // 궤도 모드: 보스 주변 선회
+                            this.color = '#10b981';
+                            this.glowColor = '#10b981';
                             let hx = hive.x - this.x;
                             let hy = hive.y - this.y;
                             let hdist = Math.hypot(hx, hy);
@@ -1261,7 +1371,6 @@ class Monster {
                                 this.x += (hx / hdist) * activeSpeed * 1.3;
                                 this.y += (hy / hdist) * activeSpeed * 1.3;
                             } else {
-                                // 보스 근처 선회
                                 let orbitAngle = Math.atan2(hy, hx) + Math.PI / 2;
                                 this.x += Math.cos(orbitAngle) * activeSpeed * 0.7;
                                 this.y += Math.sin(orbitAngle) * activeSpeed * 0.7;
@@ -1282,18 +1391,23 @@ class Monster {
                                 }
                                 if (healed) {
                                     Sound.play('powerup');
-                                    // 힐 파티클
                                     for (let k = 0; k < 6; k++) {
                                         let pAngle = Math.random() * Math.PI * 2;
                                         let pSpeed = Math.random() * 1.5 + 0.5;
                                         window.gameEngine.particles.push(new Particle(hive.x, hive.y, '#10b981', 1.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 15));
                                     }
+
+                                    // 회복 완료 후 → 플레이어 돌진 모드 전환!
+                                    this.healerMode = 'dash';
+                                    this.healerDashTimer = 60; // 1초간 돌진
+                                    this.healerDashAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                                    window.gameEngine.showFloatingText("⚔️ HEALER CHARGE!", this.x, this.y - 20, '#ff4444');
                                 }
                             }
                         } else {
                             // 보스가 없으면 플레이어를 향해 자포자기 돌진
-                            this.x += Math.cos(angle) * activeSpeed;
-                            this.y += Math.sin(angle) * activeSpeed;
+                            this.x += Math.cos(angle) * activeSpeed * 2.0;
+                            this.y += Math.sin(angle) * activeSpeed * 2.0;
                         }
                     }
                     break;
