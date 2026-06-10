@@ -2131,6 +2131,21 @@ class Monster {
     }
 
     draw(ctx) {
+        Renderer.drawSprite(
+            ctx,
+            `monster_${this.type}`,
+            this.x,
+            this.y,
+            this.radius * 2,
+            this.radius * 2,
+            this.angle || 0,
+            () => {
+                this.drawNeon(ctx);
+            }
+        );
+    }
+
+    drawNeon(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
 

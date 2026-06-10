@@ -283,12 +283,23 @@ class Bullet {
             ctx.fill();
             ctx.stroke();
         } else {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = this.color;
-            ctx.fill();
+            Renderer.drawSprite(
+                ctx,
+                this.isPlayerBullet ? 'bullet_neon' : 'bullet_enemy',
+                this.x,
+                this.y,
+                this.radius * 2,
+                this.radius * 2,
+                Math.atan2(this.vy, this.vx) || 0,
+                () => {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = this.color;
+                    ctx.fill();
+                }
+            );
         }
         ctx.restore();
     }

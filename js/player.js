@@ -439,35 +439,46 @@ class Player {
             return;
         }
 
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
+        Renderer.drawSprite(
+            ctx,
+            'player_idle',
+            this.x,
+            this.y,
+            this.radius * 2,
+            this.radius * 2,
+            this.angle || 0,
+            () => {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
 
-        // 삼각형 모양 드로잉
-        ctx.beginPath();
-        ctx.moveTo(this.radius, 0); // 앞 코 (조준 방향)
-        ctx.lineTo(-this.radius * 0.8, -this.radius * 0.7); 
-        ctx.lineTo(-this.radius * 0.5, 0); // 안으로 살짝 파인 디테일
-        ctx.lineTo(-this.radius * 0.8, this.radius * 0.7);
-        ctx.closePath();
+                // 삼각형 모양 드로잉
+                ctx.beginPath();
+                ctx.moveTo(this.radius, 0); // 앞 코 (조준 방향)
+                ctx.lineTo(-this.radius * 0.8, -this.radius * 0.7); 
+                ctx.lineTo(-this.radius * 0.5, 0); // 안으로 살짝 파인 디테일
+                ctx.lineTo(-this.radius * 0.8, this.radius * 0.7);
+                ctx.closePath();
 
-        // 네온 민트/시안 테두리와 메인 색상 채우기
-        ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 2.5;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = '#00f0ff';
-        ctx.fill();
-        ctx.stroke();
+                // 네온 민트/시안 테두리와 메인 색상 채우기
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#00f0ff';
+                ctx.fill();
+                ctx.stroke();
 
-        // 내부 기계식 코어 원 추가
-        ctx.beginPath();
-        ctx.arc(-2, 0, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#39ff14'; // 스태미너 가동 시 코어가 빛남
-        ctx.shadowColor = '#39ff14';
-        ctx.fill();
+                // 내부 기계식 코어 원 추가
+                ctx.beginPath();
+                ctx.arc(-2, 0, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#39ff14'; // 스태미너 가동 시 코어가 빛남
+                ctx.shadowColor = '#39ff14';
+                ctx.fill();
 
-        ctx.restore();
+                ctx.restore();
+            }
+        );
 
         // 3. 검/채찍을 휘두르는 모션 연출 (베기 활성화 시 궤적 렌더링)
         if (this.isSlashActive) {
