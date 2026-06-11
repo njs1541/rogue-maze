@@ -81,7 +81,45 @@
                         리더보드</button>
                 </div>
             </div>
-        </div>
+
+            <!-- [신규 추가] 최초 게임 시작 시 규칙 안내 튜토리얼 오버레이 -->
+            <div id="tutorial-overlay" class="overlay-panel hidden">
+                <h1 class="game-title text-glow-blue" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 5px;">🔮 NEON TUTORIAL</h1>
+                <p class="game-subtitle" style="margin-bottom: 25px; font-size: 0.95rem;">게임 시작 전 차원 미로의 핵심 규칙을 확인하세요!</p>
+                
+                <div class="controls-guide" style="max-width: 550px; text-align: left; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <h3 class="text-glow-yellow" style="font-size: 1.05rem; margin-bottom: 8px; font-weight: 800;">🚪 4가지 차원 관문(포털) 테마</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82rem; color: #cbd5e0;">
+                            <div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 1.1rem;">📊</span> <span><strong>스탯 (청록)</strong>: 기본 스탯 카드 획득</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 1.1rem;">⚔️</span> <span><strong>무기 (보라)</strong>: 공격 무기 카드 획득</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 1.1rem;">🛡️</span> <span><strong>장비 (주황)</strong>: 보조 장비 카드 획득</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 1.1rem;">🎰</span> <span><strong>상점 (노랑)</strong>: 골드로 구매하는 자판기 소환</span></div>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 12px;">
+                        <h3 class="text-glow-red" style="font-size: 1.05rem; margin-bottom: 6px; font-weight: 800;">🔢 관문 위 숫자의 의미</h3>
+                        <p style="font-size: 0.82rem; color: #a0aec0; line-height: 1.45; margin: 0;">
+                            관문 중앙의 숫자는 <strong>다음 방에 등장할 몬스터의 수</strong>이자 <strong>클리어 시 얻는 점수</strong>입니다. 
+                            숫자가 높을수록 난이도가 상승하지만, 클리어 시 <strong>몬스터 소탕 보너스(스탯 등급 강화)를 훨씬 크게 획득</strong>합니다!
+                        </p>
+                    </div>
+
+                    <div style="border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 12px;">
+                        <h3 class="text-glow-green" style="font-size: 1.05rem; margin-bottom: 6px; font-weight: 800;">💡 조작 편의 정보</h3>
+                        <ul style="font-size: 0.8rem; color: #cbd5e0; margin: 0; padding-left: 18px; line-height: 1.45;">
+                            <li>마우스 조준 사격 외에, <strong>방향키(↑ ↓ ← →)</strong>로 마우스 없이 8방향 사격이 가능합니다!</li>
+                            <li>게임을 일시정지하고 장비 상황을 상세히 보려면 <strong>ESC 키</strong>를 누르세요.</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <button id="tutorial-close-btn" class="neon-btn" style="border-color: var(--neon-blue); color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">확인 완료 (게임 시작)</button>
+                </div>
+            </div>
+
 
         <!-- 하단 플레이어 상태 및 스탯 패널 -->
         <footer id="hud-footer" class="hidden">
@@ -909,7 +947,7 @@
             </div>
         </div>
     </div>
-
+</div>
     <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
     <script src="js/assetManager.js"></script>
     <script src="js/renderer.js"></script>

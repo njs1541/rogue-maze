@@ -248,8 +248,33 @@ class GameEngine {
         // 게임 오버 혹은 재시작 버튼 연결
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-overlay').classList.add('hidden');
-            this.startGame();
+            
+            // [튜토리얼 기믹] 최초 방문 시 튜토리얼 팝업, 이후에는 바로 시작
+            const tutorialViewed = localStorage.getItem('neon_rogue_tutorial_viewed');
+            if (tutorialViewed !== 'true') {
+                const tutorialOverlay = document.getElementById('tutorial-overlay');
+                if (tutorialOverlay) {
+                    tutorialOverlay.classList.remove('hidden');
+                } else {
+                    this.startGame();
+                }
+            } else {
+                this.startGame();
+            }
         });
+
+        // 튜토리얼 확인 버튼 이벤트 바인딩
+        const tutorialCloseBtn = document.getElementById('tutorial-close-btn');
+        if (tutorialCloseBtn) {
+            tutorialCloseBtn.addEventListener('click', () => {
+                const tutorialOverlay = document.getElementById('tutorial-overlay');
+                if (tutorialOverlay) {
+                    tutorialOverlay.classList.add('hidden');
+                }
+                localStorage.setItem('neon_rogue_tutorial_viewed', 'true');
+                this.startGame();
+            });
+        }
 
         // 이어하기 버튼 이벤트 바인딩
         const continueBtn = document.getElementById('continue-btn');
@@ -435,7 +460,8 @@ class GameEngine {
         this.canvas.height = this.mapHeight;
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
-            gameContainer.style.maxWidth = '900px';
+            gameContainer.style.maxWidth = '';
+            gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
         }
         this.currentRoomMonsterPool = [];
 
@@ -691,7 +717,8 @@ class GameEngine {
         // HTML 컨테이너 가로폭 비례 조절
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
-            gameContainer.style.maxWidth = (this.mapWidth + 100) + 'px';
+            gameContainer.style.maxWidth = '';
+            gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
         }
 
         // --- [1안/2안 적용] 방별 등장 몬스터 풀 설정 ---
@@ -5957,12 +5984,17 @@ class GameEngine {
         const acceptBtn = document.getElementById('secret-shop-accept-btn');
         const rejectBtn = document.getElementById('secret-shop-reject-btn');
 
-        // 에픽/레전더리 확정 카드 풀에서 1장 생성 (보물 상자급 고등급 보증)
-        let cardsData = this.generateRewardCardsData(this.currentSpawnTotal, true);
-        // 카드 중 가장 높은 등급 1장을 선별 (Legendary > Epic > Rare > Common)
-        const rarityOrder = { 'LEGENDARY': 4, 'EPIC': 3, 'RARE': 2, 'COMMON': 1 };
-        cardsData.sort((a, b) => (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0));
-        let chosenCard = cardsData[0];
+        // [버그 수정] 자판기 자체에 이미 할당된 고정 카드가 있다면 재사용, 없다면 최초 생성하여 바인딩
+        let chosenCard = svm.rewardCard || null;
+        if (!chosenCard) {
+            // 에픽/레전더리 확정 카드 풀에서 1장 생성 (보물 상자급 고등급 보증)
+            let cardsData = this.generateRewardCardsData(this.currentSpawnTotal, true);
+            // 카드 중 가장 높은 등급 1장을 선별 (Legendary > Epic > Rare > Common)
+            const rarityOrder = { 'LEGENDARY': 4, 'EPIC': 3, 'RARE': 2, 'COMMON': 1 };
+            cardsData.sort((a, b) => (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0));
+            chosenCard = cardsData[0];
+            svm.rewardCard = chosenCard; // 자판기에 고정 카드 캐싱
+        }
 
         // 모달 UI에 카드 정보 바인딩
         rarityTag.className = `card-rarity ${chosenCard.rarity.toLowerCase()}`;
@@ -6372,7 +6404,8 @@ class GameEngine {
         const overlays = [
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
-            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
+            'tutorial-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
@@ -6385,7 +6418,8 @@ class GameEngine {
         const overlays = [
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
-            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay'
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
+            'tutorial-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;
@@ -6654,7 +6688,8 @@ class GameEngine {
             this.canvas.height = this.mapHeight;
             const gameContainer = document.getElementById('game-container');
             if (gameContainer) {
-                gameContainer.style.maxWidth = (this.mapWidth + 100) + 'px';
+                gameContainer.style.maxWidth = '';
+                gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
             }
 
             this.currentRoomType = savedData.currentRoomType || 'stat';
