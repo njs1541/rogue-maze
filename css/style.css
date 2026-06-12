@@ -52,16 +52,19 @@ body {
 
 /* 메인 컨테이너 */
 #game-container {
-    width: 100%;
-    max-width: calc(var(--map-width, 800px) + 480px); /* 사이드바 포함 가로폭 확장 */
-    height: 98vh;
+    width: 1680px;
+    min-width: 1680px;
+    height: 940px;
+    min-height: 940px;
     display: flex;
-    flex-direction: row; /* PC에서는 가로 3열 정렬 */
+    flex-direction: row; /* 가로 3열 정렬 */
     justify-content: center;
     align-items: center;
     gap: 20px;
     padding: 10px;
     position: relative;
+    transform-origin: center center; /* 브라우저 스케일 조절을 위한 기준점 */
+    flex-shrink: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -74,7 +77,7 @@ body {
     align-items: center;
     width: 180px;
     min-width: 180px;
-    height: 600px; /* 캔버스 높이에 동기화 */
+    height: 900px; /* 캔버스 높이 900px에 동기화 */
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
     border-radius: 16px;
@@ -145,8 +148,8 @@ body {
    메인 게임 영역 (Canvas Container & Canvas)
    -------------------------------------------------------------------------- */
 #canvas-container {
-    width: 800px;
-    height: 600px;
+    width: 1200px;
+    height: 900px;
     flex: none; /* 크기 고정으로 상하 찌그러짐 예방 */
     position: relative;
     background: #040509;
@@ -290,7 +293,7 @@ body {
     z-index: 10;
     width: 240px;
     min-width: 240px;
-    height: 600px; /* 캔버스 높이에 동기화 */
+    height: 900px; /* 캔버스 높이에 동기화 */
     gap: 15px;
 }
 
@@ -2443,77 +2446,7 @@ body.low-spec .neon-btn:hover {
     }
 }
 
-/* ==========================================================================
-   [신규] 950px 이하 해상도용 세로 배치 원복 반응형 처리
-   ========================================================================== */
-@media (max-width: 950px) {
-    #game-container {
-        flex-direction: column !important;
-        max-width: calc(var(--map-width, 800px) + 100px) !important;
-        height: 98vh !important;
-        gap: 8px !important;
-        justify-content: space-between !important;
-        align-items: stretch !important;
-    }
-
-    #hud-header {
-        flex-direction: row !important;
-        width: 100% !important;
-        height: auto !important;
-        margin-bottom: 8px !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 12px 24px !important;
-        gap: 0 !important;
-        border-radius: 12px !important;
-    }
-    
-    .hud-item {
-        width: auto !important;
-    }
-
-    #hud-footer {
-        flex-direction: row !important;
-        width: 100% !important;
-        height: auto !important;
-        margin-top: 8px !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 16px 24px !important;
-        gap: 0 !important;
-        border-radius: 12px !important;
-    }
-
-    #player-bars {
-        flex: 0.8 !important;
-        width: auto !important;
-        padding-right: 20px !important;
-    }
-
-    #stats-dashboard {
-        flex: 1.6 !important;
-        width: auto !important;
-        flex-direction: row !important;
-        border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-top: none !important;
-        padding-left: 20px !important;
-        padding-top: 0 !important;
-        margin-top: 0 !important;
-        gap: 16px !important;
-    }
-
-    .stat-column {
-        flex: 1 !important;
-        width: auto !important;
-        justify-content: space-between !important;
-    }
-
-    #canvas-container {
-        flex: 1 !important;
-        width: auto !important;
-        height: auto !important;
-    }
-}
+/* 950px 이하 반응형 세로 꺾임 제거 (1200x900 상시 3열 레이아웃 및 전체 스케일링 대응) */
 
 /* ==========================================================================
    [신규] 최초 게임 가이드 튜토리얼 오버레이 스타일

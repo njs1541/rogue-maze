@@ -180,7 +180,7 @@ class Bullet {
 
         // [W-03 총 도탄 물리 기믹 연산]
         if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
-            const wallMargin = 40;
+            const wallMargin = 50;
             let collided = false;
             
             let currentX = this.isDna ? this.virtualX : this.x;

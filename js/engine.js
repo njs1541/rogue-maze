@@ -1,6 +1,194 @@
 // --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
+
+// [신규] 24x18 그리드 타일맵 프리셋 데이터 정의 (0: 바닥, 1: 격벽, 2: 외벽)
+const MAP_PRESETS = {
+    PRESET_SIZE_NORMAL: [
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222"
+    ],
+    PRESET_SIZE_MIDDLE: [
+        "222222222222002222222222",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222"
+    ],
+    PRESET_SIZE_BOSS: [
+        "222222222222002222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222222002222222222"
+    ],
+    PRESET_LINE: [
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222"
+    ],
+    PRESET_WINDOW: [
+        "222222222222002222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "000000111111111111000000",
+        "000000111111111111000000",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222222002222222222"
+    ],
+    PRESET_U_SHAPE: [
+        "222222222222002222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000111111111111111122",
+        "200000111111111111111122",
+        "200000111111111111111122",
+        "000000111111111111111122",
+        "000000111111111111111122",
+        "200000111111111111111122",
+        "200000111111111111111122",
+        "200000111111111111111122",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222222002222222222"
+    ],
+    PRESET_CROSS: [
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222000000000000222222",
+        "222222000000000000222222",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "222222000000000000222222",
+        "222222000000000000222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222",
+        "222222222222002222222222"
+    ]
+};
+
+// [신규] 프리셋별 문(포털) 소환 정보 매핑
+const PORTAL_SPAWN_INFOS = {
+    PRESET_SIZE_NORMAL: {
+        top:    { x: 1200 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
+        bottom: { x: 1200 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
+        left:   { x: 4.5 * 50, y: 900 / 2, gridX: 4, gridY: 8 },
+        right:  { x: 19.5 * 50, y: 900 / 2, gridX: 19, gridY: 8 }
+    },
+    PRESET_SIZE_MIDDLE: {
+        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 2.5 * 50, y: 900 / 2, gridX: 2, gridY: 8 },
+        right:  { x: 21.5 * 50, y: 900 / 2, gridX: 21, gridY: 8 }
+    },
+    PRESET_SIZE_BOSS: {
+        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_LINE: {
+        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_WINDOW: {
+        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_U_SHAPE: {
+        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 }
+    },
+    PRESET_CROSS: {
+        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+    }
+};
+
 class GameEngine {
     constructor() {
         // [수정] 생성자 극초반부에 전역 객체 바인딩을 진행하여, setupInitialRoom 등의 하위 초기화 시점에 
@@ -10,9 +198,9 @@ class GameEngine {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
 
-        // 디자인 해상도 비율 800 * 600 고정 스케일링 설정
-        this.mapWidth = 800;
-        this.mapHeight = 600;
+        // 디자인 해상도 비율 1200 * 900 고정 스케일링 설정
+        this.mapWidth = 1200;
+        this.mapHeight = 900;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
         this.currentRoomMonsterPool = [];
@@ -128,6 +316,32 @@ class GameEngine {
 
         // 이어하기 버튼 가시성 업데이트
         this.updateContinueButtonVisibility();
+
+        // [신규] 화면 스케일 및 레이아웃 고정 설정
+        this.adjustLayoutScale();
+        window.addEventListener('resize', () => this.adjustLayoutScale());
+    }
+
+    // [신규] 브라우저 화면 크기에 비례하여 레이아웃을 비율대로 scale 조절
+    adjustLayoutScale() {
+        const container = document.getElementById('game-container');
+        if (!container) return;
+
+        const baseWidth = 1680;
+        const baseHeight = 940;
+        const winWidth = window.innerWidth;
+        const winHeight = window.innerHeight;
+
+        let scaleX = winWidth / baseWidth;
+        let scaleY = winHeight / baseHeight;
+        let minScale = Math.min(scaleX, scaleY);
+
+        // 창 크기가 기준 해상도보다 클 때는 확대하지 않고 1배율로 유지
+        if (minScale > 1) {
+            minScale = 1;
+        }
+
+        container.style.transform = `scale(${minScale})`;
     }
 
     // 입력 장치 이벤트 바인딩
@@ -454,8 +668,8 @@ class GameEngine {
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
 
-        this.mapWidth = 800;
-        this.mapHeight = 600;
+        this.mapWidth = 1200;
+        this.mapHeight = 900;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
         const gameContainer = document.getElementById('game-container');
@@ -463,6 +677,8 @@ class GameEngine {
             gameContainer.style.maxWidth = '';
             gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
         }
+        // [신규] 첫 번째 시작 방은 외곽 1칸만 벽인 PRESET_SIZE_BOSS 구조로 초기화
+        this.generateGridMap('PRESET_SIZE_BOSS');
         this.currentRoomMonsterPool = [];
 
         this.spawnQueue = [];
@@ -517,6 +733,78 @@ class GameEngine {
         // 무작위 셔플링
         types.sort(() => 0.5 - Math.random());
         return types;
+    }
+
+    // [신규] 2차원 그리드 기반 맵 구조 생성 메서드
+    generateGridMap(presetType) {
+        this.obstacles = [];
+        this.currentMapPreset = presetType;
+        const preset = MAP_PRESETS[presetType] || MAP_PRESETS.PRESET_SIZE_BOSS;
+
+        this.grid = [];
+        for (let r = 0; r < 18; r++) {
+            this.grid[r] = [];
+            for (let c = 0; c < 24; c++) {
+                const tileVal = parseInt(preset[r][c]);
+                this.grid[r][c] = tileVal;
+
+                // 1(일반 격벽) 또는 2(외벽)인 경우 NeonTileWall 벽 오브젝트 배치
+                if (tileVal === 1 || tileVal === 2) {
+                    this.obstacles.push(new NeonTileWall(c, r, tileVal));
+                }
+            }
+        }
+    }
+
+    // [신규] 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
+    isTileWall(x, y) {
+        if (!this.grid) return false;
+        const c = Math.floor(x / 50);
+        const r = Math.floor(y / 50);
+        if (c < 0 || c >= 24 || r < 0 || r >= 18) return true; // 맵 범위 밖은 벽으로 간주
+        const val = this.grid[r] ? this.grid[r][c] : undefined;
+        return val === 1 || val === 2;
+    }
+
+    // [신규] 그리드 맵의 빈 공간(0인 곳) 중에서 무작위 셀을 선택하여 픽셀 좌표를 반환하는 메서드
+    getSafeSpawnPosition(avoidPlayer = false, minDist = 200, maxAttempts = 100) {
+        let attempts = 0;
+        let safePositions = [];
+
+        // 1. 우선 빈 타일(0) 수집
+        for (let r = 0; r < 18; r++) {
+            for (let c = 0; c < 24; c++) {
+                if (this.grid && this.grid[r] && this.grid[r][c] === 0) {
+                    // 타일 중앙 픽셀 좌표 계산
+                    const x = c * 50 + 25;
+                    const y = r * 50 + 25;
+                    safePositions.push({ x, y, r, c });
+                }
+            }
+        }
+
+        if (safePositions.length === 0) {
+            // 빈 공간이 없다면 기본 맵 중앙 리턴
+            return { x: this.mapWidth / 2, y: this.mapHeight / 2 };
+        }
+
+        // 2. 플레이어를 피해야 하는 경우 필터링 시도
+        if (avoidPlayer && this.player) {
+            while (attempts < maxAttempts) {
+                const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
+                const dx = pos.x - this.player.x;
+                const dy = pos.y - this.player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist >= minDist) {
+                    return { x: pos.x, y: pos.y };
+                }
+                attempts++;
+            }
+        }
+
+        // 플레이어 피하기를 실패했거나 피할 필요가 없는 경우 랜덤 빈 타일 반환
+        const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
+        return { x: pos.x, y: pos.y };
     }
 
     // 첫 시작 방은 몬스터가 등장하지 않는 완전히 평화로운 휴식의 안전실
@@ -695,20 +983,9 @@ class GameEngine {
             return;
         }
 
-        // --- [신규 기믹] 3단계 동적 맵 크기 결정 ---
-        if (enteringSecretRoom) {
-            this.mapWidth = 800;
-            this.mapHeight = 600;
-        } else if (this.roomNum % 10 === 0) {
-            this.mapWidth = 1200;
-            this.mapHeight = 900;
-        } else if (scoreBonus > 32) {
-            this.mapWidth = 1000;
-            this.mapHeight = 750;
-        } else {
-            this.mapWidth = 800;
-            this.mapHeight = 600;
-        }
+        // --- [신규 기믹] 2차원 그리드 기반 맵 결정 및 크기 고정 ---
+        this.mapWidth = 1200;
+        this.mapHeight = 900;
 
         // 캔버스 크기 적용
         this.canvas.width = this.mapWidth;
@@ -719,6 +996,23 @@ class GameEngine {
         if (gameContainer) {
             gameContainer.style.maxWidth = '';
             gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
+        }
+
+        // 맵 프리셋 결정
+        if (enteringSecretRoom) {
+            // 비밀방은 쾌적함을 위해 보스방형 넓은 맵으로 로드
+            this.generateGridMap('PRESET_SIZE_BOSS');
+        } else if (this.roomNum % 10 === 0) {
+            // 보스방은 보스방형 맵 고정
+            this.generateGridMap('PRESET_SIZE_BOSS');
+        } else {
+            // 일반방은 7개 프리셋 중에서 랜덤 로드
+            const presets = [
+                'PRESET_SIZE_NORMAL', 'PRESET_SIZE_MIDDLE', 'PRESET_SIZE_BOSS',
+                'PRESET_LINE', 'PRESET_WINDOW', 'PRESET_U_SHAPE', 'PRESET_CROSS'
+            ];
+            const chosenPreset = presets[Math.floor(Math.random() * presets.length)];
+            this.generateGridMap(chosenPreset);
         }
 
         // --- [1안/2안 적용] 방별 등장 몬스터 풀 설정 ---
@@ -745,26 +1039,48 @@ class GameEngine {
         // --------------------------------------------
 
         // 플레이어 캐릭터 좌표를 해당 포털 방향의 정반대 문 앞으로 워프 이동 (비밀 포털은 맵 중앙 워프)
-        if (portal.direction === 'secret') {
+        // [신규] 2차원 그리드 프리셋 문 스폰 정보에 맞추어 워프 처리
+        const nextPreset = this.currentMapPreset || 'PRESET_SIZE_BOSS';
+        
+        let targetOppositeDir = 'center';
+        if (portal.direction === 'top') targetOppositeDir = 'bottom';
+        else if (portal.direction === 'bottom') targetOppositeDir = 'top';
+        else if (portal.direction === 'left') targetOppositeDir = 'right';
+        else if (portal.direction === 'right') targetOppositeDir = 'left';
+
+        let hasWarped = false;
+        if (portal.direction !== 'secret' && PORTAL_SPAWN_INFOS[nextPreset]) {
+            // 정반대 방향의 문 정보가 있는 경우
+            let spawnInfo = PORTAL_SPAWN_INFOS[nextPreset][targetOppositeDir];
+            
+            // 만약 정반대 방향 문이 새로운 맵 프리셋에 존재하지 않는다면, 새로운 맵 프리셋에서 사용 가능한 아무 문이나 하나를 임의로 선정
+            if (!spawnInfo) {
+                const availableDirs = Object.keys(PORTAL_SPAWN_INFOS[nextPreset]);
+                if (availableDirs.length > 0) {
+                    targetOppositeDir = availableDirs[0];
+                    spawnInfo = PORTAL_SPAWN_INFOS[nextPreset][targetOppositeDir];
+                }
+            }
+
+            if (spawnInfo) {
+                this.player.x = spawnInfo.x;
+                this.player.y = spawnInfo.y;
+                this.lastEnteredPortalDir = targetOppositeDir;
+                
+                // 문에서 걸어나오는 방향으로 오프셋을 더 줌
+                if (targetOppositeDir === 'top') this.player.y += 60;
+                else if (targetOppositeDir === 'bottom') this.player.y -= 60;
+                else if (targetOppositeDir === 'left') this.player.x += 60;
+                else if (targetOppositeDir === 'right') this.player.x -= 60;
+                hasWarped = true;
+            }
+        }
+
+        // 맵 중앙 예외 안전 리스폰 (비밀방 복귀 또는 워프 오류 대응)
+        if (!hasWarped) {
             this.player.x = this.mapWidth / 2;
-            this.player.y = this.mapHeight / 2 + 150; // 중앙 장치와 겹쳐서 즉시 충돌 소멸되는 현상 방지
+            this.player.y = this.mapHeight / 2 + 150;
             this.lastEnteredPortalDir = 'center';
-        } else if (portal.direction === 'top') {
-            this.player.x = this.mapWidth / 2;
-            this.player.y = this.mapHeight - 90;
-            this.lastEnteredPortalDir = 'bottom';
-        } else if (portal.direction === 'bottom') {
-            this.player.x = this.mapWidth / 2;
-            this.player.y = 70;
-            this.lastEnteredPortalDir = 'top';
-        } else if (portal.direction === 'left') {
-            this.player.x = this.mapWidth - 90;
-            this.player.y = this.mapHeight / 2;
-            this.lastEnteredPortalDir = 'right';
-        } else if (portal.direction === 'right') {
-            this.player.x = 70;
-            this.player.y = this.mapHeight / 2;
-            this.lastEnteredPortalDir = 'left';
         }
 
         // [비밀방 출구 포털 룰 적용] 비밀방에 있을 때는 단 하나의 탈출구 문만 랜덤 방향에 생성
@@ -783,17 +1099,19 @@ class GameEngine {
             this.portals = [exitPortal];
         } else {
             // 다음 방의 문 상태 초기화 (전부 몬스터 처치 전까지 잠금 붉은색)
-            this.portals = [
-                new RoomPortal('top', this.getRandomScoreValue()),
-                new RoomPortal('bottom', this.getRandomScoreValue()),
-                new RoomPortal('left', this.getRandomScoreValue()),
-                new RoomPortal('right', this.getRandomScoreValue())
-            ];
+            // [신규] 프리셋에 정의된 유효한 포털 방향만 생성
+            const presetName = this.currentMapPreset || 'PRESET_SIZE_BOSS';
+            const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
+
+            this.portals = [];
+            validDirections.forEach(dir => {
+                this.portals.push(new RoomPortal(dir, this.getRandomScoreValue()));
+            });
 
             // [신규 기획] 포털 특화 유형 무작위 분배 (쿨다운 및 확률 가중치 반영)
             let types = this.generatePortalTypes();
             this.portals.forEach((p, idx) => {
-                p.portalType = types[idx];
+                p.portalType = types[idx % types.length];
             });
 
             this.rankPortals(); // 등급 랭킹화
@@ -815,31 +1133,7 @@ class GameEngine {
         this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
         this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
         this.player.burstRemaining = 0;     // [신규] 방 이동 시 비동기 잔상 사격 완전 차단 리셋!
-        this.obstacles = []; // [신규] 이전 방 장애물 청소
-
-        // [신규] 25등분 격자 기반 랜덤 장애물 생성 기믹 (비밀방 차원 상점에서는 쾌적함을 위해 장애물 생성 예외적 원천 방지)
-        if (this.roomNum > 1 && this.roomNum % 10 !== 0 && !enteringSecretRoom) {
-            let stageGroup = Math.floor((this.roomNum - 1) / 20);
-            let maxObstacles = Math.min(5, stageGroup + 1);
-            let obstacleCount = 0;
-            for (let i = 0; i < maxObstacles; i++) {
-                if (Math.random() < 0.5) {
-                    obstacleCount++;
-                } else {
-                    break;
-                }
-            }
-            let candidates = [
-                { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
-                { col: 1, row: 2 }, { col: 3, row: 2 },
-                { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }
-            ];
-            candidates.sort(() => 0.5 - Math.random());
-            for (let i = 0; i < Math.min(obstacleCount, candidates.length); i++) {
-                let cell = candidates[i];
-                this.obstacles.push(new NeonObstacle(cell.col, cell.row));
-            }
-        }
+        // [신규] 이전 방 장애물 청소는 generateGridMap 내부에서 처리되므로 이곳의 중복 리셋 및 구식 장애물 스폰은 삭제합니다.
 
         // 5번 방 주기마다 보스전 활성화 (5, 10, 15... 100)
         // 10의 배수는 무조건 보스방으로 기동!
@@ -873,10 +1167,10 @@ class GameEngine {
         if (shouldSpawnSecret) {
             // [요건 반영] 비밀방 입구가 노골적이지 않도록 구석 모퉁이가 아닌 외곽 테두리 4방향 벽면에 완벽 매설
             let spots = [
-                { wallX: this.mapWidth * 0.3125, wallY: 40, dir: 'top' },    // 상단 벽면
-                { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 40, dir: 'bottom' }, // 하단 벽면
-                { wallX: 40, wallY: this.mapHeight * 0.3, dir: 'left' },    // 좌측 벽면
-                { wallX: this.mapWidth - 40, wallY: this.mapHeight * 0.7, dir: 'right' }   // 우측 벽면
+                { wallX: this.mapWidth * 0.3125, wallY: 50, dir: 'top' },    // 상단 벽면
+                { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 50, dir: 'bottom' }, // 하단 벽면
+                { wallX: 50, wallY: this.mapHeight * 0.3, dir: 'left' },    // 좌측 벽면
+                { wallX: this.mapWidth - 50, wallY: this.mapHeight * 0.7, dir: 'right' }   // 우측 벽면
             ];
 
             // 격자 장애물과 간섭 차단을 위한 안전한 후보지만 필터링
@@ -1021,8 +1315,16 @@ class GameEngine {
         this.currentSpawnTotal = totalCount;
         this.currentSpawnRemaining = totalCount;
 
-        // 보스 몬스터가 아닌 일반 방의 경우 이전 진입 포털을 제외한 나머지 3개 문 방향을 추출
-        const spawnDirections = ['top', 'bottom', 'left', 'right'].filter(dir => dir !== this.lastEnteredPortalDir);
+        // [수정] 2차원 그리드 프리셋에 있는 유효한 문 방향만 스폰 대상으로 설정
+        const presetName = this.currentMapPreset || 'PRESET_SIZE_BOSS';
+        const validDirs = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
+        const spawnDirections = validDirs.filter(dir => dir !== this.lastEnteredPortalDir);
+        // 만약 유효한 문 방향이 없다면 (예외 처리) 전체 validDirs 사용
+        if (spawnDirections.length === 0 && validDirs.length > 0) {
+            spawnDirections.push(...validDirs);
+        } else if (spawnDirections.length === 0) {
+            spawnDirections.push('left', 'right'); // 폴백
+        }
 
         let remainingToSpawn = totalCount;
 
@@ -1066,7 +1368,18 @@ class GameEngine {
 
     // 방향별 정확한 스폰 시작 좌표 획득
     getSpawnCoordinates(direction) {
-        // [수정] 맵의 가변 해상도(this.mapWidth, this.mapHeight)를 연동하여 문 입구 스폰 지점을 연산합니다.
+        // [수정] 맵 프리셋의 포털 위치(PORTAL_SPAWN_INFOS)를 기반으로 하여 오프셋을 적용한 안전 좌표 계산
+        const presetName = this.currentMapPreset || 'PRESET_SIZE_BOSS';
+        const info = PORTAL_SPAWN_INFOS[presetName] && PORTAL_SPAWN_INFOS[presetName][direction];
+        if (info) {
+            let offset = 60; // 문에서 맵 안쪽으로 향하는 거리
+            if (direction === 'top') return { x: info.x, y: info.y + offset };
+            if (direction === 'bottom') return { x: info.x, y: info.y - offset };
+            if (direction === 'left') return { x: info.x + offset, y: info.y };
+            if (direction === 'right') return { x: info.x - offset, y: info.y };
+        }
+
+        // [폴백] 맵의 가변 해상도(this.mapWidth, this.mapHeight)를 연동하여 문 입구 스폰 지점을 연산합니다.
         if (direction === 'top') return { x: this.mapWidth / 2, y: 55 };
         if (direction === 'bottom') return { x: this.mapWidth / 2, y: this.mapHeight - 75 };
         if (direction === 'left') return { x: 55, y: this.mapHeight / 2 };
@@ -1097,6 +1410,12 @@ class GameEngine {
                 // 소환 흩어짐 폭을 더 넓게 설정하여 과도한 뭉침 방지 (80px 반경 분산)
                 let rx = currentPac.x + (Math.random() * 80 - 40);
                 let ry = currentPac.y + (Math.random() * 80 - 40);
+
+                // [수정] 흩뿌려진 좌표가 격벽이나 외벽 안쪽이라면, 안전한 문 입구 좌표(currentPac)로 보정
+                if (this.isTileWall(rx, ry)) {
+                    rx = currentPac.x;
+                    ry = currentPac.y;
+                }
 
                 // 5개 방마다 몬스터 등급 티어 상승 계산식
                 let currentTier = Math.floor((this.roomNum - 1) / 5) + 1;
@@ -1808,7 +2127,7 @@ class GameEngine {
 
         // 맵 벽 경계선 제한 충돌 처리 (정사각형 방 내부 구조 #08090e)
         // 캔버스 크기 및 벽 마진 경계 반영
-        const wallMargin = 40;
+        const wallMargin = 50;
         this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
         this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
 
@@ -2611,6 +2930,11 @@ class GameEngine {
                 if (!this.roomRewardSpawned && this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
                     this.roomRewardSpawned = true; // [버그 수정] 단 1회 보상 스폰 즉시 잠금
 
+                    // [수정] 맵 중앙 부근에 벽이 있을 가능성이 있으므로, 타일맵의 안전한 빈 공간(0)을 골라 스폰시킵니다.
+                    const safeSpawn = this.getSafeSpawnPosition(false);
+                    const spawnX = safeSpawn.x;
+                    const spawnY = safeSpawn.y;
+
                     // A. 코인 정산 연산 (수정 2: 퍼펙트 보상 30% 하향 적용)
                     let baseCoins = this.currentSpawnTotal * 2;
                     let bonusCoins = 0;
@@ -2618,9 +2942,9 @@ class GameEngine {
                         bonusCoins = Math.floor(baseCoins * 0.3); // 30% 보너스
                     }
                     let totalGained = baseCoins + bonusCoins;
-                    // [수정] 방 클리어 코인은 가변 맵 중앙에 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
+                    // [수정] 방 클리어 코인은 안전한 바닥 타일에서 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
                     for (let k = 0; k < totalGained; k++) {
-                        this.coinsList.push(new NeonCoin(this.mapWidth / 2, this.mapHeight / 2, 1));
+                        this.coinsList.push(new NeonCoin(spawnX, spawnY, 1));
                     }
 
                     // [수정] 결함 4: 상단 코인 영역 얼마+얼마 표기 및 시각적 맥동 이펙트 작렬!
@@ -2676,26 +3000,34 @@ class GameEngine {
                             machineType = 'weapon';
                         }
 
-                        this.vendingMachines.push(new VendingMachine(this.mapWidth / 2, this.mapHeight / 2, machineType));
-                        this.showFloatingText("VENDING MACHINE ARRIVED!", this.mapWidth / 2, this.mapHeight / 2 - 60, '#ffdf00');
+                        this.vendingMachines.push(new VendingMachine(spawnX, spawnY, machineType));
+                        this.showFloatingText("VENDING MACHINE ARRIVED!", spawnX, spawnY - 60, '#ffdf00');
 
-                        // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭
-                        this.potions.push(new NeonPotion(this.mapWidth / 2, this.mapHeight / 2 + 70));
+                        // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭 (안전 영역 체크)
+                        let potionY = spawnY + 70;
+                        if (this.isTileWall(spawnX, potionY)) {
+                            potionY = spawnY;
+                        }
+                        this.potions.push(new NeonPotion(spawnX, potionY));
 
                         // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
                         this.portals.forEach(p => p.active = true);
                     } else {
                         // 스탯, 무기, 방어구 중 해당 타입의 보상 상자 스폰
-                        this.rewardChests.push(new RewardChest(this.mapWidth / 2, this.mapHeight / 2, this.currentRoomType));
-                        this.showFloatingText("REWARD CHEST ARRIVED!", this.mapWidth / 2, this.mapHeight / 2 - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
+                        this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
+                        this.showFloatingText("REWARD CHEST ARRIVED!", spawnX, spawnY - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
 
                         // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (기본 30% + 행운 계수 비례 추가 확률)
                         let potionRand = Math.random();
                         let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05); // 행운 비례 추가 확률 최대 +20% 제한
                         if (potionRand < potionDropChance) {
-                            // 맵 중앙 부근에서 약간 아래쪽에 스폰 (보상 상자와 겹침 방지)
-                            this.potions.push(new NeonPotion(this.mapWidth / 2, this.mapHeight / 2 + 50));
-                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", this.mapWidth / 2, this.mapHeight / 2 - 30, '#39ff14');
+                            // 맵 중앙 부근에서 약간 아래쪽에 스폰 (보상 상자와 겹침 방지, 안전 영역 체크)
+                            let pY = spawnY + 50;
+                            if (this.isTileWall(spawnX, pY)) {
+                                pY = spawnY;
+                            }
+                            this.potions.push(new NeonPotion(spawnX, pY));
+                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", spawnX, spawnY - 30, '#39ff14');
                         }
                     }
 
@@ -2704,7 +3036,7 @@ class GameEngine {
                     for (let k = 0; k < 30; k++) {
                         let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5; // 하늘 위 방향 부채꼴 분수
                         let pSpeed = Math.random() * 5 + 2.5;
-                        this.particles.push(new Particle(this.mapWidth / 2, this.mapHeight / 2, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+                        this.particles.push(new Particle(spawnX, spawnY, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
                     }
                 }
             } else {
@@ -6586,6 +6918,7 @@ class GameEngine {
                 kills: this.kills,
                 mapWidth: this.mapWidth,
                 mapHeight: this.mapHeight,
+                currentMapPreset: this.currentMapPreset,
                 currentRoomType: this.currentRoomType,
                 weaponRoomCooldown: this.weaponRoomCooldown,
                 isEliteRoom: this.isEliteRoom,
@@ -6680,8 +7013,8 @@ class GameEngine {
             this.roomNum = savedData.roomNum;
             this.score = savedData.score;
             this.kills = savedData.kills;
-            this.mapWidth = savedData.mapWidth || 800;
-            this.mapHeight = savedData.mapHeight || 600;
+            this.mapWidth = 1200;
+            this.mapHeight = 900;
 
             // 캔버스 크기 복구 및 가로폭 비례 조절
             this.canvas.width = this.mapWidth;
@@ -6764,34 +7097,17 @@ class GameEngine {
                 this.portals.forEach(p => p.active = false);
             }
 
-            // 장애물(격자) 재생성
-            if (this.roomNum > 1 && this.roomNum % 10 !== 0 && !this.inSecretRoom) {
-                let stageGroup = Math.floor((this.roomNum - 1) / 20);
-                let maxObstacles = Math.min(5, stageGroup + 1);
-                let obstacleCount = 0;
-                for (let i = 0; i < maxObstacles; i++) {
-                    if (Math.random() < 0.5) obstacleCount++;
-                    else break;
-                }
-                let candidates = [
-                    { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
-                    { col: 1, row: 2 }, { col: 3, row: 2 },
-                    { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }
-                ];
-                candidates.sort(() => 0.5 - Math.random());
-                for (let i = 0; i < Math.min(obstacleCount, candidates.length); i++) {
-                    let cell = candidates[i];
-                    this.obstacles.push(new NeonObstacle(cell.col, cell.row));
-                }
-            }
+            // 장애물(격자) 재생성 - 맵 프리셋 로드
+            const loadedPreset = savedData.currentMapPreset || 'PRESET_SIZE_BOSS';
+            this.generateGridMap(loadedPreset);
 
             // 비밀 벽(균열) 재생성 (가변 맵 비율에 연동)
             if (savedData.hasSecretWall && this.roomNum % 10 !== 0 && this.roomNum > 1 && !this.inSecretRoom) {
                 let spots = [
-                    { wallX: this.mapWidth * 0.3125, wallY: 40, dir: 'top' },
-                    { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 40, dir: 'bottom' },
-                    { wallX: 40, wallY: this.mapHeight * 0.3, dir: 'left' },
-                    { wallX: this.mapWidth - 40, wallY: this.mapHeight * 0.7, dir: 'right' }
+                    { wallX: this.mapWidth * 0.3125, wallY: 50, dir: 'top' },
+                    { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 50, dir: 'bottom' },
+                    { wallX: 50, wallY: this.mapHeight * 0.3, dir: 'left' },
+                    { wallX: this.mapWidth - 50, wallY: this.mapHeight * 0.7, dir: 'right' }
                 ];
                 let safeSpots = spots.filter(spot => {
                     for (let obs of this.obstacles) {

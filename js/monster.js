@@ -483,7 +483,7 @@ class Monster {
         // [수정] 보스 몬스터는 기절에 걸리더라도 공격 패턴이나 이동 AI가 멈추지 않도록 무시 처리 (패턴 정지 버그 방지)
         if (this.statusEffects.shock > 0 && !this.isBoss && !this.type.startsWith('boss_')) {
             // 행동 불가 상태에서도 넉백과 벽 충돌 처리는 적용
-            const wallMargin = 40;
+            const wallMargin = 50;
             let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
             let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
             this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
@@ -510,7 +510,7 @@ class Monster {
 
         // 보스 및 보조 몬스터 AI 제어 분기
         if (this.isBoss || this.type.startsWith('boss_')) {
-            const wallMargin = 40;
+            const wallMargin = 50;
 
             switch (this.type) {
                 case 'boss': // 10층 네온 센티넬 (기존 보스)
@@ -970,6 +970,25 @@ class Monster {
                             let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
                             targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
                             targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
+
+                            // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도
+                            if (window.gameEngine && window.gameEngine.isTileWall) {
+                                let attempts = 0;
+                                while (window.gameEngine.isTileWall(targetX, targetY) && attempts < 10) {
+                                    warpAngle = Math.random() * Math.PI * 2;
+                                    warpDist = 120 + Math.random() * 120;
+                                    targetX = player.x + Math.cos(warpAngle) * warpDist;
+                                    targetY = player.y + Math.sin(warpAngle) * warpDist;
+                                    targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
+                                    targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
+                                    attempts++;
+                                }
+                                // 10번 시도했음에도 벽 내부라면 텔레포트 취소하고 쿨타임만 짧게 설정
+                                if (window.gameEngine.isTileWall(targetX, targetY)) {
+                                    this.teleportCooldown = 60;
+                                    return;
+                                }
+                            }
 
                             // 텔레포트 파티클 이펙트 및 공간 균열 기믹 설치
                             if (window.gameEngine) {
@@ -1860,7 +1879,7 @@ class Monster {
                 }
             }
             
-            const wallMargin = 40;
+            const wallMargin = 50;
             let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
             let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
             this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
@@ -1973,6 +1992,25 @@ class Monster {
                 let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
                 targetX = Math.max(margin + this.radius, Math.min(mapW - margin - this.radius, targetX));
                 targetY = Math.max(margin + this.radius, Math.min(mapH - margin - this.radius, targetY));
+
+                // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도
+                if (window.gameEngine && window.gameEngine.isTileWall) {
+                    let attempts = 0;
+                    while (window.gameEngine.isTileWall(targetX, targetY) && attempts < 10) {
+                        warpAngle = Math.random() * Math.PI * 2;
+                        warpDist = 100 + Math.random() * 150;
+                        targetX = player.x + Math.cos(warpAngle) * warpDist;
+                        targetY = player.y + Math.sin(warpAngle) * warpDist;
+                        targetX = Math.max(margin + this.radius, Math.min(mapW - margin - this.radius, targetX));
+                        targetY = Math.max(margin + this.radius, Math.min(mapH - margin - this.radius, targetY));
+                        attempts++;
+                    }
+                    // 10번 시도했음에도 여전히 벽 내부라면 이번 텔레포트는 생략하고 쿨타임만 짧게 설정한 뒤 취소
+                    if (window.gameEngine.isTileWall(targetX, targetY)) {
+                        this.teleportCooldown = 60;
+                        return;
+                    }
+                }
 
                 if (window.gameEngine) {
                     for (let k = 0; k < 6; k++) {
@@ -2087,7 +2125,7 @@ class Monster {
         }
 
         // 맵 벽 경계선 제한 충돌 처리 (몬스터 맵 이탈 방지) 및 창/넉백 벽꽝(Wall Slam) 판정 연동
-        const wallMargin = 40;
+        const wallMargin = 50;
         let preX = this.x;
         let preY = this.y;
         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;

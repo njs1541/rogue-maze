@@ -1,53 +1,67 @@
 // --------------------------------------------------------------------------
-// 2.5. 격자 기반 맵 장애물 클래스 (NeonObstacle)
+// 2.5. 격자 기반 맵 타일 벽 클래스 (NeonTileWall)
 // --------------------------------------------------------------------------
-class NeonObstacle {
-    constructor(col, row) {
-        this.col = col; // 격자 열 번호 (1~3)
-        this.row = row; // 격자 행 번호 (1~3)
-        this.width = 80;  // 장애물 가로 크기
-        this.height = 65; // 장애물 세로 크기
-        
-        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-        let colWidth = (mapW - 80) / 5;
-        let rowHeight = (mapH - 80) / 5;
+class NeonTileWall {
+    constructor(col, row, type) {
+        this.col = col; // 24열 인덱스 (0~23)
+        this.row = row; // 18행 인덱스 (0~17)
+        this.width = 50;  // 타일 가로 50px
+        this.height = 50; // 타일 세로 50px
+        this.type = type; // 1: 내부 격벽 (자홍), 2: 외곽 테두리 및 막힌 영역 (다크)
 
-        // 격자 기준 월드 좌표 계산 (가변 방 크기 기준)
-        this.x = 40 + col * colWidth + colWidth / 2;
-        this.y = 40 + row * rowHeight + rowHeight / 2;
-        
-        // 자홍색 홀로그램 테마 색상 설정
-        this.color = '#ff00aa'; 
-        this.glowColor = '#ff00aa';
-        this.pulse = Math.random() * 100; // 미세 맥동 효과를 위한 시작 위상차
+        // 중심 좌표 계산
+        this.x = col * 50 + 25;
+        this.y = row * 50 + 25;
+
+        // 비주얼 테마 색상 설정
+        if (this.type === 1) {
+            this.color = '#ff00aa'; 
+            this.glowColor = '#ff00aa';
+        } else {
+            // 외벽은 어두운 회색 네온선
+            this.color = 'rgba(255, 255, 255, 0.05)';
+            this.glowColor = 'transparent';
+        }
+        this.pulse = Math.random() * 100;
     }
-    
+
     draw(ctx) {
+        // type 2 (외벽)는 완전 투명이 아니라 살짝 어두운 텍스처나 테두리 정도로만 렌더링
+        if (this.type === 2) {
+            ctx.save();
+            ctx.fillStyle = '#040508'; // 플레이 불가 외벽은 더 짙은 어두움으로 칠함
+            ctx.fillRect(this.x - 25, this.y - 25, 50, 50);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(this.x - 25, this.y - 25, 50, 50);
+            ctx.restore();
+            return;
+        }
+
+        // type 1 (내부 격벽)은 화려한 자홍색 홀로그램 스타일로 렌더링
         ctx.save();
         ctx.translate(this.x, this.y);
         this.pulse += 0.04;
-        let scale = 1.0 + Math.sin(this.pulse) * 0.04; // 미래지향적 홀로그램 맥동 연출
+        let scale = 1.0 + Math.sin(this.pulse) * 0.03; // 홀로그램 맥동 효과
         
-        // 홀로그램 네온 사각형 방벽 렌더링
         ctx.beginPath();
-        ctx.rect(-this.width / 2 * scale, -this.height / 2 * scale, this.width * scale, this.height * scale);
-        ctx.fillStyle = 'rgba(255, 0, 170, 0.12)';
+        ctx.rect(-24 * scale, -24 * scale, 48 * scale, 48 * scale);
+        ctx.fillStyle = 'rgba(255, 0, 170, 0.08)';
         ctx.strokeStyle = this.color;
-        ctx.lineWidth = 2.5;
-        ctx.shadowBlur = 15;
+        ctx.lineWidth = 2.0;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = this.glowColor;
         ctx.fill();
         ctx.stroke();
         
-        // 내부 데코레이션 대각 격자 크로스 격자선 추가로 테크니컬한 감성 극대화
+        // 내부 데코레이션 X 격자선
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 0, 170, 0.25)';
+        ctx.strokeStyle = 'rgba(255, 0, 170, 0.2)';
         ctx.lineWidth = 1;
-        ctx.moveTo(-this.width / 2 * scale, -this.height / 2 * scale);
-        ctx.lineTo(this.width / 2 * scale, this.height / 2 * scale);
-        ctx.moveTo(this.width / 2 * scale, -this.height / 2 * scale);
-        ctx.lineTo(-this.width / 2 * scale, this.height / 2 * scale);
+        ctx.moveTo(-24 * scale, -24 * scale);
+        ctx.lineTo(24 * scale, 24 * scale);
+        ctx.moveTo(24 * scale, -24 * scale);
+        ctx.lineTo(-24 * scale, 24 * scale);
         ctx.stroke();
         
         ctx.restore();
@@ -67,8 +81,29 @@ class RoomPortal {
         this.difficultyClass = 'low'; // 'high', 'mid', 'low' 랭킹 등급 저장
         this.portalType = 'stat'; // 'stat', 'weapon', 'equipment', 'shop' - 신규 특화 속성 추가
 
-        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+        // 회전 처리를 위해 left, right는 세로 방향 문 크기 설정
+        if (direction === 'left' || direction === 'right') {
+            this.width = 18;
+            this.height = 75;
+        }
+
+        // [신규] 2차원 그리드 프리셋별 스폰 위치 바인딩
+        if (window.gameEngine && window.gameEngine.currentMapPreset && direction !== 'secret') {
+            const presetName = window.gameEngine.currentMapPreset;
+            const spawnInfo = PORTAL_SPAWN_INFOS[presetName] && PORTAL_SPAWN_INFOS[presetName][direction];
+            if (spawnInfo) {
+                // 문 스프라이트가 중앙 정렬로 그려지도록 오프셋 계산
+                this.x = spawnInfo.x - this.width / 2;
+                this.y = spawnInfo.y - this.height / 2;
+                this.gridX = spawnInfo.gridX;
+                this.gridY = spawnInfo.gridY;
+                return;
+            }
+        }
+
+        // 예외 방어코드 (비밀방 차원문 및 상수가 로드되지 않은 시점)
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
 
         // 방향별 좌표 바인딩 (동적 맵 크기에 비례)
         if (direction === 'top') {
@@ -80,14 +115,9 @@ class RoomPortal {
         } else if (direction === 'left') {
             this.x = 35;
             this.y = mapH / 2 - 75 / 2;
-            // 회전 처리를 위해 크기 교환
-            this.width = 18;
-            this.height = 75;
         } else if (direction === 'right') {
             this.x = mapW - 53;
             this.y = mapH / 2 - 75 / 2;
-            this.width = 18;
-            this.height = 75;
         } else if (direction === 'secret') {
             this.x = x;
             this.y = y;
@@ -355,7 +385,7 @@ class NeonCoin {
         this.vy *= this.friction;
 
         // 벽 마진선 이탈 방지
-        const wallMargin = 40;
+        const wallMargin = 50;
         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
         let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
         if (this.x < wallMargin + this.radius) { this.x = wallMargin + this.radius; this.vx = -this.vx; }
