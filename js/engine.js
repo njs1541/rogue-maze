@@ -784,8 +784,8 @@ class GameEngine {
     // [신규] 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
     isTileWall(x, y) {
         if (!this.grid) return false;
-        const c = Math.floor(x / 50);
-        const r = Math.floor(y / 50);
+        const c = Math.floor(x / 55); // [수정] 가로 타일 너비를 50px에서 55px로 보정 (1320px / 24열 = 55px)
+        const r = Math.floor(y / 50); // (900px / 18행 = 50px)
         if (c < 0 || c >= 24 || r < 0 || r >= 18) return true; // 맵 범위 밖은 벽으로 간주
         const val = this.grid[r] ? this.grid[r][c] : undefined;
         return val === 1 || val === 2;
@@ -2449,10 +2449,19 @@ class GameEngine {
                     // 아주 부드럽게 양방향으로 25%씩 밀어내어 골고루 펼쳐지게 격리
                     let pushForce = overlap * 0.25;
 
-                    m.x += Math.cos(pushAngle) * pushForce;
-                    m.y += Math.sin(pushAngle) * pushForce;
-                    other.x -= Math.cos(pushAngle) * pushForce;
-                    other.y -= Math.sin(pushAngle) * pushForce;
+                    // [수정] 밀쳐진 결과 위치가 벽 내부인지 사전에 판단하여 길 위일 때만 이동
+                    let nextMx = m.x + Math.cos(pushAngle) * pushForce;
+                    let nextMy = m.y + Math.sin(pushAngle) * pushForce;
+                    if (!this.isTileWall(nextMx, nextMy)) {
+                        m.x = nextMx;
+                        m.y = nextMy;
+                    }
+                    let nextOtherX = other.x - Math.cos(pushAngle) * pushForce;
+                    let nextOtherY = other.y - Math.sin(pushAngle) * pushForce;
+                    if (!this.isTileWall(nextOtherX, nextOtherY)) {
+                        other.x = nextOtherX;
+                        other.y = nextOtherY;
+                    }
                 }
             }
 
@@ -3070,7 +3079,10 @@ class GameEngine {
                         // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭 (안전 영역 체크)
                         let potionY = spawnY + 70;
                         if (this.isTileWall(spawnX, potionY)) {
-                            potionY = spawnY;
+                            potionY = spawnY - 70; // 아래가 벽이면 위쪽 검사
+                            if (this.isTileWall(spawnX, potionY)) {
+                                potionY = spawnY; // 둘 다 벽이면 중앙 폴백
+                            }
                         }
                         this.potions.push(new NeonPotion(spawnX, potionY));
 
@@ -3088,7 +3100,10 @@ class GameEngine {
                             // 맵 중앙 부근에서 약간 아래쪽에 스폰 (보상 상자와 겹침 방지, 안전 영역 체크)
                             let pY = spawnY + 50;
                             if (this.isTileWall(spawnX, pY)) {
-                                pY = spawnY;
+                                pY = spawnY - 50; // 아래가 벽이면 위쪽 검사
+                                if (this.isTileWall(spawnX, pY)) {
+                                    pY = spawnY; // 둘 다 벽이면 중앙 폴백
+                                }
                             }
                             this.potions.push(new NeonPotion(spawnX, pY));
                             this.showFloatingText("HEALTH POTION SPONSED! 🩺", spawnX, spawnY - 30, '#39ff14');

@@ -448,6 +448,27 @@ class NeonCoin {
         this.vx *= this.friction;
         this.vy *= this.friction;
 
+        // [수정] 내부 격벽 장애물(isTileWall) 충돌 감지 및 물리 반사 처리 (벽 갇힘 원천 봉쇄)
+        if (window.gameEngine && window.gameEngine.isTileWall) {
+            const checkRadius = this.radius || 6;
+            
+            // X축 충돌 검사
+            if (window.gameEngine.isTileWall(this.x, this.y) ||
+                window.gameEngine.isTileWall(this.x - checkRadius, this.y) ||
+                window.gameEngine.isTileWall(this.x + checkRadius, this.y)) {
+                this.x -= this.vx; // 이전 위치 복귀
+                this.vx = -this.vx * 0.7; // 감속 반사
+            }
+            
+            // Y축 충돌 검사
+            if (window.gameEngine.isTileWall(this.x, this.y) ||
+                window.gameEngine.isTileWall(this.x, this.y - checkRadius) ||
+                window.gameEngine.isTileWall(this.x, this.y + checkRadius)) {
+                this.y -= this.vy; // 이전 위치 복귀
+                this.vy = -this.vy * 0.7; // 감속 반사
+            }
+        }
+
         // 벽 마진선 이탈 방지
         const wallMargin = 50;
         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
