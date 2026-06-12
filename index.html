@@ -459,6 +459,16 @@
                         </div>
                     </div>
 
+                    <!-- 화면 흔들림 세기 조절 -->
+                    <div class="option-group">
+                        <label for="shake-scale" class="option-label">📳 화면 흔들림 세기 (Shake)</label>
+                        <div class="slider-row">
+                            <input type="range" id="shake-scale" min="0" max="1" step="0.1" value="1.0"
+                                class="neon-slider">
+                            <span id="shake-scale-val" class="slider-val text-glow-purple">100%</span>
+                        </div>
+                    </div>
+
                     <!-- [성능 최적화] 저사양 모드 (Glow 효과 끄기) 추가 -->
                     <div class="option-group"
                         style="flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px; margin-top: 15px;">
@@ -961,6 +971,32 @@
     <script src="js/monster.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // 브라우저 뷰포트 크기에 맞추어 #game-container를 동적으로 축소하는 레이아웃 스케일링 로직
+        function resizeGameContainer() {
+            const container = document.getElementById('game-container');
+            if (!container) return;
+            
+            const targetWidth = 2160;
+            const targetHeight = 940;
+            
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            const scaleX = windowWidth / targetWidth;
+            const scaleY = windowHeight / targetHeight;
+            
+            // 비율 유지하며 화면에 딱 맞게 스케일링 (최대 1배율 크기 제한으로 흐릿함 방지)
+            const scale = Math.min(scaleX, scaleY, 1);
+            
+            container.style.transform = `scale(${scale})`;
+        }
+        
+        window.addEventListener('resize', resizeGameContainer);
+        window.addEventListener('DOMContentLoaded', resizeGameContainer);
+        // DOM 로딩 완료 및 게임엔진 구동 시점에 맞추어 즉시 갱신
+        setTimeout(resizeGameContainer, 100);
+    </script>
 </body>
 
 </html>

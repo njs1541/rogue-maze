@@ -416,6 +416,10 @@ class Monster {
     }
 
     update(player, bullets) {
+        // [신규] 벽 충돌 미끄러짐(Sliding Collision) 연산을 위해 프레임 시작점 좌표 백업
+        let origX = this.x;
+        let origY = this.y;
+
         // [수정] 전역 시간 왜곡(불릿 타임) 적용 배율 계산
         let timeScale = 1.0;
         if (window.gameEngine && window.gameEngine.timeDilationActive) {
@@ -2124,7 +2128,38 @@ class Monster {
             }
         }
 
-        // 맵 벽 경계선 제한 충돌 처리 (몬스터 맵 이탈 방지) 및 창/넉백 벽꽝(Wall Slam) 판정 연동
+        // [수정] 2차원 그리드 장애물 타일 벽(isTileWall) 충돌 감지 및 슬라이딩 미끄러짐 처리
+        let mapEngine = window.gameEngine;
+        let hasSlammedWall = false;
+
+        if (mapEngine && mapEngine.isTileWall) {
+            // 1. X축 이동 시 벽 충돌 검사 (몬스터의 크기를 반영하여 벽 침투 방지)
+            const checkRadius = this.radius * 0.7; // 부드러운 슬라이딩을 위해 약간 타이트하게 보정
+            if (mapEngine.isTileWall(this.x, origY) ||
+                mapEngine.isTileWall(this.x - checkRadius, origY) ||
+                mapEngine.isTileWall(this.x + checkRadius, origY)) {
+                
+                if (Math.abs(this.knockbackX) > 2.5) {
+                    hasSlammedWall = true;
+                }
+                this.x = origX; // X축 이동 무효화
+                this.knockbackX = 0;
+            }
+
+            // 2. Y축 이동 시 벽 충돌 검사
+            if (mapEngine.isTileWall(this.x, this.y) ||
+                mapEngine.isTileWall(this.x, this.y - checkRadius) ||
+                mapEngine.isTileWall(this.x, this.y + checkRadius)) {
+                
+                if (Math.abs(this.knockbackY) > 2.5) {
+                    hasSlammedWall = true;
+                }
+                this.y = origY; // Y축 이동 무효화
+                this.knockbackY = 0;
+            }
+        }
+
+        // 맵 외곽 테두리 wallMargin 경계선 제한 충돌 처리 (몬스터 맵 이탈 원천 방지)
         const wallMargin = 50;
         let preX = this.x;
         let preY = this.y;
@@ -2133,8 +2168,7 @@ class Monster {
         this.x = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, this.x));
         this.y = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, this.y));
 
-        // 넉백 중 벽에 부딪혀 강제 위치 교정이 일어났는지 검사
-        let hasSlammedWall = false;
+        // 외곽 테두리에 부딪혀 강제 위치 교정이 일어났는지 검사
         if ((this.x !== preX && Math.abs(this.knockbackX) > 2.5) || (this.y !== preY && Math.abs(this.knockbackY) > 2.5)) {
             hasSlammedWall = true;
         }
@@ -2195,7 +2229,7 @@ class Monster {
             fillColor = 'rgba(255, 255, 255, 0.8)';
             strokeColor = '#ffffff';
             glowColor = '#ffffff';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 0; // [최적화] 피격 깜빡임 시 블러 연산을 꺼서 대량 피격 렉 박멸
         } else if (this.statusEffects.shock >= 120) {
             // [W-08 시간 완전 정지 - 회색조 석상화 렌더링]
             fillColor = 'rgba(80, 80, 80, 0.45)';

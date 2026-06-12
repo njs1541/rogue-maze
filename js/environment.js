@@ -5,12 +5,12 @@ class NeonTileWall {
     constructor(col, row, type) {
         this.col = col; // 24열 인덱스 (0~23)
         this.row = row; // 18행 인덱스 (0~17)
-        this.width = 50;  // 타일 가로 50px
+        this.width = 55;  // 타일 가로 55px (1320px 가로 해상도 정렬)
         this.height = 50; // 타일 세로 50px
         this.type = type; // 1: 내부 격벽 (자홍), 2: 외곽 테두리 및 막힌 영역 (다크)
 
         // 중심 좌표 계산
-        this.x = col * 50 + 25;
+        this.x = col * 55 + 27.5;
         this.y = row * 50 + 25;
 
         // 비주얼 테마 색상 설정
@@ -26,42 +26,78 @@ class NeonTileWall {
     }
 
     draw(ctx) {
-        // type 2 (외벽)는 완전 투명이 아니라 살짝 어두운 텍스처나 테두리 정도로만 렌더링
+        // type 2 (외벽)는 이동 불가 영역을 캔버스 배경과 확실히 구분할 수 있도록 렌더링
         if (this.type === 2) {
             ctx.save();
-            ctx.fillStyle = '#040508'; // 플레이 불가 외벽은 더 짙은 어두움으로 칠함
-            ctx.fillRect(this.x - 25, this.y - 25, 50, 50);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(this.x - 25, this.y - 25, 50, 50);
+            // 플레이 불가 외벽은 짙은 청회색으로 채워 시인성 확보
+            ctx.fillStyle = '#060810';
+            ctx.fillRect(this.x - 27.5, this.y - 25, 55, 50);
+            
+            // 더 선명하고 굵은 붉은 네온 경고 테두리 (알파값 0.35로 대폭 강화)
+            ctx.strokeStyle = 'rgba(255, 0, 85, 0.35)';
+            ctx.lineWidth = 2.0;
+            ctx.strokeRect(this.x - 27.5, this.y - 25, 55, 50);
+
+            // 경고 빗금선들 (여러 개 빗겨 그려 확실히 차단 영역임을 표시)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 0, 85, 0.18)';
+            ctx.lineWidth = 1.2;
+            
+            // 3개의 경사 빗금선
+            ctx.moveTo(this.x - 27.5, this.y - 10);
+            ctx.lineTo(this.x + 12.5, this.y + 25);
+            
+            ctx.moveTo(this.x - 27.5, this.y - 25);
+            ctx.lineTo(this.x + 27.5, this.y + 25);
+            
+            ctx.moveTo(this.x - 12.5, this.y - 25);
+            ctx.lineTo(this.x + 27.5, this.y + 10);
+            ctx.stroke();
+            
             ctx.restore();
             return;
         }
 
         // type 1 (내부 격벽)은 화려한 자홍색 홀로그램 스타일로 렌더링
+        // [최적화] shadowBlur 대신 고성능 겹쳐 그리기(Stroke Layering) 기법으로 렉 유발 요인을 완전 제거!
         ctx.save();
         ctx.translate(this.x, this.y);
         this.pulse += 0.04;
         let scale = 1.0 + Math.sin(this.pulse) * 0.03; // 홀로그램 맥동 효과
         
+        // 저사양/성능 최적화 모드가 아닐 때만 은은한 아우라 번짐선 1차 렌더링
+        const lowSpec = window.gameEngine && window.gameEngine.lowSpecMode;
+        if (!lowSpec) {
+            ctx.beginPath();
+            ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+            ctx.fillStyle = 'rgba(255, 0, 170, 0.05)';
+            ctx.strokeStyle = 'rgba(255, 0, 170, 0.22)';
+            ctx.lineWidth = 4.5; // 두꺼운 네온 아우라 번짐선
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            // 저사양 모드인 경우 심플 채우기만
+            ctx.beginPath();
+            ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+            ctx.fillStyle = 'rgba(255, 0, 170, 0.08)';
+            ctx.fill();
+        }
+        
+        // 2차 밝은 코어 중심선 렌더링 (shadowBlur 제거로 렉 현상 박멸)
         ctx.beginPath();
-        ctx.rect(-24 * scale, -24 * scale, 48 * scale, 48 * scale);
-        ctx.fillStyle = 'rgba(255, 0, 170, 0.08)';
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = 2.0;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.glowColor;
-        ctx.fill();
+        ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+        ctx.strokeStyle = '#ff66cc'; // 매우 밝은 자홍 네온 코어선
+        ctx.lineWidth = 1.5;
         ctx.stroke();
         
         // 내부 데코레이션 X 격자선
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255, 0, 170, 0.2)';
         ctx.lineWidth = 1;
-        ctx.moveTo(-24 * scale, -24 * scale);
-        ctx.lineTo(24 * scale, 24 * scale);
-        ctx.moveTo(24 * scale, -24 * scale);
-        ctx.lineTo(-24 * scale, 24 * scale);
+        ctx.moveTo(-26.5 * scale, -24 * scale);
+        ctx.lineTo(26.5 * scale, 24 * scale);
+        ctx.moveTo(26.5 * scale, -24 * scale);
+        ctx.lineTo(-26.5 * scale, 24 * scale);
         ctx.stroke();
         
         ctx.restore();
@@ -97,6 +133,19 @@ class RoomPortal {
                 this.y = spawnInfo.y - this.height / 2;
                 this.gridX = spawnInfo.gridX;
                 this.gridY = spawnInfo.gridY;
+
+                // [수정] wallMargin = 50 경계선에 포탈의 외형이 정확히 걸쳐져서 노출되도록 보정 연산 적용
+                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
+                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+                if (direction === 'left') {
+                    this.x = 50 - this.width / 2;
+                } else if (direction === 'right') {
+                    this.x = mapW - 50 - this.width / 2;
+                } else if (direction === 'top') {
+                    this.y = 50 - this.height / 2;
+                } else if (direction === 'bottom') {
+                    this.y = mapH - 50 - this.height / 2;
+                }
                 return;
             }
         }
@@ -105,18 +154,18 @@ class RoomPortal {
         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
         let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
 
-        // 방향별 좌표 바인딩 (동적 맵 크기에 비례)
+        // 방향별 좌표 바인딩 (동적 맵 크기에 비례하여 wallMargin = 50에 일치)
         if (direction === 'top') {
             this.x = mapW / 2 - this.width / 2;
-            this.y = 35;
+            this.y = 50 - this.height / 2;
         } else if (direction === 'bottom') {
             this.x = mapW / 2 - this.width / 2;
-            this.y = mapH - 53;
+            this.y = mapH - 50 - this.height / 2;
         } else if (direction === 'left') {
-            this.x = 35;
+            this.x = 50 - this.width / 2;
             this.y = mapH / 2 - 75 / 2;
         } else if (direction === 'right') {
-            this.x = mapW - 53;
+            this.x = mapW - 50 - this.width / 2;
             this.y = mapH / 2 - 75 / 2;
         } else if (direction === 'secret') {
             this.x = x;
@@ -298,13 +347,28 @@ class RoomPortal {
             return Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius;
         }
         
-        // 플레이어가 포털 박스 영역 안에 도달 시 작동
-        return (
-            player.x > this.x - 5 &&
-            player.x < this.x + this.width + 5 &&
-            player.y > this.y - 5 &&
-            player.y < this.y + this.height + 5
-        );
+        // [수정] wallMargin = 50 이동 경계선 제한 때문에 플레이어 좌표가 물리적으로 문 박스 중심선에 닿지 못하는 결함 해결
+        // 플레이어의 바운딩 박스가 50px 경계선(이동 한계선)에 근접 또는 터치하였고, 문의 폭(또는 높이) 범위 안에 있는지를 검사
+        const pLeft = player.x - player.radius;
+        const pRight = player.x + player.radius;
+        const pTop = player.y - player.radius;
+        const pBottom = player.y + player.radius;
+        
+        const triggerMargin = 52; // 50px 경계선에 딱 붙었을 때(또는 살짝 안쪽) 충돌 인식
+
+        if (this.direction === 'left') {
+            return pLeft <= triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+        } else if (this.direction === 'right') {
+            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
+            return pRight >= mapW - triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+        } else if (this.direction === 'top') {
+            return pTop <= triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+        } else if (this.direction === 'bottom') {
+            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+            return pBottom >= mapH - triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+        }
+        
+        return false;
     }
 }
 

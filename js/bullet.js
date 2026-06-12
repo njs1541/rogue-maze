@@ -29,6 +29,8 @@ class Bullet {
         this.monsterBounceCount = 0; // 몬스터 튕긴 누적 횟수
         this.monsterBounceLimit = options.monsterBounceLimit || 0; // 최대 허용 몬스터 튕기기 횟수
         this.active = true; // [신규] 탄환 활성화 상태 (배열 훼손 방멸용 소멸 예약 플래그)
+        this.hitMonsters = new Set(); // [최적화] 이미 타격한 몬스터 레퍼런스 저장 (중복 피격 방지)
+        this.targetMonster = null;    // [최적화] 캐싱된 유도 대상 몬스터
 
         // [초월 무기 - 아앤파 댄스 전용] DNA 이중나선 물리/비주얼 관련 상태 주입
         this.isDna = options.isDna || false;
@@ -53,21 +55,25 @@ class Bullet {
         let baseForHomingX = this.isDna ? this.virtualX : this.x;
         let baseForHomingY = this.isDna ? this.virtualY : this.y;
 
-        // 유도탄 로직: 가장 가까운 적을 감지하여 실시간 유도 비행
+        // 유도탄 로직: 가장 가까운 적을 감지하여 실시간 유도 비행 (타겟 캐싱 최적화)
         if (this.isPlayerBullet && this.homing && monsters.length > 0) {
-            let closest = null;
-            let minDist = Infinity;
-            for (let m of monsters) {
-                let dist = Math.hypot(m.x - baseForHomingX, m.y - baseForHomingY);
-                if (dist < minDist) {
-                    minDist = dist;
-                    closest = m;
+            // 캐싱된 타겟이 유효한지 검증 (체력이 남아있고, 사망 처리 마킹이 되지 않았는지)
+            if (!this.targetMonster || this.targetMonster.hp <= 0 || this.targetMonster.dead) {
+                this.targetMonster = null;
+                let minDist = Infinity;
+                for (let m of monsters) {
+                    if (m.hp <= 0) continue;
+                    let dist = Math.hypot(m.x - baseForHomingX, m.y - baseForHomingY);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        this.targetMonster = m;
+                    }
                 }
             }
 
-            if (closest) {
+            if (this.targetMonster) {
                 // 적 방향의 목표 각도 연산
-                let targetAngle = Math.atan2(closest.y - baseForHomingY, closest.x - baseForHomingX);
+                let targetAngle = Math.atan2(this.targetMonster.y - baseForHomingY, this.targetMonster.x - baseForHomingX);
                 let currentAngle = Math.atan2(this.vy, this.vx);
                 
                 // 각도 보간 (매 프레임마다 약 5도씩 조준점 수정 - 강화 시 0.13로 향상)

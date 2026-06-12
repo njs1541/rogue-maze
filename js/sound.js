@@ -193,8 +193,10 @@ const Sound = {
 
         // 사운드 유형별로 중복 재생 방지 가드 시간을 다르게 주어 타격감과 속사음을 살립니다.
         let guardTime = 250; // 기본 가드 시간 (보스경보, 폭발, victory 등 대형 효과)
-        if (type === 'shoot' || type === 'hit') {
-            guardTime = 45; // 0.045초 초단기 가드 (공속 10레벨 속사 및 다단 타격 완벽 대응)
+        if (type === 'shoot') {
+            guardTime = 45; // 0.045초 초단기 가드 (공속 10레벨 속사 완벽 대응)
+        } else if (type === 'hit') {
+            guardTime = 80; // [최적화] 피격음은 다단히트 시 버퍼 오버헤드를 막기 위해 80ms 간격 제한
         } else if (type === 'coin' || type === 'dodge' || type === 'slash') {
             guardTime = 80; // 코인 습득, 검풍, 회피 쿨타임 80ms
         }

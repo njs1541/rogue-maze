@@ -149,43 +149,43 @@ const MAP_PRESETS = {
 // [신규] 프리셋별 문(포털) 소환 정보 매핑
 const PORTAL_SPAWN_INFOS = {
     PRESET_SIZE_NORMAL: {
-        top:    { x: 1200 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
-        bottom: { x: 1200 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
-        left:   { x: 4.5 * 50, y: 900 / 2, gridX: 4, gridY: 8 },
-        right:  { x: 19.5 * 50, y: 900 / 2, gridX: 19, gridY: 8 }
+        top:    { x: 1320 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
+        bottom: { x: 1320 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
+        left:   { x: 4.5 * 55, y: 900 / 2, gridX: 4, gridY: 8 },
+        right:  { x: 19.5 * 55, y: 900 / 2, gridX: 19, gridY: 8 }
     },
     PRESET_SIZE_MIDDLE: {
-        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 2.5 * 50, y: 900 / 2, gridX: 2, gridY: 8 },
-        right:  { x: 21.5 * 50, y: 900 / 2, gridX: 21, gridY: 8 }
+        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 2.5 * 55, y: 900 / 2, gridX: 2, gridY: 8 },
+        right:  { x: 21.5 * 55, y: 900 / 2, gridX: 21, gridY: 8 }
     },
     PRESET_SIZE_BOSS: {
-        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_LINE: {
-        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_WINDOW: {
-        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_U_SHAPE: {
-        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 }
+        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 }
     },
     PRESET_CROSS: {
-        top:    { x: 1200 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1200 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 50, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 50, y: 900 / 2, gridX: 23, gridY: 8 }
+        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     }
 };
 
@@ -198,8 +198,8 @@ class GameEngine {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
 
-        // 디자인 해상도 비율 1200 * 900 고정 스케일링 설정
-        this.mapWidth = 1200;
+        // 디자인 해상도 비율 1320 * 900 고정 스케일링 설정
+        this.mapWidth = 1320;
         this.mapHeight = 900;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
@@ -227,7 +227,19 @@ class GameEngine {
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
+        
+        // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
         this.particles = [];
+        this.particles.push = (function(originalPush) {
+            return function(item) {
+                // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
+                if (this.length >= 350 && item && item.type !== 'text') {
+                    return this.length;
+                }
+                return originalPush.apply(this, arguments);
+            };
+        })(this.particles.push);
+
         this.pets = [];
         this.potions = []; // [추가] 맵 클리어 드롭 물약 엔티티 리스트
         this.coinsList = []; // [W-08 신규 구현] 드롭 코인 엔티티 리스트
@@ -262,6 +274,7 @@ class GameEngine {
         // 흔들림 이펙트 강도
         this.shakeTimer = 0;
         this.shakeIntensity = 0;
+        this.shakeScale = 1.0; // [신규] 화면 흔들림 강도 옵션 배율 (0.0 ~ 1.0)
 
         // 콤보 및 기타 이펙트 수치
         this.comboCount = 0;
@@ -327,7 +340,7 @@ class GameEngine {
         const container = document.getElementById('game-container');
         if (!container) return;
 
-        const baseWidth = 1680;
+        const baseWidth = 2160;
         const baseHeight = 940;
         const winWidth = window.innerWidth;
         const winHeight = window.innerHeight;
@@ -650,7 +663,19 @@ class GameEngine {
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
+        
+        // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
         this.particles = [];
+        this.particles.push = (function(originalPush) {
+            return function(item) {
+                // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
+                if (this.length >= 350 && item && item.type !== 'text') {
+                    return this.length;
+                }
+                return originalPush.apply(this, arguments);
+            };
+        })(this.particles.push);
+
         this.pets = [];
         this.potions = []; // [추가] 물약 리스트 초기화
         this.coinsList = []; // [W-08 신규 구현] 코인 리스트 초기화
@@ -668,7 +693,7 @@ class GameEngine {
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
 
-        this.mapWidth = 1200;
+        this.mapWidth = 1320;
         this.mapHeight = 900;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
@@ -776,7 +801,8 @@ class GameEngine {
             for (let c = 0; c < 24; c++) {
                 if (this.grid && this.grid[r] && this.grid[r][c] === 0) {
                     // 타일 중앙 픽셀 좌표 계산
-                    const x = c * 50 + 25;
+                    // [수정] 가로 타일 너비는 55px이므로 c * 55 + 27.5 로 올바르게 보정하여 벽 스폰 방지
+                    const x = c * 55 + 27.5;
                     const y = r * 50 + 25;
                     safePositions.push({ x, y, r, c });
                 }
@@ -984,7 +1010,7 @@ class GameEngine {
         }
 
         // --- [신규 기믹] 2차원 그리드 기반 맵 결정 및 크기 고정 ---
-        this.mapWidth = 1200;
+        this.mapWidth = 1320;
         this.mapHeight = 900;
 
         // 캔버스 크기 적용
@@ -1600,8 +1626,33 @@ class GameEngine {
 
     // 화면 진동 함수
     shakeScreen(frames, intensity) {
+        // [수정] 옵션 세기가 0%이면 즉시 리턴하여 불필요한 연산 차단
+        if (this.shakeScale === undefined) this.shakeScale = 1.0;
+        if (this.shakeScale <= 0) return;
+
+        if (this.recentShakeCount === undefined) this.recentShakeCount = 0;
+        
+        // 흔들림 요청 횟수 증가
+        this.recentShakeCount++;
+
+        // 짧은 시간 내에 연속으로 흔들림이 요청될수록 강도를 지수적으로 감쇄
+        // 1회차: 100%, 2회차: 66%, 5회차: 33%, 10회차: 18% 수준으로 흔들림 약화
+        let decayFactor = 1 / (1 + (this.recentShakeCount - 1) * 0.5);
+        let finalIntensity = intensity * decayFactor * this.shakeScale; // [최적화] 유저 옵션 shakeScale 스케일링 배율 적용
+
+        // [최적화] 이미 화면이 더 강하게 흔들리는 중이면 리셋 방지하여 렌더링 떨림 부하 경감
+        // 보정 전 순수 감쇄 강도로 비교하여 다단히트 시 가드 기능이 비정상적으로 무력화되는 오동작 방지
+        if (this.shakeTimer > 0 && finalIntensity <= this.shakeIntensity) {
+            return;
+        }
+
+        // [최적화] 가드를 무사히 통과한 경우에 한해 최소 인지 흔들림 세기 임계값(0.5 픽셀)을 보장하여 0%처럼 작동하는 현상 방지
+        if (finalIntensity > 0 && finalIntensity < 0.5) {
+            finalIntensity = 0.5;
+        }
+
         this.shakeTimer = frames;
-        this.shakeIntensity = intensity;
+        this.shakeIntensity = Math.min(5.0, finalIntensity); // 최대 진동 강도를 5.0으로 캡핑
     }
 
     // --------------------------------------------------------------------------
@@ -1683,6 +1734,18 @@ class GameEngine {
                 this.rewardSelectorDelayTimer = -1;
                 this.triggerRewardSelector(this.rewardSelectorIsFromHiddenChest);
             }
+        }
+
+        // [최적화] 프레임당 스플래시 연산/이펙트 캡핑용 카운터 초기화
+        this.frameSplashCount = 0;
+        this.frameHitSparkCount = 0;
+        this.frameChainCount = 0;
+        this.frameSpawnedDeathParticles = 0; // [최적화] 프레임당 몬스터 사망 파티클 카운터 초기화
+
+        // [최적화] 최근 화면 흔들림 요청 감쇄 (다단히트 화면 흔들림 멀미/렉 방지)
+        if (this.recentShakeCount === undefined) this.recentShakeCount = 0;
+        if (this.recentShakeCount > 0) {
+            this.recentShakeCount = Math.max(0, this.recentShakeCount - 0.25); // 매 프레임 0.25씩 자연스럽게 감쇄 (약 1초당 15회 감쇄)
         }
 
         this.player.update();
@@ -2347,7 +2410,7 @@ class GameEngine {
             }
 
             // 화면 밖으로 나가거나 수명이 다하거나 비활성화(소멸 예약)되면 소멸
-                                    if (!b.active || b.x < 35 || b.x > this.mapWidth - 35 || b.y < 35 || b.y > this.mapHeight - 35 || b.life <= 0) {
+            if (!b.active || b.x < 35 || b.x > this.mapWidth - 35 || b.y < 35 || b.y > this.mapHeight - 35 || b.life <= 0) {
                 this.bullets.splice(i, 1);
             }
         }
@@ -2394,27 +2457,6 @@ class GameEngine {
             }
 
             m.update(this.player, this.bullets);
-
-            // [5-3단계] 몬스터와 격자 장애물 지형 충돌 처리 (슬라이딩 물리)
-            // 격자 내에 배치된 자홍색 홀로그램 장벽들과 몬스터 간의 충돌 판정을 계산하여 미끄러지도록 처리합니다.
-            for (let obs of this.obstacles) {
-                let distX = m.x - obs.x;
-                let distY = m.y - obs.y;
-
-                let minXDist = (obs.width / 2) + m.radius - 2;
-                let minYDist = (obs.height / 2) + m.radius - 2;
-
-                if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
-                    let overlapX = minXDist - Math.abs(distX);
-                    let overlapY = minYDist - Math.abs(distY);
-
-                    if (overlapX < overlapY) {
-                        m.x += distX > 0 ? overlapX : -overlapX;
-                    } else {
-                        m.y += distY > 0 ? overlapY : -overlapY;
-                    }
-                }
-            }
 
             // [충돌 검사 A] 몬스터 본체와 플레이어 캐릭터 본체의 격돌
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
@@ -2625,8 +2667,22 @@ class GameEngine {
 
                 // 플레이어 탄환 -> 몬스터 타격
                 if (b.isPlayerBullet) {
+                    // [최적화] 이미 이 탄환에 맞은 몬스터라면 피격 판정 건너뜀 (중복 피격 렉 방멸)
+                    if (b.hitMonsters && b.hitMonsters.has(m)) {
+                        continue;
+                    }
+
+                    // [최적화] 1차 절댓값 필터링 (Math.hypot 연산 오버헤드 해소)
+                    let limitDist = m.radius + b.radius;
+                    if (Math.abs(m.x - b.x) >= limitDist || Math.abs(m.y - b.y) >= limitDist) {
+                        continue;
+                    }
+
                     let bDist = Math.hypot(m.x - b.x, m.y - b.y);
-                    if (bDist < m.radius + b.radius) {
+                    if (bDist < limitDist) {
+                        if (b.hitMonsters) {
+                            b.hitMonsters.add(m); // [최적화] 피격된 몬스터 등록
+                        }
 
                         // [W-02 채찍(Whip) 견인 및 그랩 물리 로직]
                         if (b.isWhip) {
@@ -2754,10 +2810,14 @@ class GameEngine {
                             this.triggerBulletSplash(b.x, b.y, b.splash, b.damage * this.player.splashDmgUpgrade);
                         }
 
-                        // 스파크 파티클 생성
-                        for (let k = 0; k < 5; k++) {
-                            let speed = Math.random() * 3 + 1;
-                            this.particles.push(new Particle(b.x, b.y, b.color, 2, Math.cos(hitAngle + Math.random() - 0.5) * speed, Math.sin(hitAngle + Math.random() - 0.5) * speed, 15));
+                        // [최적화] 다단히트 렉 완화를 위해 피격 스파크 파티클을 2개로 경량화하고 프레임당 생성 최대 개수 제한
+                        if (this.frameHitSparkCount === undefined) this.frameHitSparkCount = 0;
+                        if (this.frameHitSparkCount < 15) {
+                            for (let k = 0; k < 2; k++) {
+                                let speed = Math.random() * 3 + 1;
+                                this.particles.push(new Particle(b.x, b.y, b.color, 2, Math.cos(hitAngle + Math.random() - 0.5) * speed, Math.sin(hitAngle + Math.random() - 0.5) * speed, 15));
+                                this.frameHitSparkCount++;
+                            }
                         }
 
                         // 관통 횟수 차감 및 소멸
@@ -2771,6 +2831,10 @@ class GameEngine {
                             let minDist = Infinity;
                             for (let otherM of this.monsters) {
                                 if (otherM === m || otherM.hp <= 0) continue;
+                                // [최적화] 1차 절댓값 필터링 (최대 도탄 거리 250px 내인지 스크리닝)
+                                if (Math.abs(otherM.x - b.x) >= 250 || Math.abs(otherM.y - b.y) >= 250) {
+                                    continue;
+                                }
                                 let distToOther = Math.hypot(otherM.x - b.x, otherM.y - b.y);
                                 if (distToOther < minDist && distToOther < 250) {
                                     minDist = distToOther;
@@ -3355,6 +3419,48 @@ class GameEngine {
         this.updateHUD();
     }
 
+    // [W-07 신규 구현] 체인 라이트닝(연쇄 벼락) 전이 트리거
+    triggerChainLightning(startX, startY, currentEnemy, chainsLeft, damage) {
+        if (chainsLeft <= 0 || this.monsters.length === 0) return;
+
+        // [최적화] 연쇄 번개 전이 타격 노랑 낙뢰 이펙트 파티클을 3개로 간소화
+        for (let k = 0; k < 3; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 3 + 1;
+            this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
+        }
+
+        // 주변 몬스터 중 가장 가까운 다른 몬스터 탐색 (번개 전이 거리 180px 제한)
+        let nextTarget = null;
+        let minDist = 180; // 최대 전이 거리
+
+        for (let other of this.monsters) {
+            if (other === currentEnemy) continue;
+            let dist = Math.hypot(other.x - currentEnemy.x, other.y - currentEnemy.y);
+            if (dist < minDist) {
+                minDist = dist;
+                nextTarget = other;
+            }
+        }
+
+        if (nextTarget) {
+            // [최적화] 연쇄 번개 전류 와이어 시각 파티클을 3개로 줄여 렉 경감 (징검다리 렌더링)
+            let dx = nextTarget.x - currentEnemy.x;
+            let dy = nextTarget.y - currentEnemy.y;
+            for (let i = 0; i <= 2; i++) {
+                let step = i / 2;
+                let px = currentEnemy.x + dx * step;
+                let py = currentEnemy.y + dy * step;
+                this.particles.push(new Particle(px, py, '#ffdf00', 1.8, 0, 0, 15, 'spark'));
+            }
+
+            // 데미지 가함
+            nextTarget.hp -= damage;
+            nextTarget.flashTimer = 5;
+            this.triggerChainLightning(nextTarget.x, nextTarget.y, nextTarget, chainsLeft - 1, damage);
+        }
+    }
+
     // [신규] W-05 불마법 화상 5중첩 사망 시 사방 연쇄 폭발 트리거
     triggerFireExplosion(x, y) {
         Sound.play('explosion');
@@ -3634,12 +3740,16 @@ class GameEngine {
             this.coinsList.push(new NeonCoin(m.x, m.y, 1));
         }
 
-        // 몬스터 사망 시 흩어지는 빛 파편 (엘리트는 2배 풍성)
-        let particleCount = m.isElite ? 25 : 12;
-        for (let k = 0; k < particleCount; k++) {
-            let angle = Math.random() * Math.PI * 2;
-            let speed = Math.random() * (m.isElite ? 5 : 3) + 1;
-            this.particles.push(new Particle(m.x, m.y, m.color, m.isElite ? 4 : 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 30));
+        // 몬스터 사망 시 흩어지는 빛 파편 (기본 수량 축소 및 프레임당 생성량 30개로 캡핑)
+        if (this.frameSpawnedDeathParticles === undefined) this.frameSpawnedDeathParticles = 0;
+        let particleCount = m.isElite ? 12 : 4; 
+        if (this.frameSpawnedDeathParticles < 30) {
+            for (let k = 0; k < particleCount; k++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * (m.isElite ? 5 : 3) + 1;
+                this.particles.push(new Particle(m.x, m.y, m.color, m.isElite ? 4 : 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 30));
+                this.frameSpawnedDeathParticles++;
+            }
         }
 
         // 엘리트 몬스터 처치 시 강력한 화면 연동 피드백
@@ -3835,27 +3945,40 @@ class GameEngine {
 
     // [신규 추가] 타격감(Juice)을 위한 Hit Stop 트리거 헬퍼 (다단 히트 랙 방지 쿨다운 적용)
     triggerHitStop(frames) {
+        // [최적화] 히트스톱 쿨다운 중에는 아예 히트스톱 갱신을 원천 차단하여 다단 타격/처치 시 물리가 무한 일시 정지되는 체감 렉 방멸
         if (this.hitStopCooldown > 0) {
-            // 이미 쿨다운 타이머가 도는 중이라면 더 긴 역경직 프레임만 대입하고 추가 쿨다운 갱신은 보류
-            if (frames > this.hitStopFrames) {
-                this.hitStopFrames = frames;
-            }
             return;
         }
         this.hitStopFrames = frames;
-        this.hitStopCooldown = 12; // 12프레임(약 0.2초) 동안 추가 히트스톱 발동 제한 (랙 체감 방멸)
+        this.hitStopCooldown = 15; // 쿨다운 15프레임 설정
     }
 
     // 원거리 스플래시 탄환 범위 데미지 연산
     triggerBulletSplash(x, y, radius, damage) {
-        Sound.play('explosion');
-        this.particles.push(new Particle(x, y, '#00f0ff', radius, 0, 0, 30, 'explosionRing'));
+        if (this.frameSplashCount === undefined) this.frameSplashCount = 0;
+        // [최적화] 1프레임당 과도한 스플래시 연산 차단 (최대 6회 가동)
+        if (this.frameSplashCount >= 6) {
+            return;
+        }
+
+        if (this.frameSplashCount < 3) {
+            Sound.play('explosion');
+            this.particles.push(new Particle(x, y, '#00f0ff', radius, 0, 0, 30, 'explosionRing'));
+        }
+        this.frameSplashCount++;
 
         for (let i = this.monsters.length - 1; i >= 0; i--) {
             let m = this.monsters[i];
             if (!m || m.dead) continue;
+
+            // [최적화] 1차 절댓값 필터링 (Math.hypot 연산 오버헤드 방지)
+            let limitDist = radius + m.radius;
+            if (Math.abs(m.x - x) >= limitDist || Math.abs(m.y - y) >= limitDist) {
+                continue;
+            }
+
             let dist = Math.hypot(m.x - x, m.y - y);
-            if (dist < radius + m.radius) {
+            if (dist < limitDist) {
                 // 스플래시 폭발에 의한 기절 상태 부여 (1초)
                 m.statusEffects.shock = 60;
 
@@ -3881,8 +4004,15 @@ class GameEngine {
     triggerChainLightning(startX, startY, currentEnemy, chainsLeft, damage) {
         if (chainsLeft <= 0 || this.monsters.length === 0) return;
 
-        // 전이 타격 노랑 네온 낙뢰 이펙트 파티클
-        for (let k = 0; k < 6; k++) {
+        if (this.frameChainCount === undefined) this.frameChainCount = 0;
+        // [최적화] 1프레임당 과도한 연쇄 번개 전이 차단 (최대 16회까지 전이 허용)
+        if (this.frameChainCount >= 16) {
+            return;
+        }
+        this.frameChainCount++;
+
+        // [최적화] 연쇄 번개 전이 타격 노랑 낙뢰 이펙트 파티클을 3개로 간소화
+        for (let k = 0; k < 3; k++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 3 + 1;
             this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
@@ -3894,6 +4024,10 @@ class GameEngine {
 
         for (let other of this.monsters) {
             if (other === currentEnemy) continue;
+            // [최적화] 1차 절댓값 필터링 (최대 전이 거리 180px 내인지 스크리닝)
+            if (Math.abs(other.x - currentEnemy.x) >= 180 || Math.abs(other.y - currentEnemy.y) >= 180) {
+                continue;
+            }
             let dist = Math.hypot(other.x - currentEnemy.x, other.y - currentEnemy.y);
             if (dist < minDist) {
                 minDist = dist;
@@ -3902,11 +4036,11 @@ class GameEngine {
         }
 
         if (nextTarget) {
-            // 연쇄 번개 전류 와이어 시각 효과 파티클 (두 몬스터 사이에 선 형태로 5개 뿌림)
+            // [최적화] 연쇄 번개 전류 와이어 시각 파티클을 3개로 줄여 렉 경감 (징검다리 렌더링)
             let dx = nextTarget.x - currentEnemy.x;
             let dy = nextTarget.y - currentEnemy.y;
-            for (let i = 0; i <= 5; i++) {
-                let step = i / 5;
+            for (let i = 0; i <= 2; i++) {
+                let step = i / 2;
                 let px = currentEnemy.x + dx * step;
                 let py = currentEnemy.y + dy * step;
                 this.particles.push(new Particle(px, py, '#ffdf00', 1.8, 0, 0, 15, 'spark'));
@@ -5940,6 +6074,14 @@ class GameEngine {
             let dy = (Math.random() * 2 - 1) * this.shakeIntensity;
             this.ctx.translate(dx, dy);
             this.shakeTimer--;
+
+            // [최적화] 진동 강도 매 프레임 자연스럽게 감쇄 (다단히트 시 가드 락 완화 및 부드러운 감쇄 연출)
+            this.shakeIntensity *= 0.9;
+
+            // [최적화] 진동 타이머 종료 시 강도를 0으로 명확히 초기화하여 이전 대진동의 잔재를 제거
+            if (this.shakeTimer <= 0) {
+                this.shakeIntensity = 0;
+            }
         }
 
         // 배경 페인팅 (어두운 던전 분위기 및 옅은 리프레시 흔적 트레일 연출)
@@ -5952,15 +6094,15 @@ class GameEngine {
             this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
         }
 
-        // 방 벽 테두리 네온 사각형 그리기 (#08090e 내부 필드 및 외부 마진벽)
+        // 방 벽 테두리 네온 사각형 그리기 (50px wallMargin 경계선에 정렬)
         this.ctx.beginPath();
-        this.ctx.rect(38, 38, this.mapWidth - 76, this.mapHeight - 76);
+        this.ctx.rect(48, 48, this.mapWidth - 96, this.mapHeight - 96);
         this.ctx.strokeStyle = this.timeDilationActive ? 'rgba(176, 38, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
         this.ctx.lineWidth = 4;
         this.ctx.stroke();
 
         this.ctx.beginPath();
-        this.ctx.rect(40, 40, this.mapWidth - 80, this.mapHeight - 80);
+        this.ctx.rect(50, 50, this.mapWidth - 100, this.mapHeight - 100);
         this.ctx.fillStyle = '#08090e';
         this.ctx.fill();
 
@@ -5973,19 +6115,19 @@ class GameEngine {
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
-        // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (어두운 원근감/바둑판)
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+        // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (그리드 타일 크기 50px에 동기화)
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
         this.ctx.lineWidth = 1;
-        for (let x = 40; x < this.mapWidth - 40; x += 40) {
+        for (let x = 50; x < this.mapWidth - 50; x += 50) {
             this.ctx.beginPath();
-            this.ctx.moveTo(x, 40);
-            this.ctx.lineTo(x, this.mapHeight - 40);
+            this.ctx.moveTo(x, 50);
+            this.ctx.lineTo(x, this.mapHeight - 50);
             this.ctx.stroke();
         }
-        for (let y = 40; y < this.mapHeight - 40; y += 40) {
+        for (let y = 50; y < this.mapHeight - 50; y += 50) {
             this.ctx.beginPath();
-            this.ctx.moveTo(40, y);
-            this.ctx.lineTo(this.mapWidth - 40, y);
+            this.ctx.moveTo(50, y);
+            this.ctx.lineTo(this.mapWidth - 50, y);
             this.ctx.stroke();
         }
 
@@ -6696,6 +6838,18 @@ class GameEngine {
             });
         }
 
+        // 화면 흔들림 강도 슬라이더 실시간 조작
+        const shakeSlider = document.getElementById('shake-scale');
+        const shakeLabel = document.getElementById('shake-scale-val');
+        if (shakeSlider && shakeLabel) {
+            shakeSlider.addEventListener('input', () => {
+                const val = parseFloat(shakeSlider.value);
+                this.shakeScale = val;
+                shakeLabel.innerText = Math.round(val * 100) + '%';
+                this.saveOptions();
+            });
+        }
+
         // 게임 재시작 버튼 클릭
         const restartBtn = document.getElementById('option-restart-btn');
         if (restartBtn) {
@@ -6866,8 +7020,10 @@ class GameEngine {
 
         const sfxSlider = document.getElementById('volume-sfx');
         const bgmSlider = document.getElementById('volume-bgm');
+        const shakeSlider = document.getElementById('shake-scale');
         const sfxLabel = document.getElementById('volume-sfx-val');
         const bgmLabel = document.getElementById('volume-bgm-val');
+        const shakeLabel = document.getElementById('shake-scale-val');
         const perfCheckbox = document.getElementById('perf-low-spec');
 
         if (sfxSlider && sfxLabel) {
@@ -6877,6 +7033,10 @@ class GameEngine {
         if (bgmSlider && bgmLabel) {
             bgmSlider.value = bgmVal;
             bgmLabel.innerText = Math.round(bgmVal * 100) + '%';
+        }
+        if (shakeSlider && shakeLabel) {
+            shakeSlider.value = this.shakeScale;
+            shakeLabel.innerText = Math.round(this.shakeScale * 100) + '%';
         }
         if (perfCheckbox) {
             perfCheckbox.checked = this.lowSpecMode;
@@ -6888,7 +7048,8 @@ class GameEngine {
             const options = {
                 sfxVolume: Sound.sfxVolume,
                 bgmVolume: Sound.bgmVolume,
-                lowSpecMode: this.lowSpecMode
+                lowSpecMode: this.lowSpecMode,
+                shakeScale: this.shakeScale // [신규] 화면 흔들림 강도 옵션 저장
             };
             localStorage.setItem('neon_rogue_options', JSON.stringify(options));
         } catch (e) {
@@ -6901,6 +7062,7 @@ class GameEngine {
             const savedOptions = JSON.parse(localStorage.getItem('neon_rogue_options'));
             if (savedOptions) {
                 this.lowSpecMode = savedOptions.lowSpecMode || false;
+                this.shakeScale = savedOptions.shakeScale !== undefined ? savedOptions.shakeScale : 1.0; // [신규] 화면 흔들림 강도 옵션 로드
                 Sound.setSFXVolume(savedOptions.sfxVolume !== undefined ? savedOptions.sfxVolume : 1.0);
                 Sound.setBGMVolume(savedOptions.bgmVolume !== undefined ? savedOptions.bgmVolume : 0.5);
             }
@@ -6930,6 +7092,14 @@ class GameEngine {
                 hasSecretWall: this.secretWalls.length > 0,
                 exitPortalType: (this.inSecretRoom && this.portals[0]) ? this.portals[0].portalType : null,
                 exitPortalDifficultyClass: (this.inSecretRoom && this.portals[0]) ? this.portals[0].difficultyClass : null,
+                // [신규] 이어하기 시 문 종류 및 점수가 재구성되는 버그 방지를 위해 포털 정보 백업
+                portals: this.portals.map(p => ({
+                    direction: p.direction,
+                    scoreValue: p.scoreValue,
+                    portalType: p.portalType,
+                    difficultyClass: p.difficultyClass,
+                    active: p.active
+                })),
                 player: {
                     maxHp: this.player.maxHp,
                     hp: this.player.hp,
@@ -7013,7 +7183,7 @@ class GameEngine {
             this.roomNum = savedData.roomNum;
             this.score = savedData.score;
             this.kills = savedData.kills;
-            this.mapWidth = 1200;
+            this.mapWidth = 1320;
             this.mapHeight = 900;
 
             // 캔버스 크기 복구 및 가로폭 비례 조절
@@ -7032,6 +7202,9 @@ class GameEngine {
             this.inSecretRoom = savedData.inSecretRoom || false;
             this.lastEnteredPortalDir = savedData.lastEnteredPortalDir || null;
 
+            // [수정] 맵 프리셋 복구 설정 보존
+            this.currentMapPreset = savedData.currentMapPreset || 'PRESET_SIZE_BOSS';
+
             // 플레이어 객체 생성 및 복구
             this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
             Object.assign(this.player, savedData.player);
@@ -7049,6 +7222,10 @@ class GameEngine {
             this.secretVendingMachines = [];
             this.traps = [];
             this.obstacles = [];
+
+            // [수정] 맵 격자 및 장애물 생성(generateGridMap)은 이 리스트 비우기가 끝난 시점에 이루어져야 합니다.
+            // 또한 포털 복구 보정 연산을 위해 포털 셋업보다 먼저 실행되는 것이 보장됩니다.
+            this.generateGridMap(this.currentMapPreset);
 
             // 펫 엔티티 복구
             const petCount = savedData.petsCount || 0;
@@ -7080,26 +7257,36 @@ class GameEngine {
                 const lastRoomDifficultyScore = savedData.lastRoomDifficultyScore || this.getRandomScoreValue();
                 this.queueSequentialSpawns(lastRoomDifficultyScore);
 
-                // 포털 셋업
-                this.portals = [
-                    new RoomPortal('top', this.getRandomScoreValue()),
-                    new RoomPortal('bottom', this.getRandomScoreValue()),
-                    new RoomPortal('left', this.getRandomScoreValue()),
-                    new RoomPortal('right', this.getRandomScoreValue())
-                ];
+                // [수정] 세이브 데이터에 포털 정보가 보관되어 있으면 그대로 복구합니다.
+                if (savedData.portals && savedData.portals.length > 0) {
+                    this.portals = savedData.portals.map(pData => {
+                        let portal = new RoomPortal(pData.direction, pData.scoreValue);
+                        portal.portalType = pData.portalType;
+                        portal.difficultyClass = pData.difficultyClass;
+                        portal.active = pData.active;
+                        return portal;
+                    });
+                } else {
+                    // 폴백 (구버전 세이브 호환): 프리셋 유효 방향 포털 셋업
+                    const presetName = this.currentMapPreset;
+                    const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
 
-                let types = this.generatePortalTypes();
-                this.portals.forEach((p, idx) => {
-                    p.portalType = types[idx];
-                });
+                    this.portals = [];
+                    validDirections.forEach(dir => {
+                        this.portals.push(new RoomPortal(dir, this.getRandomScoreValue()));
+                    });
 
-                this.rankPortals();
-                this.portals.forEach(p => p.active = false);
+                    let types = this.generatePortalTypes();
+                    this.portals.forEach((p, idx) => {
+                        p.portalType = types[idx % types.length];
+                    });
+
+                    this.rankPortals();
+                    this.portals.forEach(p => p.active = false);
+                }
             }
 
-            // 장애물(격자) 재생성 - 맵 프리셋 로드
-            const loadedPreset = savedData.currentMapPreset || 'PRESET_SIZE_BOSS';
-            this.generateGridMap(loadedPreset);
+            // [수정] generateGridMap 호출은 상단으로 당겨졌으므로 이 부분의 중복 생성을 안전하게 제거합니다.
 
             // 비밀 벽(균열) 재생성 (가변 맵 비율에 연동)
             if (savedData.hasSecretWall && this.roomNum % 10 !== 0 && this.roomNum > 1 && !this.inSecretRoom) {

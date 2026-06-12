@@ -52,18 +52,20 @@ body {
 
 /* 메인 컨테이너 */
 #game-container {
-    width: 1680px;
-    min-width: 1680px;
+    width: 2160px;
+    min-width: 2160px;
     height: 940px;
     min-height: 940px;
     display: flex;
-    flex-direction: row; /* 가로 3열 정렬 */
+    flex-direction: row;
+    /* 가로 3열 정렬 */
     justify-content: center;
     align-items: center;
     gap: 20px;
     padding: 10px;
     position: relative;
-    transform-origin: center center; /* 브라우저 스케일 조절을 위한 기준점 */
+    transform-origin: center center;
+    /* 브라우저 스케일 조절을 위한 기준점 */
     flex-shrink: 0;
 }
 
@@ -72,12 +74,14 @@ body {
    -------------------------------------------------------------------------- */
 #hud-header {
     display: flex;
-    flex-direction: column; /* 세로 정렬 */
+    flex-direction: column;
+    /* 세로 정렬 */
     justify-content: flex-start;
     align-items: center;
     width: 180px;
     min-width: 180px;
-    height: 900px; /* 캔버스 높이 900px에 동기화 */
+    height: 900px;
+    /* 캔버스 높이 900px에 동기화 */
     background: var(--bg-panel);
     border: 1px solid var(--border-color);
     border-radius: 16px;
@@ -87,7 +91,8 @@ body {
     box-shadow: var(--card-shadow);
     margin: 0;
     z-index: 10;
-    gap: 24px; /* 항목 간 세로 여백 */
+    gap: 24px;
+    /* 항목 간 세로 여백 */
 }
 
 .hud-item {
@@ -148,9 +153,10 @@ body {
    메인 게임 영역 (Canvas Container & Canvas)
    -------------------------------------------------------------------------- */
 #canvas-container {
-    width: 1200px;
+    width: 1620px;
     height: 900px;
-    flex: none; /* 크기 고정으로 상하 찌그러짐 예방 */
+    flex: none;
+    /* 크기 고정으로 상하 찌그러짐 예방 */
     position: relative;
     background: #040509;
     border: 2px solid rgba(255, 255, 255, 0.05);
@@ -170,7 +176,8 @@ body {
     background-color: #08090e;
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* 비율 유지하며 축소 */
+    object-fit: contain;
+    /* 비율 유지하며 축소 */
 }
 
 /* 오버레이 패널들 공통 */
@@ -279,7 +286,8 @@ body {
    -------------------------------------------------------------------------- */
 #hud-footer {
     display: flex;
-    flex-direction: column; /* 세로 정렬 */
+    flex-direction: column;
+    /* 세로 정렬 */
     justify-content: flex-start;
     align-items: stretch;
     background: var(--bg-panel);
@@ -291,9 +299,10 @@ body {
     box-shadow: var(--card-shadow);
     margin: 0;
     z-index: 10;
-    width: 240px;
-    min-width: 240px;
-    height: 900px; /* 캔버스 높이에 동기화 */
+    width: 300px;
+    min-width: 300px;
+    height: 900px;
+    /* 캔버스 높이에 동기화 */
     gap: 15px;
 }
 
@@ -369,7 +378,8 @@ body {
     flex: 1;
     width: 100%;
     display: flex;
-    flex-direction: column; /* 세로 정렬 */
+    flex-direction: column;
+    /* 세로 정렬 */
     justify-content: flex-start;
     gap: 10px;
     border-left: none;
