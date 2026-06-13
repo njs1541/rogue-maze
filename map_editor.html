@@ -235,25 +235,32 @@
         .brush-color-preview.tile-1 { background-color: var(--tile-wall); box-shadow: 0 0 8px var(--neon-blue); }
         .brush-color-preview.tile-2 { background-color: var(--tile-outer); box-shadow: 0 0 8px var(--neon-pink); }
 
-        /* 포탈 모드 버튼 */
+                /* 포탈 모드 버튼 */
         .portal-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .portal-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         .portal-btn {
+            flex: 1;
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: #a0aec0;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.85rem;
             font-weight: 600;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 6px;
             transition: all 0.2s;
         }
@@ -270,11 +277,51 @@
             box-shadow: 0 0 10px rgba(176, 38, 255, 0.3);
         }
 
+        .portal-btn.assigned {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            background: rgba(57, 255, 20, 0.05);
+        }
+
+        .portal-btn.assigned .portal-indicator {
+            background-color: var(--neon-green) !important;
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .portal-delete-btn {
+            background: rgba(255, 0, 85, 0.15);
+            border: 1px solid var(--neon-pink);
+            color: var(--neon-pink);
+            width: 32px;
+            height: 34px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .portal-delete-btn:hover {
+            background: var(--neon-pink);
+            color: #000000;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.4);
+        }
+
+        .portal-status-label {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-left: auto;
+            font-weight: bold;
+        }
+
         .portal-indicator {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: var(--neon-purple);
+            background-color: var(--neon-yellow);
         }
 
         /* 그리드 보드 */
@@ -562,22 +609,38 @@
                     버튼 클릭 후 <strong>격자 캔버스의 원하는 타일</strong>을 선택하여 해당 포탈의 배치 좌표를 지정합니다.
                 </p>
                 <div class="portal-buttons">
-                    <button class="portal-btn" data-dir="top">
-                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
-                        <span>Top (상단 문)</span>
-                    </button>
-                    <button class="portal-btn" data-dir="bottom">
-                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
-                        <span>Bottom (하단 문)</span>
-                    </button>
-                    <button class="portal-btn" data-dir="left">
-                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
-                        <span>Left (좌측 문)</span>
-                    </button>
-                    <button class="portal-btn" data-dir="right">
-                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
-                        <span>Right (우측 문)</span>
-                    </button>
+                    <div class="portal-row">
+                        <button class="portal-btn" data-dir="top">
+                            <span class="portal-indicator"></span>
+                            <span>Top (상단 문)</span>
+                            <span class="portal-status-label" id="status-top">미지정</span>
+                        </button>
+                        <button class="portal-delete-btn" data-dir="top" title="포탈 제거">✕</button>
+                    </div>
+                    <div class="portal-row">
+                        <button class="portal-btn" data-dir="bottom">
+                            <span class="portal-indicator"></span>
+                            <span>Bottom (하단 문)</span>
+                            <span class="portal-status-label" id="status-bottom">미지정</span>
+                        </button>
+                        <button class="portal-delete-btn" data-dir="bottom" title="포탈 제거">✕</button>
+                    </div>
+                    <div class="portal-row">
+                        <button class="portal-btn" data-dir="left">
+                            <span class="portal-indicator"></span>
+                            <span>Left (좌측 문)</span>
+                            <span class="portal-status-label" id="status-left">미지정</span>
+                        </button>
+                        <button class="portal-delete-btn" data-dir="left" title="포탈 제거">✕</button>
+                    </div>
+                    <div class="portal-row">
+                        <button class="portal-btn" data-dir="right">
+                            <span class="portal-indicator"></span>
+                            <span>Right (우측 문)</span>
+                            <span class="portal-status-label" id="status-right">미지정</span>
+                        </button>
+                        <button class="portal-delete-btn" data-dir="right" title="포탈 제거">✕</button>
+                    </div>
                 </div>
             </div>
 
@@ -667,6 +730,28 @@
                 if (portals.left && portals.left.gridX === c && portals.left.gridY === r) cell.classList.add('has-portal-left');
                 if (portals.right && portals.right.gridX === c && portals.right.gridY === r) cell.classList.add('has-portal-right');
             });
+
+            updatePortalButtonsUI();
+        }
+
+        // 포탈 지정 상태 UI 동기화
+        function updatePortalButtonsUI() {
+            const directions = ['top', 'bottom', 'left', 'right'];
+            directions.forEach(dir => {
+                const btn = document.querySelector(`.portal-btn[data-dir="${dir}"]`);
+                const label = document.getElementById(`status-${dir}`);
+                if (!btn || !label) return;
+                
+                if (portals[dir]) {
+                    btn.classList.add('assigned');
+                    label.innerText = `[${portals[dir].gridX}, ${portals[dir].gridY}]`;
+                    label.style.color = '#39ff14'; // 네온그린
+                } else {
+                    btn.classList.remove('assigned');
+                    label.innerText = `미지정`;
+                    label.style.color = '#718096';
+                }
+            });
         }
 
         // 보스룸 템플릿 로드 (가장자리 1줄 외벽)
@@ -679,6 +764,15 @@
                     }
                 }
             }
+            
+            // 포탈 기본값 복원
+            portals = {
+                top: { gridX: 11, gridY: 0 },
+                bottom: { gridX: 11, gridY: 17 },
+                left: { gridX: 0, gridY: 8 },
+                right: { gridX: 23, gridY: 8 }
+            };
+
             // 포탈 배치 기본 설정에 외벽 문 구멍 뚫기
             if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
             if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
@@ -712,6 +806,14 @@
                 mapData[13][c] = 1;
             }
 
+            // 포탈 기본값 복원
+            portals = {
+                top: { gridX: 11, gridY: 0 },
+                bottom: { gridX: 11, gridY: 17 },
+                left: { gridX: 0, gridY: 8 },
+                right: { gridX: 23, gridY: 8 }
+            };
+
             // 포탈 통로 구멍
             if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
             if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
@@ -725,6 +827,12 @@
         // 맵 완전 리셋
         function clearMap() {
             mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            portals = {
+                top: null,
+                bottom: null,
+                left: null,
+                right: null
+            };
             refreshGridUI();
             updateJSON();
         }
@@ -799,6 +907,20 @@
             // 복사 & 다운로드
             document.getElementById('btn-copy-json').addEventListener('click', copyJSON);
             document.getElementById('btn-download-json').addEventListener('click', downloadJSON);
+
+            // 포탈 제거 이벤트 등록
+            const portalDeleteBtns = document.querySelectorAll('.portal-delete-btn');
+            portalDeleteBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dir = btn.dataset.dir;
+                    if (portals[dir]) {
+                        portals[dir] = null;
+                        refreshGridUI();
+                        updateJSON();
+                    }
+                });
+            });
         }
 
         // 포탈 지정 모드 취소

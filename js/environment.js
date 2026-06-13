@@ -134,16 +134,17 @@ class RoomPortal {
                 this.gridX = spawnInfo.gridX;
                 this.gridY = spawnInfo.gridY;
 
-                // [수정] wallMargin = 50 경계선에 포탈의 외형이 정확히 걸쳐져서 노출되도록 보정 연산 적용
+                // [수정] 포탈이 외벽 가장자리(gridX === 0, gridX === 23, gridY === 0, gridY === 17)인 경우에만
+                // wallMargin = 50 경계선에 포탈의 외형이 정확히 걸쳐져서 노출되도록 보정 연산 적용
                 let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
                 let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
-                if (direction === 'left') {
+                if (direction === 'left' && this.gridX === 0) {
                     this.x = 50 - this.width / 2;
-                } else if (direction === 'right') {
+                } else if (direction === 'right' && this.gridX === 23) {
                     this.x = mapW - 50 - this.width / 2;
-                } else if (direction === 'top') {
+                } else if (direction === 'top' && this.gridY === 0) {
                     this.y = 50 - this.height / 2;
-                } else if (direction === 'bottom') {
+                } else if (direction === 'bottom' && this.gridY === 17) {
                     this.y = mapH - 50 - this.height / 2;
                 }
                 return;
@@ -347,8 +348,8 @@ class RoomPortal {
             return Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius;
         }
         
-        // [수정] wallMargin = 50 이동 경계선 제한 때문에 플레이어 좌표가 물리적으로 문 박스 중심선에 닿지 못하는 결함 해결
-        // 플레이어의 바운딩 박스가 50px 경계선(이동 한계선)에 근접 또는 터치하였고, 문의 폭(또는 높이) 범위 안에 있는지를 검사
+        // [수정] 포탈이 외곽 경계선에 정확히 걸쳐져 있는 경우에만 기존 wallMargin = 50 경계선 제한을 극복하는 특수 충돌 판정 적용.
+        // 그 외 맵 내부에 포탈이 있는 경우는 AABB 박스 충돌로 유연하게 처리.
         const pLeft = player.x - player.radius;
         const pRight = player.x + player.radius;
         const pTop = player.y - player.radius;
@@ -357,18 +358,30 @@ class RoomPortal {
         const triggerMargin = 52; // 50px 경계선에 딱 붙었을 때(또는 살짝 안쪽) 충돌 인식
 
         if (this.direction === 'left') {
-            return pLeft <= triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            if (this.gridX === 0) {
+                return pLeft <= triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            }
         } else if (this.direction === 'right') {
-            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
-            return pRight >= mapW - triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            if (this.gridX === 23) {
+                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
+                return pRight >= mapW - triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            }
         } else if (this.direction === 'top') {
-            return pTop <= triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            if (this.gridY === 0) {
+                return pTop <= triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            }
         } else if (this.direction === 'bottom') {
-            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
-            return pBottom >= mapH - triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            if (this.gridY === 17) {
+                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+                return pBottom >= mapH - triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            }
         }
         
-        return false;
+        // 내부에 위치한 포탈의 AABB 충돌 검사
+        return player.x + player.radius > this.x &&
+               player.x - player.radius < this.x + this.width &&
+               player.y + player.radius > this.y &&
+               player.y - player.radius < this.y + this.height;
     }
 }
 
