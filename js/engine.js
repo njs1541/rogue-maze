@@ -781,6 +781,54 @@ class GameEngine {
         }
     }
 
+    // [신규] 커스텀 맵 프리셋 런타임 적용 및 즉시 방 재생성 테스트 기능
+    loadCustomMapPreset(presetName) {
+        if (!MAP_PRESETS[presetName]) return;
+
+        // 1. 격자 맵 데이터 파싱 및 장애물 재생성
+        this.generateGridMap(presetName);
+
+        // 2. 플레이어 안전 위치 워프
+        this.player.x = this.mapWidth / 2;
+        this.player.y = this.mapHeight / 2;
+        this.lastEnteredPortalDir = 'center';
+
+        // 3. 기존 오브젝트 제거
+        this.bullets = [];
+        this.monsters = [];
+        this.particles = [];
+        this.potions = [];
+        this.coinsList = [];
+        this.secretWalls = [];
+        this.secretGlitchDevices = [];
+        this.rewardChests = [];
+        this.vendingMachines = [];
+        this.secretVendingMachines = [];
+        this.traps = [];
+
+        // 4. 프리셋 내에 정의된 포털 위치에만 문 생성
+        const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
+        this.portals = [];
+        validDirections.forEach(dir => {
+            this.portals.push(new RoomPortal(dir, this.getRandomScoreValue()));
+        });
+
+        // 포털 유형 지정 및 활성화 상태 리셋 (테스트용으로 몬스터 격퇴 전까지 잠금 처리)
+        let types = this.generatePortalTypes();
+        this.portals.forEach((p, idx) => {
+            p.portalType = types[idx % types.length];
+        });
+        this.rankPortals();
+        this.portals.forEach(p => p.active = false);
+
+        // 5. 몬스터 스폰 큐 재생성
+        const monsterCount = this.getRandomScoreValue();
+        this.queueSequentialSpawns(monsterCount);
+
+        this.updateHUD();
+        this.showFloatingText("CUSTOM MAP APPLIED! 🛠️", this.player.x, this.player.y - 40, '#39ff14');
+    }
+
     // [신규] 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
     isTileWall(x, y) {
         if (!this.grid) return false;
@@ -6801,6 +6849,106 @@ class GameEngine {
             const stageVal = parseInt(document.getElementById('cheat-warp-stage-input').value) || 1;
             this.warpStageCheat(stageVal);
         });
+
+        // [신규] 커스텀 맵 로더 이벤트 핸들러 바인딩
+        const mapFileInput = document.getElementById('cheat-map-file-input');
+        const mapFileBtn = document.getElementById('cheat-map-file-btn');
+        const mapFileName = document.getElementById('cheat-map-file-name');
+        const mapJsonInput = document.getElementById('cheat-map-json-input');
+        const mapLoadBtn = document.getElementById('cheat-map-load-btn');
+        const mapStatusMsg = document.getElementById('cheat-map-status-msg');
+
+        if (mapFileBtn && mapFileInput) {
+            mapFileBtn.addEventListener('click', () => {
+                mapFileInput.click();
+            });
+
+            mapFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                mapFileName.innerText = file.name;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    mapJsonInput.value = evt.target.result;
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = "파일을 성공적으로 읽었습니다.";
+                        mapStatusMsg.style.color = "#39ff14";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                };
+                reader.onerror = () => {
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = "파일 읽기 실패!";
+                        mapStatusMsg.style.color = "#ff0055";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        if (mapLoadBtn && mapJsonInput) {
+            mapLoadBtn.addEventListener('click', () => {
+                const jsonText = mapJsonInput.value.trim();
+                if (mapStatusMsg) {
+                    mapStatusMsg.classList.add('hidden');
+                }
+
+                if (!jsonText) {
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = "🚨 오류: JSON 텍스트를 입력하거나 파일을 선택해주세요.";
+                        mapStatusMsg.style.color = "#ff0055";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                try {
+                    const data = JSON.parse(jsonText);
+                    if (!data.presetKey || !data.grid || !data.portalSpawnInfo) {
+                        throw new Error("필수 키(presetKey, grid, portalSpawnInfo)가 누락되었습니다.");
+                    }
+
+                    if (!Array.isArray(data.grid) || data.grid.length !== 18) {
+                        throw new Error("grid는 반드시 18행의 배열이어야 합니다.");
+                    }
+
+                    for (let r = 0; r < 18; r++) {
+                        if (typeof data.grid[r] !== 'string' || data.grid[r].length !== 24) {
+                            throw new Error(`grid의 ${r+1}번째 행은 반드시 24글자 문자열이어야 합니다.`);
+                        }
+                    }
+
+                    // 글로벌 맵 프리셋 객체 등록
+                    MAP_PRESETS[data.presetKey] = data.grid;
+                    PORTAL_SPAWN_INFOS[data.presetKey] = data.portalSpawnInfo;
+
+                    // 게임이 구동 중일 때 즉시 적용 시도
+                    if (this.isPlaying) {
+                        this.loadCustomMapPreset(data.presetKey);
+                        if (mapStatusMsg) {
+                            mapStatusMsg.innerText = `✅ 성공: '${data.presetKey}' 프리셋이 게임에 즉시 적용되었습니다!`;
+                            mapStatusMsg.style.color = "#39ff14";
+                            mapStatusMsg.classList.remove('hidden');
+                        }
+                    } else {
+                        if (mapStatusMsg) {
+                            mapStatusMsg.innerText = `✅ 성공: '${data.presetKey}' 프리셋이 등록되었습니다. 게임 시작 후 치트에서 즉시 로드 가능합니다.`;
+                            mapStatusMsg.style.color = "#39ff14";
+                            mapStatusMsg.classList.remove('hidden');
+                        }
+                    }
+                } catch (err) {
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = `🚨 오류: JSON 파싱 실패! (${err.message})`;
+                        mapStatusMsg.style.color = "#ff0055";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                }
+            });
+        }
     }
 
     // [신규 추가] 시스템 옵션 모달 조작 이벤트 리스너 바인딩

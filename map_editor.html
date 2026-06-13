@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rogue-Maze: 맵 프리셋 에디터</title>
+    <!-- 고급 현대적인 타이포그래피 Google Font 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #05060c;
+            --panel-bg: rgba(10, 12, 22, 0.7);
+            --border-glow: rgba(0, 240, 255, 0.2);
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff0055;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #ffdf00;
+            --tile-empty: #0e111d;
+            --tile-wall: #185280;
+            --tile-outer: #80183b;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #0d1127 0%, #05060c 100%);
+        }
+
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 240, 255, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 240, 255, 0.6);
+        }
+
+        header {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 15px;
+        }
+
+        .title-area h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+
+        .title-area p {
+            margin: 5px 0 0 0;
+            color: #718096;
+            font-size: 0.95rem;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        .nav-btn:hover {
+            background: var(--neon-blue);
+            color: #000000;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 24px;
+            width: 100%;
+            max-width: 1400px;
+            flex-wrap: wrap;
+        }
+
+        .editor-container {
+            flex: 2;
+            min-width: 800px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar {
+            flex: 1;
+            min-width: 350px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 컨트롤 및 도구 모음 */
+        .tool-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #cbd5e0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-left: 3px solid var(--neon-blue);
+            padding-left: 8px;
+            margin-bottom: 5px;
+        }
+
+        .preset-name-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .preset-name-row input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.25s;
+        }
+
+        .preset-name-row input:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .brush-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .brush-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #a0aec0;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .brush-btn:hover {
+            border-color: #cbd5e0;
+            color: #ffffff;
+        }
+
+        .brush-btn.active[data-type="0"] {
+            border-color: #cbd5e0;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .brush-btn.active[data-type="1"] {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .brush-btn.active[data-type="2"] {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 85, 0.1);
+            color: var(--neon-pink);
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.2);
+        }
+
+        .brush-color-preview {
+            width: 24px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        .brush-color-preview.tile-0 { background-color: var(--tile-empty); border: 1px dashed rgba(255,255,255,0.2); }
+        .brush-color-preview.tile-1 { background-color: var(--tile-wall); box-shadow: 0 0 8px var(--neon-blue); }
+        .brush-color-preview.tile-2 { background-color: var(--tile-outer); box-shadow: 0 0 8px var(--neon-pink); }
+
+        /* 포탈 모드 버튼 */
+        .portal-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .portal-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #a0aec0;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .portal-btn:hover {
+            border-color: var(--neon-purple);
+            color: #ffffff;
+        }
+
+        .portal-btn.active {
+            border-color: var(--neon-purple);
+            background: rgba(176, 38, 255, 0.15);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(176, 38, 255, 0.3);
+        }
+
+        .portal-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--neon-purple);
+        }
+
+        /* 그리드 보드 */
+        .grid-wrapper {
+            width: 100%;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #020306;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #grid-board {
+            display: grid;
+            grid-template-columns: repeat(24, 28px);
+            grid-template-rows: repeat(18, 28px);
+            gap: 2px;
+            user-select: none;
+        }
+
+        .grid-cell {
+            width: 28px;
+            height: 28px;
+            background-color: var(--tile-empty);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .grid-cell:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 타일 상태별 스타일 */
+        .grid-cell[data-val="1"] {
+            background-color: var(--tile-wall);
+            border-color: var(--neon-blue);
+            box-shadow: inset 0 0 6px rgba(0, 240, 255, 0.5);
+        }
+
+        .grid-cell[data-val="2"] {
+            background-color: var(--tile-outer);
+            border-color: var(--neon-pink);
+            box-shadow: inset 0 0 6px rgba(255, 0, 85, 0.5);
+        }
+
+        /* 포탈이 지정된 셀 오버레이 */
+        .grid-cell.has-portal-top::after,
+        .grid-cell.has-portal-bottom::after,
+        .grid-cell.has-portal-left::after,
+        .grid-cell.has-portal-right::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border: 2px solid var(--neon-yellow);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-yellow);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .grid-cell.has-portal-top::before { content: 'T'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
+        .grid-cell.has-portal-bottom::before { content: 'B'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
+        .grid-cell.has-portal-left::before { content: 'L'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
+        .grid-cell.has-portal-right::before { content: 'R'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
+
+        /* 하단 유틸 버튼 */
+        .util-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .util-btn {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e0;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .util-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .util-btn.danger:hover {
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+            background: rgba(255, 0, 85, 0.05);
+        }
+
+        /* JSON 미리보기 및 액션 */
+        .json-preview-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .json-preview-area textarea {
+            width: 100%;
+            flex: 1;
+            min-height: 250px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: #a0aec0;
+            font-family: monospace;
+            font-size: 0.75rem;
+            padding: 12px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.25s;
+        }
+
+        .json-preview-area textarea:focus {
+            border-color: var(--neon-blue);
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            color: #000000;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+            transition: all 0.25s;
+        }
+
+        .action-btn:hover {
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .action-btn:active {
+            transform: translateY(1px);
+        }
+
+        .secondary-btn {
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background: var(--neon-blue);
+            color: #000000;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        /* 도움말 가이드 */
+        .guide-box {
+            background: rgba(0, 240, 255, 0.02);
+            border: 1px dashed rgba(0, 240, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.82rem;
+            color: #a0aec0;
+            line-height: 1.5;
+        }
+
+        .guide-box strong {
+            color: var(--neon-blue);
+        }
+
+        /* 알림 플로팅 텍스트 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(5, 6, 12, 0.95);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.25);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-area">
+            <h1>NEON ROGUE-MAZE MAP PRESET EDITOR</h1>
+            <p>직관적으로 맵 격자와 포탈 스폰 지점을 그려 나만의 커스텀 프리셋을 제작하세요.</p>
+        </div>
+        <a href="index.html" class="nav-btn">🕹️ 게임으로 돌아가기</a>
+    </header>
+
+    <div class="main-layout">
+        <!-- 메인 편집 영역 -->
+        <div class="editor-container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="section-title">맵 격자 캔버스 (24 x 18)</div>
+                <div style="font-size: 0.8rem; color: #718096;">드래그하여 그리기 가능</div>
+            </div>
+
+            <!-- 그리드 보드 -->
+            <div class="grid-wrapper">
+                <div id="grid-board"></div>
+            </div>
+
+            <!-- 유틸리티 버튼 -->
+            <div class="util-buttons">
+                <button id="btn-load-template" class="util-btn">📦 보스룸 기본 템플릿 로드</button>
+                <button id="btn-load-normal-template" class="util-btn">📦 일반형 기본 템플릿 로드</button>
+                <button id="btn-clear-map" class="util-btn danger">🧹 빈 맵으로 리셋 (Clear All)</button>
+            </div>
+        </div>
+
+        <!-- 사이드바 제어 패널 -->
+        <div class="sidebar">
+            <!-- 프리셋 이름 설정 -->
+            <div class="tool-section">
+                <div class="section-title">프리셋 설정</div>
+                <div class="preset-name-row">
+                    <label for="input-preset-key" style="font-size: 0.85rem; color: #a0aec0; width: 80px;">식별자 키:</label>
+                    <input type="text" id="input-preset-key" value="PRESET_CUSTOM_1" placeholder="예: PRESET_MY_MAP">
+                </div>
+            </div>
+
+            <!-- 타일 브러시 도구 -->
+            <div class="tool-section">
+                <div class="section-title">그리기 도구 (타일 브러시)</div>
+                <div class="brush-buttons">
+                    <button class="brush-btn active" data-type="0">
+                        <div class="brush-color-preview tile-0"></div>
+                        <span>0: 바닥 지우개</span>
+                    </button>
+                    <button class="brush-btn" data-type="1">
+                        <div class="brush-color-preview tile-1"></div>
+                        <span>1: 타일 격벽</span>
+                    </button>
+                    <button class="brush-btn" data-type="2">
+                        <div class="brush-color-preview tile-2"></div>
+                        <span>2: 외벽</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 포탈 스폰 지정 도구 -->
+            <div class="tool-section">
+                <div class="section-title">포탈(문) 위치 지정 도구</div>
+                <p style="font-size: 0.78rem; color: #718096; margin: -5px 0 5px 0; line-height: 1.4;">
+                    버튼 클릭 후 <strong>격자 캔버스의 원하는 타일</strong>을 선택하여 해당 포탈의 배치 좌표를 지정합니다.
+                </p>
+                <div class="portal-buttons">
+                    <button class="portal-btn" data-dir="top">
+                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
+                        <span>Top (상단 문)</span>
+                    </button>
+                    <button class="portal-btn" data-dir="bottom">
+                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
+                        <span>Bottom (하단 문)</span>
+                    </button>
+                    <button class="portal-btn" data-dir="left">
+                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
+                        <span>Left (좌측 문)</span>
+                    </button>
+                    <button class="portal-btn" data-dir="right">
+                        <span class="portal-indicator" style="background-color: var(--neon-yellow);"></span>
+                        <span>Right (우측 문)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 도움말 -->
+            <div class="guide-box">
+                💡 <strong>맵 설계 권장 규칙:</strong><br>
+                1. 맵 밖으로 플레이어가 이탈하지 않게 테두리를 **2: 외벽**으로 잘 둘러싸주세요.<br>
+                2. 지정된 포탈 위치(T, B, L, R)는 플레이어가 문을 통해 방을 드나들 수 있도록 **외벽을 지우고(0: 바닥)** 배치해야 진입이 가능합니다.<br>
+                3. 포탈 위치는 몬스터 스폰 지점으로도 사용됩니다.
+            </div>
+
+            <!-- JSON 내보내기 영역 -->
+            <div class="json-preview-area">
+                <div class="section-title">생성된 프리셋 JSON 데이터</div>
+                <textarea id="json-output" readonly></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <button id="btn-copy-json" class="secondary-btn" style="flex: 1;">📋 클립보드 복사</button>
+                    <button id="btn-download-json" class="action-btn" style="flex: 1.2;">💾 JSON 파일 저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 플로팅 토스트 알림 -->
+    <div id="toast-notification" class="toast">성공적으로 복사되었습니다.</div>
+
+    <script>
+        const COLS = 24;
+        const ROWS = 18;
+
+        // 맵 상태 데이터 (0: 바닥, 1: 격벽, 2: 외벽)
+        let mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+        // 포탈 스폰 정보 (gridX, gridY 기반이며 x, y 픽셀 값은 자동 환산)
+        let portals = {
+            top: { gridX: 11, gridY: 0 },
+            bottom: { gridX: 11, gridY: 17 },
+            left: { gridX: 0, gridY: 8 },
+            right: { gridX: 23, gridY: 8 }
+        };
+
+        let currentBrush = 0; // 0, 1, 2
+        let currentPortalSelectMode = null; // 'top', 'bottom', 'left', 'right' 중 하나
+        let isMouseDown = false;
+
+        const gridBoard = document.getElementById('grid-board');
+        const jsonOutput = document.getElementById('json-output');
+        const presetKeyInput = document.getElementById('input-preset-key');
+
+        // 초기화
+        function init() {
+            createGrid();
+            loadBossTemplate(); // 기본 템플릿 로드
+            setupEventListeners();
+            updateJSON();
+        }
+
+        // 그리드 엘리먼트 생성
+        function createGrid() {
+            gridBoard.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.dataset.val = 0;
+                    gridBoard.appendChild(cell);
+                }
+            }
+        }
+
+        // 그리드 UI와 데이터 동기화 갱신
+        function refreshGridUI() {
+            const cells = document.querySelectorAll('.grid-cell');
+            cells.forEach(cell => {
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                const val = mapData[r][c];
+                
+                cell.dataset.val = val;
+                cell.className = 'grid-cell';
+
+                // 포탈 클래스 부여
+                if (portals.top && portals.top.gridX === c && portals.top.gridY === r) cell.classList.add('has-portal-top');
+                if (portals.bottom && portals.bottom.gridX === c && portals.bottom.gridY === r) cell.classList.add('has-portal-bottom');
+                if (portals.left && portals.left.gridX === c && portals.left.gridY === r) cell.classList.add('has-portal-left');
+                if (portals.right && portals.right.gridX === c && portals.right.gridY === r) cell.classList.add('has-portal-right');
+            });
+        }
+
+        // 보스룸 템플릿 로드 (가장자리 1줄 외벽)
+        function loadBossTemplate() {
+            mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) {
+                        mapData[r][c] = 2; // 외벽
+                    }
+                }
+            }
+            // 포탈 배치 기본 설정에 외벽 문 구멍 뚫기
+            if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
+            if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
+            if (portals.left) mapData[portals.left.gridY][portals.left.gridX] = 0;
+            if (portals.right) mapData[portals.right.gridY][portals.right.gridX] = 0;
+
+            refreshGridUI();
+            updateJSON();
+        }
+
+        // 일반형 템플릿 로드 (가장자리 외벽 + 일부 내부 장애물 샘플)
+        function loadNormalTemplate() {
+            mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            
+            // 외벽
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) {
+                        mapData[r][c] = 2;
+                    }
+                }
+            }
+            
+            // 중앙 일부 격벽 장애물 예시 데코
+            for (let c = 4; c <= 8; c++) {
+                mapData[4][c] = 1;
+                mapData[13][c] = 1;
+            }
+            for (let c = 15; c <= 19; c++) {
+                mapData[4][c] = 1;
+                mapData[13][c] = 1;
+            }
+
+            // 포탈 통로 구멍
+            if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
+            if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
+            if (portals.left) mapData[portals.left.gridY][portals.left.gridX] = 0;
+            if (portals.right) mapData[portals.right.gridY][portals.right.gridX] = 0;
+
+            refreshGridUI();
+            updateJSON();
+        }
+
+        // 맵 완전 리셋
+        function clearMap() {
+            mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            refreshGridUI();
+            updateJSON();
+        }
+
+        // 이벤트 리스너 바인딩
+        function setupEventListeners() {
+            // 드래그 그리기 마우스 상태 관리
+            gridBoard.addEventListener('mousedown', (e) => {
+                isMouseDown = true;
+                handleCellAction(e.target);
+            });
+
+            window.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+
+            gridBoard.addEventListener('mouseenter', (e) => {
+                if (isMouseDown) {
+                    handleCellAction(e.target);
+                }
+            }, true);
+
+            // 드래그 중 이탈 대응
+            gridBoard.addEventListener('mouseover', (e) => {
+                if (isMouseDown && e.target.classList.contains('grid-cell')) {
+                    handleCellAction(e.target);
+                }
+            });
+
+            // 브러시 스위칭
+            const brushBtns = document.querySelectorAll('.brush-btn');
+            brushBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    brushBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentBrush = parseInt(btn.dataset.type);
+                    
+                    // 포탈 모드 강제 취소
+                    cancelPortalSelectMode();
+                });
+            });
+
+            // 포탈 지정 도구 토글
+            const portalBtns = document.querySelectorAll('.portal-btn');
+            portalBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const dir = btn.dataset.dir;
+                    if (currentPortalSelectMode === dir) {
+                        cancelPortalSelectMode();
+                    } else {
+                        cancelPortalSelectMode();
+                        currentPortalSelectMode = dir;
+                        btn.classList.add('active');
+                        // 브러시 버튼 활성상태 제거
+                        brushBtns.forEach(b => b.classList.remove('active'));
+                    }
+                });
+            });
+
+            // 템플릿 로드 & 리셋 이벤트
+            document.getElementById('btn-load-template').addEventListener('click', loadBossTemplate);
+            document.getElementById('btn-load-normal-template').addEventListener('click', loadNormalTemplate);
+            document.getElementById('btn-clear-map').addEventListener('click', () => {
+                if (confirm('정말로 모든 타일을 비우시겠습니까?')) {
+                    clearMap();
+                }
+            });
+
+            // 프리셋 키 실시간 변경
+            presetKeyInput.addEventListener('input', updateJSON);
+
+            // 복사 & 다운로드
+            document.getElementById('btn-copy-json').addEventListener('click', copyJSON);
+            document.getElementById('btn-download-json').addEventListener('click', downloadJSON);
+        }
+
+        // 포탈 지정 모드 취소
+        function cancelPortalSelectMode() {
+            currentPortalSelectMode = null;
+            document.querySelectorAll('.portal-btn').forEach(b => b.classList.remove('active'));
+        }
+
+        // 셀 클릭/드래그 액션 처리
+        function handleCellAction(cell) {
+            if (!cell || !cell.classList.contains('grid-cell')) return;
+            const r = parseInt(cell.dataset.row);
+            const c = parseInt(cell.dataset.col);
+
+            if (currentPortalSelectMode) {
+                // 포탈 좌표 설정 모드
+                // 이전 포탈 제거
+                portals[currentPortalSelectMode] = { gridX: c, gridY: r };
+                
+                // 포탈 위치 타일은 편의상 바닥(0)으로 자동 지워짐 처리
+                mapData[r][c] = 0;
+                
+                cancelPortalSelectMode();
+                
+                // 브러시 지우개 모드로 디폴트 복귀
+                document.querySelector('.brush-btn[data-type="0"]').click();
+            } else {
+                // 브러시 그리기 모드
+                mapData[r][c] = currentBrush;
+            }
+
+            refreshGridUI();
+            updateJSON();
+        }
+
+        // JSON 데이터 포맷팅 및 출력 업데이트
+        function updateJSON() {
+            // 격자 배열 문자열 리스트로 변환
+            const gridStringList = mapData.map(row => row.join(''));
+            const key = presetKeyInput.value.trim() || 'PRESET_CUSTOM_1';
+
+            // PORTAL_SPAWN_INFOS 구조 형성
+            // 55px(가로) * 50px(세로) 변환 반영
+            // 포탈 중심 픽셀 x = gridX * 55 + 27.5
+            // 포탈 중심 픽셀 y = gridY * 50 + 25
+            const portalSpawnInfo = {};
+            
+            for (let dir in portals) {
+                if (portals[dir]) {
+                    const info = portals[dir];
+                    portalSpawnInfo[dir] = {
+                        x: parseFloat((info.gridX * 55 + 27.5).toFixed(2)),
+                        y: parseFloat((info.gridY * 50 + 25).toFixed(2)),
+                        gridX: info.gridX,
+                        gridY: info.gridY
+                    };
+                }
+            }
+
+            const exportObj = {
+                presetKey: key,
+                grid: gridStringList,
+                portalSpawnInfo: portalSpawnInfo
+            };
+
+            jsonOutput.value = JSON.stringify(exportObj, null, 4);
+        }
+
+        // 클립보드 복사
+        function copyJSON() {
+            jsonOutput.select();
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showToast('📋 JSON 데이터가 클립보드에 복사되었습니다.');
+        }
+
+        // JSON 파일 다운로드
+        function downloadJSON() {
+            const key = presetKeyInput.value.trim() || 'custom_preset';
+            const filename = `${key.toLowerCase()}.json`;
+            const dataStr = jsonOutput.value;
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = filename;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast('💾 JSON 파일 다운로드가 시작되었습니다.');
+        }
+
+        // 토스트 팝업 알림
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 로딩 완료 후 실행
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
