@@ -2566,16 +2566,16 @@ class GameEngine {
                     // 아주 부드럽게 양방향으로 25%씩 밀어내어 골고루 펼쳐지게 격리
                     let pushForce = overlap * 0.25;
 
-                    // [수정] 밀쳐진 결과 위치가 벽 내부인지 사전에 판단하여 길 위일 때만 이동
+                    // [수정] 밀쳐진 결과 위치가 벽 내부인지 사전에 판단하여 길 위일 때만 이동 (8방향 촘촘한 충돌 범위 고려)
                     let nextMx = m.x + Math.cos(pushAngle) * pushForce;
                     let nextMy = m.y + Math.sin(pushAngle) * pushForce;
-                    if (!this.isTileWall(nextMx, nextMy)) {
+                    if (typeof m.isPositionInWall === 'function' ? !m.isPositionInWall(nextMx, nextMy) : !this.isTileWall(nextMx, nextMy)) {
                         m.x = nextMx;
                         m.y = nextMy;
                     }
                     let nextOtherX = other.x - Math.cos(pushAngle) * pushForce;
                     let nextOtherY = other.y - Math.sin(pushAngle) * pushForce;
-                    if (!this.isTileWall(nextOtherX, nextOtherY)) {
+                    if (typeof other.isPositionInWall === 'function' ? !other.isPositionInWall(nextOtherX, nextOtherY) : !this.isTileWall(nextOtherX, nextOtherY)) {
                         other.x = nextOtherX;
                         other.y = nextOtherY;
                     }

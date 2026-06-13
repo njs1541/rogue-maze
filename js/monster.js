@@ -5,6 +5,8 @@ class Monster {
     constructor(x, y, tier, roomNum = 1) {
         this.x = x;
         this.y = y;
+        this.spawnX = x; // 초기 스폰 X 위치 기록
+        this.spawnY = y; // 초기 스폰 Y 위치 기록
         this.tier = tier;
         this.roomNum = roomNum;
         this._hp = 0; // [추가] 내부 체력 변수 초기화
@@ -207,6 +209,28 @@ class Monster {
             // 체력을 새로 설정하거나 회복시키는 경우
             this._hp = Math.max(0, value);
         }
+    }
+
+    // [신규] 몬스터 반경을 고려한 8방향 촘촘한 격벽(장애물 타일) 충돌 여부 감지 헬퍼 메서드
+    isPositionInWall(x, y) {
+        let mapEngine = window.gameEngine;
+        if (!mapEngine || !mapEngine.isTileWall) return false;
+
+        const checkRadius = this.radius * 0.7; // 몬스터 반경 대비 충돌 범위 보정 (70%)
+        
+        // 중심점 및 8방향 모서리 픽셀의 벽 여부 검사
+        if (mapEngine.isTileWall(x, y) ||
+            mapEngine.isTileWall(x - checkRadius, y) ||
+            mapEngine.isTileWall(x + checkRadius, y) ||
+            mapEngine.isTileWall(x, y - checkRadius) ||
+            mapEngine.isTileWall(x, y + checkRadius) ||
+            mapEngine.isTileWall(x - checkRadius * 0.707, y - checkRadius * 0.707) ||
+            mapEngine.isTileWall(x + checkRadius * 0.707, y - checkRadius * 0.707) ||
+            mapEngine.isTileWall(x - checkRadius * 0.707, y + checkRadius * 0.707) ||
+            mapEngine.isTileWall(x + checkRadius * 0.707, y + checkRadius * 0.707)) {
+            return true;
+        }
+        return false;
     }
 
     // 엘리트 속성 주입 메서드
@@ -975,10 +999,10 @@ class Monster {
                             targetX = Math.max(wallMargin + this.radius, Math.min(mapW - wallMargin - this.radius, targetX));
                             targetY = Math.max(wallMargin + this.radius, Math.min(mapH - wallMargin - this.radius, targetY));
 
-                            // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도
+                            // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도 (8방향 촘촘히 검사)
                             if (window.gameEngine && window.gameEngine.isTileWall) {
                                 let attempts = 0;
-                                while (window.gameEngine.isTileWall(targetX, targetY) && attempts < 10) {
+                                while (this.isPositionInWall(targetX, targetY) && attempts < 10) {
                                     warpAngle = Math.random() * Math.PI * 2;
                                     warpDist = 120 + Math.random() * 120;
                                     targetX = player.x + Math.cos(warpAngle) * warpDist;
@@ -988,7 +1012,7 @@ class Monster {
                                     attempts++;
                                 }
                                 // 10번 시도했음에도 벽 내부라면 텔레포트 취소하고 쿨타임만 짧게 설정
-                                if (window.gameEngine.isTileWall(targetX, targetY)) {
+                                if (this.isPositionInWall(targetX, targetY)) {
                                     this.teleportCooldown = 60;
                                     return;
                                 }
@@ -1997,10 +2021,10 @@ class Monster {
                 targetX = Math.max(margin + this.radius, Math.min(mapW - margin - this.radius, targetX));
                 targetY = Math.max(margin + this.radius, Math.min(mapH - margin - this.radius, targetY));
 
-                // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도
+                // [수정] 텔레포트 목적지가 타일벽 내부인지 체크, 벽이라면 최대 10번 다른 방향으로 재시도 (8방향 촘촘히 검사)
                 if (window.gameEngine && window.gameEngine.isTileWall) {
                     let attempts = 0;
-                    while (window.gameEngine.isTileWall(targetX, targetY) && attempts < 10) {
+                    while (this.isPositionInWall(targetX, targetY) && attempts < 10) {
                         warpAngle = Math.random() * Math.PI * 2;
                         warpDist = 100 + Math.random() * 150;
                         targetX = player.x + Math.cos(warpAngle) * warpDist;
@@ -2010,7 +2034,7 @@ class Monster {
                         attempts++;
                     }
                     // 10번 시도했음에도 여전히 벽 내부라면 이번 텔레포트는 생략하고 쿨타임만 짧게 설정한 뒤 취소
-                    if (window.gameEngine.isTileWall(targetX, targetY)) {
+                    if (this.isPositionInWall(targetX, targetY)) {
                         this.teleportCooldown = 60;
                         return;
                     }
@@ -2128,17 +2152,13 @@ class Monster {
             }
         }
 
-        // [수정] 2차원 그리드 장애물 타일 벽(isTileWall) 충돌 감지 및 슬라이딩 미끄러짐 처리
+        // [수정] 2차원 그리드 장애물 타일 벽(isTileWall) 충돌 감지 및 슬라이딩 미끄러짐 처리 (8방향 검사 적용)
         let mapEngine = window.gameEngine;
         let hasSlammedWall = false;
 
         if (mapEngine && mapEngine.isTileWall) {
-            // 1. X축 이동 시 벽 충돌 검사 (몬스터의 크기를 반영하여 벽 침투 방지)
-            const checkRadius = this.radius * 0.7; // 부드러운 슬라이딩을 위해 약간 타이트하게 보정
-            if (mapEngine.isTileWall(this.x, origY) ||
-                mapEngine.isTileWall(this.x - checkRadius, origY) ||
-                mapEngine.isTileWall(this.x + checkRadius, origY)) {
-                
+            // 1. X축 이동 시 벽 충돌 검사
+            if (this.isPositionInWall(this.x, origY)) {
                 if (Math.abs(this.knockbackX) > 2.5) {
                     hasSlammedWall = true;
                 }
@@ -2147,16 +2167,21 @@ class Monster {
             }
 
             // 2. Y축 이동 시 벽 충돌 검사
-            if (mapEngine.isTileWall(this.x, this.y) ||
-                mapEngine.isTileWall(this.x, this.y - checkRadius) ||
-                mapEngine.isTileWall(this.x, this.y + checkRadius)) {
-                
+            if (this.isPositionInWall(this.x, this.y)) {
                 if (Math.abs(this.knockbackY) > 2.5) {
                     hasSlammedWall = true;
                 }
                 this.y = origY; // Y축 이동 무효화
                 this.knockbackY = 0;
             }
+        }
+
+        // [신규] X/Y축 충돌 처리 후 결합 위치가 최종적으로 벽 내부인 경우, 이번 프레임의 모든 이동을 완전 롤백하여 벽 침투를 원천 차단
+        if (mapEngine && mapEngine.isTileWall && this.isPositionInWall(this.x, this.y)) {
+            this.x = origX;
+            this.y = origY;
+            this.knockbackX = 0;
+            this.knockbackY = 0;
         }
 
         // 맵 외곽 테두리 wallMargin 경계선 제한 충돌 처리 (몬스터 맵 이탈 원천 방지)
@@ -2200,6 +2225,42 @@ class Monster {
             }
         }
         if (this.wallSlamCooldown > 0) this.wallSlamCooldown--;
+
+        // [신규] 몬스터 격벽 갇힘 예방 및 실시간 리스폰(안전 구역 탈출) 시스템
+        if (mapEngine && mapEngine.isTileWall && this.isPositionInWall(this.x, this.y)) {
+            let targetX = this.spawnX;
+            let targetY = this.spawnY;
+
+            // 만약 기록된 리스폰 지점 역시 벽 내부이거나 존재하지 않는다면, 엔진의 안전한 랜덤 공간 탐색
+            if (targetX === undefined || targetY === undefined || this.isPositionInWall(targetX, targetY)) {
+                let safePos = mapEngine.getSafeSpawnPosition(true);
+                targetX = safePos.x;
+                targetY = safePos.y;
+                // 리스폰 지점 정보 갱신
+                this.spawnX = targetX;
+                this.spawnY = targetY;
+            }
+
+            // 안전 위치로 몬스터 강제 워프 및 물리 속도 리셋
+            this.x = targetX;
+            this.y = targetY;
+            this.knockbackX = 0;
+            this.knockbackY = 0;
+
+            // 시각적 피드백 출력 및 복귀 알림
+            if (mapEngine.showFloatingText) {
+                mapEngine.showFloatingText("RESPAWN! 💠", this.x, this.y - 25, '#00e1ff');
+            }
+
+            // 소환/차원도약 푸른빛 네온 스파크 파티클 연출
+            if (mapEngine.particles) {
+                for (let k = 0; k < 8; k++) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = Math.random() * 2 + 1;
+                    mapEngine.particles.push(new Particle(this.x, this.y, '#00e1ff', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 25));
+                }
+            }
+        }
     }
 
     draw(ctx) {
