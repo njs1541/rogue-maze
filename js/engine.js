@@ -829,6 +829,190 @@ class GameEngine {
         this.showFloatingText("CUSTOM MAP APPLIED! 🛠️", this.player.x, this.player.y - 40, '#39ff14');
     }
 
+    // [신규] 2차원 그리드 정보를 분석하여 바닥 타일과 접하는 안전한 벽면에 비밀방 균열 벽을 스폰하는 메서드
+    spawnSecretWall() {
+        let spots = [];
+
+        // 1) Top (상단)
+        let topC = 7;
+        for (let r = 0; r < 18; r++) {
+            if (this.grid[r] && this.grid[r][topC] === 0) {
+                if (r > 0) {
+                    let wType = this.grid[r - 1] ? this.grid[r - 1][topC] : 2;
+                    spots.push({
+                        col: topC,
+                        row: r - 1,
+                        wallX: topC * 55 + 27.5,
+                        wallY: (r - 1) * 50 + 25,
+                        dir: 'top',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'top').length === 0) {
+            for (let c = 4; c < 20; c++) {
+                let found = false;
+                for (let r = 0; r < 18; r++) {
+                    if (this.grid[r] && this.grid[r][c] === 0) {
+                        if (r > 0) {
+                            let wType = this.grid[r - 1] ? this.grid[r - 1][c] : 2;
+                            spots.push({
+                                col: c,
+                                row: r - 1,
+                                wallX: c * 55 + 27.5,
+                                wallY: (r - 1) * 50 + 25,
+                                dir: 'top',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 2) Bottom (하단)
+        let botC = 16;
+        for (let r = 17; r >= 0; r--) {
+            if (this.grid[r] && this.grid[r][botC] === 0) {
+                if (r < 17) {
+                    let wType = this.grid[r + 1] ? this.grid[r + 1][botC] : 2;
+                    spots.push({
+                        col: botC,
+                        row: r + 1,
+                        wallX: botC * 55 + 27.5,
+                        wallY: (r + 1) * 50 + 25,
+                        dir: 'bottom',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'bottom').length === 0) {
+            for (let c = 20; c >= 4; c--) {
+                let found = false;
+                for (let r = 17; r >= 0; r--) {
+                    if (this.grid[r] && this.grid[r][c] === 0) {
+                        if (r < 17) {
+                            let wType = this.grid[r + 1] ? this.grid[r + 1][c] : 2;
+                            spots.push({
+                                col: c,
+                                row: r + 1,
+                                wallX: c * 55 + 27.5,
+                                wallY: (r + 1) * 50 + 25,
+                                dir: 'bottom',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 3) Left (좌측)
+        let leftR = 5;
+        for (let c = 0; c < 24; c++) {
+            if (this.grid[leftR] && this.grid[leftR][c] === 0) {
+                if (c > 0) {
+                    let wType = this.grid[leftR][c - 1] !== undefined ? this.grid[leftR][c - 1] : 2;
+                    spots.push({
+                        col: c - 1,
+                        row: leftR,
+                        wallX: (c - 1) * 55 + 27.5,
+                        wallY: leftR * 50 + 25,
+                        dir: 'left',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'left').length === 0) {
+            for (let r = 4; r < 14; r++) {
+                let found = false;
+                for (let c = 0; c < 24; c++) {
+                    if (this.grid[r] && this.grid[r][c] === 0) {
+                        if (c > 0) {
+                            let wType = this.grid[r][c - 1] !== undefined ? this.grid[r][c - 1] : 2;
+                            spots.push({
+                                col: c - 1,
+                                row: r,
+                                wallX: (c - 1) * 55 + 27.5,
+                                wallY: r * 50 + 25,
+                                dir: 'left',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 4) Right (우측)
+        let rightR = 12;
+        for (let c = 23; c >= 0; c--) {
+            if (this.grid[rightR] && this.grid[rightR][c] === 0) {
+                if (c < 23) {
+                    let wType = this.grid[rightR][c + 1] !== undefined ? this.grid[rightR][c + 1] : 2;
+                    spots.push({
+                        col: c + 1,
+                        row: rightR,
+                        wallX: (c + 1) * 55 + 27.5,
+                        wallY: rightR * 50 + 25,
+                        dir: 'right',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'right').length === 0) {
+            for (let r = 14; r >= 4; r--) {
+                let found = false;
+                for (let c = 23; c >= 0; c--) {
+                    if (this.grid[r] && this.grid[r][c] === 0) {
+                        if (c < 23) {
+                            let wType = this.grid[r][c + 1] !== undefined ? this.grid[r][c + 1] : 2;
+                            spots.push({
+                                col: c + 1,
+                                row: r,
+                                wallX: (c + 1) * 55 + 27.5,
+                                wallY: r * 50 + 25,
+                                dir: 'right',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        if (spots.length === 0) return;
+
+        // 후보 중 하나를 무작위 선택
+        let chosenSpot = spots[Math.floor(Math.random() * spots.length)];
+
+        // 겹치는 기존 격벽 장애물(NeonTileWall) 제거
+        this.obstacles = this.obstacles.filter(obs => !(obs.col === chosenSpot.col && obs.row === chosenSpot.row));
+
+        // 비밀 균열 외벽 생성 (새로운 생성자 스펙: col, row, dir, type)
+        this.secretWalls.push(new SecretWall(chosenSpot.col, chosenSpot.row, chosenSpot.dir, chosenSpot.type));
+    }
+
     // [신규] 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
     isTileWall(x, y) {
         if (!this.grid) return false;
@@ -1239,32 +1423,7 @@ class GameEngine {
         }
 
         if (shouldSpawnSecret) {
-            // [요건 반영] 비밀방 입구가 노골적이지 않도록 구석 모퉁이가 아닌 외곽 테두리 4방향 벽면에 완벽 매설
-            let spots = [
-                { wallX: this.mapWidth * 0.3125, wallY: 50, dir: 'top' },    // 상단 벽면
-                { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 50, dir: 'bottom' }, // 하단 벽면
-                { wallX: 50, wallY: this.mapHeight * 0.3, dir: 'left' },    // 좌측 벽면
-                { wallX: this.mapWidth - 50, wallY: this.mapHeight * 0.7, dir: 'right' }   // 우측 벽면
-            ];
-
-            // 격자 장애물과 간섭 차단을 위한 안전한 후보지만 필터링
-            let safeSpots = spots.filter(spot => {
-                for (let obs of this.obstacles) {
-                    let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
-                    if (distWall <= 85) { // 안전 마진 85px 상향 정교화
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-            let chosenSpot = safeSpots.length > 0
-                ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
-                : spots[Math.floor(Math.random() * spots.length)];
-
-            // 비밀 균열 외벽 생성 (방향 정보 전달)
-            this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
-            // 보물 상자는 위치 노출 방지를 위해 평소에 생성하지 않음 (스펙 변경으로 삭제 완료)
+            this.spawnSecretWall();
         }
 
         this.updateHUD();
@@ -2364,97 +2523,7 @@ class GameEngine {
                         continue;
                     }
                 }
-                for (let j = this.secretWalls.length - 1; j >= 0; j--) {
-                    let wall = this.secretWalls[j];
-                    let wDist = Math.hypot(wall.x - b.x, wall.y - b.y);
-                    if (wDist < 25 + b.radius) { // 바뀐 얇은 벽 형상에 맞춘 기하 충돌 반경 보정
-                        if (!wall.hitCooldown) {
-                            wall.hitCooldown = 12;
-                            if (this.player && this.player.equipLevels && this.player.equipLevels.goggles === 10) {
-                                wall.hp = 0;
-                            } else {
-                                wall.hp--;
-                            }
-                            wall.hitCount++;
-                            wall.flashTimer = 5;
-                            Sound.play('hit');
 
-                            for (let k = 0; k < 4; k++) {
-                                let randAngle = Math.random() * Math.PI * 2;
-                                let pSpeed = Math.random() * 2 + 1;
-                                this.particles.push(new Particle(b.x, b.y, wall.glowColor, 1.5, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'));
-                            }
-
-                            // 3회 적중 시 최초 지지직 글리치 오라 개막
-                            if (wall.hitCount === 3) {
-                                this.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
-                                Sound.play('powerup');
-                            } else {
-                                this.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
-                            }
-
-                            this.bullets.splice(i, 1);
-
-                            if (wall.hp <= 0) {
-                                Sound.play('explosion');
-                                this.shakeScreen(10, 4.5);
-                                for (let k = 0; k < 15; k++) {
-                                    let randAngle = Math.random() * Math.PI * 2;
-                                    let pSpeed = Math.random() * 4 + 1.5;
-                                    this.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 25, 'spark'));
-                                    this.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
-                                }
-                                this.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
-
-                                // [수정] 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출 (가변 맵 크기 연동)
-                                let cx = this.mapWidth / 2, cy = this.mapHeight / 2;
-                                let foundSafe = false;
-                                for (let attempt = 0; attempt < 50; attempt++) {
-                                    let rx = 100 + Math.random() * (this.mapWidth - 200);
-                                    let ry = 100 + Math.random() * (this.mapHeight - 200);
-                                    let distToPlayer = Math.hypot(this.player.x - rx, this.player.y - ry);
-                                    if (distToPlayer < 100) continue;
-
-                                    let distToObs = true;
-                                    for (let obs of this.obstacles) {
-                                        if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
-                                            distToObs = false;
-                                            break;
-                                        }
-                                    }
-                                    if (distToObs) {
-                                        cx = rx;
-                                        cy = ry;
-                                        foundSafe = true;
-                                        break;
-                                    }
-                                }
-
-                                // 🛡️ [비상용 폴백 예외 처리] 안전 좌표 55회 추출 실패 시, 부서진 비밀방 벽(Glitch Wall)이 있던 좌표를 기준으로 포털을 스폰하여 절대 맵을 이탈하지 않도록 조치
-                                if (!foundSafe) {
-                                    cx = wall.x;
-                                    cy = wall.y;
-                                }
-
-                                // 비밀방 포털 100% 소환
-                                let secretPortal = new RoomPortal('secret', 0, cx, cy);
-                                secretPortal.difficultyClass = 'high'; // 에픽 보증 등급 부여
-                                this.portals.push(secretPortal);
-                                this.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
-
-                                // 포털 소환 보랏빛 차원 파편 솟구침 연출
-                                for (let k2 = 0; k2 < 20; k2++) {
-                                    let pAngle2 = Math.random() * Math.PI * 2;
-                                    let pSpeed2 = Math.random() * 3.5 + 2;
-                                    this.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
-                                }
-
-                                this.secretWalls.splice(j, 1);
-                            }
-                            break;
-                        }
-                    }
-                }
             }
 
             // 화면 밖으로 나가거나 수명이 다하거나 비활성화(소멸 예약)되면 소멸
@@ -2532,7 +2601,7 @@ class GameEngine {
                 for (let j = this.secretWalls.length - 1; j >= 0; j--) {
                     let wall = this.secretWalls[j];
                     let wDist = Math.hypot(wall.x - this.player.x, wall.y - this.player.y);
-                    if (wDist < this.player.slashRadius + 25) { // 바뀐 벽 모양을 감안하여 리치 소폭 확장 보정
+                    if (wDist < this.player.slashRadius + 28) { // 바뀐 벽 모양을 감안하여 리치 소폭 확장 보정
                         let targetAngle = Math.atan2(wall.y - this.player.y, wall.x - this.player.x);
                         let angleDiff = Math.abs(targetAngle - this.player.slashAngle);
                         angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
@@ -7453,24 +7522,7 @@ class GameEngine {
 
             // 비밀 벽(균열) 재생성 (가변 맵 비율에 연동)
             if (savedData.hasSecretWall && this.roomNum % 10 !== 0 && this.roomNum > 1 && !this.inSecretRoom) {
-                let spots = [
-                    { wallX: this.mapWidth * 0.3125, wallY: 50, dir: 'top' },
-                    { wallX: this.mapWidth * 0.6875, wallY: this.mapHeight - 50, dir: 'bottom' },
-                    { wallX: 50, wallY: this.mapHeight * 0.3, dir: 'left' },
-                    { wallX: this.mapWidth - 50, wallY: this.mapHeight * 0.7, dir: 'right' }
-                ];
-                let safeSpots = spots.filter(spot => {
-                    for (let obs of this.obstacles) {
-                        let distWall = Math.hypot(spot.wallX - obs.x, spot.wallY - obs.y);
-                        if (distWall <= 85) return false;
-                    }
-                    return true;
-                });
-                let chosenSpot = safeSpots.length > 0
-                    ? safeSpots[Math.floor(Math.random() * safeSpots.length)]
-                    : spots[Math.floor(Math.random() * spots.length)];
-
-                this.secretWalls.push(new SecretWall(chosenSpot.wallX, chosenSpot.wallY, chosenSpot.dir));
+                this.spawnSecretWall();
             }
 
             // 플레이어 리스폰 위치 복구 (가변 맵 크기에 비례하여 복구)

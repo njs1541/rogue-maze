@@ -184,6 +184,161 @@ class Bullet {
             }
         }
 
+        // [수정] 비밀방 균열 벽(SecretWall)도 탄환을 투과시키지 않도록 충돌 감지 및 소멸/도탄 물리 연동
+        if (window.gameEngine && window.gameEngine.secretWalls.length > 0 && this.active) {
+            for (let j = window.gameEngine.secretWalls.length - 1; j >= 0; j--) {
+                let wall = window.gameEngine.secretWalls[j];
+                let currentX = this.isDna ? this.virtualX : this.x;
+                let currentY = this.isDna ? this.virtualY : this.y;
+                let distX = currentX - wall.x;
+                let distY = currentY - wall.y;
+                let minXDist = (wall.width / 2) + this.radius;
+                let minYDist = (wall.height / 2) + this.radius;
+
+                if (Math.abs(distX) < minXDist && Math.abs(distY) < minYDist) {
+                    // 충돌 발생!
+                    
+                    // 플레이어 탄환인 경우 데미지 및 균열 벽 타격 상태 처리
+                    if (this.isPlayerBullet) {
+                        if (!wall.hitCooldown) {
+                            wall.hitCooldown = 12;
+                            if (window.gameEngine.player && window.gameEngine.player.equipLevels && window.gameEngine.player.equipLevels.goggles === 10) {
+                                wall.hp = 0;
+                            } else {
+                                wall.hp--;
+                            }
+                            wall.hitCount++;
+                            wall.flashTimer = 5;
+                            Sound.play('hit');
+
+                            for (let k = 0; k < 4; k++) {
+                                let randAngle = Math.random() * Math.PI * 2;
+                                let pSpeed = Math.random() * 2 + 1;
+                                window.gameEngine.particles.push(new Particle(
+                                    currentX, currentY, 
+                                    wall.glowColor, 1.5, 
+                                    Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
+                                ));
+                            }
+
+                            // 3회 적중 시 최초 지지직 글리치 오라 개막
+                            if (wall.hitCount === 3) {
+                                window.gameEngine.showFloatingText(`⚠️ GLITCH DETECTED! 🔮`, wall.x, wall.y - 20, '#b026ff');
+                                Sound.play('powerup');
+                            } else {
+                                window.gameEngine.showFloatingText(`CRACK! 🔨`, wall.x, wall.y - 15, '#b026ff');
+                            }
+
+                            if (wall.hp <= 0) {
+                                Sound.play('explosion');
+                                window.gameEngine.shakeScreen(10, 4.5);
+                                for (let k = 0; k < 15; k++) {
+                                    let randAngle = Math.random() * Math.PI * 2;
+                                    let pSpeed = Math.random() * 4 + 1.5;
+                                    window.gameEngine.particles.push(new Particle(wall.x, wall.y, '#b026ff', 2.2, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 25, 'spark'));
+                                    window.gameEngine.particles.push(new Particle(wall.x, wall.y, '#333333', 1.8, Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 15, 'dust'));
+                                }
+                                window.gameEngine.showFloatingText("GLITCH WALL BROKEN! 💥", wall.x, wall.y - 20, '#b026ff');
+
+                                // 맵 중앙 가용 영역 내 장애물들과 겹치지 않는 안전한 랜덤 좌표 추출
+                                let cx = window.gameEngine.mapWidth / 2, cy = window.gameEngine.mapHeight / 2;
+                                let foundSafe = false;
+                                for (let attempt = 0; attempt < 50; attempt++) {
+                                    let rx = 100 + Math.random() * (window.gameEngine.mapWidth - 200);
+                                    let ry = 100 + Math.random() * (window.gameEngine.mapHeight - 200);
+                                    let distToPlayer = Math.hypot(window.gameEngine.player.x - rx, window.gameEngine.player.y - ry);
+                                    if (distToPlayer < 100) continue;
+
+                                    let distToObs = true;
+                                    for (let obs of window.gameEngine.obstacles) {
+                                        if (Math.hypot(rx - obs.x, ry - obs.y) < 70) {
+                                            distToObs = false;
+                                            break;
+                                        }
+                                    }
+                                    if (distToObs) {
+                                        cx = rx;
+                                        cy = ry;
+                                        foundSafe = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!foundSafe) {
+                                    cx = wall.x;
+                                    cy = wall.y;
+                                }
+
+                                // 비밀방 포털 100% 소환
+                                let secretPortal = new RoomPortal('secret', 0, cx, cy);
+                                secretPortal.difficultyClass = 'high';
+                                window.gameEngine.portals.push(secretPortal);
+                                window.gameEngine.showFloatingText("🔮 DIMENSIONAL PORTAL OPENED!", cx, cy - 35, '#b026ff');
+
+                                for (let k2 = 0; k2 < 20; k2++) {
+                                    let pAngle2 = Math.random() * Math.PI * 2;
+                                    let pSpeed2 = Math.random() * 3.5 + 2;
+                                    window.gameEngine.particles.push(new Particle(cx, cy, '#b026ff', 2.2, Math.cos(pAngle2) * pSpeed2, Math.sin(pAngle2) * pSpeed2, 28, 'spark'));
+                                }
+
+                                window.gameEngine.secretWalls.splice(j, 1);
+                            }
+                        }
+                    }
+
+                    // 도탄 튕김 물리
+                    if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
+                        let overlapX = minXDist - Math.abs(distX);
+                        let overlapY = minYDist - Math.abs(distY);
+
+                        if (overlapX < overlapY) {
+                            if (this.isDna) this.virtualX += distX > 0 ? overlapX : -overlapX;
+                            else this.x += distX > 0 ? overlapX : -overlapX;
+                            this.vx = -this.vx;
+                        } else {
+                            if (this.isDna) this.virtualY += distY > 0 ? overlapY : -overlapY;
+                            else this.y += distY > 0 ? overlapY : -overlapY;
+                            this.vy = -this.vy;
+                        }
+
+                        this.bounceCount++;
+                        this.damage *= 1.10;
+                        Sound.play('dodge');
+
+                        let currentEmitX = this.isDna ? this.virtualX : this.x;
+                        let currentEmitY = this.isDna ? this.virtualY : this.y;
+                        for (let k = 0; k < 3; k++) {
+                            let randAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 1;
+                            window.gameEngine.particles.push(new Particle(
+                                currentEmitX, currentEmitY, 
+                                '#ff00aa', 1.5, 
+                                Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 12, 'spark'
+                            ));
+                        }
+                        window.gameEngine.showFloatingText("BOUNCE! 💥", currentEmitX, currentEmitY - 15, '#ff00aa');
+                    } else {
+                        // 튕김 한도가 다했거나 적 탄환인 경우 즉시 소멸
+                        this.active = false;
+                        this.life = 0;
+
+                        let currentEmitX = this.isDna ? this.virtualX : this.x;
+                        let currentEmitY = this.isDna ? this.virtualY : this.y;
+                        for (let k = 0; k < 3; k++) {
+                            let randAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 2 + 1;
+                            window.gameEngine.particles.push(new Particle(
+                                currentEmitX, currentEmitY, 
+                                this.color, 1.5, 
+                                Math.cos(randAngle) * pSpeed, Math.sin(randAngle) * pSpeed, 10, 'spark'
+                            ));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         // [W-03 총 도탄 물리 기믹 연산]
         if (this.isPlayerBullet && this.bounceLimit > 0 && this.bounceCount < this.bounceLimit) {
             const wallMargin = 50;

@@ -552,19 +552,19 @@ class NeonCoin {
 // 6.5.6. 파괴 가능한 비밀 균열 벽 클래스 (Secret Wall)
 // --------------------------------------------------------------------------
 class SecretWall {
-    constructor(x, y, direction) {
-        this.x = x;
-        this.y = y;
+    constructor(col, row, direction, type) {
+        this.col = col;
+        this.row = row;
         this.dir = direction; // 'top', 'bottom', 'left', 'right'
+        this.type = type; // 1: 내부 격벽 (자홍), 2: 외벽 (다크)
         
-        // [박스 얇기 조절] 외곽 벽면과 거의 같도록 얇게 10px 두께 지정
-        if (direction === 'top' || direction === 'bottom') {
-            this.width = 120;
-            this.height = 10;
-        } else {
-            this.width = 10;
-            this.height = 120;
-        }
+        // 격벽 1칸 전체 크기 지정
+        this.width = 55;
+        this.height = 50;
+        
+        // 중심 좌표 계산
+        this.x = col * 55 + 27.5;
+        this.y = row * 50 + 25;
         
         this.hp = 10; // 10회 가격 시 파괴
         this.hitCount = 0; // 누적 적중 공격수
@@ -572,6 +572,7 @@ class SecretWall {
         this.glowColor = '#b026ff'; // 글리치 연출용 보랏빛
         this.flashTimer = 0;
         this.hitCooldown = 0; // 무적 시간 프레임
+        this.pulse = Math.random() * 100;
     }
 
     update(game) {
@@ -595,14 +596,77 @@ class SecretWall {
     }
 
     draw(ctx) {
-        // [완벽 은닉] 반드시 플레이어가 공격한 공격이 닿아야만(hitCount > 0) 표시되기 시작해야 함!
-        // 단, 플레이어가 '차원 고글' 장비를 획득(equipLevels.goggles >= 1)한 상태라면 은은한 형태로 위치를 표시
         const hasGoggles = window.gameEngine && window.gameEngine.player && window.gameEngine.player.equipLevels.goggles >= 1;
-        if (this.hitCount === 0 && !hasGoggles) return;
+        
+        // [완벽 은닉] 한 번도 때리지 않았고 차원 고글도 없는 경우, 기존 NeonTileWall과 100% 동일하게 렌더링
+        if (this.hitCount === 0 && !hasGoggles) {
+            ctx.save();
+            if (this.type === 2) {
+                // 외벽(type 2) 원래 렌더링 방식과 동일하게 채우기 및 테두리/빗금 그리기
+                ctx.fillStyle = '#060810';
+                ctx.fillRect(this.x - 27.5, this.y - 25, 55, 50);
+                
+                ctx.strokeStyle = 'rgba(255, 0, 85, 0.35)';
+                ctx.lineWidth = 2.0;
+                ctx.strokeRect(this.x - 27.5, this.y - 25, 55, 50);
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 0, 85, 0.18)';
+                ctx.lineWidth = 1.2;
+                
+                ctx.moveTo(this.x - 27.5, this.y - 10);
+                ctx.lineTo(this.x + 12.5, this.y + 25);
+                
+                ctx.moveTo(this.x - 27.5, this.y - 25);
+                ctx.lineTo(this.x + 27.5, this.y + 25);
+                
+                ctx.moveTo(this.x - 12.5, this.y - 25);
+                ctx.lineTo(this.x + 27.5, this.y + 10);
+                ctx.stroke();
+            } else {
+                // 내부 격벽(type 1) 원래 렌더링 방식과 동일하게 자홍색 홀로그램 그리기
+                ctx.translate(this.x, this.y);
+                this.pulse += 0.04;
+                let scale = 1.0 + Math.sin(this.pulse) * 0.03;
+                
+                const lowSpec = window.gameEngine && window.gameEngine.lowSpecMode;
+                if (!lowSpec) {
+                    ctx.beginPath();
+                    ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+                    ctx.fillStyle = 'rgba(255, 0, 170, 0.05)';
+                    ctx.strokeStyle = 'rgba(255, 0, 170, 0.22)';
+                    ctx.lineWidth = 4.5;
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+                    ctx.fillStyle = 'rgba(255, 0, 170, 0.08)';
+                    ctx.fill();
+                }
+                
+                ctx.beginPath();
+                ctx.rect(-26.5 * scale, -24 * scale, 53 * scale, 48 * scale);
+                ctx.strokeStyle = '#ff66cc';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 0, 170, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.moveTo(-26.5 * scale, -24 * scale);
+                ctx.lineTo(26.5 * scale, 24 * scale);
+                ctx.moveTo(26.5 * scale, -24 * scale);
+                ctx.lineTo(-26.5 * scale, 24 * scale);
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        }
 
         ctx.save();
         
-        // 3회 이상 공격당했을 때 비밀방 단서로 지지직거리는 글리치 떨림 및 잔상 계산
+        // 3회 이상 공격당했을 때 글리치 떨림 및 잔상 계산
         let shakeX = 0;
         let shakeY = 0;
         if (this.hitCount >= 3) {
@@ -622,24 +686,25 @@ class SecretWall {
             ctx.shadowBlur = 12;
             ctx.shadowColor = '#ffffff';
         } else if (isGogglesReveal) {
-            // 고글로 탐지된 상태이고 한 번도 안 맞은 경우: 매우 은은한 보랏빛 점선 테두리
-            ctx.fillStyle = 'rgba(176, 38, 255, 0.02)';
-            ctx.strokeStyle = 'rgba(176, 38, 255, 0.35)'; // 은은한 보라 테두리
-            ctx.shadowBlur = 6;
+            // 고글로 탐지된 상태이고 한 번도 안 맞은 경우: 은은한 보랏빛 점선 테두리 및 반투명 채우기
+            ctx.fillStyle = 'rgba(176, 38, 255, 0.04)';
+            ctx.strokeStyle = 'rgba(176, 38, 255, 0.5)'; // 은은한 보라 테두리
+            ctx.shadowBlur = 8;
             ctx.shadowColor = '#b026ff';
         } else {
-            // 벽 테두리 마진선과 혼연일체 되도록 얇고 어둡게 처리
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-            ctx.strokeStyle = this.color;
-            ctx.shadowBlur = 0;
+            // 공격을 받기 시작한 경우: 더 뚜렷한 글리치 보라 테두리 및 반투명 채우기
+            ctx.fillStyle = 'rgba(176, 38, 255, 0.08)';
+            ctx.strokeStyle = 'rgba(176, 38, 255, 0.7)';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#b026ff';
         }
 
-        // 박스 두께 약 2px 정도로 얇게 벽 테두리와 거의 유사한 느낌 드로잉
-        ctx.lineWidth = isGogglesReveal ? 1.5 : 2;
+        ctx.lineWidth = 2.0;
         ctx.beginPath();
         if (isGogglesReveal) {
             ctx.setLineDash([4, 4]); // 점선 효과 적용
         }
+        // 타일 1칸 전체 영역(55x50) 사각형 드로잉
         ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
         ctx.fill();
         ctx.stroke();
@@ -648,36 +713,53 @@ class SecretWall {
             ctx.setLineDash([]); // 점선 해제
         }
 
-        // 3회 이상 타격 시 추가적인 보랏빛 노이즈 선을 지지직 덧그리기
-        if (this.hitCount >= 3) {
+        // [요구사항 반영] 기존의 얇은 크랙 노이즈 드로잉 방식을 주석처리합니다.
+        /* 
+        for (let k = 0; k < 3; k++) {
+            if (this.width > this.height) { // 가로 벽
+                let rx = -this.width / 2 + Math.random() * this.width;
+                let ry = -this.height / 2 + Math.random() * this.height;
+                ctx.moveTo(rx - 15, ry);
+                ctx.lineTo(rx + 15, ry);
+            } else { // 세로 벽
+                let rx = -this.width / 2 + Math.random() * this.width;
+                let ry = -this.height / 2 + Math.random() * this.height;
+                ctx.moveTo(rx, ry - 15);
+                ctx.lineTo(rx, ry + 15);
+            }
+        }
+        ctx.stroke();
+        */
+
+        // [요구사항 반영] 현재 방식으로 생성된 비밀방 위치의 격벽 1칸 전체에 노이즈를 그립니다.
+        if (this.hitCount > 0) {
             ctx.beginPath();
             ctx.strokeStyle = this.glowColor;
             ctx.lineWidth = 1.5;
             ctx.shadowBlur = 10;
             ctx.shadowColor = this.glowColor;
 
-            // 벽면에 보랏빛 지직거리는 크랙 노이즈 드로잉
-            for (let k = 0; k < 3; k++) {
-                if (this.width > this.height) { // 가로 벽
-                    let rx = -this.width / 2 + Math.random() * this.width;
-                    let ry = -this.height / 2 + Math.random() * this.height;
-                    ctx.moveTo(rx - 15, ry);
-                    ctx.lineTo(rx + 15, ry);
-                } else { // 세로 벽
-                    let rx = -this.width / 2 + Math.random() * this.width;
-                    let ry = -this.height / 2 + Math.random() * this.height;
-                    ctx.moveTo(rx, ry - 15);
-                    ctx.lineTo(rx, ry + 15);
-                }
+            // 격벽 1칸 전체 영역 내에 무작위 크랙/글리치 노이즈 선 5개 드로잉
+            for (let k = 0; k < 5; k++) {
+                let x1 = -this.width / 2 + Math.random() * this.width;
+                let y1 = -this.height / 2 + Math.random() * this.height;
+                let x2 = x1 + (Math.random() * 24 - 12);
+                let y2 = y1 + (Math.random() * 24 - 12);
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
             }
             ctx.stroke();
-            
-            // 5% 확률로 GLITCH 텍스트 홀로그램 가끔 출몰
-            if (Math.random() < 0.05) {
+        }
+
+        // 3회 이상 타격 시 GLITCH 텍스트 타일 한가운데 노출
+        if (this.hitCount >= 3) {
+            if (Math.random() < 0.08) {
                 ctx.fillStyle = this.glowColor;
-                ctx.font = '800 9px "Outfit"';
+                ctx.font = '800 10px "Outfit"';
                 ctx.textAlign = 'center';
-                ctx.fillText("GLITCH", 0, this.height > this.width ? -this.height / 2 - 5 : -10);
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.glowColor;
+                ctx.fillText("GLITCH", 0, 4);
             }
         }
 
