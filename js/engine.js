@@ -1307,10 +1307,15 @@ class GameEngine {
         const nextPreset = this.currentMapPreset || 'PRESET_SIZE_BOSS';
         
         let targetOppositeDir = 'center';
-        if (portal.direction === 'top') targetOppositeDir = 'bottom';
-        else if (portal.direction === 'bottom') targetOppositeDir = 'top';
-        else if (portal.direction === 'left') targetOppositeDir = 'right';
-        else if (portal.direction === 'right') targetOppositeDir = 'left';
+        if (this.roomNum % 10 === 0 && !enteringSecretRoom) {
+            // 보스전에서는 어느 문으로 들어가도 항상 아래쪽 문에서 등장
+            targetOppositeDir = 'bottom';
+        } else {
+            if (portal.direction === 'top') targetOppositeDir = 'bottom';
+            else if (portal.direction === 'bottom') targetOppositeDir = 'top';
+            else if (portal.direction === 'left') targetOppositeDir = 'right';
+            else if (portal.direction === 'right') targetOppositeDir = 'left';
+        }
 
         let hasWarped = false;
         if (portal.direction !== 'secret' && PORTAL_SPAWN_INFOS[nextPreset]) {
