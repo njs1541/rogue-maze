@@ -378,20 +378,37 @@
             box-shadow: inset 0 0 6px rgba(255, 0, 85, 0.5);
         }
 
-        /* 포탈이 지정된 셀 오버레이 */
+        /* 포탈이 지정된 셀 오버레이 (2칸 영역 둥근 직사각형 확장) */
         .grid-cell.has-portal-top::after,
-        .grid-cell.has-portal-bottom::after,
+        .grid-cell.has-portal-bottom::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: calc(180% + 2px);
+            height: 80%;
+            border: 2px solid var(--neon-yellow);
+            border-radius: 6px;
+            box-shadow: 0 0 10px var(--neon-yellow);
+            pointer-events: none;
+            z-index: 2;
+            background: rgba(255, 223, 0, 0.1);
+        }
+
         .grid-cell.has-portal-left::after,
         .grid-cell.has-portal-right::after {
             content: '';
             position: absolute;
+            top: 10%;
+            left: 10%;
             width: 80%;
-            height: 80%;
+            height: calc(180% + 2px);
             border: 2px solid var(--neon-yellow);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--neon-yellow);
+            border-radius: 6px;
+            box-shadow: 0 0 10px var(--neon-yellow);
             pointer-events: none;
             z-index: 2;
+            background: rgba(255, 223, 0, 0.1);
         }
 
         .grid-cell.has-portal-top::before { content: 'T'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
@@ -399,15 +416,59 @@
         .grid-cell.has-portal-left::before { content: 'L'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
         .grid-cell.has-portal-right::before { content: 'R'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
 
-        .grid-cell.portal-sub-cell::after {
-            content: '';
+        /* 스폰 마커 오버레이 배지 스타일 */
+        .spawn-marker {
             position: absolute;
-            width: 60%;
-            height: 60%;
-            border: 1.5px dashed rgba(255, 223, 0, 0.6);
-            border-radius: 50%;
+            font-size: 8px;
+            font-weight: 900;
             pointer-events: none;
-            z-index: 2;
+            z-index: 5;
+            background: rgba(5, 6, 12, 0.95);
+            border: 1px solid;
+            border-radius: 3px;
+            padding: 1px 2px;
+            line-height: 1;
+        }
+        .spawn-marker.monster {
+            color: #ff0055;
+            border-color: #ff0055;
+            box-shadow: 0 0 4px #ff0055;
+            top: 1px;
+            left: 1px;
+        }
+        .spawn-marker.player {
+            color: #00f0ff;
+            border-color: #00f0ff;
+            box-shadow: 0 0 4px #00f0ff;
+            bottom: 1px;
+            right: 1px;
+        }
+
+        /* 위치 지정 단추 스타일 */
+        .spawn-pick-btn {
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.68rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            margin-left: 4px;
+            white-space: nowrap;
+            outline: none;
+        }
+        .spawn-pick-btn:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 6px var(--neon-blue);
+        }
+        .spawn-pick-btn.active {
+            background: var(--neon-pink);
+            border-color: var(--neon-pink);
+            color: #000;
+            box-shadow: 0 0 8px var(--neon-pink);
         }
 
         /* 하단 유틸 버튼 */
@@ -633,16 +694,18 @@
                         <div class="portal-spawn-settings hidden" id="spawn-settings-top" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>👾 몬스터 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-monster-x-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-monster-y-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="top" data-type="monster" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>🏃 플레이어 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-player-x-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-player-y-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="top" data-type="player" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                         </div>
@@ -660,16 +723,18 @@
                         <div class="portal-spawn-settings hidden" id="spawn-settings-bottom" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>👾 몬스터 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-monster-x-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-monster-y-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="bottom" data-type="monster" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>🏃 플레이어 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-player-x-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-player-y-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="bottom" data-type="player" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                         </div>
@@ -687,16 +752,18 @@
                         <div class="portal-spawn-settings hidden" id="spawn-settings-left" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>👾 몬스터 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-monster-x-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-monster-y-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="left" data-type="monster" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>🏃 플레이어 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-player-x-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-player-y-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="left" data-type="player" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                         </div>
@@ -714,16 +781,18 @@
                         <div class="portal-spawn-settings hidden" id="spawn-settings-right" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>👾 몬스터 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-monster-x-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-monster-y-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="right" data-type="monster" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
                                 <span>🏃 플레이어 스폰 X, Y:</span>
-                                <div style="display: flex; gap: 4px;">
+                                <div style="display: flex; gap: 4px; align-items: center;">
                                     <input type="number" id="input-spawn-player-x-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
                                     <input type="number" id="input-spawn-player-y-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                    <button class="spawn-pick-btn" data-dir="right" data-type="player" title="그리드 보드에서 클릭하여 위치를 지정합니다.">🎯 지정</button>
                                 </div>
                             </div>
                         </div>
@@ -771,6 +840,7 @@
 
         let currentBrush = 0; // 0, 1, 2
         let currentPortalSelectMode = null; // 'top', 'bottom', 'left', 'right' 중 하나
+        let currentSpawnPickMode = null; // { dir, type } ('monster' / 'player')
         let isMouseDown = false;
 
         const gridBoard = document.getElementById('grid-board');
@@ -816,6 +886,48 @@
                 if (portals.bottom && portals.bottom.gridX === c && portals.bottom.gridY === r) cell.classList.add('has-portal-bottom');
                 if (portals.left && portals.left.gridX === c && portals.left.gridY === r) cell.classList.add('has-portal-left');
                 if (portals.right && portals.right.gridX === c && portals.right.gridY === r) cell.classList.add('has-portal-right');
+            });
+
+            // 기존 스폰 마커 삭제
+            document.querySelectorAll('.spawn-marker').forEach(m => m.remove());
+
+            // 스폰 마커 동적 주입
+            const dirs = ['top', 'bottom', 'left', 'right'];
+            dirs.forEach(dir => {
+                const info = portals[dir];
+                if (!info) return;
+
+                const initial = dir.charAt(0).toUpperCase(); // T, B, L, R
+
+                // 몬스터 스폰 마커
+                if (info.monsterSpawnX !== undefined && info.monsterSpawnY !== undefined) {
+                    const mc = Math.round((info.monsterSpawnX - 27.5) / 55);
+                    const mr = Math.round((info.monsterSpawnY - 25) / 50);
+                    if (mr >= 0 && mr < ROWS && mc >= 0 && mc < COLS) {
+                        const cell = document.querySelector(`.grid-cell[data-row="${mr}"][data-col="${mc}"]`);
+                        if (cell) {
+                            const marker = document.createElement('div');
+                            marker.className = 'spawn-marker monster';
+                            marker.innerText = `👾${initial}`;
+                            cell.appendChild(marker);
+                        }
+                    }
+                }
+
+                // 플레이어 스폰 마커
+                if (info.playerSpawnX !== undefined && info.playerSpawnY !== undefined) {
+                    const pc = Math.round((info.playerSpawnX - 27.5) / 55);
+                    const pr = Math.round((info.playerSpawnY - 25) / 50);
+                    if (pr >= 0 && pr < ROWS && pc >= 0 && pc < COLS) {
+                        const cell = document.querySelector(`.grid-cell[data-row="${pr}"][data-col="${pc}"]`);
+                        if (cell) {
+                            const marker = document.createElement('div');
+                            marker.className = 'spawn-marker player';
+                            marker.innerText = `🏃${initial}`;
+                            cell.appendChild(marker);
+                        }
+                    }
+                }
             });
 
             updatePortalButtonsUI();
@@ -996,8 +1108,9 @@
                     btn.classList.add('active');
                     currentBrush = parseInt(btn.dataset.type);
                     
-                    // 포탈 모드 강제 취소
+                    // 포탈 모드 및 스폰 모드 강제 취소
                     cancelPortalSelectMode();
+                    cancelSpawnPickMode();
                 });
             });
 
@@ -1010,10 +1123,33 @@
                         cancelPortalSelectMode();
                     } else {
                         cancelPortalSelectMode();
+                        cancelSpawnPickMode();
                         currentPortalSelectMode = dir;
                         btn.classList.add('active');
                         // 브러시 버튼 활성상태 제거
                         brushBtns.forEach(b => b.classList.remove('active'));
+                    }
+                });
+            });
+
+            // 스폰 지정 버튼 이벤트 등록
+            const spawnPickBtns = document.querySelectorAll('.spawn-pick-btn');
+            spawnPickBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dir = btn.dataset.dir;
+                    const type = btn.dataset.type;
+                    
+                    if (currentSpawnPickMode && currentSpawnPickMode.dir === dir && currentSpawnPickMode.type === type) {
+                        cancelSpawnPickMode();
+                    } else {
+                        cancelSpawnPickMode();
+                        cancelPortalSelectMode();
+                        
+                        currentSpawnPickMode = { dir, type };
+                        btn.classList.add('active');
+                        gridBoard.style.cursor = 'crosshair';
+                        showToast(`${dir} 포탈의 ${type === 'monster' ? '몬스터' : '플레이어'} 스폰 위치 지정 모드 활성화 (그리드 클릭)`);
                     }
                 });
             });
@@ -1063,6 +1199,7 @@
                         portals[dir].playerSpawnX = pxInput.value !== '' ? parseFloat(pxInput.value) : undefined;
                         portals[dir].playerSpawnY = pyInput.value !== '' ? parseFloat(pyInput.value) : undefined;
                         updateJSON();
+                        refreshGridUI();
                     }
                 };
 
@@ -1079,11 +1216,50 @@
             document.querySelectorAll('.portal-btn').forEach(b => b.classList.remove('active'));
         }
 
+        // 스폰 지정 모드 취소
+        function cancelSpawnPickMode() {
+            currentSpawnPickMode = null;
+            document.querySelectorAll('.spawn-pick-btn').forEach(btn => btn.classList.remove('active'));
+            gridBoard.style.cursor = 'default';
+        }
+
         // 셀 클릭/드래그 액션 처리
         function handleCellAction(cell) {
             if (!cell || !cell.classList.contains('grid-cell')) return;
             const r = parseInt(cell.dataset.row);
             const c = parseInt(cell.dataset.col);
+
+            if (currentSpawnPickMode) {
+                // 스폰 지정 모드일 때 클릭 처리
+                const { dir, type } = currentSpawnPickMode;
+                if (portals[dir]) {
+                    const x = parseFloat((c * 55 + 27.5).toFixed(2));
+                    const y = parseFloat((r * 50 + 25).toFixed(2));
+                    
+                    if (type === 'monster') {
+                        portals[dir].monsterSpawnX = x;
+                        portals[dir].monsterSpawnY = y;
+                    } else if (type === 'player') {
+                        portals[dir].playerSpawnX = x;
+                        portals[dir].playerSpawnY = y;
+                    }
+                    
+                    // 인풋 필드 갱신
+                    document.getElementById(`input-spawn-${type}-x-${dir}`).value = x;
+                    document.getElementById(`input-spawn-${type}-y-${dir}`).value = y;
+                    
+                    showToast(`${dir} 포탈의 ${type === 'monster' ? '몬스터' : '플레이어'} 스폰 위치를 [${c}, ${r}] (${x}, ${y})로 지정했습니다.`);
+                } else {
+                    showToast(`먼저 ${dir} 포탈 위치를 지정해야 스폰 위치를 설정할 수 있습니다.`);
+                }
+                
+                cancelSpawnPickMode();
+                isMouseDown = false; // 마커 지정 후 드래그 방지
+                
+                refreshGridUI();
+                updateJSON();
+                return;
+            }
 
             if (currentPortalSelectMode) {
                 // 포탈 좌표 설정 모드
