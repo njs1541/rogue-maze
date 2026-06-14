@@ -3358,6 +3358,11 @@ class GameEngine {
                             vm.purchaseCount++;
                             this.vendingCooldown = 60; // 1.0초 쿨다운으로 연사/중복 들이받기 방지
 
+                            // [신규 기믹] 자판기 구매 시 맵 상의 모든 네온코인을 플레이어에게 즉시 끌어당김
+                            this.coinsList.forEach(coin => {
+                                coin.isAttractedToPlayer = true;
+                            });
+
                             Sound.play('powerup');
 
                             // [수정] 결함 4: 자판기 구매 시 마이너스 코인 연출 상단 결합!
@@ -3466,6 +3471,11 @@ class GameEngine {
                             this.particles.push(new Particle(this.player.x, this.player.y, '#b026ff', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
                         }
                         Sound.play('dodge');
+
+                        // [신규 기믹] 비밀 자판기 거래 시 모든 코인을 플레이어에게 즉시 끌어당김
+                        this.coinsList.forEach(coin => {
+                            coin.isAttractedToPlayer = true;
+                        });
 
                         // 차원 거래 팝업 호출 (에픽/레전더리 확정 카드 생성)
                         this.triggerSecretShopPurchase(svm, i);

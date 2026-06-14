@@ -726,8 +726,20 @@ class NeonCoin {
         this.vx *= this.friction;
         this.vy *= this.friction;
 
+        // 자석 물리 기믹 연산
+        let dist = Math.hypot(player.x - this.x, player.y - this.y);
+        let pullRadius = 70; // 평소 자석 반경 70px
+        
+        // 시간 왜곡 중일 때는 맵 전역(무한) 자석 블랙홀 발동!
+        if (timeDilationActive) {
+            pullRadius = 1000; 
+        }
+
+        const isMovingToPlayer = this.isAttractedToPlayer || dist < pullRadius;
+
         // [수정] 내부 격벽 장애물(isTileWall) 충돌 감지 및 물리 반사 처리 (벽 갇힘 원천 봉쇄)
-        if (window.gameEngine && window.gameEngine.isTileWall) {
+        // 플레이어에게 끌려가는 도중(isMovingToPlayer === true)일 때는 벽 통과를 허용하여 충돌 처리를 스킵합니다.
+        if (!isMovingToPlayer && window.gameEngine && window.gameEngine.isTileWall) {
             const checkRadius = this.radius || 6;
             
             // X축 충돌 검사
@@ -748,25 +760,19 @@ class NeonCoin {
         }
 
         // 벽 마진선 이탈 방지
-        const wallMargin = 50;
-        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
-        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
-        if (this.x < wallMargin + this.radius) { this.x = wallMargin + this.radius; this.vx = -this.vx; }
-        if (this.x > mapW - wallMargin - this.radius) { this.x = mapW - wallMargin - this.radius; this.vx = -this.vx; }
-        if (this.y < wallMargin + this.radius) { this.y = wallMargin + this.radius; this.vy = -this.vy; }
-        if (this.y > mapH - wallMargin - this.radius) { this.y = mapH - wallMargin - this.radius; this.vy = -this.vy; }
-
-        // 자석 물리 기믹 연산
-        let dist = Math.hypot(player.x - this.x, player.y - this.y);
-        let pullRadius = 70; // 평소 자석 반경 70px
-        
-        // 시간 왜곡 중일 때는 맵 전역(무한) 자석 블랙홀 발동!
-        if (timeDilationActive) {
-            pullRadius = 1000; 
+        // 플레이어에게 끌려가는 도중(isMovingToPlayer === true)일 때는 맵 경계선을 자연스럽게 통과해 흡수되도록 스킵합니다.
+        if (!isMovingToPlayer) {
+            const wallMargin = 50;
+            let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
+            let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
+            if (this.x < wallMargin + this.radius) { this.x = wallMargin + this.radius; this.vx = -this.vx; }
+            if (this.x > mapW - wallMargin - this.radius) { this.x = mapW - wallMargin - this.radius; this.vx = -this.vx; }
+            if (this.y < wallMargin + this.radius) { this.y = wallMargin + this.radius; this.vy = -this.vy; }
+            if (this.y > mapH - wallMargin - this.radius) { this.y = mapH - wallMargin - this.radius; this.vy = -this.vy; }
         }
 
         // 보상 상자를 먹었을 때의 강제 전체 흡입 상태이거나 자석 범위 내에 있을 경우
-        if (this.isAttractedToPlayer || dist < pullRadius) {
+        if (isMovingToPlayer) {
             // [버그 수정] 초근접(40px 미만) 도달 시 오르비팅(공전)과 터널링을 완전히 막기 위해 LERP 강제 유도 적용
             if (dist < 40) {
                 this.x += (player.x - this.x) * 0.45;
