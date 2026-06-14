@@ -7261,7 +7261,7 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
@@ -7275,7 +7275,7 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;

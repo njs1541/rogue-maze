@@ -2548,3 +2548,162 @@ body.low-spec .neon-btn:hover {
     color: #3e4857;
     text-shadow: none;
 }
+
+/* ==========================================================================
+   [신규 추가] 전역 네온 커스텀 스크롤바 및 접근성/레이아웃 통합 클래스
+   ========================================================================== */
+
+/* 1. 웹킷 전용 커스텀 스크롤바 전역 적용 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--neon-blue);
+    border-radius: 3px;
+    box-shadow: 0 0 5px var(--neon-blue);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-purple);
+    box-shadow: 0 0 8px var(--neon-purple);
+}
+
+/* 2. 접근성 포커스 링 스타일링 */
+button:focus-visible,
+.neon-btn:focus-visible,
+.cheat-close:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--neon-blue);
+    outline-offset: 2px;
+    box-shadow: 0 0 10px var(--neon-blue) !important;
+}
+
+/* 3. HTML 인라인 스타일에서 이관된 공통 레이아웃 클래스 */
+.btn-flex-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+    max-width: 680px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-flex-row .neon-btn {
+    flex: 1;
+    min-width: 110px;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 1.05rem;
+}
+
+.reward-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    width: 100%;
+    max-width: 480px;
+    margin: 25px auto 0 auto;
+}
+
+.reward-actions .neon-btn {
+    flex: 1;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+}
+
+.result-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.result-actions .neon-btn {
+    flex: 1;
+    min-width: 110px;
+    margin: 0;
+    padding: 10px 5px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.rank-submit-container {
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px dashed rgba(0, 240, 255, 0.25);
+    border-radius: 8px;
+    background: rgba(0, 240, 255, 0.02);
+}
+
+.rank-input-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+}
+
+.rank-input-row input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    background: rgba(0, 5, 15, 0.7);
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    text-align: center;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.warning-blood-text {
+    color: #ff0055;
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(255, 0, 85, 0.65);
+    margin-top: 15px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.secret-shop-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 5px;
+    width: 100%;
+}
+
+.option-perf-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.cheat-input-pair {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.cheat-input-pair input {
+    flex: 1;
+    min-width: 0;
+}
+
+}

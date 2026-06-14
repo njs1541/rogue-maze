@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -63,25 +63,18 @@
                     <div class="guide-item"><span>Mouse Left Click</span> 일반 공격 (연사)</div>
                     <div class="guide-item"><span>Spacebar</span> 마력 특수기 (광역 폭발)</div>
                 </div>
-                <div
-                    style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 680px; margin-top: 15px; flex-wrap: wrap;">
-                    <button id="start-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem;">게임
-                        시작</button>
+                <div class="btn-flex-row">
+                    <button id="start-btn" class="neon-btn">게임 시작</button>
                     <button id="continue-btn" class="neon-btn hidden"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">이어 하기</button>
+                        style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">이어 하기</button>
                     <button id="main-codex-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇
-                        카드 도감</button>
+                        style="border-color: #b026ff; color: #b026ff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.25);">📇 카드 도감</button>
                     <button id="main-monster-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.25);">👾
-                        몬스터 도감</button>
+                        style="border-color: #ff0055; color: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.25);">👾 몬스터 도감</button>
                     <button id="main-leaderboard-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆
-                        리더보드</button>
+                        style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 리더보드</button>
                     <a href="map_editor.html" target="_blank" class="neon-btn"
-                        style="text-decoration: none; display: flex; align-items: center; justify-content: center; flex: 1; min-width: 110px; margin: 0; padding: 10px 16px; font-size: 1.05rem; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🛠️
-                        맵 에디터</a>
+                        style="text-decoration: none; display: flex; align-items: center; justify-content: center; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🛠️ 맵 에디터</a>
                 </div>
             </div>
 
@@ -123,81 +116,7 @@
                 </div>
             </div>
 
-
-        <!-- 하단 플레이어 상태 및 스탯 패널 -->
-        <footer id="hud-footer" class="hidden">
-            <!-- 좌측: 플레이어 생명력, 스태미너, 마력 게이지 -->
-            <div id="player-bars">
-                <!-- HP Bar -->
-                <div class="bar-container">
-                    <div class="bar-info">
-                        <span class="bar-label">HP</span>
-                        <span id="hp-text">100 / 100</span>
-                    </div>
-                    <div class="bar-track">
-                        <div id="hp-bar-fill" class="bar-fill hp-color"></div>
-                    </div>
-                </div>
-                <!-- Stamina Bar -->
-                <div class="bar-container">
-                    <div class="bar-info">
-                        <span class="bar-label">STAMINA</span>
-                        <span id="stamina-text">100 / 100</span>
-                    </div>
-                    <div class="bar-track">
-                        <div id="stamina-bar-fill" class="bar-fill stamina-color"></div>
-                    </div>
-                </div>
-                <!-- MP/Magic Bar -->
-                <div class="bar-container">
-                    <div class="bar-info">
-                        <span class="bar-label">MAGIC POWER</span>
-                        <span id="mp-text">0 / 100</span>
-                    </div>
-                    <div class="bar-track">
-                        <div id="mp-bar-fill" class="bar-fill mp-color"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 우측: 세부 능력치 정보 대시보드 (3열 확장 프리미엄 설계) -->
-            <div id="stats-dashboard">
-                <div class="stat-column">
-                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk"
-                            class="stat-value">10</span></div>
-                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd"
-                            class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms"
-                            class="stat-value">3.0</span></div>
-                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd"
-                            class="stat-value">5%</span></div>
-                    <div class="stat-row" title="방어력 및 대미지 감소율"><span class="stat-name">방어 (DEF)</span><span id="stat-def"
-                            class="stat-value">0 (0%)</span></div>
-                </div>
-                <div class="stat-column">
-                    <div class="stat-row" title="보상 획득 행운율"><span class="stat-name">운 (LUK)</span><span id="stat-luk"
-                            class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="초당 체력 자연 재생량"><span class="stat-name">재생 (REG)</span><span
-                            id="stat-regen" class="stat-value">0.0/s</span></div>
-                    <div class="stat-row" title="탄환 사거리 및 검 베기 반경"><span class="stat-name">사거리 (RNG)</span><span
-                            id="stat-range" class="stat-value">350px</span></div>
-                    <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span
-                            id="stat-pets" class="stat-value">0기</span></div>
-                </div>
-                <div class="stat-column">
-                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span
-                            id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
-                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span
-                            id="stat-bullets" class="stat-value">1 / 1</span></div>
-                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span
-                            id="stat-effects" class="stat-value">0 / X / X</span></div>
-                    <div class="stat-row" title="안전 경계 충돌 마찰력"><span class="stat-name">보안 (SEC)</span><span
-                            class="stat-value text-glow-green">안전</span></div>
-                </div>
-            </div>
-        </footer>
-
-        <!-- 몬스터 소탕 후 나타나는 보상 카드 오버레이 (3택 1) -->
+<!-- 몬스터 소탕 후 나타나는 보상 카드 오버레이 (3택 1) -->
         <div id="reward-overlay" class="hidden">
             <div class="reward-title-container">
                 <h2 id="reward-header" class="text-glow-yellow">방 소탕 완료! 보상을 선택하세요</h2>
@@ -236,14 +155,11 @@
                 </div>
             </div>
             <!-- [개선] 카드 보상 리롤 및 건너뛰기 액션 홀더 -->
-            <div
-                style="display: flex; gap: 15px; justify-content: center; margin-top: 25px; width: 100%; max-width: 480px; margin: 25px auto 0 auto;">
+            <div class="reward-actions">
                 <button id="reroll-btn" class="neon-btn"
-                    style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲
-                    다시 굴리기 (0)</button>
+                    style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲 다시 굴리기 (0)</button>
                 <button id="skip-btn" class="neon-btn"
-                    style="flex: 1; padding: 10px 15px; font-size: 0.95rem; border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️
-                    건너뛰기 (0)</button>
+                    style="border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️ 건너뛰기 (0)</button>
             </div>
         </div>
 
@@ -273,16 +189,13 @@
                 </div>
 
                 <!-- [신규] 명예의 전당 랭킹 등록 폼 (기본 hidden) -->
-                <div id="rank-submit-area" class="rank-submit-container hidden"
-                    style="margin-top: 15px; padding: 15px; border: 1px dashed rgba(0, 240, 255, 0.25); border-radius: 8px; background: rgba(0, 240, 255, 0.02);">
+                <div id="rank-submit-area" class="rank-submit-container hidden">
                     <h3 class="text-glow-cyan"
                         style="font-size: 1.1rem; margin-top: 0; margin-bottom: 10px; font-weight: 600; text-align: center;">
                         🏆 명예의 전당 랭킹 등록</h3>
-                    <div class="rank-input-row"
-                        style="display: flex; gap: 10px; justify-content: center; width: 100%; max-width: 380px; margin: 0 auto;">
+                    <div class="rank-input-row">
                         <input type="text" id="rank-nickname" placeholder="닉네임 (영문 대문자+숫자)" maxlength="10"
-                            autocomplete="off"
-                            style="flex: 1; padding: 10px; border: 1px solid rgba(0, 240, 255, 0.4); background: rgba(0, 5, 15, 0.7); color: #fff; font-family: 'Outfit', sans-serif; font-size: 0.95rem; text-align: center; border-radius: 4px; outline: none; transition: border-color 0.25s, box-shadow 0.25s;">
+                            autocomplete="off">
                         <button id="submit-rank-btn" class="neon-btn small"
                             style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); margin: 0; padding: 8px 20px; font-size: 0.9rem;">등록</button>
                     </div>
@@ -291,20 +204,14 @@
                     </p>
                 </div>
 
-                <div
-                    style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; width: 100%; flex-wrap: wrap;">
-                    <button id="restart-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap;">다시
-                        도전</button>
+                <div class="result-actions">
+                    <button id="restart-btn" class="neon-btn">다시 도전</button>
                     <button id="open-rank-form-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">🏆
-                        랭킹 등록</button>
+                        style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);">🏆 랭킹 등록</button>
                     <button id="result-leaderboard-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆
-                        랭킹 보기</button>
+                        style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 랭킹 보기</button>
                     <button id="goto-main-btn" class="neon-btn"
-                        style="flex: 1; min-width: 110px; margin: 0; padding: 10px 5px; font-size: 0.9rem; white-space: nowrap; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🏠
-                        처음으로</button>
+                        style="border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🏠 처음으로</button>
                 </div>
             </div>
         </div>
@@ -316,7 +223,7 @@
                 <div class="ranking-modal-header">
                     <h2 class="text-glow-cyan" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📊 CURRENT
                         EQUIPMENT STATUS</h2>
-                    <span id="status-modal-close" class="cheat-close" style="cursor: pointer;">&times;</span>
+                    <button id="status-modal-close" class="cheat-close" aria-label="상태창 닫기">&times;</button>
                 </div>
                 <p
                     style="color: #a0aec0; font-size: 0.85rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
@@ -502,7 +409,7 @@
             <div class="cheat-container">
                 <div class="cheat-header">
                     <h2 class="text-glow-purple">⚡ NEON DEBUG & CHEAT SYSTEM ⚡</h2>
-                    <span class="cheat-close" id="cheat-close-btn">&times;</span>
+                    <button class="cheat-close" id="cheat-close-btn" aria-label="디버그 메뉴 닫기">&times;</button>
                 </div>
 
                 <!-- 탭 버튼 헤더 -->
@@ -814,7 +721,7 @@
         <div class="ranking-modal-container" style="max-width: 720px; width: 95%;">
             <div class="ranking-modal-header">
                 <h2 class="text-glow-red" style="font-size: 1.8rem; margin: 0; font-weight: 800;">👾 NEON MONSTER BESTIARY 👾</h2>
-                <span id="bestiary-modal-close" class="cheat-close">&times;</span>
+                <button id="bestiary-modal-close" class="cheat-close" aria-label="몬스터 도감 닫기">&times;</button>
             </div>
             <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
                 미로에서 마주치는 네온 괴수들의 상세 분석 보고서
@@ -882,7 +789,7 @@
             <div class="ranking-modal-header">
                 <h2 class="text-glow-purple" style="font-size: 1.8rem; margin: 0; font-weight: 800;">📇 NEON CARD CODEX
                     📇</h2>
-                <span id="codex-modal-close" class="cheat-close">&times;</span>
+                <button id="codex-modal-close" class="cheat-close" aria-label="카드 도감 닫기">&times;</button>
             </div>
             <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
                 미로에서 획득 가능한 모든 무기/장비/스탯 카드 정보<br>
@@ -924,7 +831,7 @@
             <div class="ranking-modal-header">
                 <h2 class="text-glow-yellow" style="font-size: 1.8rem; margin: 0; font-weight: 800;">🏆 HALL OF NEON
                     LEADERBOARD 🏆</h2>
-                <span id="ranking-modal-close" class="cheat-close">&times;</span>
+                <button id="ranking-modal-close" class="cheat-close" aria-label="랭킹창 닫기">&times;</button>
             </div>
             <p style="color: #a0aec0; font-size: 0.82rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">전
                 세계 네온 러너들의 실시간 최고 스코어 Top 10 기록</p>
@@ -980,7 +887,84 @@
         </div>
     </div>
 </div>
-    <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
+        </div> <!-- #canvas-container ?レ쓬 -->
+
+
+
+        <!-- 하단 플레이어 상태 및 스탯 패널 -->
+        <footer id="hud-footer" class="hidden">
+            <!-- 좌측: 플레이어 생명력, 스태미너, 마력 게이지 -->
+            <div id="player-bars">
+                <!-- HP Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">HP</span>
+                        <span id="hp-text">100 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hp-bar-fill" class="bar-fill hp-color"></div>
+                    </div>
+                </div>
+                <!-- Stamina Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">STAMINA</span>
+                        <span id="stamina-text">100 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="stamina-bar-fill" class="bar-fill stamina-color"></div>
+                    </div>
+                </div>
+                <!-- MP/Magic Bar -->
+                <div class="bar-container">
+                    <div class="bar-info">
+                        <span class="bar-label">MAGIC POWER</span>
+                        <span id="mp-text">0 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="mp-bar-fill" class="bar-fill mp-color"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측: 세부 능력치 정보 대시보드 (3열 확장 프리미엄 설계) -->
+            <div id="stats-dashboard">
+                <div class="stat-column">
+                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk"
+                            class="stat-value">10</span></div>
+                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd"
+                            class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms"
+                            class="stat-value">3.0</span></div>
+                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd"
+                            class="stat-value">5%</span></div>
+                    <div class="stat-row" title="방어력 및 대미지 감소율"><span class="stat-name">방어 (DEF)</span><span id="stat-def"
+                            class="stat-value">0 (0%)</span></div>
+                </div>
+                <div class="stat-column">
+                    <div class="stat-row" title="보상 획득 행운율"><span class="stat-name">운 (LUK)</span><span id="stat-luk"
+                            class="stat-value">1.0</span></div>
+                    <div class="stat-row" title="초당 체력 자연 재생량"><span class="stat-name">재생 (REG)</span><span
+                            id="stat-regen" class="stat-value">0.0/s</span></div>
+                    <div class="stat-row" title="탄환 사거리 및 검 베기 반경"><span class="stat-name">사거리 (RNG)</span><span
+                            id="stat-range" class="stat-value">350px</span></div>
+                    <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span
+                            id="stat-pets" class="stat-value">0기</span></div>
+                </div>
+                <div class="stat-column">
+                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span
+                            id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
+                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span
+                            id="stat-bullets" class="stat-value">1 / 1</span></div>
+                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span
+                            id="stat-effects" class="stat-value">0 / X / X</span></div>
+                    <div class="stat-row" title="안전 경계 충돌 마찰력"><span class="stat-name">보안 (SEC)</span><span
+                            class="stat-value text-glow-green">안전</span></div>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
     <script src="js/assetManager.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/firebase-config.js"></script>
