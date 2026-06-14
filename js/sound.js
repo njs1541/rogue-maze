@@ -177,7 +177,7 @@ const Sound = {
     },
 
     // 다양한 레트로 네온 효과음 생성 및 재생
-    play(type) {
+    play(type, pitchMultiplier = 1.0) {
         this.init();
         if (!this.ctx) return;
         
@@ -319,7 +319,7 @@ const Sound = {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    osc.frequency.setValueAtTime(freq * pitchMultiplier, now + idx * 0.08);
                     
                     // 볼륨 50% 감쇄 (0.12 -> 0.06) 및 전역 볼륨 곱 적용
                     gain.gain.setValueAtTime(0.06 * this.sfxVolume, now + idx * 0.08);

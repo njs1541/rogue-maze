@@ -208,6 +208,9 @@ class GameEngine {
         // 키보드 마우스 입력 상태 변수
         this.keys = {};
         this.mouse = { x: 0, y: 0, isDown: false };
+        this.visualsSuspended = false;
+        this.suspendedFloatingTexts = [];
+        this.onCardDetailClose = null;
 
         // 게임 상태 파라미터
         this.roomNum = 1;
@@ -222,6 +225,7 @@ class GameEngine {
         this.rewardSelectorDelayTimer = -1;
         this.rewardSelectorIsFromHiddenChest = false;
         this.roomRewardSpawned = false; // [신규] 방 클리어 보상 스폰 유일성 플래그
+        this.extraDrawCount = 0; // [신규] 운 비례 카드 추가 획득 횟수 추적 카운터
 
         // 엔티티 관리 리스트
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
@@ -448,6 +452,7 @@ class GameEngine {
             // 화면 스케일에 상관없이 정확한 캔버스 기준 상대 조준점 확보 (바깥 영역 투영 가능)
             this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             this.mouse.y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+            this.keyboardAimActive = false; // 마우스 이동 시 키보드 조준 모드 해제
         });
 
         // [수정] 캔버스 바깥 검은 영역을 클릭해도 정상 사격이 되도록 window에 mousedown 바인딩
@@ -463,6 +468,7 @@ class GameEngine {
 
             if (e.button === 0) { // 마우스 좌클릭
                 this.mouse.isDown = true;
+                this.keyboardAimActive = false; // 마우스 클릭 시 키보드 조준 모드 해제
                 Sound.init(); // 브라우저 자동 재생 규정 우회
                 Sound.startBGM(); // 첫 클릭 시 은은하고 웅장한 Synth BGM 시작
             }
@@ -2333,10 +2339,38 @@ class GameEngine {
         let dy = 0;
 
         if (!isOverlayOpen && this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
-            if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
-            if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
-            if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
-            if (this.keys['d'] || this.keys['arrowright']) dx += 1;
+            if (this.keys['w']) dy -= 1;
+            if (this.keys['s']) dy += 1;
+            if (this.keys['a']) dx -= 1;
+            if (this.keys['d']) dx += 1;
+        }
+
+        // 100% 키보드 조준 및 자동 사격 격발 연산
+        let kdx = 0;
+        let kdy = 0;
+        if (!isOverlayOpen && this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
+            if (this.keys['arrowup']) kdy -= 1;
+            if (this.keys['arrowdown']) kdy += 1;
+            if (this.keys['arrowleft']) kdx -= 1;
+            if (this.keys['arrowright']) kdx += 1;
+        }
+
+        if (kdx !== 0 || kdy !== 0) {
+            this.keyboardAimActive = true;
+            this.player.angle = Math.atan2(kdy, kdx);
+
+            // 자동 사격/베기 격발
+            let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+            let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
+
+            if (this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
+                if (this.player.shootCooldown <= 0 && hasRanged) {
+                    this.shootWeapon();
+                }
+                if (this.player.slashCooldown <= 0 && hasMelee) {
+                    this.slashWeapon();
+                }
+            }
         }
 
         // 8방향 대각선 이동 시 루트2 정규화 속도 보정 적용
@@ -2401,9 +2435,11 @@ class GameEngine {
         this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
         this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
 
-        // 마우스 커서 각도에 맞춰 조준 각도 갱신
-        let pMouseAngle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
-        this.player.angle = pMouseAngle;
+        // 마우스 커서 각도에 맞춰 조준 각도 갱신 (키보드 조준 모드가 아닐 때만)
+        if (!this.keyboardAimActive) {
+            let pMouseAngle = Math.atan2(this.mouse.y - this.player.y, this.mouse.x - this.player.x);
+            this.player.angle = pMouseAngle;
+        }
 
         // [5-3단계] 플레이어와 격자 장애물 지형 충돌 처리 (슬라이딩 물리)
         // 25등분 격자에 생성된 네온 장벽들과 충돌했을 때 자연스럽게 미끄러지도록 슬라이딩 물리 판정을 가합니다.
@@ -2459,10 +2495,10 @@ class GameEngine {
         let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
         let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged && !(this.player.stunnedTimer > 0)) {
+        if (!this.keyboardAimActive && this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged && !(this.player.stunnedTimer > 0)) {
             this.shootWeapon();
         }
-        if (this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee && !(this.player.stunnedTimer > 0)) {
+        if (!this.keyboardAimActive && this.mouse.isDown && this.player.hp > 0 && this.player.slashCooldown <= 0 && hasMelee && !(this.player.stunnedTimer > 0)) {
             this.slashWeapon();
         }
 
@@ -4066,6 +4102,10 @@ class GameEngine {
 
     // 데미지 텍스트 팝업 띄우기용 헬퍼
     showFloatingText(text, x, y, color) {
+        if (this.visualsSuspended) {
+            this.suspendedFloatingTexts.push({ text, x, y, color });
+            return;
+        }
         // [개선] 텍스트가 단순히 수직 상승하지 않고, 사방으로 포물선 튕김 물리가 작동하도록 vx, vy 랜덤 및 점프력 부여
         let rx = (Math.random() - 0.5) * 1.6;
         let ry = -2.5 - Math.random() * 1.0;
@@ -5005,9 +5045,36 @@ class GameEngine {
     // --------------------------------------------------------------------------
     // 9. 카드 보상 선택 레이아웃 트리거
     // --------------------------------------------------------------------------
-    triggerRewardSelector(isFromHiddenChest = false) {
+    triggerRewardSelector(isFromHiddenChest = false, isExtraDraw = false) {
         const overlay = document.getElementById('reward-overlay');
         overlay.classList.remove('hidden');
+
+        // 최초 선택 시 추가 획득 카운트 초기화
+        if (!isExtraDraw) {
+            this.extraDrawCount = 0;
+        }
+
+        // [신규 기획] 단계별 추가 획득 비주얼 딤드 & 테두리 콤보 글로우 연출
+        if (overlay) {
+            // 단계별 배경색 (더욱 짙어지고 신비로운 톤으로 심화)
+            const bgTones = [
+                "rgba(5, 6, 12, 0.88)",      // 최초: 기본 어두움
+                "rgba(0, 10, 20, 0.91)",     // 1단계: 청록빛 어둠
+                "rgba(0, 18, 12, 0.92)",     // 2단계: 녹빛 어둠
+                "rgba(20, 16, 0, 0.93)",     // 3단계: 황금 주황빛 어둠
+                "rgba(18, 0, 24, 0.94)",     // 4단계: 심연 자줏빛 어둠
+            ];
+            // 단계별 박스 쉐도우 (Vignette 테두리 글로우)
+            const glowStyles = [
+                "", // 최초: 기본 없음
+                "inset 0 0 60px rgba(0, 240, 255, 0.25)", // 1단계: Cyan
+                "inset 0 0 85px rgba(57, 255, 20, 0.3)",   // 2단계: Green
+                "inset 0 0 110px rgba(255, 223, 0, 0.35)",  // 3단계: Yellow
+                "inset 0 0 150px rgba(255, 0, 85, 0.48), inset 0 0 50px rgba(255, 223, 0, 0.3)" // 4단계: Pink & Gold
+            ];
+            overlay.style.background = bgTones[this.extraDrawCount] || bgTones[bgTones.length - 1];
+            overlay.style.boxShadow = glowStyles[this.extraDrawCount] || glowStyles[glowStyles.length - 1];
+        }
 
         // [엘리트/보스 보상 기획 연계] 5의 배수 방 여부 체크
         const isWeaponReward = (this.roomNum % 5 === 0) || isFromHiddenChest;
@@ -5025,6 +5092,11 @@ class GameEngine {
             const multiplierPct = (monsterBonus * 4);
             bonusText = `몬스터 소탕 보너스: +${multiplierPct}% (스탯 등급 강화)`;
             document.getElementById('reward-header').innerText = "방 소탕 완료! 보상을 선택하세요";
+        }
+
+        // 추가 획득 시 진행도 텍스트 표기
+        if (isExtraDraw) {
+            bonusText += ` (추가 선택 기회 진행 중: ${this.extraDrawCount}/4)`;
         }
 
         document.getElementById('reward-multiplier').innerText = bonusText;
@@ -5054,11 +5126,59 @@ class GameEngine {
                     e.stopPropagation();
                     overlay.classList.add('hidden');
 
-                    // [수정] 결함 해결: 카드 클릭 즉시 버프 적용 및 포털 개방! (중복 스폰 버그 원천 봉쇄)
-                    this.applyRewardCard(data);
+                    // 오버레이 스타일 원상 복구 (초기화)
+                    overlay.style.background = "";
+                    overlay.style.boxShadow = "";
 
-                    // 대형 카드 획득 정보 확인 창 호출
-                    this.showAcquiredCardDetail(data);
+                    // 카드 획득 연출 즉시 진행 (지연 활성화 안 함, 상세 대형 모달은 생략)
+                    this.visualsSuspended = false;
+                    this.suspendedFloatingTexts = [];
+
+                    // [수정] 확률 15% 소수점 올림 복리 감쇄 계산
+                    let currentChance = this.player.luk;
+                    for (let i = 0; i < this.extraDrawCount; i++) {
+                        currentChance = currentChance - Math.ceil(currentChance * 0.15);
+                    }
+                    const extraChance = Math.max(0, currentChance / 100);
+                    // 스탯 보상 여부 체크 (무기/장비 방, 보물상자, 5의배수방 보상 제외)
+                    const isStatReward = (this.currentRoomType !== 'weapon' && this.currentRoomType !== 'equipment' && !isFromHiddenChest && (this.roomNum % 5 !== 0));
+                    // 최대 카드 습득 개수 5개 제한 (최초 1회 + 추가 최대 4회) & 스탯 카드 보상일 때만 작동
+                    const canExtraDraw = isStatReward && (roll < extraChance) && (this.extraDrawCount < 4);
+
+                    // 카드 버프 적용 (추가 획득 기회가 있는 경우 포털 활성화를 일단 유예)
+                    this.applyRewardCard(data, true, canExtraDraw);
+
+                    // 플레이어 발밑 솟구침 파티클 연출 즉시 발동
+                    this.triggerPowerUpVisuals(data);
+
+                    if (canExtraDraw) {
+                        this.extraDrawCount++;
+                        const nextDrawNum = this.extraDrawCount;
+                        
+                        // 다음 기회 확률 계산 (안내 텍스트 표시용)
+                        let nextChance = this.player.luk;
+                        for (let i = 0; i < nextDrawNum; i++) {
+                            nextChance = nextChance - Math.ceil(nextChance * 0.15);
+                        }
+                        nextChance = Math.max(0, Math.ceil(nextChance)); // 올림 처리하여 깔끔하게 표시
+
+                        // 단계별 화려한 전설 타이틀 설정
+                        let floatText = `🍀 LUK 추가 획득 기회 발동! (${nextDrawNum}/4) [다음 확률: ${nextChance}%]`;
+                        let floatColor = '#39ff14'; // 1단계: 초록
+                        if (nextDrawNum === 2) { floatText = `⚡ 행운의 흐름 가속! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] ⚡`; floatColor = '#ffdf00'; }
+                        if (nextDrawNum === 3) { floatText = `🔮 차원의 운율 공명! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 🔮`; floatColor = '#00f0ff'; }
+                        if (nextDrawNum === 4) { floatText = `👑 신의 행운: 오버리미트! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 👑`; floatColor = '#ff0055'; }
+                        
+                        setTimeout(() => {
+                            this.showFloatingText(floatText, this.player.x, this.player.y - 45, floatColor);
+                            
+                            // 추가 획득 창 다시 노출
+                            this.triggerRewardSelector(isFromHiddenChest, true);
+                        }, 800);
+                    } else {
+                        // 추가 획득 종료 시 포털 활성화
+                        this.portals.forEach(p => p.active = true);
+                    }
                 };
             });
         };
@@ -5478,7 +5598,7 @@ class GameEngine {
     }
 
     // 선택된 보상 카드 효과 플레이어 스탯에 누적 주입
-    applyRewardCard(card) {
+    applyRewardCard(card, skipVisuals = false, skipPortalActive = false) {
         const p = this.player;
 
         switch (card.id) {
@@ -5798,11 +5918,15 @@ class GameEngine {
         }
 
         // [신규 기획] 상자를 열어서 보상 카드 3택1 결정을 완수했으므로, 워프 포털을 활성화하여 진행을 뚫어줍니다!
-        this.portals.forEach(p => p.active = true);
+        if (!skipPortalActive) {
+            this.portals.forEach(p => p.active = true);
+        }
 
         // HUD 및 사운드 발생
         this.updateHUD();
-        Sound.play('powerup');
+        if (!skipVisuals) {
+            Sound.play('powerup');
+        }
     }
 
     // --------------------------------------------------------------------------
@@ -5940,12 +6064,12 @@ class GameEngine {
                 if (lvl > 0) {
                     wpnCount++;
                     const card = document.createElement('div');
-                    card.className = 'status-card active-weapon';
+                    card.className = lvl >= 5 ? 'status-card active-weapon master' : 'status-card active-weapon';
                     card.innerHTML = `
                         <span class="icon">${w.icon}</span>
                         <div class="info">
                             <span class="name">${w.name}</span>
-                            <span class="level">Lv.${lvl}</span>
+                            <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 5)}</span>
                         </div>
                     `;
                     resultGrid.appendChild(card);
@@ -5984,12 +6108,12 @@ class GameEngine {
                 const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
                 if (lvl > 0) {
                     const card = document.createElement('div');
-                    card.className = 'status-card active-equip';
+                    card.className = lvl >= 10 ? 'status-card active-equip master' : 'status-card active-equip';
                     card.innerHTML = `
                         <span class="icon">${eq.icon}</span>
                         <div class="info">
                             <span class="name">${eq.name}</span>
-                            <span class="level">Lv.${lvl}</span>
+                            <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 10)}</span>
                         </div>
                     `;
                     resultGrid.appendChild(card);
@@ -6522,6 +6646,13 @@ class GameEngine {
         const closeHandler = () => {
             detailOverlay.classList.add('hidden');
             detailOverlay.removeEventListener('click', closeHandler);
+            // 상세창이 닫히는 시점에 시각적 연출 활성화!
+            this.triggerPowerUpVisuals(cardData);
+
+            if (this.onCardDetailClose) {
+                this.onCardDetailClose();
+                this.onCardDetailClose = null;
+            }
         };
 
         // 100ms 딜레이를 주어야 팝업을 연 클릭이 바로 버블링되어 닫히는 현상 방지
@@ -6632,30 +6763,37 @@ class GameEngine {
                 this.player.hp = this.player.maxHp;
             }
 
+            // 카드 획득 연출 지연 활성화
+            this.visualsSuspended = true;
+            this.suspendedFloatingTexts = [];
+
             // 카드 버프 적용
-            this.applyRewardCard(chosenCard);
+            this.applyRewardCard(chosenCard, true);
 
             // 카드 획득 확인 대형 디테일 오버레이 표시
             this.showAcquiredCardDetail(chosenCard);
 
-            // 보라빛 차원 붕괴 파티클 폭발 (40개 대규모 방출)
-            for (let k = 0; k < 40; k++) {
-                let pAngle = Math.random() * Math.PI * 2;
-                let pSpeed = Math.random() * 6 + 2;
-                let pColor = Math.random() > 0.5 ? '#b026ff' : '#d580ff';
-                this.particles.push(new Particle(svm.x, svm.y, pColor, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
-            }
-            // 어두운 차원 붕괴 잔해 파편
-            for (let k = 0; k < 15; k++) {
-                let pAngle = Math.random() * Math.PI * 2;
-                let pSpeed = Math.random() * 3 + 1;
-                this.particles.push(new Particle(svm.x, svm.y, '#333333', 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'dust'));
-            }
+            // 팝업이 꺼진 이후에 파티클 및 폭발 연출 실행하도록 콜백 바인딩
+            this.onCardDetailClose = () => {
+                // 보라빛 차원 붕괴 파티클 폭발 (40개 대규모 방출)
+                for (let k = 0; k < 40; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 6 + 2;
+                    let pColor = Math.random() > 0.5 ? '#b026ff' : '#d580ff';
+                    this.particles.push(new Particle(svm.x, svm.y, pColor, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+                }
+                // 어두운 차원 붕괴 잔해 파편
+                for (let k = 0; k < 15; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 3 + 1;
+                    this.particles.push(new Particle(svm.x, svm.y, '#333333', 2, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'dust'));
+                }
 
-            Sound.play('explosion');
-            this.shakeScreen(12, 5.0);
-            this.showFloatingText("⚠️ MAX HP -15 SACRIFICED!", svm.x, svm.y - 25, '#ff0055');
-            this.showFloatingText("🔮 DARK DEAL COMPLETE!", svm.x, svm.y - 45, '#b026ff');
+                Sound.play('explosion');
+                this.shakeScreen(12, 5.0);
+                this.showFloatingText("⚠️ MAX HP -15 SACRIFICED!", svm.x, svm.y - 25, '#ff0055');
+                this.showFloatingText("🔮 DARK DEAL COMPLETE!", svm.x, svm.y - 45, '#b026ff');
+            };
 
             // 비밀 자판기 소멸
             svm.active = false;
@@ -7184,12 +7322,12 @@ class GameEngine {
                     if (lvl > 0) {
                         wpnCount++;
                         const card = document.createElement('div');
-                        card.className = 'status-card active-weapon';
+                        card.className = lvl >= 5 ? 'status-card active-weapon master' : 'status-card active-weapon';
                         card.innerHTML = `
                             <span class="icon">${w.icon}</span>
                             <div class="info">
                                 <span class="name">${w.name}</span>
-                                <span class="level">Lv.${lvl}</span>
+                                <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 5)}</span>
                             </div>
                         `;
                         statusGrid.appendChild(card);
@@ -7227,12 +7365,12 @@ class GameEngine {
                     const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
                     if (lvl > 0) {
                         const card = document.createElement('div');
-                        card.className = 'status-card active-equip';
+                        card.className = lvl >= 10 ? 'status-card active-equip master' : 'status-card active-equip';
                         card.innerHTML = `
                             <span class="icon">${eq.icon}</span>
                             <div class="info">
                                 <span class="name">${eq.name}</span>
-                                <span class="level">Lv.${lvl}</span>
+                                <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 10)}</span>
                             </div>
                         `;
                         statusGrid.appendChild(card);
@@ -7746,5 +7884,75 @@ class GameEngine {
         this.transitionToNextRoom(mockPortal);
 
         this.showFloatingText(`WARPED TO ROOM ${targetStage} 🌀`, this.player.x, this.player.y - 40, '#ffdf00');
+    }
+
+    // [신규] 카드 획득 연출 지연 활성화 및 파티클 연출
+    triggerPowerUpVisuals(cardData) {
+        this.visualsSuspended = false;
+        
+        // 1. 대기 텍스트 한 번에 방출
+        if (this.suspendedFloatingTexts && this.suspendedFloatingTexts.length > 0) {
+            this.suspendedFloatingTexts.forEach(t => {
+                this.showFloatingText(t.text, t.x, t.y, t.color);
+            });
+            this.suspendedFloatingTexts = [];
+        }
+
+        // 2. 희귀도별 파티클 분수 연출
+        const rarity = cardData.rarity ? cardData.rarity.toUpperCase() : 'COMMON';
+        let pColor = '#a0aec0'; // COMMON
+        if (rarity === 'RARE') pColor = '#ffdf00';
+        if (rarity === 'EPIC') pColor = '#b026ff';
+        if (rarity === 'LEGENDARY') pColor = '#ff6c00';
+
+        const p = this.player;
+        if (p) {
+            // [개선] 추가 획득 콤보 단계에 따른 파티클 스케일링 (양, 크기, 속도 대폭 향상)
+            const comboMultiplier = 1 + (this.extraDrawCount * 0.5); // 1.0 -> 1.5 -> 2.0 -> 2.5 -> 3.0
+            const particleCount = Math.floor(25 * comboMultiplier);
+
+            for (let k = 0; k < particleCount; k++) {
+                let pAngle = -Math.PI / 2 + (Math.random() * 0.6 - 0.3); // 위쪽 방향
+                let pSpeed = (Math.random() * 4 + 2) * (1 + this.extraDrawCount * 0.15); // 속도 스케일링
+                let life = (Math.random() * 30 + 20) * (1 + this.extraDrawCount * 0.1); // 수명 스케일링
+                this.particles.push(new Particle(
+                    p.x + (Math.random() * 30 - 15),
+                    p.y + p.radius,
+                    pColor,
+                    2.5 * (1 + this.extraDrawCount * 0.15), // 크기 스케일링
+                    Math.cos(pAngle) * pSpeed,
+                    Math.sin(pAngle) * pSpeed,
+                    life,
+                    'spark'
+                ));
+            }
+
+            // 추가 획득 단계에 따라 화면 진동(Shake)도 단계적으로 강화
+            if (this.extraDrawCount > 0) {
+                this.shakeScreen(3.5 * this.extraDrawCount, 3.0); // 3.5px, 7px, 10.5px, 14px 강도로 흔듬
+            }
+        }
+
+        // 3. 획득 효과음 재생 (추가 획득 단계에 따라 피치 상승)
+        if (this.extraDrawCount > 0) {
+            Sound.play('powerup', 1 + this.extraDrawCount * 0.15); // 1.15x -> 1.30x -> 1.45x -> 1.60x 피치업
+        } else {
+            Sound.play('powerup');
+        }
+    }
+
+    // [신규] 레벨 게이지 ● / ○ 시각화
+    buildLevelIndicator(currentLevel, maxLevel) {
+        let dotsHtml = '';
+        for (let i = 1; i <= maxLevel; i++) {
+            if (i <= currentLevel) {
+                dotsHtml += '<span class="dot filled">●</span>';
+            } else {
+                dotsHtml += '<span class="dot empty">○</span>';
+            }
+        }
+        const isMaster = currentLevel >= maxLevel ? 'master' : '';
+        const typeClass = maxLevel === 5 ? 'weapon' : 'equip';
+        return `<span class="level-indicator ${typeClass} ${isMaster}">${dotsHtml}</span>`;
     }
 }
