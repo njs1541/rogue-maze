@@ -5142,6 +5142,8 @@ class GameEngine {
                     const extraChance = Math.max(0, currentChance / 100);
                     // 스탯 보상 여부 체크 (무기/장비 방, 보물상자, 5의배수방 보상 제외)
                     const isStatReward = (this.currentRoomType !== 'weapon' && this.currentRoomType !== 'equipment' && !isFromHiddenChest && (this.roomNum % 5 !== 0));
+                    // 난수 roll 정의 추가
+                    const roll = Math.random();
                     // 최대 카드 습득 개수 5개 제한 (최초 1회 + 추가 최대 4회) & 스탯 카드 보상일 때만 작동
                     const canExtraDraw = isStatReward && (roll < extraChance) && (this.extraDrawCount < 4);
 
