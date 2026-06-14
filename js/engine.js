@@ -1327,15 +1327,21 @@ class GameEngine {
             }
 
             if (spawnInfo) {
-                this.player.x = spawnInfo.x;
-                this.player.y = spawnInfo.y;
+                // 프리셋에 커스텀 플레이어 스폰 위치가 명시되어 있다면 해당 좌표 사용
+                if (spawnInfo.playerSpawnX !== undefined && spawnInfo.playerSpawnY !== undefined) {
+                    this.player.x = spawnInfo.playerSpawnX;
+                    this.player.y = spawnInfo.playerSpawnY;
+                } else {
+                    this.player.x = spawnInfo.x;
+                    this.player.y = spawnInfo.y;
+                    
+                    // 문에서 걸어나오는 방향으로 오프셋을 더 줌
+                    if (targetOppositeDir === 'top') this.player.y += 60;
+                    else if (targetOppositeDir === 'bottom') this.player.y -= 60;
+                    else if (targetOppositeDir === 'left') this.player.x += 60;
+                    else if (targetOppositeDir === 'right') this.player.x -= 60;
+                }
                 this.lastEnteredPortalDir = targetOppositeDir;
-                
-                // 문에서 걸어나오는 방향으로 오프셋을 더 줌
-                if (targetOppositeDir === 'top') this.player.y += 60;
-                else if (targetOppositeDir === 'bottom') this.player.y -= 60;
-                else if (targetOppositeDir === 'left') this.player.x += 60;
-                else if (targetOppositeDir === 'right') this.player.x -= 60;
                 hasWarped = true;
             }
         }
@@ -1611,6 +1617,10 @@ class GameEngine {
         const presetName = this.currentMapPreset || 'PRESET_SIZE_BOSS';
         const info = PORTAL_SPAWN_INFOS[presetName] && PORTAL_SPAWN_INFOS[presetName][direction];
         if (info) {
+            // 프리셋에 커스텀 몬스터 스폰 위치가 명시되어 있다면 해당 좌표 사용
+            if (info.monsterSpawnX !== undefined && info.monsterSpawnY !== undefined) {
+                return { x: info.monsterSpawnX, y: info.monsterSpawnY };
+            }
             let offset = 60; // 문에서 맵 안쪽으로 향하는 거리
             if (direction === 'top') return { x: info.x, y: info.y + offset };
             if (direction === 'bottom') return { x: info.x, y: info.y - offset };

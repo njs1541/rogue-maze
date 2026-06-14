@@ -399,6 +399,17 @@
         .grid-cell.has-portal-left::before { content: 'L'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
         .grid-cell.has-portal-right::before { content: 'R'; position: absolute; font-size: 11px; color: var(--neon-yellow); font-weight: bold; text-shadow: 0 0 5px #000; z-index: 3; }
 
+        .grid-cell.portal-sub-cell::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 60%;
+            border: 1.5px dashed rgba(255, 223, 0, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
         /* 하단 유틸 버튼 */
         .util-buttons {
             display: flex;
@@ -609,37 +620,113 @@
                     버튼 클릭 후 <strong>격자 캔버스의 원하는 타일</strong>을 선택하여 해당 포탈의 배치 좌표를 지정합니다.
                 </p>
                 <div class="portal-buttons">
-                    <div class="portal-row">
-                        <button class="portal-btn" data-dir="top">
-                            <span class="portal-indicator"></span>
-                            <span>Top (상단 문)</span>
-                            <span class="portal-status-label" id="status-top">미지정</span>
-                        </button>
-                        <button class="portal-delete-btn" data-dir="top" title="포탈 제거">✕</button>
+                    <!-- Top Portal -->
+                    <div class="portal-row-container" id="portal-container-top">
+                        <div class="portal-row">
+                            <button class="portal-btn" data-dir="top">
+                                <span class="portal-indicator"></span>
+                                <span>Top (상단 문)</span>
+                                <span class="portal-status-label" id="status-top">미지정</span>
+                            </button>
+                            <button class="portal-delete-btn" data-dir="top" title="포탈 제거">✕</button>
+                        </div>
+                        <div class="portal-spawn-settings hidden" id="spawn-settings-top" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>👾 몬스터 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-monster-x-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-monster-y-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>🏃 플레이어 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-player-x-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-player-y-top" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="portal-row">
-                        <button class="portal-btn" data-dir="bottom">
-                            <span class="portal-indicator"></span>
-                            <span>Bottom (하단 문)</span>
-                            <span class="portal-status-label" id="status-bottom">미지정</span>
-                        </button>
-                        <button class="portal-delete-btn" data-dir="bottom" title="포탈 제거">✕</button>
+                    <!-- Bottom Portal -->
+                    <div class="portal-row-container" id="portal-container-bottom">
+                        <div class="portal-row">
+                            <button class="portal-btn" data-dir="bottom">
+                                <span class="portal-indicator"></span>
+                                <span>Bottom (하단 문)</span>
+                                <span class="portal-status-label" id="status-bottom">미지정</span>
+                            </button>
+                            <button class="portal-delete-btn" data-dir="bottom" title="포탈 제거">✕</button>
+                        </div>
+                        <div class="portal-spawn-settings hidden" id="spawn-settings-bottom" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>👾 몬스터 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-monster-x-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-monster-y-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>🏃 플레이어 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-player-x-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-player-y-bottom" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="portal-row">
-                        <button class="portal-btn" data-dir="left">
-                            <span class="portal-indicator"></span>
-                            <span>Left (좌측 문)</span>
-                            <span class="portal-status-label" id="status-left">미지정</span>
-                        </button>
-                        <button class="portal-delete-btn" data-dir="left" title="포탈 제거">✕</button>
+                    <!-- Left Portal -->
+                    <div class="portal-row-container" id="portal-container-left">
+                        <div class="portal-row">
+                            <button class="portal-btn" data-dir="left">
+                                <span class="portal-indicator"></span>
+                                <span>Left (좌측 문)</span>
+                                <span class="portal-status-label" id="status-left">미지정</span>
+                            </button>
+                            <button class="portal-delete-btn" data-dir="left" title="포탈 제거">✕</button>
+                        </div>
+                        <div class="portal-spawn-settings hidden" id="spawn-settings-left" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>👾 몬스터 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-monster-x-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-monster-y-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>🏃 플레이어 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-player-x-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-player-y-left" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="portal-row">
-                        <button class="portal-btn" data-dir="right">
-                            <span class="portal-indicator"></span>
-                            <span>Right (우측 문)</span>
-                            <span class="portal-status-label" id="status-right">미지정</span>
-                        </button>
-                        <button class="portal-delete-btn" data-dir="right" title="포탈 제거">✕</button>
+                    <!-- Right Portal -->
+                    <div class="portal-row-container" id="portal-container-right">
+                        <div class="portal-row">
+                            <button class="portal-btn" data-dir="right">
+                                <span class="portal-indicator"></span>
+                                <span>Right (우측 문)</span>
+                                <span class="portal-status-label" id="status-right">미지정</span>
+                            </button>
+                            <button class="portal-delete-btn" data-dir="right" title="포탈 제거">✕</button>
+                        </div>
+                        <div class="portal-spawn-settings hidden" id="spawn-settings-right" style="margin-top: 6px; padding: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>👾 몬스터 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-monster-x-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-monster-y-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #a0aec0;">
+                                <span>🏃 플레이어 스폰 X, Y:</span>
+                                <div style="display: flex; gap: 4px;">
+                                    <input type="number" id="input-spawn-player-x-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="X">
+                                    <input type="number" id="input-spawn-player-y-right" style="width: 55px; background: #000; border: 1px solid #333; color: #fff; font-size: 11px; padding: 2px 4px; border-radius: 3px;" placeholder="Y">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -676,10 +763,10 @@
 
         // 포탈 스폰 정보 (gridX, gridY 기반이며 x, y 픽셀 값은 자동 환산)
         let portals = {
-            top: { gridX: 11, gridY: 0 },
-            bottom: { gridX: 11, gridY: 17 },
-            left: { gridX: 0, gridY: 8 },
-            right: { gridX: 23, gridY: 8 }
+            top: { gridX: 11, gridY: 0, monsterSpawnX: 632.5, monsterSpawnY: 85, playerSpawnX: 632.5, playerSpawnY: 85 },
+            bottom: { gridX: 11, gridY: 17, monsterSpawnX: 632.5, monsterSpawnY: 815, playerSpawnX: 632.5, playerSpawnY: 815 },
+            left: { gridX: 0, gridY: 8, monsterSpawnX: 87.5, monsterSpawnY: 425, playerSpawnX: 87.5, playerSpawnY: 425 },
+            right: { gridX: 23, gridY: 8, monsterSpawnX: 1232.5, monsterSpawnY: 425, playerSpawnX: 1232.5, playerSpawnY: 425 }
         };
 
         let currentBrush = 0; // 0, 1, 2
@@ -740,16 +827,31 @@
             directions.forEach(dir => {
                 const btn = document.querySelector(`.portal-btn[data-dir="${dir}"]`);
                 const label = document.getElementById(`status-${dir}`);
+                const settingsPanel = document.getElementById(`spawn-settings-${dir}`);
                 if (!btn || !label) return;
                 
                 if (portals[dir]) {
                     btn.classList.add('assigned');
                     label.innerText = `[${portals[dir].gridX}, ${portals[dir].gridY}]`;
                     label.style.color = '#39ff14'; // 네온그린
+                    
+                    if (settingsPanel) {
+                        settingsPanel.classList.remove('hidden');
+                        
+                        // 인풋 값 바인딩
+                        document.getElementById(`input-spawn-monster-x-${dir}`).value = portals[dir].monsterSpawnX !== undefined ? portals[dir].monsterSpawnX : '';
+                        document.getElementById(`input-spawn-monster-y-${dir}`).value = portals[dir].monsterSpawnY !== undefined ? portals[dir].monsterSpawnY : '';
+                        document.getElementById(`input-spawn-player-x-${dir}`).value = portals[dir].playerSpawnX !== undefined ? portals[dir].playerSpawnX : '';
+                        document.getElementById(`input-spawn-player-y-${dir}`).value = portals[dir].playerSpawnY !== undefined ? portals[dir].playerSpawnY : '';
+                    }
                 } else {
                     btn.classList.remove('assigned');
                     label.innerText = `미지정`;
                     label.style.color = '#718096';
+                    
+                    if (settingsPanel) {
+                        settingsPanel.classList.add('hidden');
+                    }
                 }
             });
         }
@@ -767,17 +869,29 @@
             
             // 포탈 기본값 복원
             portals = {
-                top: { gridX: 11, gridY: 0 },
-                bottom: { gridX: 11, gridY: 17 },
-                left: { gridX: 0, gridY: 8 },
-                right: { gridX: 23, gridY: 8 }
+                top: { gridX: 11, gridY: 0, monsterSpawnX: 632.5, monsterSpawnY: 85, playerSpawnX: 632.5, playerSpawnY: 85 },
+                bottom: { gridX: 11, gridY: 17, monsterSpawnX: 632.5, monsterSpawnY: 815, playerSpawnX: 632.5, playerSpawnY: 815 },
+                left: { gridX: 0, gridY: 8, monsterSpawnX: 87.5, monsterSpawnY: 425, playerSpawnX: 87.5, playerSpawnY: 425 },
+                right: { gridX: 23, gridY: 8, monsterSpawnX: 1232.5, monsterSpawnY: 425, playerSpawnX: 1232.5, playerSpawnY: 425 }
             };
 
-            // 포탈 배치 기본 설정에 외벽 문 구멍 뚫기
-            if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
-            if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
-            if (portals.left) mapData[portals.left.gridY][portals.left.gridX] = 0;
-            if (portals.right) mapData[portals.right.gridY][portals.right.gridX] = 0;
+            // 포탈 배치 기본 설정에 외벽 문 구멍 뚫기 (2칸 모두 뚫음)
+            if (portals.top) {
+                mapData[portals.top.gridY][portals.top.gridX] = 0;
+                mapData[portals.top.gridY][portals.top.gridX + 1] = 0;
+            }
+            if (portals.bottom) {
+                mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
+                mapData[portals.bottom.gridY][portals.bottom.gridX + 1] = 0;
+            }
+            if (portals.left) {
+                mapData[portals.left.gridY][portals.left.gridX] = 0;
+                mapData[portals.left.gridY + 1][portals.left.gridX] = 0;
+            }
+            if (portals.right) {
+                mapData[portals.right.gridY][portals.right.gridX] = 0;
+                mapData[portals.right.gridY + 1][portals.right.gridX] = 0;
+            }
 
             refreshGridUI();
             updateJSON();
@@ -808,17 +922,29 @@
 
             // 포탈 기본값 복원
             portals = {
-                top: { gridX: 11, gridY: 0 },
-                bottom: { gridX: 11, gridY: 17 },
-                left: { gridX: 0, gridY: 8 },
-                right: { gridX: 23, gridY: 8 }
+                top: { gridX: 11, gridY: 0, monsterSpawnX: 632.5, monsterSpawnY: 85, playerSpawnX: 632.5, playerSpawnY: 85 },
+                bottom: { gridX: 11, gridY: 17, monsterSpawnX: 632.5, monsterSpawnY: 815, playerSpawnX: 632.5, playerSpawnY: 815 },
+                left: { gridX: 0, gridY: 8, monsterSpawnX: 87.5, monsterSpawnY: 425, playerSpawnX: 87.5, playerSpawnY: 425 },
+                right: { gridX: 23, gridY: 8, monsterSpawnX: 1232.5, monsterSpawnY: 425, playerSpawnX: 1232.5, playerSpawnY: 425 }
             };
 
-            // 포탈 통로 구멍
-            if (portals.top) mapData[portals.top.gridY][portals.top.gridX] = 0;
-            if (portals.bottom) mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
-            if (portals.left) mapData[portals.left.gridY][portals.left.gridX] = 0;
-            if (portals.right) mapData[portals.right.gridY][portals.right.gridX] = 0;
+            // 포탈 통로 구멍 (2칸 모두 뚫음)
+            if (portals.top) {
+                mapData[portals.top.gridY][portals.top.gridX] = 0;
+                mapData[portals.top.gridY][portals.top.gridX + 1] = 0;
+            }
+            if (portals.bottom) {
+                mapData[portals.bottom.gridY][portals.bottom.gridX] = 0;
+                mapData[portals.bottom.gridY][portals.bottom.gridX + 1] = 0;
+            }
+            if (portals.left) {
+                mapData[portals.left.gridY][portals.left.gridX] = 0;
+                mapData[portals.left.gridY + 1][portals.left.gridX] = 0;
+            }
+            if (portals.right) {
+                mapData[portals.right.gridY][portals.right.gridX] = 0;
+                mapData[portals.right.gridY + 1][portals.right.gridX] = 0;
+            }
 
             refreshGridUI();
             updateJSON();
@@ -921,6 +1047,30 @@
                     }
                 });
             });
+
+            // 포탈 커스텀 스폰 좌표 입력 이벤트 리스너 바인딩
+            const dirs = ['top', 'bottom', 'left', 'right'];
+            dirs.forEach(dir => {
+                const mxInput = document.getElementById(`input-spawn-monster-x-${dir}`);
+                const myInput = document.getElementById(`input-spawn-monster-y-${dir}`);
+                const pxInput = document.getElementById(`input-spawn-player-x-${dir}`);
+                const pyInput = document.getElementById(`input-spawn-player-y-${dir}`);
+                
+                const updateValues = () => {
+                    if (portals[dir]) {
+                        portals[dir].monsterSpawnX = mxInput.value !== '' ? parseFloat(mxInput.value) : undefined;
+                        portals[dir].monsterSpawnY = myInput.value !== '' ? parseFloat(myInput.value) : undefined;
+                        portals[dir].playerSpawnX = pxInput.value !== '' ? parseFloat(pxInput.value) : undefined;
+                        portals[dir].playerSpawnY = pyInput.value !== '' ? parseFloat(pyInput.value) : undefined;
+                        updateJSON();
+                    }
+                };
+
+                mxInput.addEventListener('input', updateValues);
+                myInput.addEventListener('input', updateValues);
+                pxInput.addEventListener('input', updateValues);
+                pyInput.addEventListener('input', updateValues);
+            });
         }
 
         // 포탈 지정 모드 취소
@@ -937,11 +1087,71 @@
 
             if (currentPortalSelectMode) {
                 // 포탈 좌표 설정 모드
-                // 이전 포탈 제거
-                portals[currentPortalSelectMode] = { gridX: c, gridY: r };
-                
-                // 포탈 위치 타일은 편의상 바닥(0)으로 자동 지워짐 처리
-                mapData[r][c] = 0;
+                let gridX = c;
+                let gridY = r;
+
+                // 2칸이 그리드를 벗어나지 않도록 가드 보정
+                if (currentPortalSelectMode === 'top' || currentPortalSelectMode === 'bottom') {
+                    if (gridX >= COLS - 1) gridX = COLS - 2; // 가장 오른쪽일 때 왼쪽으로 당김
+                } else if (currentPortalSelectMode === 'left' || currentPortalSelectMode === 'right') {
+                    if (gridY >= ROWS - 1) gridY = ROWS - 2; // 가장 아래쪽일 때 위로 당김
+                }
+
+                // 포털 2칸의 물리적 중심 좌표 계산
+                let x = 0;
+                let y = 0;
+                let monsterSpawnX = 0;
+                let monsterSpawnY = 0;
+                let playerSpawnX = 0;
+                let playerSpawnY = 0;
+                const offset = 60;
+
+                if (currentPortalSelectMode === 'top' || currentPortalSelectMode === 'bottom') {
+                    // 가로 문: 중심 x는 2칸의 정중앙선, y는 셀의 y 중앙
+                    x = parseFloat((gridX * 55 + 55).toFixed(2));
+                    y = parseFloat((gridY * 50 + 25).toFixed(2));
+                    
+                    monsterSpawnX = x;
+                    playerSpawnX = x;
+                    if (currentPortalSelectMode === 'top') {
+                        monsterSpawnY = y + offset;
+                        playerSpawnY = y + offset;
+                    } else {
+                        monsterSpawnY = y - offset;
+                        playerSpawnY = y - offset;
+                    }
+
+                    // 2칸 영역 바닥으로 뚫기
+                    mapData[gridY][gridX] = 0;
+                    mapData[gridY][gridX + 1] = 0;
+                } else {
+                    // 세로 문: 중심 x는 셀의 x 중앙, y는 2칸의 정중앙선
+                    x = parseFloat((gridX * 55 + 27.5).toFixed(2));
+                    y = parseFloat((gridY * 50 + 50).toFixed(2));
+                    
+                    monsterSpawnY = y;
+                    playerSpawnY = y;
+                    if (currentPortalSelectMode === 'left') {
+                        monsterSpawnX = x + offset;
+                        playerSpawnX = x + offset;
+                    } else {
+                        monsterSpawnX = x - offset;
+                        playerSpawnX = x - offset;
+                    }
+
+                    // 2칸 영역 바닥으로 뚫기
+                    mapData[gridY][gridX] = 0;
+                    mapData[gridY + 1][gridX] = 0;
+                }
+
+                portals[currentPortalSelectMode] = {
+                    gridX: gridX,
+                    gridY: gridY,
+                    monsterSpawnX: parseFloat(monsterSpawnX.toFixed(2)),
+                    monsterSpawnY: parseFloat(monsterSpawnY.toFixed(2)),
+                    playerSpawnX: parseFloat(playerSpawnX.toFixed(2)),
+                    playerSpawnY: parseFloat(playerSpawnY.toFixed(2))
+                };
                 
                 cancelPortalSelectMode();
                 
@@ -963,20 +1173,33 @@
             const key = presetKeyInput.value.trim() || 'PRESET_CUSTOM_1';
 
             // PORTAL_SPAWN_INFOS 구조 형성
-            // 55px(가로) * 50px(세로) 변환 반영
-            // 포탈 중심 픽셀 x = gridX * 55 + 27.5
-            // 포탈 중심 픽셀 y = gridY * 50 + 25
             const portalSpawnInfo = {};
             
             for (let dir in portals) {
                 if (portals[dir]) {
                     const info = portals[dir];
+                    let x = 0;
+                    let y = 0;
+                    if (dir === 'top' || dir === 'bottom') {
+                        x = parseFloat((info.gridX * 55 + 55).toFixed(2));
+                        y = parseFloat((info.gridY * 50 + 25).toFixed(2));
+                    } else {
+                        x = parseFloat((info.gridX * 55 + 27.5).toFixed(2));
+                        y = parseFloat((info.gridY * 50 + 50).toFixed(2));
+                    }
+
                     portalSpawnInfo[dir] = {
-                        x: parseFloat((info.gridX * 55 + 27.5).toFixed(2)),
-                        y: parseFloat((info.gridY * 50 + 25).toFixed(2)),
+                        x: x,
+                        y: y,
                         gridX: info.gridX,
                         gridY: info.gridY
                     };
+                    
+                    // 커스텀 스폰 좌표 추가
+                    if (info.monsterSpawnX !== undefined) portalSpawnInfo[dir].monsterSpawnX = info.monsterSpawnX;
+                    if (info.monsterSpawnY !== undefined) portalSpawnInfo[dir].monsterSpawnY = info.monsterSpawnY;
+                    if (info.playerSpawnX !== undefined) portalSpawnInfo[dir].playerSpawnX = info.playerSpawnX;
+                    if (info.playerSpawnY !== undefined) portalSpawnInfo[dir].playerSpawnY = info.playerSpawnY;
                 }
             }
 
