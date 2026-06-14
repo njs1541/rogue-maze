@@ -2477,3 +2477,74 @@ body.low-spec .neon-btn:hover {
 #tutorial-overlay .neon-btn {
     animation: barPulse 2.5s infinite ease-in-out !important;
 }
+
+/* ==========================================================================
+   [신규] 초월 마스터 장비/무기 전용 카드 효과
+   ========================================================================== */
+.status-card.master {
+    border-color: #ffdf00 !important;
+    box-shadow: 0 0 15px rgba(255, 223, 0, 0.4) !important;
+    animation: masterPulse 2s infinite ease-in-out !important;
+}
+
+.status-card.master .level {
+    color: #ffdf00 !important;
+    text-shadow: 0 0 5px rgba(255, 223, 0, 0.6);
+}
+
+@keyframes masterPulse {
+    0% {
+        box-shadow: 0 0 8px rgba(255, 223, 0, 0.3) !important;
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 223, 0, 0.6) !important;
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(255, 223, 0, 0.3) !important;
+        transform: scale(1);
+    }
+}
+
+/* ==========================================================================
+   [신규] 레벨 게이지 시각화 도트 및 네온 스타일링
+   ========================================================================== */
+.level-indicator {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 6px;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.level-indicator .dot {
+    font-size: 0.65rem;
+    line-height: 1;
+    display: inline-block;
+    transition: text-shadow 0.3s ease, color 0.3s ease;
+}
+
+/* 무기: 보라빛 네온 글로우 */
+.level-indicator.weapon .dot.filled {
+    color: #b026ff;
+    text-shadow: 0 0 6px rgba(176, 38, 255, 0.8), 0 0 2px rgba(176, 38, 255, 1);
+}
+
+/* 보조 장비: 주황빛 네온 글로우 */
+.level-indicator.equip .dot.filled {
+    color: #ff6c00;
+    text-shadow: 0 0 6px rgba(255, 108, 0, 0.8), 0 0 2px rgba(255, 108, 0, 1);
+}
+
+/* 초월 마스터 상태: 찬란한 황금빛 네온 글로우 */
+.level-indicator.master .dot.filled {
+    color: #ffdf00;
+    text-shadow: 0 0 8px rgba(255, 223, 0, 0.9), 0 0 3px rgba(255, 223, 0, 1);
+}
+
+/* 습득하지 못한 비어있는 칸 */
+.level-indicator .dot.empty {
+    color: #3e4857;
+    text-shadow: none;
+}

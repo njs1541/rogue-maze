@@ -375,6 +375,21 @@ class Player {
                 this.evadeActive = false;
             }
         }
+
+        // [성능/성장 마일스톤 시스템] 한계 돌파 상태에 따른 이펙트 발산
+        if (window.gameEngine && window.gameEngine.isPlaying) {
+            let isTranscendAtk = this.atk >= 30;
+            let isTranscendAspd = this.aspd >= 2.2;
+
+            if (isTranscendAtk && Math.random() < 0.05) {
+                // 초월 힘: 붉은 네온 전기 스파크 영구 분출
+                window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff0055', 2.0, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2, 20, 'spark'));
+            }
+            if (isTranscendAspd && Math.random() < 0.05) {
+                // 초월 공속/지능: 황금빛 네온 전기 스파크 영구 분출
+                window.gameEngine.particles.push(new Particle(this.x, this.y, '#ffdf00', 2.0, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.2, 20, 'spark'));
+            }
+        }
     }
 
     // 회피 발동 시 연출용 오프셋 트리거 (피격 지점의 반대 방향으로 1.5px 잔상 노출)
@@ -394,6 +409,52 @@ class Player {
 
     draw(ctx) {
         ctx.save();
+
+        // [To-Do 3] 10레벨 초월 장비 네온 오라 렌더링
+        let masterEquips = [];
+        if (this.equipLevels) {
+            for (let eq in this.equipLevels) {
+                if (this.equipLevels[eq] === 10) {
+                    masterEquips.push(eq);
+                }
+            }
+        }
+
+        if (masterEquips.length > 0) {
+            ctx.save();
+            this.auraPulse = (this.auraPulse || 0) + 0.05;
+            let auraRadius = this.radius * (1.3 + Math.sin(this.auraPulse) * 0.15);
+            
+            let auraColor = 'rgba(255, 223, 0, 0.15)'; // 기본 황금색
+            let strokeColor = '#ffdf00';
+            
+            let firstEq = masterEquips[0];
+            if (firstEq === 'armor') { strokeColor = '#ff6c00'; auraColor = 'rgba(255, 108, 0, 0.15)'; } // 주황
+            else if (firstEq === 'boots') { strokeColor = '#00f0ff'; auraColor = 'rgba(0, 240, 255, 0.15)'; } // 시안
+            else if (firstEq === 'gloves') { strokeColor = '#b026ff'; auraColor = 'rgba(176, 38, 255, 0.15)'; } // 보라
+            else if (firstEq === 'helm') { strokeColor = '#ff0055'; auraColor = 'rgba(255, 0, 85, 0.15)'; } // 붉은색
+            else if (firstEq === 'goggles') { strokeColor = '#39ff14'; auraColor = 'rgba(57, 255, 20, 0.15)'; } // 녹색
+            
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, auraRadius, 0, Math.PI * 2);
+            ctx.fillStyle = auraColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = strokeColor;
+            ctx.fill();
+            ctx.stroke();
+
+            // 점선 궤적 추가 효과
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, auraRadius + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 1.0;
+            ctx.setLineDash([4, 6]);
+            ctx.stroke();
+
+            ctx.restore();
+        }
 
         // [W-01 가시 장막 필드 오라 비주얼 렌더링]
         if (this.thornsFieldTimer > 0) {
@@ -472,8 +533,17 @@ class Player {
                 // 내부 기계식 코어 원 추가
                 ctx.beginPath();
                 ctx.arc(-2, 0, 3, 0, Math.PI * 2);
-                ctx.fillStyle = '#39ff14'; // 스태미너 가동 시 코어가 빛남
-                ctx.shadowColor = '#39ff14';
+                
+                let isTranscend = this.atk >= 30 || this.aspd >= 2.2;
+                if (isTranscend) {
+                    ctx.fillStyle = '#ffdf00'; // 초월 달성 시 황금빛 코어
+                    ctx.shadowColor = '#ffdf00';
+                    ctx.shadowBlur = 15;
+                } else {
+                    ctx.fillStyle = '#39ff14'; // 스태미너 가동 시 코어가 빛남
+                    ctx.shadowColor = '#39ff14';
+                    ctx.shadowBlur = 8;
+                }
                 ctx.fill();
 
                 ctx.restore();
@@ -508,7 +578,8 @@ class Player {
                         ctx.lineTo(sx, sy);
                     }
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 3.5 * (this.slashTimer / 12);
+                    let scaleFactor = Math.sqrt(this.atk / 10);
+                    ctx.lineWidth = 3.5 * (this.slashTimer / 12) * scaleFactor;
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = shadowColor;
                     ctx.stroke();
@@ -520,7 +591,8 @@ class Player {
                     ctx.arc(0, 0, radius, start, end);
                     
                     ctx.strokeStyle = color;
-                    ctx.lineWidth = 6 * (this.slashTimer / 10);
+                    let scaleFactor = Math.sqrt(this.atk / 10);
+                    ctx.lineWidth = 6 * (this.slashTimer / 10) * scaleFactor;
                     ctx.shadowBlur = 15;
                     ctx.shadowColor = shadowColor;
                     ctx.stroke();
@@ -551,7 +623,8 @@ class Player {
                 ctx.lineTo(tx, ty);
                 
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 5 * (this.spearTimer / 8);
+                let scaleFactor = Math.sqrt(this.atk / 10);
+                ctx.lineWidth = 5 * (this.spearTimer / 8) * scaleFactor;
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = shadowColor;
                 ctx.stroke();

@@ -9,7 +9,13 @@ class Bullet {
         this.startY = y;
         this.vx = vx;
         this.vy = vy;
-        this.radius = options.radius || 4;
+        
+        let baseRadius = options.radius || 4;
+        if (isPlayerBullet && window.gameEngine && window.gameEngine.player) {
+            let scaleFactor = Math.sqrt(window.gameEngine.player.atk / 10); // 기본 공격력 10 기준 루트 비례 확대
+            baseRadius = baseRadius * scaleFactor;
+        }
+        this.radius = baseRadius;
         this.damage = damage;
         this.isPlayerBullet = isPlayerBullet;
         this.color = options.color || (isPlayerBullet ? '#00f0ff' : '#ff0055');
