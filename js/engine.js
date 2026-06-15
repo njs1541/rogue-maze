@@ -5190,11 +5190,11 @@ class GameEngine {
                         nextChance = Math.max(0, Math.ceil(nextChance)); // 올림 처리하여 깔끔하게 표시
 
                         // 단계별 화려한 전설 타이틀 설정
-                        let floatText = `🍀 LUK 추가 획득 기회 발동! (${nextDrawNum}/4) [다음 확률: ${nextChance}%]`;
+                        let floatText = `👑 스폰서 추가 후원 발동! (${nextDrawNum}/4) [다음 확률: ${nextChance}%]`;
                         let floatColor = '#39ff14'; // 1단계: 초록
-                        if (nextDrawNum === 2) { floatText = `⚡ 행운의 흐름 가속! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] ⚡`; floatColor = '#ffdf00'; }
-                        if (nextDrawNum === 3) { floatText = `🔮 차원의 운율 공명! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 🔮`; floatColor = '#00f0ff'; }
-                        if (nextDrawNum === 4) { floatText = `👑 신의 행운: 오버리미트! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 👑`; floatColor = '#ff0055'; }
+                        if (nextDrawNum === 2) { floatText = `⚡ 팬덤의 관심 가속! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] ⚡`; floatColor = '#ffdf00'; }
+                        if (nextDrawNum === 3) { floatText = `🔮 스폰서의 주목 공명! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 🔮`; floatColor = '#00f0ff'; }
+                        if (nextDrawNum === 4) { floatText = `👑 전설적 인기스타: 후원 폭발! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 👑`; floatColor = '#ff0055'; }
                         
                         setTimeout(() => {
                             this.showFloatingText(floatText, this.player.x, this.player.y - 45, floatColor);
@@ -5249,7 +5249,7 @@ class GameEngine {
             { id: 'ms', title: '민첩 (MOV) 기동', icon: '🏃', desc: '이동 속도가 강화됩니다.' },
             { id: 'evd', title: '민첩 (EVD) 회피', icon: '🦅', desc: '몬스터 공격 회피율이 상승합니다.' },
             { id: 'hp', title: '체력 (HP) 증대', icon: '❤️', desc: '최대 체력을 늘리고, 현재 체력을 소량 치유합니다.' },
-            { id: 'luk', title: '운 (LUK) 축복', icon: '🍀', desc: '다음 보상 시 고등급 카드가 나올 행운이 영구 축적됩니다. (최대 4.0까지 보상 등급에 영향)' },
+            { id: 'luk', title: '스타성 (CHA) 매혹', icon: '👑', desc: '검투사의 매력/스타성을 강화하여 더 가치 있는 스폰서 보상 카드가 등장할 확률을 영구 누적합니다. (최대 4.0까지 효과 부여)' },
             { id: 'stamina', title: '스테미너 증폭', icon: '🔋', desc: '달릴 수 있는 최대 활력이 확장됩니다.' },
             { id: 'hpRegen', title: '체력 재생 (REGEN)', icon: '🩺', desc: '초당 체력 회복 능력을 부여합니다.' },
             { id: 'range', title: '사거리 연장 (RNG)', icon: '🔭', desc: '탄환 사거리 및 검 베기 공격 반경을 연장시킵니다.' },
@@ -5283,7 +5283,7 @@ class GameEngine {
             { id: 'equip_boots', title: '최대스테미너 신발', icon: '🥾', desc: '최대 Stamina를 확장합니다. (5레벨: 대시 중 회피 15%, 10레벨: 무적 통과)' },
             { id: 'equip_gloves', title: '공격범위 장갑', icon: '🧤', desc: '공격 물리 사거리를 확장합니다. (5레벨: 크기 20% 업, 10레벨: 충격파 발사)' },
             { id: 'equip_helm', title: '최대마력 투구', icon: '🪖', desc: '최대 MP를 확장합니다. (5레벨: 20% 무료 스킬, 10레벨: MP 100% 시 공격력 25% 업)' },
-            { id: 'equip_necklace', title: '행운 목걸이', icon: '📿', desc: '카드 획득 행운(LUK)을 올립니다. (5레벨: 정예 자원 2배, 10레벨: 카드 리롤 기능 개방)' },
+            { id: 'equip_necklace', title: '스폰서쉽 목걸이', icon: '📿', desc: '검투사의 매력(CHA)을 올려 스폰서의 추가 연쇄 후원 드로우 및 지원금(리롤) 기회를 개방합니다.' },
             { id: 'equip_ring_mp', title: '마력회복 반지', icon: '💍', desc: '초당 마력 회복량을 강화합니다. (5레벨: 킬 시 마나 3% 환급, 10레벨: 특수기 유지비 50% 절감)' },
             { id: 'equip_ring_hp', title: '체력회복 반지', icon: '💍', desc: '초당 체력 회복량을 강화합니다. (5레벨: 포션 효율 50% 업, 10레벨: 비피격 5초 시 재생 3배)' },
             { id: 'equip_ring_speed', title: '이동속도 반지', icon: '💍', desc: '이동 속도를 올립니다. (5레벨: 달릴 때 공격력 10% 업, 10레벨: 초신성 기동)' },
@@ -5427,7 +5427,7 @@ class GameEngine {
                 break;
             case 'luk':
                 value = 0.10 * mult; // 종합 밸런스 패치 (기본 0.15에서 0.10으로 하향)
-                desc = `카드 행운 계수가 +${value.toFixed(2)} 올라가 고등급 획득에 크게 기여합니다. (최대 4.0까지 보상 등급에 영향)`;
+                desc = `검투사의 스타성/매력(CHA)이 +${value.toFixed(2)} 올라가 스폰서들이 더 귀한 보상을 주게 됩니다. (최대 4.0까지 효과 부여)`;
                 break;
             case 'stamina':
                 value = Math.ceil(10 * mult); // 종합 밸런스 패치 (기본 15에서 10으로 하향)
@@ -5593,7 +5593,7 @@ class GameEngine {
                 break;
             case 'equip_necklace':
                 value = 0.05 * mult;
-                desc = `카드 획득 행운(LUK)이 +${value.toFixed(2)} 올라갑니다. (현재 레벨: ${this.player.equipLevels.necklace} -> ${Math.min(10, this.player.equipLevels.necklace + 1)})`;
+                desc = `검투사의 매력/스타성(CHA)이 +${value.toFixed(2)} 영구 상승합니다. (현재 레벨: ${this.player.equipLevels.necklace} -> ${Math.min(10, this.player.equipLevels.necklace + 1)})`;
                 break;
             case 'equip_ring_mp':
                 value = 0.3 * mult;

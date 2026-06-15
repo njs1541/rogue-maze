@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Rogue-Maze 시나리오 테마 추천</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #0b0c10;
+      --panel-bg: rgba(26, 28, 36, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      /* 네온 테마 컬러 */
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff00aa;
+      --neon-purple: #8b5cf6;
+      --neon-yellow: #ffea00;
+      --neon-red: #ff0055;
+      --neon-orange: #ffaa00;
+      --neon-green: #00ffcc;
+      --neon-gold: #ffd700;
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 0, 170, 0.05) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      padding: 3rem 2rem;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 4rem;
+      position: relative;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: var(--neon-cyan);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 30%, var(--neon-cyan) 70%, var(--neon-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.5rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 25%;
+      width: 50%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), transparent);
+      border-radius: 2px;
+    }
+
+    .description {
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 1.5rem auto 0 auto;
+      font-size: 1.1rem;
+      line-height: 1.7;
+    }
+
+    .badge-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 1rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge span {
+      color: var(--neon-cyan);
+      font-weight: 600;
+    }
+
+    /* Tabs for Scenarios */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+    }
+
+    .tab-btn:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text-main);
+      transform: translateY(-2px);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      border-color: var(--active-color, var(--neon-cyan));
+      box-shadow: 0 0 20px rgba(var(--active-color-rgb, 0, 240, 255), 0.2);
+      background: linear-gradient(180deg, rgba(var(--active-color-rgb, 0, 240, 255), 0.05), rgba(var(--active-color-rgb, 0, 240, 255), 0.15));
+    }
+
+    /* Scenario Showcase Grid */
+    .scenario-container {
+      display: none;
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    .scenario-container.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layout */
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .scenario-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Card: Summary */
+    .scenario-summary-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scenario-summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--neon-color-1), var(--neon-color-2));
+    }
+
+    .scenario-icon {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .scenario-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+
+    .scenario-tagline {
+      font-size: 1.1rem;
+      color: var(--neon-color-1);
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    .scenario-desc-text {
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    /* Key Specs Table */
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .specs-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .specs-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .specs-table td {
+      padding: 1rem 0;
+      font-size: 0.95rem;
+    }
+
+    .specs-label {
+      color: var(--text-muted);
+      font-weight: 600;
+      width: 40%;
+    }
+
+    .specs-value {
+      color: var(--text-main);
+      text-align: right;
+    }
+
+    /* Right Panels: System Integration Details */
+    .scenario-details-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .details-section {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.75rem;
+    }
+
+    .section-title i {
+      color: var(--neon-color-1);
+    }
+
+    /* Sector Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+      margin-top: 1rem;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      left: -2rem;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg-color);
+      border: 3px solid var(--marker-color);
+      box-shadow: 0 0 8px var(--marker-color);
+    }
+
+    .timeline-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timeline-title span {
+      font-size: 0.8rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .timeline-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Monster Table Styling */
+    .monster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+
+    .monster-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .monster-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--monster-color);
+      transform: translateY(-2px);
+    }
+
+    .monster-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .monster-name {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .monster-badge {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--monster-color);
+      border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .monster-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Feature Integration List */
+    .feature-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 600px) {
+      .feature-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .feature-icon-wrapper {
+      font-size: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      margin-top: 2px;
+    }
+
+    .feature-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Bottom Info Alert */
+    .info-footer {
+      margin-top: 4rem;
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.03), rgba(255, 0, 170, 0.03));
+      border: 1px solid var(--border-color);
+      padding: 2rem;
+      border-radius: 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .info-footer p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .info-footer strong {
+      color: var(--neon-cyan);
+    }
+
+    /* Hover Neon Shadows (Defined via classes) */
+    .theme-cyber {
+      --neon-color-1: var(--neon-cyan);
+      --neon-color-2: var(--neon-purple);
+    }
+
+    .theme-plague {
+      --neon-color-1: var(--neon-green);
+      --neon-color-2: var(--neon-yellow);
+    }
+
+    .theme-gladiator {
+      --neon-color-1: var(--neon-pink);
+      --neon-color-2: var(--neon-orange);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="subtitle">Story Concept Proposal</div>
+      <h1>Neon Rogue-Maze Scenario Proposal</h1>
+      <p class="description">
+        현재 구축된 게임 시스템(비주얼 스타일, 포털 선택, 10층 단위 섹터 테마, 매력(CHA) 기반 추가 후원, 무기 시너지, 12종의 AI 몬스터 기믹)을 완벽히 투영하여 기획된 3가지의 시나리오 테마를 제안합니다.
+      </p>
+      
+      <div class="badge-container">
+        <div class="badge">⚔️ 무기 인챈트 시너지 <span>반영</span></div>
+        <div class="badge">🌐 6개 섹터 테마 <span>대응</span></div>
+        <div class="badge">👾 12종 몬스터 기믹 <span>해석</span></div>
+        <div class="badge">🎰 비밀 자판기 <span>스토리화</span></div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(0)" style="--active-color: var(--neon-cyan); --active-color-rgb: 0, 240, 255;">
+        🧬 테마 1: 디지털 연옥의 탈출자
+      </button>
+      <button class="tab-btn" onclick="switchTab(1)" style="--active-color: var(--neon-green); --active-color-rgb: 0, 255, 204;">
+        ☣️ 테마 2: 나노 코어 프로토콜
+      </button>
+      <button class="tab-btn" onclick="switchTab(2)" style="--active-color: var(--neon-pink); --active-color-rgb: 255, 0, 170;">
+        👑 테마 3: 네온 콜로세움 (사이버 검투사)
+      </button>
+    </div>
+
+    <!-- Theme 1: 디지털 연옥의 탈출자 -->
+    <div id="theme-0" class="scenario-container active">
+      <div class="scenario-grid theme-cyber">
+        
+        <!-- Summary Card -->
+        <div class="scenario-summary-card">
+          <div class="scenario-icon">🧬</div>
+          <h2 class="scenario-title">디지털 연옥의 탈출자</h2>
+          <div class="scenario-tagline">"코드를 해킹한 유령, 메인프레임의 심연을 돌파하라."</div>
+          <p class="scenario-desc-text">
+            플레이어는 거대 테크 기업 '신디케이트'의 메인프레임에 침투했다가 함정 프로토콜에 의해 육체를 잃고 가상 네트워크의 심연(Rogue-Maze)에 의식(Ghost)이 갇힌 천재 해커입니다. 
+            방화벽 프로그램들이 당신을 지우려 다가오는 가운데, 시스템의 파괴된 세그먼트를 딛고 올라 메인프레임의 중심인 '싱귤래리티 코어'를 파괴하고 자아를 재구성하여 탈출해야 합니다.
+          </p>
+          
+          <table class="specs-table">
+            <tr>
+              <td class="specs-label">장르 스타일</td>
+              <td class="specs-value">사이버펑크 가상 현실, 데이터 해킹</td>
+            </tr>
+            <tr>
+              <td class="specs-label">플레이어 정체성</td>
+              <td class="specs-value">고스트 넷 러너 (Ghost Net-Runner)</td>
+            </tr>
+            <tr>
+              <td class="specs-label">핵심 목표</td>
+              <td class="specs-value">중앙 AI 통제 코어 무력화 및 의식 백업</td>
+            </tr>
+            <tr>
+              <td class="specs-label">비밀 자판기 기믹</td>
+              <td class="specs-value">과거 해커들이 남긴 시스템 글리치 백도어</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- System Integration Details -->
+        <div class="scenario-details-wrapper">
+          
+          <!-- Sector Setup -->
+          <div class="details-section">
+            <h3 class="section-title">🌐 섹터 테마의 시나리오 해석</h3>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 1: Cyber Grid (1~9F) <span>외곽 보안 그리드</span></div>
+                  <div class="timeline-desc">메인프레임 진입로. 기본 방화벽과 침입 탐지 기본 모듈들이 순찰하는 시안 계열의 격자 보안 공간입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-orange);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 2: Volcanic Core (11~19F) <span>방열/연산 가속 엔진</span></div>
+                  <div class="timeline-desc">CPU/GPU 오버클러킹 연산으로 인해 뿜어져 나오는 비정상적인 열기를 시각화한 붉은 오렌지 네온 구역입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 3: Frozen Void (21~29F) <span>액체 질소 냉각조</span></div>
+                  <div class="timeline-desc">과부하 상태의 시스템을 유지하기 위해 극한으로 냉각된 연산 장치. 아쿠아 블루 빛의 동결 서버 데이터 격자입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-green);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 4: Overgrown Lab (31~39F) <span>인공지능 가상 배양조</span></div>
+                  <div class="timeline-desc">생체 데이터와 뉴럴 넷 연동을 실험하는 오버그로운 바이오 테마. 네온 그린 컬러의 유기적 데이터 정글입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-pink);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 5: Abyssal Rift (41~49F) <span>데이터 크래시 쓰레기통</span></div>
+                  <div class="timeline-desc">삭제 조치된 레거시 코드와 깨진 메모리들이 소용돌이치는 보랏빛 심연. 극도의 비주얼 왜곡과 글리치가 발생합니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-gold);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 6: Singularity Core (50F+) <span>중앙 연산 핵 (Singularity)</span></div>
+                  <div class="timeline-desc">모든 가상 격자의 에너지가 모이는 절대 통제자의 황금빛 영역. 중심 통제 AI '싱귤래리티'와의 최종전이 벌어집니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monster Setup -->
+          <div class="details-section">
+            <h3 class="section-title">👾 백신/보안 몬스터의 시나리오 해석</h3>
+            <div class="monster-grid">
+              <div class="monster-card" style="--monster-color: var(--neon-red);">
+                <div class="monster-header">
+                  <span class="monster-name">🔴 일반 / chaser</span>
+                  <span class="monster-badge">보안 가드</span>
+                </div>
+                <p class="monster-desc">메인프레임의 최말단 추적 패트롤 봇. 단순 무식한 AI로 플레이어를 인지하는 순간 가속 조준 돌격을 시도합니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-purple);">
+                <div class="monster-header">
+                  <span class="monster-name">🔷 원거리 / scatterer</span>
+                  <span class="monster-badge">방화벽 저격수</span>
+                </div>
+                <p class="monster-desc">원거리에서 보라색 네온 패킷 탄환을 저격하거나 3방향으로 패킷을 쪼개어 살포하는 격리 프로그램입니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-green);">
+                <div class="monster-header">
+                  <span class="monster-name">💚 Healer</span>
+                  <span class="monster-badge">시스템 복구기</span>
+                </div>
+                <p class="monster-desc">손상된 방화벽 코드의 무결성을 실시간 검사하고 광역 치유 패치 코드를 방출하여 몬스터들을 수리합니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-purple);">
+                <div class="monster-header">
+                  <span class="monster-name">💜 Summoner</span>
+                  <span class="monster-badge">경보 포털</span>
+                </div>
+                <p class="monster-desc">도망치며 차원 균열을 열어 초소형 침입 제거 봇(Mini)을 무한히 생산하는 중앙 모니터링 경보 디바이스입니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Mechanics -->
+          <div class="details-section">
+            <h3 class="section-title">⚡ 시스템 핵심 기믹의 시나리오 융합</h3>
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🍀</div>
+                <div class="feature-content">
+                  <div class="feature-title">데이터 해킹 링크 콤보 (운 스탯)</div>
+                  <div class="feature-desc">운(LUK)이 높을수록 시스템의 통제를 우회하여 혜택 카드를 추가 드로우(🍀➔⚡➔🔮➔👑)합니다. 콤보가 터질 때 발밑에 튀는 파티클은 메모리 탈취 이펙트입니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🎰</div>
+                <div class="feature-content">
+                  <div class="feature-title">글리치 장치 & 비밀 자판기</div>
+                  <div class="feature-desc">과거 탈출을 시도했던 러너들이 심어둔 백도어 장치. 의식 데이터(영구 체력)를 소모해 코드를 덮어쓰고 최정예 스탯/무기 카드를 불법 거래합니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">⚔️</div>
+                <div class="feature-content">
+                  <div class="feature-title">무기 융합 시너지 (인챈트)</div>
+                  <div class="feature-desc">물리 해킹 툴(Sword)과 화염 방화 프로그램(Fire)이 인핸스되어 검기에 코드가 이식되거나 타격 시 대상의 연산을 지연시키는 등 시너지가 발현됩니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🚪</div>
+                <div class="feature-content">
+                  <div class="feature-title">게이트 선택 (포털 및 방 번호)</div>
+                  <div class="feature-desc">스탯(📊), 무기(⚔️), 방어구(🛡️), 메모리 상점(🎰) 포털 중 어떤 서브넷에 접속할지 결정합니다. 문에 적힌 숫자는 침투 대상 구역의 보안 경보 레벨을 뜻합니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme 2: 나노 코어 프로토콜 -->
+    <div id="theme-1" class="scenario-container">
+      <div class="scenario-grid theme-plague">
+        
+        <!-- Summary Card -->
+        <div class="scenario-summary-card">
+          <div class="scenario-icon">☣️</div>
+          <h2 class="scenario-title">나노 코어 프로토콜</h2>
+          <div class="scenario-tagline">"폭주한 나노 바이러스, 강철과 세포의 융합을 물리쳐라."</div>
+          <p class="scenario-desc-text">
+            미래의 거대 유전-기계 융합 연구 시설의 동력 핵심인 '싱귤래리티 코어'에서 자가 복제성 폭주 나노 머신(나노 역병)이 유출되었습니다. 
+            연구소의 기계 경비 시스템과 생체 샘플들이 기괴하게 융합되어 시설을 뒤덮었습니다. 
+            플레이어는 유일한 생존 전사로, 나노 입자를 흡수하면 실시간으로 오버클럭되고 개조되는 '헤라클레스 나노 슈트'를 입고 연구소 깊숙이 진입합니다.
+          </p>
+          
+          <table class="specs-table">
+            <tr>
+              <td class="specs-label">장르 스타일</td>
+              <td class="specs-value">SF 바이오펑크, 연구소 탈출, 나노 메카닉</td>
+            </tr>
+            <tr>
+              <td class="specs-label">플레이어 정체성</td>
+              <td class="specs-value">프로토타입 나노 슈트 장착 보병</td>
+            </tr>
+            <tr>
+              <td class="specs-label">핵심 목표</td>
+              <td class="specs-value">자가 복제 나노 퀸(보스) 격퇴 및 코어 냉각</td>
+            </tr>
+            <tr>
+              <td class="specs-label">비밀 자판기 기믹</td>
+              <td class="specs-value">감염된 무인 의료 배급 장치 및 변이 디바이스</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- System Integration Details -->
+        <div class="scenario-details-wrapper">
+          
+          <!-- Sector Setup -->
+          <div class="details-section">
+            <h3 class="section-title">🌐 섹터 테마의 시나리오 해석</h3>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 1: Cyber Grid (1~9F) <span>시설 메인 홀 (통제구역)</span></div>
+                  <div class="timeline-desc">사이버네틱 가이드 라인이 바닥에 빛나는 깔끔하지만 고요한 연구동 로비. 감염 초기 단계입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-orange);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 2: Volcanic Core (11~19F) <span>나노 가열/정제 용융로</span></div>
+                  <div class="timeline-desc">나노 머신을 합성하고 금속을 제련하는 초고온 정제 구역. 용암처럼 붉은 냉각 열풍이 배출됩니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 3: Frozen Void (21~29F) <span>극저온 바이오 샘플 보관소</span></div>
+                  <div class="timeline-desc">변이를 방지하기 위해 액체 헬륨으로 얼려진 보관동. 차가운 서리와 얼어붙은 네온 조명이 번쩍입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-green);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 4: Overgrown Lab (31~39F) <span>인공 생태 바이오돔</span></div>
+                  <div class="timeline-desc">나노 촉진제로 인해 비정상적으로 급성장한 식물과 인공 곰팡이가 벽면 격자판을 뒤덮은 기괴한 녹색 온실입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-pink);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 5: Abyssal Rift (41~49F) <span>폐기물 처리장 및 차원 붕괴 구역</span></div>
+                  <div class="timeline-desc">실패한 변이체들이 융해되어 버려지는 곳. 나노 역병의 파장이 왜곡되어 공간이 마젠타색으로 찢어지고 있습니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-gold);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 6: Singularity Core (50F+) <span>나노 특이점 동력원</span></div>
+                  <div class="timeline-desc">나노 복제가 극대화되어 빛을 흡수하는 황금빛 나노 입자의 폭풍이 일어나는 연구소의 동력 코어입니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monster Setup -->
+          <div class="details-section">
+            <h3 class="section-title">👾 변이/나노 기계 몬스터의 시나리오 해석</h3>
+            <div class="monster-grid">
+              <div class="monster-card" style="--monster-color: var(--neon-yellow);">
+                <div class="monster-header">
+                  <span class="monster-name">💛 Exploder</span>
+                  <span class="monster-badge">나노 자폭 셀</span>
+                </div>
+                <p class="monster-desc">나노 에너지가 한계를 넘어 과충전된 마름모 형태의 정제 셀. 생명체를 감지하면 1초간 정지 및 점멸 후 폭발합니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-cyan);">
+                <div class="monster-header">
+                  <span class="monster-name">🌐 Splitter / mini</span>
+                  <span class="monster-badge">나노 복제 슬라임</span>
+                </div>
+                <p class="monster-desc">죽을 때 결합을 해제해 스스로를 복제/분열하는 연성 나노 군집. 분열된 소형체(Mini)들은 엄청난 속도로 표적을 습격합니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-cyan);">
+                <div class="monster-header">
+                  <span class="monster-name">💚 Teleporter</span>
+                  <span class="monster-badge">위상 변위 기계</span>
+                </div>
+                <p class="monster-desc">나노 입자의 위상 천이 능력을 사용해 공중에서 입자를 해체한 후, 3초마다 플레이어 근처에 재구축되는 암살형 기계입니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-muted);">
+                <div class="monster-header">
+                  <span class="monster-name">⬜ Tanker</span>
+                  <span class="monster-badge">나노 갑옷 중형기</span>
+                </div>
+                <p class="monster-desc">방패 모양의 두꺼운 장갑판을 두른 대형 디펜더. 나노 결합력이 극대화되어 플레이어의 공격에 뒤로 밀려나지 않습니다(넉백 면제).</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Mechanics -->
+          <div class="details-section">
+            <h3 class="section-title">⚡ 시스템 핵심 기믹의 시나리오 융합</h3>
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🍀</div>
+                <div class="feature-content">
+                  <div class="feature-title">유전자 결합 적응 콤보 (운 스탯)</div>
+                  <div class="feature-desc">적을 처치하고 습득한 나노 셀이 고도로 융합되면 추가 슈트 커스텀 모듈을 장착(🍀➔⚡➔🔮➔👑)합니다. 등 뒤에서 뿜어져 나오는 맥동 파티클이 슈트 열 배출 연출이 됩니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🎰</div>
+                <div class="feature-content">
+                  <div class="feature-title">변이 디바이스 상호작용</div>
+                  <div class="feature-desc">망가진 의료 나노 포드. 플레이어의 골수 DNA(영구 체력)를 나노 입자로 맞교환하여 비정상적으로 강화된 무기나 스탯 모듈을 슈트에 급속 이식합니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">⚔️</div>
+                <div class="feature-content">
+                  <div class="feature-title">슈트 하이브리드 무장 시너지</div>
+                  <div class="feature-desc">슈트의 레이저 칼날(Sword)에 초고온 플라즈마 모듈(Fire)이 적용되면 타격 지점에 플라즈마 화염 지대를 만드는 등 화학/기계 융합 반응을 묘사합니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🚪</div>
+                <div class="feature-content">
+                  <div class="feature-title">접속 구역 해킹 및 문 탐색</div>
+                  <div class="feature-desc">슈트의 스캐너가 포털 종류를 식별합니다. 문 앞의 숫자는 나노 입자의 농도 및 해당 구역의 적대 반응 개체 수를 의미하여 플레이어가 위험도를 선택할 수 있게 합니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme 3: 네온 콜로세움 (사이버 검투사) -->
+    <div id="theme-2" class="scenario-container">
+      <div class="scenario-grid theme-gladiator">
+        
+        <!-- Summary Card -->
+        <div class="scenario-summary-card">
+          <div class="scenario-icon">👑</div>
+          <h2 class="scenario-title">네온 콜로세움</h2>
+          <div class="scenario-tagline">"베팅이 완료되었다. 관객을 환호하게 만들고 생존하라."</div>
+          <p class="scenario-desc-text">
+            디스토피아 미래, 부유한 지배 계급들이 열광하는 잔혹 가상 서바이벌 쇼 '네온 콜로세움(Neon Colosseum)'. 
+            플레이어는 이 게임에 강제로 의식이 업로드되어 매 경기를 이겨내야 하는 무명의 사이버 검투사(Cyber-Gladiator)입니다. 
+            위험한 무대(포털)와 적의 개체 수(문 중앙 숫자)에 베팅해 승리할수록 쇼의 시청률(scoreValue)이 폭발하며, 관객들의 후원으로 얻는 특혜 카드가 당신의 조작 기기를 진화시킵니다.
+          </p>
+          
+          <table class="specs-table">
+            <tr>
+              <td class="specs-label">장르 스타일</td>
+              <td class="specs-value">글래디에이터 디스토피아, 가상 예능 쇼, 아케이드</td>
+            </tr>
+            <tr>
+              <td class="specs-label">플레이어 정체성</td>
+              <td class="specs-value">가상 격투장의 넘버원 검투사 (Gladiator)</td>
+            </tr>
+            <tr>
+              <td class="specs-label">핵심 목표</td>
+              <td class="specs-value">콜로세움 최종 챔피언(보스) 격파 및 해방</td>
+            </tr>
+            <tr>
+              <td class="specs-label">비밀 자판기 기믹</td>
+              <td class="specs-value">불법 승부조작 브로커 및 암시장 거래 장치</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- System Integration Details -->
+        <div class="scenario-details-wrapper">
+          
+          <!-- Sector Setup -->
+          <div class="details-section">
+            <h3 class="section-title">🌐 섹터 테마의 시나리오 해석</h3>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 1: Cyber Grid (1~9F) <span>트레이닝 네온 그리드</span></div>
+                  <div class="timeline-desc">쇼의 예선전이 치러지는 기본 아레나. 관객들이 편안하게 즐길 수 있는 청록빛의 가상 격자무늬 홀로그램 스테이지입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-orange);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 2: Volcanic Core (11~19F) <span>헬파이어 링 (Hellfire Ring)</span></div>
+                  <div class="timeline-desc">관객들의 도파민을 자극하는 지옥의 용암 테마. 네온 레드와 오렌지빛 화염 불꽃이 뿜어져 나오는 익스트림 무대입니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-cyan);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 3: Frozen Void (21~29F) <span>아이스 돔 (Ice Dome)</span></div>
+                  <div class="timeline-desc">혹한의 서바이벌을 유도하는 빙하 테마 스테이지. 푸른 조명 아래 얼어붙은 얼음 결정이 몬스터와 발밑을 장식합니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-green);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 4: Overgrown Lab (31~39F) <span>생존의 늪 (Neo-Jungle)</span></div>
+                  <div class="timeline-desc">위험천만한 우림지대를 시뮬레이션한 네온 그린 스테이지. 인공 유기 생명체들이 뿜는 입자가 가득합니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-pink);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 5: Abyssal Rift (41~49F) <span>다크 카오스 링 (Chaos Arena)</span></div>
+                  <div class="timeline-desc">난이도가 최고조에 달한 글리치 테마 스테이지. 무대가 깨지고 찢어지며 보랏빛 노이즈를 내뿜어 긴장감을 유도합니다.</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker" style="--marker-color: var(--neon-gold);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sector 6: Singularity Core (50F+) <span>챔피언십 링 (Grand Final)</span></div>
+                  <div class="timeline-desc">수억 명의 시청자들이 지켜보는 황금빛 결승 스테이지. 전설적인 방어 링 기믹을 지닌 챔피언 보스와의 최종 매치입니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monster Setup -->
+          <div class="details-section">
+            <h3 class="section-title">👾 투기장 검투 머신들의 시나리오 해석</h3>
+            <div class="monster-grid">
+              <div class="monster-card" style="--monster-color: var(--neon-orange);">
+                <div class="monster-header">
+                  <span class="monster-name">🔸 Chaser</span>
+                  <span class="monster-badge">스피드 레이저</span>
+                </div>
+                <p class="monster-desc">관객들의 흥미를 위해 매우 빠른 속도로 돌격하여 플레이어의 조작 한계를 시험하는 투기장 전용 표적기입니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-pink);">
+                <div class="monster-header">
+                  <span class="monster-name">💗 Scatterer</span>
+                  <span class="monster-badge">탄막 투사기</span>
+                </div>
+                <p class="monster-desc">관객들이 피해를 관람하기 좋게 십자 형태의 몸으로 부채꼴 3방향 핑크색 네온 탄환을 일제 사격하는 기계입니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-cyan);">
+                <div class="monster-header">
+                  <span class="monster-name">💚 Healer / Summoner</span>
+                  <span class="monster-badge">쇼 어시스턴트</span>
+                </div>
+                <p class="monster-desc">서로를 치료하거나 초소형 끈질긴 몬스터(Mini)를 소환해 전투가 끝나지 않고 쇼의 연장전을 유도하는 도우미 봇입니다.</p>
+              </div>
+              <div class="monster-card" style="--monster-color: var(--neon-red);">
+                <div class="monster-header">
+                  <span class="monster-name">👑 Boss</span>
+                  <span class="monster-badge">아레나 수호자</span>
+                </div>
+                <p class="monster-desc">매 5의 배수 층마다 격돌하는 스테이지 보스. 회전하는 기계식 링과 융단 포격으로 거대한 아레나 쇼의 정점을 장식합니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Mechanics -->
+          <div class="details-section">
+            <h3 class="section-title">⚡ 시스템 핵심 기믹의 시나리오 융합</h3>
+            <div class="feature-list">
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">👑</div>
+                <div class="feature-content">
+                  <div class="feature-title">스폰서 후원 연쇄 콤보 (매력 스탯)</div>
+                  <div class="feature-desc">스타성/매력(CHA)이 높을수록 검투사의 활약에 흥분한 VIP 관객들이 연속으로 스폰서 카드 보상(👑➔⚡➔🔮➔👑)을 던져줍니다. 화려한 연쇄 콤보 발동 연출이 이 후원 순간을 묘사합니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🎰</div>
+                <div class="feature-content">
+                  <div class="feature-title">암시장 브로커 (비밀 자판기)</div>
+                  <div class="feature-desc">게임 운영진 몰래 경기장에 침투해 있는 불법 해킹 딜러. 플레이어의 생명 연산력(영구 체력)을 뇌물로 받고 룰을 파괴하는 강력한 비밀 카드를 거래해 줍니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">⚔️</div>
+                <div class="feature-content">
+                  <div class="feature-title">관객 환호형 검투 무기 조합</div>
+                  <div class="feature-desc">검투용 네온 강철검(Sword)에 화염(Fire)이나 빙결(Ice) 펄스를 흘려보내 관객들이 좋아하는 극적인 이펙트와 함께 특수 타격 효과를 발동해 시청률을 높입니다.</div>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon-wrapper">🚪</div>
+                <div class="feature-content">
+                  <div class="feature-title">배틀 스테이지 선택 및 하이 리스크 도전</div>
+                  <div class="feature-desc">플레이어는 다음에 싸울 무대 테마를 고릅니다. 문에 적힌 숫자는 관객들이 베팅한 난이도로, 높은 숫자를 격파할 시 훨씬 높은 쇼 평점과 성장 보너스를 얻습니다.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Action Footer -->
+    <div class="info-footer">
+      <p>
+        각 시나리오는 게임의 독창적인 <strong>네온 8방향 슈팅 및 12종 몬스터 기믹, 스타성/매력(CHA) 연쇄 콤보 연출</strong>을 자연스러운 스토리텔링으로 승화시킵니다.<br>
+        원하시는 시나리오 방향을 선택해 주시면, 해당 스토리를 바탕으로 게임 내 텍스트(예: 오프닝 프롤로그, 보스 텍스트, 로딩 팁, 몬스터 도감 설명 등)에 주입할 세부 스크립트를 작성해 드리겠습니다.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(index) {
+      // 1. All tabs reset
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach((tab, i) => {
+        if (i === index) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+
+      // 2. All containers reset
+      const containers = document.querySelectorAll('.scenario-container');
+      containers.forEach((container, i) => {
+        if (i === index) {
+          container.classList.add('active');
+        } else {
+          container.classList.remove('active');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
