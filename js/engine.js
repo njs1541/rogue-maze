@@ -358,7 +358,7 @@ class GameEngine {
             minScale = 1;
         }
 
-        container.style.transform = `scale(${minScale})`;
+        container.style.transform = `translate(-50%, -50%) scale(${minScale})`;
     }
 
     // 입력 장치 이벤트 바인딩

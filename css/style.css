@@ -63,7 +63,10 @@ body {
     align-items: center;
     gap: 20px;
     padding: 10px;
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     transform-origin: center center;
     /* 브라우저 스케일 조절을 위한 기준점 */
     flex-shrink: 0;
