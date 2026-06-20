@@ -344,8 +344,8 @@ class GameEngine {
         const container = document.getElementById('game-container');
         if (!container) return;
 
-        const baseWidth = 2160;
-        const baseHeight = 940;
+        const baseWidth = 2830;
+        const baseHeight = 1222;
         const winWidth = window.innerWidth;
         const winHeight = window.innerHeight;
 
@@ -5007,6 +5007,13 @@ class GameEngine {
 
     // HUD 데이터 동기화 및 바 게이지 드로잉
     updateHUD() {
+        // 플레이어 레벨 동적 계산 (무기 레벨 총합 + 장비 레벨 총합 + 1)
+        const playerLv = Object.values(this.player.weaponLevels).reduce((a, b) => a + b, 0) + Object.values(this.player.equipLevels).reduce((a, b) => a + b, 0) + 1;
+        const runnerLvEl = document.getElementById('runner-lv');
+        if (runnerLvEl) {
+            runnerLvEl.innerText = `LV.${playerLv}`;
+        }
+
         document.getElementById('room-counter').innerText = `${this.roomNum} / 100`;
         document.getElementById('score-counter').innerText = this.score;
         document.getElementById('monster-counter').innerText = `${this.monsters.length} / ${this.currentSpawnTotal}`;

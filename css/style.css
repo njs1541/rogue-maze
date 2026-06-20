@@ -52,10 +52,10 @@ body {
 
 /* 메인 컨테이너 */
 #game-container {
-    width: 2160px;
-    min-width: 2160px;
-    height: 940px;
-    min-height: 940px;
+    width: 2830px;
+    min-width: 2830px;
+    height: 1222px;
+    min-height: 1222px;
     display: flex;
     flex-direction: row;
     /* 가로 3열 정렬 */
@@ -76,33 +76,74 @@ body {
    HUD - 좌측 사이드바 (구 상단 헤더) 스타일
    -------------------------------------------------------------------------- */
 #hud-header {
-    display: flex;
-    flex-direction: column;
-    /* 세로 정렬 */
-    justify-content: flex-start;
-    align-items: center;
-    width: 180px;
-    min-width: 180px;
-    height: 900px;
-    /* 캔버스 높이 900px에 동기화 */
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 24px 16px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: var(--card-shadow);
+    position: relative;
+    width: 428px;
+    min-width: 428px;
+    height: 1222px;
+    background-image: url('../assets/gui/left_hud_panel.png');
+    background-position: -462px -66px;
+    background-size: 1352px 1352px;
+    background-repeat: no-repeat;
+    border: none;
+    box-shadow: none;
     margin: 0;
     z-index: 10;
-    gap: 24px;
-    /* 항목 간 세로 여백 */
+}
+
+/* 캐릭터 초상화 배치 영역 */
+.hud-portrait {
+    position: absolute;
+    top: 53px;
+    left: 174px;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.2rem;
+    animation: portraitFloat 3s infinite ease-in-out;
+}
+
+@keyframes portraitFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
 }
 
 .hud-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    justify-content: center;
+    width: 370px;
+    height: 132px;
+}
+
+#hud-header .hud-item:nth-child(2) { /* ROOM (portrait가 1번째) */
+    position: absolute;
+    top: 145px;
+    left: 29px;
+}
+#hud-header .hud-item:nth-child(3) { /* SCORE */
+    position: absolute;
+    top: 343px;
+    left: 29px;
+}
+#hud-header .hud-item:nth-child(4) { /* MONSTERS */
+    position: absolute;
+    top: 541px;
+    left: 29px;
+}
+#hud-header .hud-item:nth-child(5) { /* COIN */
+    position: absolute;
+    top: 739px;
+    left: 29px;
+}
+#hud-header .hud-item:nth-child(6) { /* OPTION */
+    position: absolute;
+    top: 937px;
+    left: 29px;
+    cursor: pointer;
 }
 
 .hud-item .label {
@@ -156,31 +197,33 @@ body {
    메인 게임 영역 (Canvas Container & Canvas)
    -------------------------------------------------------------------------- */
 #canvas-container {
-    width: 1620px;
-    height: 900px;
+    width: 1792px;
+    height: 1222px;
     flex: none;
-    /* 크기 고정으로 상하 찌그러짐 예방 */
     position: relative;
-    background: #040509;
-    border: 2px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    background-image: url('../assets/gui/game_frame_background.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
     overflow: hidden;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), var(--card-shadow);
     display: flex;
     justify-content: center;
     align-items: center;
     max-width: 100%;
     max-height: 100%;
+    border: none;
+    box-shadow: none;
 }
 
 #game-canvas {
     display: block;
     image-rendering: pixelated;
     background-color: #08090e;
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    /* 비율 유지하며 축소 */
+    position: absolute;
+    top: 13.18%;
+    left: 13.18%;
+    width: 73.63%;
+    height: 73.63%;
+    object-fit: fill;
 }
 
 /* 오버레이 패널들 공통 */
@@ -288,35 +331,54 @@ body {
    HUD - 우측 사이드바 (구 하단 푸터) 스타일
    -------------------------------------------------------------------------- */
 #hud-footer {
-    display: flex;
-    flex-direction: column;
-    /* 세로 정렬 */
-    justify-content: flex-start;
-    align-items: stretch;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px 16px;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: var(--card-shadow);
+    position: relative;
+    width: 570px;
+    min-width: 570px;
+    height: 1222px;
+    background-image: url('../assets/gui/right_status_panel.png');
+    background-position: -388px -53px;
+    background-size: 1346px 1338px;
+    background-repeat: no-repeat;
+    border: none;
+    box-shadow: none;
     margin: 0;
     z-index: 10;
-    width: 300px;
-    min-width: 300px;
-    height: 900px;
-    /* 캔버스 높이에 동기화 */
-    gap: 15px;
+}
+
+/* 캐릭터 이름 & 레벨 타이틀 영역 */
+.hud-status-title {
+    position: absolute;
+    top: 33px;
+    left: 20px;
+    width: 530px;
+    height: 112px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
 }
 
 #player-bars {
-    flex: none;
-    width: 100%;
+    position: absolute;
+    top: 158px;
+    left: 62px;
+    width: 446px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    gap: 12px;
-    padding-right: 0;
+    gap: 20px;
+}
+
+/* 게이지바 상세 영역 조정 */
+#player-bars .bar-container {
+    height: 92px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
 }
 
 .bar-container {
@@ -378,20 +440,19 @@ body {
 
 /* 스탯 보드 */
 #stats-dashboard {
-    flex: 1;
-    width: 100%;
+    position: absolute;
+    top: 578px;
+    left: 85px;
+    width: 400px;
+    height: 600px;
     display: flex;
     flex-direction: column;
-    /* 세로 정렬 */
-    justify-content: flex-start;
-    gap: 10px;
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-left: 0;
-    padding-top: 15px;
-    margin-top: 5px;
-    white-space: nowrap;
+    gap: 16px;
     overflow-y: auto;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+    white-space: nowrap;
 }
 
 .stat-column {
