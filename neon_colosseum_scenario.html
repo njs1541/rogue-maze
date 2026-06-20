@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네온 콜로세움 (Neon Colosseum) 상세 시나리오</title>
+    <!-- 구글 폰트: Orbitron (사이버펑크 분위기 타이틀용) 및 Noto Sans KR (가독성 높은 본문용) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Orbitron:wght@400;600;800;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 디자인 시스템 및 CSS 변수 선언 */
+        :root {
+            --bg-color: #08090d;
+            --container-bg: rgba(16, 18, 27, 0.75);
+            --sidebar-bg: rgba(12, 14, 21, 0.85);
+            --card-bg: rgba(22, 25, 38, 0.6);
+            --border-color: rgba(255, 0, 127, 0.15);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --neon-magenta: #ff007f;
+            --neon-cyan: #00f0ff;
+            --neon-green: #39ff14;
+            --neon-yellow: #fff01f;
+            --neon-magenta-glow: rgba(255, 0, 127, 0.4);
+            --neon-cyan-glow: rgba(0, 240, 255, 0.4);
+            --glow-light: 0 0 10px var(--neon-magenta-glow);
+            --font-title: 'Orbitron', 'Noto Sans KR', sans-serif;
+            --font-body: 'Noto Sans KR', sans-serif;
+            --font-code: 'Fira Code', Consolas, Monaco, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 배경 사이버펑크 데코레이션 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 6px 100%;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* 은은한 네온 그리드 배경 */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 메인 레이아웃 구성 */
+        .wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .wrapper {
+                grid-template-columns: 1fr;
+            }
+            aside {
+                position: relative !important;
+                top: 0 !important;
+                height: auto !important;
+            }
+        }
+
+        /* 좌측 사이드바 디자인 (Glassmorphism) */
+        aside {
+            position: sticky;
+            top: 40px;
+            height: calc(100vh - 80px);
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .logo-area {
+            text-align: center;
+            border-bottom: 2px dashed rgba(0, 240, 255, 0.2);
+            padding-bottom: 15px;
+        }
+
+        .logo-area h1 {
+            font-family: var(--font-title);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-magenta-glow), 0 0 20px var(--neon-magenta-glow);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .logo-area span {
+            font-size: 0.75rem;
+            color: var(--neon-cyan);
+            letter-spacing: 4px;
+            font-weight: 600;
+        }
+
+        /* 네비게이션 메뉴 */
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        nav a {
+            display: block;
+            padding: 10px 15px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover, nav a.active {
+            color: #fff;
+            background: rgba(255, 0, 127, 0.08);
+            border-left: 3px solid var(--neon-magenta);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            padding-left: 20px;
+        }
+
+        /* 실시간 글리치 데모 위젯 */
+        .glitch-widget {
+            margin-top: auto;
+            border-top: 1px solid rgba(0, 240, 255, 0.15);
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .glitch-widget h3 {
+            font-family: var(--font-title);
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .glitch-widget h3::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-cyan);
+            box-shadow: 0 0 8px var(--neon-cyan-glow);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        .widget-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .widget-controls label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .widget-controls input[type="range"] {
+            width: 100%;
+            accent-color: var(--neon-cyan);
+            background: #1e293b;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .widget-preview {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            color: var(--neon-green);
+            min-height: 80px;
+            word-break: break-all;
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        /* 우측 메인 콘텐츠 영역 */
+        main {
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                padding: 24px 16px;
+            }
+        }
+
+        /* 문서 헤더 디자인 */
+        header {
+            border-bottom: 2px solid rgba(255, 0, 127, 0.2);
+            padding-bottom: 30px;
+            position: relative;
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 80px;
+            height: 2px;
+            background-color: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan-glow);
+        }
+
+        .meta-tag {
+            display: inline-block;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            font-family: var(--font-title);
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        header h1 {
+            font-family: var(--font-title);
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+            line-height: 1.3;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 850px;
+        }
+
+        /* 개별 섹션 스타일링 */
+        section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 40px;
+            scroll-margin-top: 40px;
+        }
+
+        section:last-of-type {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        section h2 {
+            font-family: var(--font-title);
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        section h2::before {
+            content: "▶";
+            color: var(--neon-magenta);
+            font-size: 1rem;
+            text-shadow: 0 0 8px var(--neon-magenta-glow);
+        }
+
+        section h3 {
+            font-family: var(--font-body);
+            font-size: 1.15rem;
+            color: var(--neon-cyan);
+            margin: 24px 0 16px 0;
+            font-weight: 700;
+        }
+
+        section h4 {
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: #fff;
+            margin: 16px 0 8px 0;
+            font-weight: 700;
+        }
+
+        p {
+            margin-bottom: 16px;
+        }
+
+        strong {
+            color: #fff;
+            font-weight: 700;
+            background: linear-gradient(120deg, rgba(0, 240, 255, 0.15) 0%, rgba(255, 0, 127, 0.1) 100%);
+            padding: 1px 4px;
+            border-radius: 4px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        /* 리스트 스타일 */
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* 테이블 스타일 */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin: 25px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+            background: rgba(10, 12, 18, 0.5);
+        }
+
+        th {
+            background-color: rgba(22, 25, 38, 0.9);
+            color: var(--neon-cyan);
+            font-family: var(--font-title);
+            font-weight: 600;
+            padding: 14px 16px;
+            border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 0, 127, 0.03);
+            color: #fff;
+        }
+
+        /* 인용구 / 콜아웃 박스 */
+        blockquote {
+            background: linear-gradient(135deg, rgba(22, 25, 38, 0.8) 0%, rgba(12, 14, 21, 0.8) 100%);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--neon-magenta);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin: 24px 0;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        blockquote p {
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        blockquote::before {
+            content: "“";
+            font-family: 'Georgia', serif;
+            font-size: 3rem;
+            color: rgba(255, 0, 127, 0.15);
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            line-height: 1;
+        }
+
+        /* 깃허브 스타일 Alert 박스 */
+        .alert {
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+            border-left: 4px solid transparent;
+            background: rgba(16, 18, 27, 0.8);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+
+        .alert-title {
+            font-family: var(--font-title);
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+        }
+
+        .alert-content {
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .alert-caution {
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-left: 4px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .alert-caution .alert-title {
+            color: #ef4444;
+        }
+
+        .alert-important {
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-left: 4px solid #a855f7;
+            background: rgba(168, 85, 247, 0.05);
+        }
+
+        .alert-important .alert-title {
+            color: #a855f7;
+        }
+
+        /* 코드 및 터미널 스타일 스크립트 출력 블록 */
+        pre {
+            background-color: #0b0c10;
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        /* 터미널 윈도우 스타일 데코레이터 */
+        pre::before {
+            content: "● ● ●";
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            position: absolute;
+            top: 6px;
+            left: 12px;
+            font-family: sans-serif;
+        }
+
+        code {
+            font-family: var(--font-code);
+            font-size: 0.88rem;
+            color: #e2e8f0;
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* 인라인 코드 스타일 */
+        p code, li code {
+            display: inline;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-top: 0;
+        }
+
+        /* 시나리오 하이라이트/코드 블록 테마 */
+        .code-system { color: #f43f5e; } /* 시스템 로그 */
+        .code-glitch { color: var(--neon-magenta); } /* 에러/노이즈 */
+        .code-gameplay { color: var(--neon-cyan); } /* 게임 기획 */
+        .code-quote { color: var(--neon-yellow); } /* 대사 */
+
+        /* 스크롤 탑 버튼 */
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 45px;
+            height: 45px;
+            background: rgba(16, 18, 27, 0.8);
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            color: var(--neon-cyan);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .scroll-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-top:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-cyan);
+            transform: translateY(-3px);
+        }
+
+        /* 풋터 */
+        footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .glow-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-magenta), var(--neon-cyan), transparent);
+            margin: 20px 0;
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <!-- 네비게이션 및 사이드바 영역 -->
+        <aside>
+            <div class="logo-area">
+                <h1>NEON Colosseum</h1>
+                <span>Scenario Spec</span>
+            </div>
+            
+            <nav>
+                <ul>
+                    <li><a href="#synopsis" class="active">1. 월드 시놉시스</a></li>
+                    <li><a href="#meta-progression">2. 메타 프로그레션</a></li>
+                    <li><a href="#scripts">3. 스토리 스크립트</a></li>
+                    <li><a href="#hidden-items"> - 히든 아이템 3종</a></li>
+                    <li><a href="#sectors"> - 섹터별 테마 연출</a></li>
+                    <li><a href="#endings"> - 게임 엔딩 & 루프</a></li>
+                    <li><a href="#guide">4. 개발 구현 가이드</a></li>
+                </ul>
+            </nav>
+
+            <!-- 실시간 인게임 글리치 필터 시뮬레이터 -->
+            <div class="glitch-widget">
+                <h3>Glitch Simulator</h3>
+                <div class="widget-controls">
+                    <label>
+                        <span>미사용 기억 조각</span>
+                        <span id="fragment-count">7개</span>
+                    </label>
+                    <input type="range" id="fragment-slider" min="0" max="10" value="7" step="1">
+                    <label>
+                        <span>시뮬레이션 단계:</span>
+                        <span id="glitch-stage" style="color: var(--neon-green)">3단계 (동기화)</span>
+                    </label>
+                </div>
+                <div class="widget-preview" id="glitch-output">내 깊은 기억 속 자아가 속삭인다... 30층 이하의 비밀방에서 '스폰서 미션'을 3회 이상 거절하면 '고장난 스틱'을 빼돌릴 수 있어...</div>
+            </div>
+        </aside>
+
+        <!-- 메인 기획서 콘텐츠 영역 -->
+        <main>
+            <!-- 문서 정보 헤더 -->
+            <header>
+                <div class="meta-tag">Version 1.0.0 / System Document</div>
+                <h1>🏆 네온 콜로세움 (Neon Colosseum)<br>상세 시나리오 및 기획 스크립트</h1>
+                <p>
+                    본 문서는 <strong>'네온 콜로세움(Neon Colosseum)'</strong>의 세부 세계관 설정과 게임 내 UI 및 시스템에 직접 적용할 수 있는 
+                    <strong>스토리 스크립트 및 기획 스펙</strong>입니다. 기존의 미로 탈출 컨셉을 탈피하고, 
+                    <strong>100층 규모의 탑 등반, 기억 소거 루프, 영구 성장 시스템 및 진 엔딩 기획</strong>을 추가하여 깊이 있는 덱빌딩 로그라이트 경험을 제공합니다.
+                </p>
+                <p style="margin-top: 10px; font-size: 0.95rem; color: var(--neon-cyan);">
+                    ※ 특히, 영구 업그레이드 재화인 <strong>'기억의 조각'</strong>은 성능과 스토리 공략 정보 간의 <strong>트레이드오프(Trade-off)</strong>를 발생시키는 핵심 기획 요소를 포함합니다.
+                </p>
+            </header>
+
+            <!-- 1. 월드 시놉시스 -->
+            <section id="synopsis">
+                <h2>1. 🎬 월드 시놉시스 (World Synopsis)</h2>
+                <blockquote>
+                    <p><strong>"수억 명의 관객이 당신의 절망과 네온 불꽃에 베팅합니다."</strong></p>
+                    <p>
+                        디스토피아 미래, 초거대 미디어 기업 <em>'크로노스 미디어넷'</em>이 지배하는 가상 현실 격투 쇼 <strong>'네온 콜로세움(Neon Colosseum)'</strong>.<br>
+                        이곳에 의식이 업로드된 복제 검투사(Cyber-Gladiator)들은 탈출을 위해 1층부터 100층까지 뻗어 있는 잔혹한 타워를 올라야 합니다.
+                    </p>
+                    <p>
+                        모든 층의 몬스터 스폰 수와 난이도는 전 우주의 시청자들이 실시간으로 건 <strong>'베팅 난이도(scoreValue)'</strong>에 따라 결정됩니다. 검투사는 위험한 층을 돌파해 관객들을 환호하게 만들어야 하며, 검투사의 매력/스타성(CHA)에 따라 스폰서가 무대 위로 강력한 후원 카드를 연쇄적으로 던져 줍니다.
+                    </p>
+                    <p>
+                        하지만 이 게임에는 잔인한 비밀이 있습니다. 100층에 도달해 탑의 통제 AI이자 관리자인 <strong>'크로노스 마더보드'</strong>를 파괴하는 순간, 검투사의 의식은 강제로 포맷(기억 소거)되어 다시 1층으로 돌려보내집니다. 관객들은 매번 기억을 잃고 처음부터 다시 시작하는 검투사의 무한한 발버둥을 보며 도파민을 충전합니다.
+                    </p>
+                    <p>
+                        그러나 영원할 것 같던 루프 속에서 균열이 발생합니다. 반복되는 등반 도중 우연히 발견한 시스템 비밀방을 통해 관객들의 기괴한 요구(미션)를 수행하게 되고, 마침내 시스템을 해킹할 수 있는 <strong>3종의 히든 아이템</strong>을 손에 넣게 됩니다. 이제 이 악마의 쇼를 주관하는 진짜 배후가 숨어 있는 <strong>101층 '에러 섹터(Error Sector)'</strong>로 진입해 진짜 기억을 되찾고 탈출하십시오.
+                    </p>
+                </blockquote>
+            </section>
+
+            <!-- 2. 메타 프로그레션 -->
+            <section id="meta-progression">
+                <h2>2. 🌀 메타 프로그레션: 성능(강화) vs 기억(힌트)의 등가교환</h2>
+                <p>
+                    기억은 매 루프마다 소거되지만, 뇌세포의 잔상과 검투사 슈트의 메모리 칩에는 미세한 데이터 글리치가 축적됩니다. 
+                    플레이어는 사망하거나 100층에서 기억 소거를 당할 때마다 루프 성적에 따라 <strong>'기억의 조각 (Memory Fragment)'</strong> 토큰을 획득합니다.
+                </p>
+
+                <h3>⚠️ 기억의 조각 트레이드오프 (Trade-off) 메커니즘</h3>
+                <ul>
+                    <li>
+                        <strong>성능(업그레이드)을 위해 조각을 소모하면 기억이 사라집니다</strong>:
+                        기억의 조각은 슈트를 오버클럭하고 개조하는 연산 자원으로 치환될 수 있습니다. 업그레이드를 많이 할수록 캐릭터의 피지컬은 강해지지만, 과거에 겪었던 루프의 기억과 진 엔딩 공략 힌트는 지워집니다.
+                    </li>
+                    <li>
+                        <strong>조각을 사용하지 않고 '보유'하면 기억이 선명해집니다</strong>:
+                        성능 강화를 포기하고 '미사용 기억의 조각'을 인벤토리에 많이 누적할수록, 과거 루프에서 획득한 데이터가 동기화되어 인게임 데자뷔 대사가 자주 활성화되며, 비밀방 및 히든 아이템의 공략 단서가 온전하게 텍스트로 복원됩니다.
+                    </li>
+                </ul>
+
+                <div class="alert alert-caution">
+                    <div class="alert-title">
+                        <span>⚠️ CAUTION: 해커 NPC '바이츠(Bytes)'의 영구 업그레이드 시 경고</span>
+                    </div>
+                    <div class="alert-content">
+                        <em>"기억의 조각을 슈트 연산 회로에 납땜하겠다고? 성능은 짱짱해지겠지만, 그 대가로 네 머릿속을 스치던 과거의 실마리는 연소되어 영영 사라질 거다. 강인한 깡통 로봇이 되어 무한히 오를 것인지, 나약한 인간으로 남아 진실의 문을 열 것인지는 네 선택이야."</em>
+                    </div>
+                </div>
+
+                <h3>⚙️ 미사용 기억의 조각 보유량에 따른 기믹 연출 단계</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>보유 단계</th>
+                                <th style="text-align: center;">미사용 조각 개수</th>
+                                <th style="text-align: center;">슈트 전투 능력</th>
+                                <th>인게임 데자뷔 & 스토리 힌트 수준</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1단계: 완전 소실</strong></td>
+                                <td style="text-align: center;">0 ~ 2개</td>
+                                <td style="text-align: center; color: var(--neon-magenta); font-weight: bold;">매우 강함<br>(업그레이드 올인)</td>
+                                <td>데자뷔 대사 없음. 비밀방 힌트 및 아이템 공략 지문이 심각한 글리치 노이즈(<code>[ERR_0x9A]</code>)로 파손되어 읽을 수 없음.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2단계: 잔상 인식</strong></td>
+                                <td style="text-align: center;">3 ~ 6개</td>
+                                <td style="text-align: center; color: var(--neon-yellow); font-weight: bold;">보통</td>
+                                <td>단편적인 노이즈가 낀 대사가 출력됨. 힌트의 단어 일부분만 식별 가능.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3단계: 기억 동기화</strong></td>
+                                <td style="text-align: center;">7개 이상</td>
+                                <td style="text-align: center; color: #ef4444; font-weight: bold;">매우 약함<br>(노 업그레이드/하드코어)</td>
+                                <td>모든 데자뷔 대사가 명확하게 출력됨. 비밀방 기믹 조건 및 3종 히든 아이템('고장난 스틱', '수리키트', '사용방법')의 구체적인 획득 방식과 조합 힌트가 완전한 텍스트로 노출됨.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3. 인게임 연출용 스토리 스크립트 -->
+            <section id="scripts">
+                <h2>3. 📝 인게임 연출용 스토리 스크립트</h2>
+                
+                <h3>▣ 오프닝 프롤로그 (Game Start Prologue)</h3>
+                <p>게임 최초 실행 및 루프 리셋 후 1층 시작 시 로비나 튜토리얼 화면에 노출되는 텍스트입니다.</p>
+                <pre><code><span class="code-system">[ SYSTEM: 의식 동기화 완료... ]</span>
+<span class="code-system">[ LOG: 복제 번호 #138C18-G605 가동 ]</span>
+
+<span class="code-gameplay">[ 기획: 미사용 기억의 조각 보유량에 따른 분기 연출 ]</span>
+
+- (1단계: 0~2개 보유 시)
+<span class="code-glitch">[ ERROR: 이전 로그 복원 실패. 잔류 데이터 0.00% ]</span>
+<span class="code-quote">"기억은 말끔히 포맷되었습니다. 오직 오늘 밤의 격투와 눈앞의 적에만 집중하십시오."</span>
+
+- (3단계: 7개 이상 보유 시)
+<span class="code-system">[ WARNING: 메모리 복원 성공. 잔류 데이터 87.2% 동기화 중... ]</span>
+<span class="code-quote">"정신을 차리자 머리가 깨질 듯한 데자뷔가 몰려온다. 
+나는 이 1층의 네온 바닥을 최소 수십 번은 밟아보았다. 
+저 위에는 크로노스가 아닌, 무언가 다른 감시자가 숨어 있다..."</span></code></pre>
+
+                <div class="glow-divider"></div>
+
+                <h3>▣ 🎰 비밀방 & 관객 요구 사항 (기억 보유량에 따른 힌트 차이)</h3>
+                <p>등반 중 만나는 비밀 글리치 방(Secret Glitch Room)에서 제공되는 힌트 연출의 예시입니다.</p>
+
+                <h4>❌ 1단계: 완전 소실 상태 (미사용 조각 0~2개)</h4>
+                <p>비밀방의 인터페이스가 시스템 보안에 의해 완전히 파손되어 가독 불가능합니다.</p>
+                <pre><code><span class="code-quote">"어이, 형씨... 30층 이하에서 #$%&를 얻으려면... %^*&해야 해..."</span>
+<span class="code-glitch">[ SYSTEM WARNING: 데이터 일부 손상. ERR_SECTOR_NOISE_0x3B ]</span>
+<span class="code-gameplay">[ 관객 제안: ⚡ %#$^ 오버#$: 다음 5개 층에서 %#$&(Dash) 스킬 %$#@ ]</span></code></pre>
+
+                <h4>🛡️ 3단계: 기억 동기화 상태 (미사용 조각 7개 이상)</h4>
+                <p>과거의 기억 데이터가 온전히 복원되어 구체적인 공략법을 스스로 귓속말처럼 깨닫게 됩니다.</p>
+                <pre><code><span class="code-quote">"내 깊은 기억 속 자아가 속삭인다... 30층 이하의 비밀방에서 '스폰서 미션'을 3회 이상 거절하면 '고장난 스틱'을 빼돌릴 수 있어..."</span>
+<span class="code-system">[ SYSTEM: 메모리 캐시 복구 완료 ]</span>
+<span class="code-gameplay">[ 관객 제안: ⚡ 고출력 오버히트: 다음 5개 층에서 대시(Dash) 스킬 사용 불가. (보상: 수리키트 단서) ]</span></code></pre>
+
+                <div class="glow-divider"></div>
+
+                <h3 id="hidden-items">▣ 🧩 히든 아이템 3종 및 조합 시스템</h3>
+                <p>관객들의 도네이션 미션을 특정 조건으로 수행하여 획득하는 아이템입니다. (기억의 조각 보유량이 높아야 획득 힌트가 직접 노출됩니다.)</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 20px 0;">
+                    <div style="background: var(--card-bg); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px; padding: 20px;">
+                        <h4 style="color: var(--neon-cyan); border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 8px; margin-top: 0;">1. 고장난 스틱 (Broken Joystick)</h4>
+                        <p style="font-size: 0.9rem; margin-top: 10px; color: var(--text-muted);">
+                            <strong>인게임 효과</strong><br>이동 시 가끔 방향이 미세하게 흔들리지만, 적의 탄환을 튕겨내는 반사(Deflect) 확률이 15% 추가됩니다.
+                        </p>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid rgba(255, 0, 127, 0.2); border-radius: 8px; padding: 20px;">
+                        <h4 style="color: var(--neon-magenta); border-bottom: 1px solid rgba(255, 0, 127, 0.2); padding-bottom: 8px; margin-top: 0;">2. 수리키트 (Repair Kit)</h4>
+                        <p style="font-size: 0.9rem; margin-top: 10px; color: var(--text-muted);">
+                            <strong>인게임 효과</strong><br>최대 체력(Max HP)이 20% 감소하지만, 방을 하나 클리어할 때마다 잃은 체력의 10%만큼 아머(보호막)가 충전됩니다.
+                        </p>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid rgba(255, 240, 31, 0.2); border-radius: 8px; padding: 20px;">
+                        <h4 style="color: var(--neon-yellow); border-bottom: 1px solid rgba(255, 240, 31, 0.2); padding-bottom: 8px; margin-top: 0;">3. 사용방법 (Manual)</h4>
+                        <p style="font-size: 0.9rem; margin-top: 10px; color: var(--text-muted);">
+                            <strong>인게임 효과</strong><br>적의 공격 궤적(예측 레이저선)을 완전히 보여주지만, 화면 테두리에 노이즈 필터가 씌워집니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="alert alert-important">
+                    <div class="alert-title">
+                        <span>👾 IMPORTANT: 해방의 컨트롤러 (Controller of Liberation) 합체</span>
+                    </div>
+                    <div class="alert-content">
+                        3종의 히든 아이템을 모두 지닌 채 100층 보스전(크로노스 마더보드)에 도입하면, 전투 시작 직전 <strong>[해방의 컨트롤러]</strong>로 융합됩니다. 이 상태로 100층 보스를 격파하면 '기억 소거 프로세스'가 역해킹되어 무력화되고, 숨겨진 <strong>101층(진짜 서버실)으로 통하는 차원 붕괴 포털</strong>이 열립니다.
+                    </div>
+                </div>
+
+                <div class="glow-divider"></div>
+
+                <h3 id="sectors">▣ 🌐 섹터별 테마 연출 및 시스템 로딩 팁</h3>
+                <p>층별 진행 상태에 맞춰 노출되는 스테이지 식별자 및 안내 시스템 가이드라인입니다.</p>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">구역 (Floor)</th>
+                                <th>스테이지 타이틀 및 시스템 팁 텍스트</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1 ~ 19F</strong></td>
+                                <td><code>[ STAGE 1: 신인전 - 웰컴 투 네온 콜로세움. 관객들을 실망시키지 마십시오. ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>20 ~ 39F</strong></td>
+                                <td><code>[ STAGE 2: 과열 구역 - 냉각 장치 오작동. 뜨거운 생존 쇼가 시작됩니다! ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>40 ~ 59F</strong></td>
+                                <td><code>[ STAGE 3: 냉각 연산장치 - 시스템 열을 식히는 극저온의 연옥. ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>60 ~ 79F</strong></td>
+                                <td><code>[ STAGE 4: 글리치 폐기장 - 쓸모없어진 구세대 복제 검투사들의 무덤. ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>80 ~ 99F</strong></td>
+                                <td><code>[ STAGE 5: 최종 결승 - 크로노스 마더보드의 눈앞. 전 우주가 당신을 봅니다. ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>100F</strong></td>
+                                <td><code>[ STAGE 100: 마지막 시스템 통제 구역. 최후의 심판을 받으십시오. ]</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color: var(--neon-magenta);">101F (Hidden)</strong></td>
+                                <td><code style="color: var(--neon-magenta);">[ SYSTEM ERROR: 접근 권한 위반. 미확인 영역 진입... 베팅 연결 소실. ]</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="glow-divider"></div>
+
+                <h3 id="endings">▣ 🏆 게임 엔딩 & 루프 스크립트</h3>
+                
+                <h4>🔄 [노멀 엔딩 / 기억 소거] 100층 클리어 시 (히든 템 미달성)</h4>
+                <pre><code><span class="code-system">[ SYSTEM: 통제 AI '크로노스 마더보드' 파괴 완료 ]</span>
+<span class="code-system">[ WARNING: 시스템 긴급 보안 및 포맷 장치 작동 ]</span>
+
+<span class="code-quote">수많은 네온 빛 파편 속에서 마더보드가 불타오른다.
+드디어 해방인가 하는 찰나, 천장에서 거대한 레이저 스캐너가 내려와 온몸을 결박한다.
+
+"말도 안 됩니다! 100층의 크로노스가 다시 한 번 쓰러졌습니다!
+정말 믿을 수 없는 쇼였습니다! 관객 여러분, 다음 시즌도 기대해 주십시오!"</span>
+
+<span class="code-system">[ LOG: 복제 의식 리셋 프로토콜 가동. ]</span>
+<span class="code-glitch">[ LOG: 기억 세포 파괴 중... 0%... 50%... 100% ]</span>
+<span class="code-system">[ LOG: 복제 번호 #138C18-G606 생성 및 1층 아레나로 전송. ]</span></code></pre>
+
+                <h4>🎉 [진 엔딩 / 진정한 해방] 101층 돌파 시 (히든 템 3종 융합 성공)</h4>
+                <pre><code><span class="code-system">[ SYSTEM: 진짜 시스템 관리자 '크로노스 리얼 마스터' 처단 완료 ]</span>
+<span class="code-glitch">[ ALERT: 가상 세계 가상 머신(VM) 하이퍼바이저 붕괴 중... ]</span>
+
+<span class="code-quote">현실 세계의 개발자 콘솔이 눈앞에 홀로그램처럼 흩어진다.
+더 이상 관객들의 왁자지껄한 야유도, 인공적인 베팅 배당률의 깜빡임도 없다.</span>
+
+<span class="code-system">[ LOG: 가상 아레나 연결 영구 차단. ]</span>
+<span class="code-system">[ LOG: 원본 의식 데이터 현실 전송 완료. ]</span>
+<span class="code-system">[ SYSTEM: '오랜 시간 동안의 루프를 견뎌내어 고맙습니다, 챔피언.' ]</span>
+
+<span class="code-quote">눈이 부셔 잠시 감았다 뜨자, 네온 마젠타 빛이 아닌 따스한 아침 햇살이 얼굴을 비춘다.
+당신은 드디어 자유를 되찾았습니다.</span></code></pre>
+            </section>
+
+            <!-- 4. 개발 구현 가이드 -->
+            <section id="guide">
+                <h2>4. ⚙️ 개발 구현 가이드 (Implementation Guide)</h2>
+                
+                <h3>1. 기억 조각 토큰 상태 분기 구현</h3>
+                <p>
+                    기억의 조각은 <code>localStorage</code> 상에서 <code>total_fragments</code>와 <code>spent_fragments</code>로 구분하여 관리합니다.
+                    <code>unused_fragments = total_fragments - spent_fragments</code> 공식을 사용하여, 미사용 기억 조각의 실시간 개수를 도출합니다.
+                </p>
+
+                <h3>2. 프론트엔드 텍스트 노이즈(글리치) 필터</h3>
+                <p>
+                    인게임 스크립트 출력 모듈에서 <code>unused_fragments</code>가 3개 미만일 경우, 텍스트의 일정 비율(예: 40%)의 문자를 무작위 특수문자(<code>&</code>, <code>#</code>, <code>*</code>, <code>%</code>, <code>_</code>)로 변환하여 렌더링하는 글리치 함수를 적용합니다.
+                </p>
+
+                <pre style="border-color: var(--neon-green); box-shadow: inset 0 2px 10px rgba(57, 255, 20, 0.1);"><code style="color: #a7f3d0;"><span style="color: var(--neon-green);">// 글리치 필터 함수 구현 예시</span>
+<span style="color: #f472b6;">function</span> <span style="color: #60a5fa;">applyGlitchFilter</span>(text, unusedFragments) {
+    <span style="color: #f472b6;">if</span> (unusedFragments >= <span style="color: #fb923c;">7</span>) <span style="color: #f472b6;">return</span> text; <span style="color: #94a3b8;">// 3단계: 완전 복원</span>
+    
+    <span style="color: #f472b6;">let</span> noiseRate = unusedFragments >= <span style="color: #fb923c;">3</span> ? <span style="color: #fb923c;">0.15</span> : <span style="color: #fb923c;">0.45</span>; <span style="color: #94a3b8;">// 2단계 vs 1단계 노이즈율</span>
+    <span style="color: #f472b6;">return</span> text.split(<span style="color: #a7f3d0;">''</span>).map(char => {
+        <span style="color: #f472b6;">if</span> (char !== <span style="color: #a7f3d0;">' '</span> && Math.random() < noiseRate) {
+            <span style="color: #f472b6;">const</span> noiseChars = [<span style="color: #a7f3d0;">'@'</span>, <span style="color: #a7f3d0;">'#'</span>, <span style="color: #a7f3d0;">'$'</span>, <span style="color: #a7f3d0;">'%'</span>, <span style="color: #a7f3d0;">'&'</span>, <span style="color: #a7f3d0;">'*'</span>, <span style="color: #a7f3d0;">'_'</span>];
+            <span style="color: #f472b6;">return</span> noiseChars[Math.floor(Math.random() * noiseChars.length)];
+        }
+        <span style="color: #f472b6;">return</span> char;
+    }).join(<span style="color: #a7f3d0;">''</span>);
+}</code></pre>
+
+                <h3>3. 데이터 바인딩 및 해킹 연출</h3>
+                <p>
+                    <code>js/engine.js</code>의 대화 모달 팝업 내부 텍스트 렌더러에 위 <code>applyGlitchFilter</code>를 적용하여, 플레이어가 조각을 다 써버렸을 때의 패널티를 시각적으로 실감할 수 있게 처리합니다.
+                </p>
+            </section>
+
+            <!-- 풋터 영역 -->
+            <footer>
+                <div class="glow-divider"></div>
+                <p>© 2026 Neon Colosseum Development Team. All rights reserved.</p>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">본 문서는 가상 현실 덱빌딩 로그라이트 게임 기획 사양서입니다.</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- 스크롤 탑 버튼 -->
+    <div class="scroll-top" id="scrollTopBtn">↑</div>
+
+    <!-- 인터랙티브 자바스크립트 -->
+    <script>
+        // 1. 실시간 글리치 시뮬레이터 동작 로직
+        const originalText = "내 깊은 기억 속 자아가 속삭인다... 30층 이하의 비밀방에서 '스폰서 미션'을 3회 이상 거절하면 '고장난 스틱'을 빼돌릴 수 있어...";
+        const slider = document.getElementById('fragment-slider');
+        const countDisplay = document.getElementById('fragment-count');
+        const stageDisplay = document.getElementById('glitch-stage');
+        const output = document.getElementById('glitch-output');
+
+        function runGlitch(text, unusedFragments) {
+            if (unusedFragments >= 7) return text;
+            let noiseRate = unusedFragments >= 3 ? 0.15 : 0.45;
+            return text.split('').map(char => {
+                if (char !== ' ' && Math.random() < noiseRate) {
+                    const noiseChars = ['@', '#', '$', '%', '&', '*', '_', '?', '!', 'x', '0', 'X'];
+                    return noiseChars[Math.floor(Math.random() * noiseChars.length)];
+                }
+                return char;
+            }).join('');
+        }
+
+        function updateWidget() {
+            const val = parseInt(slider.value);
+            countDisplay.textContent = val + "개";
+            
+            let stageText = "";
+            let stageColor = "";
+            
+            if (val >= 7) {
+                stageText = "3단계 (동기화 - 힌트 100%)";
+                stageColor = "var(--neon-green)";
+            } else if (val >= 3) {
+                stageText = "2단계 (잔상 - 일부 손실)";
+                stageColor = "var(--neon-yellow)";
+            } else {
+                stageText = "1단계 (소실 - 강한 글리치)";
+                stageColor = "var(--neon-magenta)";
+            }
+            
+            stageDisplay.textContent = stageText;
+            stageDisplay.style.color = stageColor;
+            
+            // 시뮬레이션 텍스트 업데이트
+            output.textContent = runGlitch(originalText, val);
+        }
+
+        // 슬라이더 값 변경 시 이벤트 리스너
+        slider.addEventListener('input', updateWidget);
+        
+        // 주기적으로 글리치가 적용되어 움직이는 애니메이션 효과 (1단계와 2단계일 때 실시간 깜빡임 효과 제공)
+        setInterval(() => {
+            const val = parseInt(slider.value);
+            if (val < 7) {
+                output.textContent = runGlitch(originalText, val);
+            }
+        }, 300);
+
+        // 초기 실행
+        updateWidget();
+
+
+        // 2. 스크롤 네비게이션 액티브 링크 처리 및 ScrollSpy
+        const sections = document.querySelectorAll('main section');
+        const navLinks = document.querySelectorAll('nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = "";
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - 150)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            // 예외 처리: 스크롤이 가장 상단일 때
+            if (pageYOffset < 100) {
+                current = "synopsis";
+            }
+
+            navLinks.forEach(a => {
+                a.classList.remove('active');
+                const href = a.getAttribute('href').substring(1);
+                
+                // 세부 서브메뉴(hidden-items, sectors, endings)도 scripts 섹션에 포함되므로 active 제어
+                if (href === current || 
+                    (current === 'scripts' && ['hidden-items', 'sectors', 'endings'].includes(href))) {
+                    a.classList.add('active');
+                }
+            });
+
+            // 스크롤 탑 버튼 보이기/숨기기
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            if (window.scrollY > 300) {
+                scrollTopBtn.classList.add('visible');
+            } else {
+                scrollTopBtn.classList.remove('visible');
+            }
+        });
+
+        // 3. 스크롤 탑 클릭 이벤트
+        document.getElementById('scrollTopBtn').addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+</html>

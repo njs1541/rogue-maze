@@ -886,8 +886,6 @@
             </div>
         </div>
     </div>
-</div>
-        </div> <!-- #canvas-container ?レ쓬 -->
 
 
 
@@ -963,6 +961,7 @@
                 </div>
             </div>
         </footer>
+    </div> <!-- #game-container 닫음 -->
 
         <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
     <script src="js/assetManager.js"></script>
@@ -977,32 +976,6 @@
     <script src="js/monster.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/main.js"></script>
-    <script>
-        // 브라우저 뷰포트 크기에 맞추어 #game-container를 동적으로 축소하는 레이아웃 스케일링 로직
-        function resizeGameContainer() {
-            const container = document.getElementById('game-container');
-            if (!container) return;
-            
-            const targetWidth = 2160;
-            const targetHeight = 940;
-            
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            const scaleX = windowWidth / targetWidth;
-            const scaleY = windowHeight / targetHeight;
-            
-            // 비율 유지하며 화면에 딱 맞게 스케일링 (최대 1배율 크기 제한으로 흐릿함 방지)
-            const scale = Math.min(scaleX, scaleY, 1);
-            
-            container.style.transform = `scale(${scale})`;
-        }
-        
-        window.addEventListener('resize', resizeGameContainer);
-        window.addEventListener('DOMContentLoaded', resizeGameContainer);
-        // DOM 로딩 완료 및 게임엔진 구동 시점에 맞추어 즉시 갱신
-        setTimeout(resizeGameContainer, 100);
-    </script>
 </body>
 
 </html>
