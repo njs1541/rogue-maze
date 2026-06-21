@@ -190,14 +190,28 @@ class RoomPortal {
             let spinAngle = (Date.now() * 0.005) % (Math.PI * 2);
             ctx.rotate(spinAngle);
             
-            // 영롱한 보랏빛 차원 네온 서클
+            // 영롱한 차원 네온 서클 색상 분기
+            let portalColor = '#b026ff';
+            let portalGlow = '#b026ff';
+            let portalBg = 'rgba(176, 38, 255, 0.18)';
+            
+            if (this.portalType === 'error_sector') {
+                portalColor = '#ff00aa'; // 차원 붕괴 포털: 마젠타/자홍색
+                portalGlow = '#ff00aa';
+                portalBg = 'rgba(255, 0, 170, 0.18)';
+            } else if (this.portalType === 'clear') {
+                portalColor = '#00f0ff'; // 일반 탈출구: 청록색
+                portalGlow = '#00f0ff';
+                portalBg = 'rgba(0, 240, 255, 0.18)';
+            }
+            
             ctx.beginPath();
             ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(176, 38, 255, 0.18)';
-            ctx.strokeStyle = '#b026ff';
+            ctx.fillStyle = portalBg;
+            ctx.strokeStyle = portalColor;
             ctx.lineWidth = 3;
             ctx.shadowBlur = 20;
-            ctx.shadowColor = '#b026ff';
+            ctx.shadowColor = portalGlow;
             ctx.fill();
             ctx.stroke();
             
@@ -220,15 +234,17 @@ class RoomPortal {
             
             ctx.restore();
             
-            // 포털 상단 공중 부유 홀로그램 크리스탈 아이콘 🔮
+            // 포털 상단 공중 부유 홀로그램 크리스탈 아이콘
             ctx.save();
-            ctx.font = '13px "Outfit"';
+            ctx.font = '13px "Outfit", "Noto Sans KR"';
             ctx.fillStyle = '#ffffff';
             ctx.shadowBlur = 10;
-            ctx.shadowColor = '#b026ff';
+            ctx.shadowColor = portalGlow;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText("🔮", this.x, this.y - this.radius - 12);
+            let iconText = "🔮";
+            if (this.portalType === 'clear') iconText = "🚪";
+            ctx.fillText(iconText, this.x, this.y - this.radius - 12);
             ctx.restore();
             
             ctx.restore();

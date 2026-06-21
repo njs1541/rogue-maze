@@ -2798,3 +2798,67 @@ textarea:focus-visible {
     50% { opacity: 0.08; }
     100% { opacity: 0.15; }
 }
+
+/* ==========================================================================
+   [신규] 바이츠 업그레이드 상점 및 신규 무기 스타일 추가
+   ========================================================================== */
+.upgrade-btn {
+    transition: all 0.2s ease;
+}
+.upgrade-btn:hover {
+    background: rgba(57, 255, 20, 0.15) !important;
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.4) !important;
+}
+.upgrade-btn:disabled {
+    border-color: #4a5568 !important;
+    color: #4a5568 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+/* [개선] 무기 교체 전용 패널 디자인 */
+#reward-weapon-replace-panel {
+    background: rgba(15, 6, 12, 0.96) !important;
+    border: 2px solid #ff0055 !important;
+    box-shadow: 0 0 35px rgba(255, 0, 85, 0.55), inset 0 0 20px rgba(255, 0, 85, 0.15) !important;
+    border-radius: 16px !important;
+    padding: 24px 35px !important;
+    margin-top: 25px !important;
+    animation: pulseWarningBorder 1.5s infinite alternate !important;
+}
+
+@keyframes pulseWarningBorder {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.35);
+        border-color: rgba(255, 0, 85, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(255, 0, 85, 0.7);
+        border-color: rgba(255, 0, 85, 1);
+    }
+}
+
+/* 교체 무기 슬롯 버튼 */
+.replace-slot-btn {
+    border: 2px solid #ff0055 !important;
+    background: rgba(20, 10, 15, 0.85) !important;
+    color: #ffb6c1 !important;
+    padding: 12px 24px !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.2) !important;
+}
+.replace-slot-btn:hover {
+    border-color: #ff0055 !important;
+    color: #000000 !important;
+    box-shadow: 0 0 25px #ff0055 !important;
+    background: #ff0055 !important;
+    transform: translateY(-3px) !important;
+}
+.replace-slot-btn:active {
+    transform: translateY(1px) !important;
+}

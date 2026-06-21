@@ -9,13 +9,13 @@ try {
     $listener.Start()
     Write-Host "서버가 시작되었습니다: http://localhost:$port/"
     
-    # 3분(180초) 동안만 실행한 후 자동 종료하도록 가드 설정 (서버가 영구히 남는 현상 방지)
+    # 30분(1800초) 동안만 실행한 후 자동 종료하도록 가드 설정 (서버가 영구히 남는 현상 방지)
     $startTime = Get-Date
     
     while ($listener.IsListening) {
-        # 180초 타임아웃 체크
-        if (((Get-Date) - $startTime).TotalSeconds -gt 180) {
-            Write-Host "3분 타임아웃에 도달하여 서버를 자동 종료합니다."
+        # 1800초 타임아웃 체크
+        if (((Get-Date) - $startTime).TotalSeconds -gt 1800) {
+            Write-Host "30분 타임아웃에 도달하여 서버를 자동 종료합니다."
             break
         }
         
@@ -23,7 +23,7 @@ try {
         $contextTask = $listener.GetContextAsync()
         while (-not $contextTask.IsCompleted) {
             Start-Sleep -Milliseconds 100
-            if (((Get-Date) - $startTime).TotalSeconds -gt 180) { break }
+            if (((Get-Date) - $startTime).TotalSeconds -gt 1800) { break }
         }
         
         if (-not $contextTask.IsCompleted) { continue }

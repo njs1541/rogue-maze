@@ -81,7 +81,11 @@ class Player {
         this.range = 350;       // 투사체 사정거리 (기본 350px)
         
         // 무기 스탯
-        this.weaponType = 'gun'; // 'gun', 'sword', 'dual' (보상 카드로 검 획득 시 진화)
+        this.weaponType = 'gun'; 
+        this.equippedWeapons = ['gun']; // [신규] 장착 무기 슬롯 리스트 (기본 'gun' 포함)
+        this.maxWeaponSlots = 2;        // [신규] 최대 무기 장착 가능 슬롯
+        this.thirdSlotWeapon = null;    // [신규] 3번째 보조 무기 슬롯 (계약 시 고정 장착)
+
         this.weaponLevels = {
             sword: 0,
             spear: 0,
@@ -90,7 +94,9 @@ class Player {
             fire: 0,
             ice: 0,
             thorns: 0,
-            trap: 0
+            trap: 0,
+            scythe: 0,       // [신규] 사이버 낫 레벨
+            railcannon: 0    // [신규] 레일 캐논 레벨
         };
         this.multishot = 1;      // 부채꼴로 동시 발사될 탄환 수
         this.burstCount = 1;     // 한 번 사격 시 연속 점사 횟수
@@ -99,6 +105,16 @@ class Player {
         this.wallBounceLimit = 0; // 벽 튕기기 제한 횟수
         this.monsterBounceLimit = 0; // 몬스터 튕기기 제한 횟수
         this.splashRadius = 0;   // 탄환 명중 시 스플래시 반경 (0 이면 기본 총알)
+
+        // [신규 무기 모션 타이머 및 쿨타임]
+        this.scytheCooldown = 0;
+        this.railcannonCooldown = 0;
+        this.isScytheActive = false;
+        this.scytheTimer = 0;
+        this.scytheAngle = 0;
+        this.isRailActive = false;
+        this.railChargeTimer = 0;
+        this.railAngle = 0;
 
         // 쿨타임 및 상태 제어
         this.shootCooldown = 0;
@@ -153,6 +169,25 @@ class Player {
         };
         this.fusedController = false;
         this.armorShield = 0;
+        this.loadBitesUpgrades();
+    }
+
+    loadBitesUpgrades() {
+        const upgradeAtk = parseInt(localStorage.getItem('neon_upgrade_atk')) || 0;
+        const upgradeMs = parseInt(localStorage.getItem('neon_upgrade_ms')) || 0;
+        const upgradeAspd = parseInt(localStorage.getItem('neon_upgrade_aspd')) || 0;
+        const upgradeHp = parseInt(localStorage.getItem('neon_upgrade_hp')) || 0;
+        const upgradeMp = parseInt(localStorage.getItem('neon_upgrade_mp')) || 0;
+
+        this.atk += upgradeAtk * 3;
+        this.ms += upgradeMs * 0.15;
+        this.aspd += upgradeAspd * 0.05;
+        
+        this.maxHp += upgradeHp * 15;
+        this.hp = this.maxHp; // 초기 체력 가산 동기화
+        
+        this.maxMp += upgradeMp * 15;
+        this.mp = 0; 
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
@@ -359,7 +394,25 @@ class Player {
         // 쿨타임 수치 매 프레임 감쇠 (60fps 기준)
         if (this.shootCooldown > 0) this.shootCooldown--;
         if (this.slashCooldown > 0) this.slashCooldown--;
+        if (this.scytheCooldown > 0) this.scytheCooldown--;
+        if (this.railcannonCooldown > 0) this.railcannonCooldown--;
         
+        // 사이버 낫 모션 타이머 관리 (지속시간 12프레임)
+        if (this.isScytheActive) {
+            this.scytheTimer--;
+            if (this.scytheTimer <= 0) {
+                this.isScytheActive = false;
+            }
+        }
+
+        // 레일 캐논 차징/발사 타이머 관리
+        if (this.isRailActive) {
+            this.railChargeTimer--;
+            if (this.railChargeTimer <= 0) {
+                this.isRailActive = false;
+            }
+        }
+
         // 검 베기 모션 타이머 관리 (지속시간 10프레임)
         if (this.isSlashActive) {
             this.slashTimer--;
@@ -656,6 +709,77 @@ class Player {
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        // 5. 사이버 낫 모션 연출 (베기 활성화 시 거대 궤적 렌더링)
+        if (this.isScytheActive) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            let angle = this.scytheAngle;
+            let radius = 110 + (this.range - 350) * 0.15; // 낫은 기본적으로 검보다 매우 김
+
+            ctx.beginPath();
+            let start = angle - 1.6;
+            let end = angle + 1.6;
+            ctx.arc(0, 0, radius, start, end);
+            
+            ctx.strokeStyle = 'rgba(186, 85, 211, 0.8)'; // 자홍/연보라 네온
+            let scaleFactor = Math.sqrt(this.atk / 10);
+            ctx.lineWidth = 8 * (this.scytheTimer / 12) * scaleFactor;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ba55d3';
+            ctx.stroke();
+
+            // 낫 칼날 비주얼 데코
+            ctx.save();
+            ctx.rotate(angle + 1.2);
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.quadraticCurveTo(radius + 15, -25, radius - 10, -40);
+            ctx.quadraticCurveTo(radius + 5, -20, radius, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#ba55d3';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // 6. 레일 캐논 차징 및 발사 번쩍임 연출
+        if (this.isRailActive) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.railAngle);
+
+            // 차징 중 (시간이 많이 남았을 때) vs 격발 순간 (타이머가 0 직전일 때)
+            if (this.railChargeTimer > 3) {
+                // 차징 구체 시각화
+                let chargeRatio = (18 - this.railChargeTimer) / 18; // 18프레임 차징 기준
+                let size = 5 + chargeRatio * 12;
+                ctx.beginPath();
+                ctx.arc(this.radius + 10, 0, size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00f0ff';
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                // 격발 순간 번개 스파크 라인 렌더링
+                ctx.beginPath();
+                ctx.moveTo(this.radius, 0);
+                ctx.lineTo(this.radius + 30, 0);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 6;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#00f0ff';
+                ctx.stroke();
             }
             ctx.restore();
         }

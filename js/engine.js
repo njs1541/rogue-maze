@@ -333,6 +333,7 @@ class GameEngine {
         this.setupInitialRoom();
         this.initCheatSystemEvents();
         this.initOptionEvents(); // [신규 추가] 시스템 옵션 모달 이벤트 등록
+        this.initUpgradeShopEvents(); // [신규 추가] 바이츠 상점 이벤트 등록
 
         // 이어하기 버튼 가시성 업데이트
         this.updateContinueButtonVisibility();
@@ -1270,9 +1271,17 @@ class GameEngine {
         }
 
         // 100 스테이지 달성 시 최종 승리 클리어
+        // (단, 101층 진 엔딩 조건인 error_sector 포털 진입 시에는 triggerGameClear를 우회하고 101층 셋업 진행)
         if (this.roomNum > 100) {
-            this.triggerGameClear();
-            return;
+            if (portal.portalType === 'error_sector') {
+                this.roomNum = 101;
+            } else {
+                // [버그 수정] roomNum++로 101이 된 상태이므로 100으로 복원
+                // triggerGameClear 내부의 진 엔딩 판정(roomNum === 101)과 충돌 방지
+                this.roomNum = 100;
+                this.triggerGameClear();
+                return;
+            }
         }
 
         // --- [신규 기믹] 2차원 그리드 기반 맵 결정 및 크기 고정 ---
@@ -1568,6 +1577,18 @@ class GameEngine {
             const boss = new Monster(cx, 100, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_final');
             this.monsters.push(boss);
+        }
+        else if (this.roomNum === 101) {
+            // 101층 진 최종 보스 (크로노스 리얼 마스터) 스폰
+            this.currentSpawnTotal = 1;
+            this.currentSpawnRemaining = 1;
+            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+            boss.makeBoss(this.roomNum, 'boss_real_master');
+            this.monsters.push(boss);
+            
+            // 101층은 텅 빈 보스방 구조로 맵을 갱신
+            this.currentMapPreset = 'PRESET_SIZE_BOSS';
+            this.generateGridMap(this.currentMapPreset);
         } else {
             // 예외 방어코드
             this.currentSpawnTotal = 1;
@@ -2007,6 +2028,23 @@ class GameEngine {
         }
 
         this.player.update();
+        if (this.player.thirdSlotWeaponCooldown > 0) {
+            this.player.thirdSlotWeaponCooldown--;
+        }
+        // 레일 캐논 격발 타이밍 검사 (18프레임 차징 만료 직전인 1일 때 발사)
+        if (this.player.isRailActive && this.player.railChargeTimer === 1) {
+            let wLvl = this.player.weaponLevels.railcannon || 1;
+            let dmg = this.player.atk * 2.5 * (1 + (wLvl - 1) * 0.15);
+            this.triggerRailCannonBeam(this.player.railAngle, dmg);
+            
+            // 융합 시너지: 주(레일) + 부(검/총)
+            let secondary = this.player.equippedWeapons[1];
+            if (secondary === 'sword') {
+                this.triggerRailSwordSynergy(this.player.railAngle);
+            } else if (secondary === 'gun') {
+                this.triggerRailGunSynergy(this.player.railAngle);
+            }
+        }
         if (this.vendingCooldown > 0) this.vendingCooldown--; // [신규 기획] 자판기 구매 쿨타임 매 프레임 감쇠
         if (this.bossWarningTimer > 0) this.bossWarningTimer--; // [v0.95] 보스 경보 타이머 프레임 감소
 
@@ -2664,6 +2702,11 @@ class GameEngine {
             }
 
             m.update(this.player, this.bullets);
+            if (m.scytheDebuffTimer > 0) {
+                m.scytheDebuffTimer--;
+            } else {
+                m.scytheDebuffTimer = 0;
+            }
 
             // [충돌 검사 A] 몬스터 본체와 플레이어 캐릭터 본체의 격돌
             let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
@@ -2952,6 +2995,9 @@ class GameEngine {
 
                         // 데미지 계산 및 백색 깜빡임 피드백 (취약 데미지 증폭)
                         let finalDmg = b.damage;
+                        if (b.isScytheSynergy) {
+                            this.triggerScytheImpactSlash(b.x, b.y, finalDmg * 0.4);
+                        }
                         let isSpearTip = false;
                         if (b.isSpear) {
                             let flightDist = Math.hypot(b.x - b.startX, b.y - b.startY);
@@ -3201,6 +3247,43 @@ class GameEngine {
                 if (!this.roomRewardSpawned && this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
                     this.roomRewardSpawned = true; // [버그 수정] 단 1회 보상 스폰 즉시 잠금
 
+                    // [신규 기획] 101층 보스 격파 시점에서의 특별 처리 (진 엔딩 트리거)
+                    if (this.roomNum === 101) {
+                        this.triggerGameClear();
+                        return;
+                    }
+
+                    // [신규 기획] 100층 보스 격파 시점에서의 특별 처리
+                    if (this.roomNum === 100) {
+                        this.portals = []; // 기존 일반 포털들 삭제
+                        if (this.player.fusedController) {
+                            // 해방의 컨트롤러 보유 시 차원 붕괴 포털(Error Sector Portal) 스폰
+                            let p = new RoomPortal('secret', 0, this.mapWidth / 2, this.mapHeight / 2 + 100);
+                            p.portalType = 'error_sector';
+                            p.difficultyClass = 'high';
+                            p.active = true;
+                            this.portals.push(p);
+                            this.showFloatingText("PORTAL TO ERROR SECTOR OPENED! 🌀", this.mapWidth / 2, this.mapHeight / 2 - 30, '#ff00aa');
+                        } else {
+                            // 없을 시 일반 탈출구 포털 스폰
+                            let p = new RoomPortal('secret', 0, this.mapWidth / 2, this.mapHeight / 2 + 100);
+                            p.portalType = 'clear';
+                            p.difficultyClass = 'low';
+                            p.active = true;
+                            this.portals.push(p);
+                            this.showFloatingText("COLOSSEUM ESCAPE GATE OPENED! 🚪", this.mapWidth / 2, this.mapHeight / 2 - 30, '#00f0ff');
+                        }
+                        
+                        // 보스 격파 기념 화려한 글로우 파티클 방출
+                        for (let k = 0; k < 40; k++) {
+                            let pAngle = Math.random() * Math.PI * 2;
+                            let pSpeed = Math.random() * 6 + 2;
+                            let pColor = this.player.fusedController ? '#ff00aa' : '#00f0ff';
+                            this.particles.push(new Particle(this.mapWidth / 2, this.mapHeight / 2 + 100, pColor, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 45, 'spark'));
+                        }
+                        return; // 100층은 특수 처리로 종료하며 하단 일반 방 코인/보상 처리를 건너뜀
+                    }
+
                     // [신규 기획] Repair Kit 보유 시 방 클리어 마다 잃은 체력 10% 쉴드 충전
                     if (this.player.hiddenItems && this.player.hiddenItems.repairKit) {
                         let lossHp = this.player.maxHp - this.player.hp;
@@ -3299,8 +3382,23 @@ class GameEngine {
 
                         // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
                         this.portals.forEach(p => p.active = true);
+                    } else if (this.currentRoomType === 'stat' && this.roomNum % 5 !== 0) {
+                        // [신규 기획] 일반 스탯 방인 경우, 보상 상자 스폰을 생략하고 포털 즉시 활성화
+                        this.portals.forEach(p => p.active = true);
+                        this.showFloatingText("PORTALS ACTIVATED! ⚡", spawnX, spawnY - 60, '#00f0ff');
+                        
+                        // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (안전 영역 체크)
+                        let potionRand = Math.random();
+                        let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05);
+                        if (potionRand < potionDropChance) {
+                            let pY = spawnY + 50;
+                            if (this.isTileWall(spawnX, pY)) pY = spawnY - 50;
+                            if (this.isTileWall(spawnX, pY)) pY = spawnY;
+                            this.potions.push(new NeonPotion(spawnX, pY));
+                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", spawnX, spawnY - 30, '#39ff14');
+                        }
                     } else {
-                        // 스탯, 무기, 방어구 중 해당 타입의 보상 상자 스폰
+                        // 무기, 장비 및 보스/엘리트 스탯 방(5의 배수 방)인 경우 상자 스폰
                         this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
                         this.showFloatingText("REWARD CHEST ARRIVED!", spawnX, spawnY - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
 
@@ -3752,6 +3850,12 @@ class GameEngine {
             this.particles.push(new Particle(device.x, device.y, '#b026ff', 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
         }
 
+        // [3슬롯 계약 미체결 상태인 경우 우선 제안]
+        if (this.player.maxWeaponSlots === 2) {
+            this.triggerThreeSlotContract(device);
+            return;
+        }
+
         let rand = Math.random();
 
         if (rand < 0.50) {
@@ -3803,6 +3907,451 @@ class GameEngine {
 
         // 상호작용 완료 시점에 비밀방 탈출구 포털을 즉시 개방하여 탈출할 수 있도록 뚫어줌!
         this.portals.forEach(p => p.active = true);
+    }
+
+    // [신규 기믹] 3슬롯 계약 제안 및 체결 처리
+    triggerThreeSlotContract(device) {
+        const overlay = document.getElementById('secret-shop-overlay');
+        const iconDiv = document.getElementById('secret-shop-card-icon');
+        const titleH3 = document.getElementById('secret-shop-card-title');
+        const descP = document.getElementById('secret-shop-card-desc');
+        const rarityTag = document.getElementById('secret-shop-card-rarity');
+        const acceptBtn = document.getElementById('secret-shop-accept-btn');
+        const rejectBtn = document.getElementById('secret-shop-reject-btn');
+        const warningText = overlay.querySelector('.warning-blood-text');
+
+        // 모달 UI에 3슬롯 계약 정보 바인딩
+        rarityTag.className = `card-rarity legendary`;
+        rarityTag.innerText = "CONTRACT";
+        rarityTag.style.background = `rgba(255, 0, 85, 0.2)`;
+        rarityTag.style.borderColor = '#ff0055';
+        rarityTag.style.color = '#ff0055';
+
+        iconDiv.innerText = "🔮";
+        titleH3.innerText = "3번째 무기 슬롯 해금";
+        descP.innerText = "융합 시너지는 없으나, 독립적으로 자동 동시 격발되는 3번째 보조 무기를 들 수 있게 됩니다. (획득 후 교체 불가)";
+        if (warningText) {
+            warningText.innerText = "⚠️ 거래의 대가: 최대 체력(Max HP) 50% 영구 감소";
+        }
+
+        overlay.classList.remove('hidden');
+
+        acceptBtn.onclick = null;
+        rejectBtn.onclick = null;
+
+        acceptBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.classList.add('hidden');
+
+            // 최대 체력 50% 영구 감소
+            this.player.maxHp = Math.max(1, Math.floor(this.player.maxHp * 0.5));
+            if (this.player.hp > this.player.maxHp) {
+                this.player.hp = this.player.maxHp;
+            }
+
+            // 슬롯 해금
+            this.player.maxWeaponSlots = 3;
+
+            Sound.play('boss_alert');
+            this.showFloatingText("CONTRACT SEALED! 🔮 SLOTS INCREASED TO 3", this.player.x, this.player.y - 30, '#ff0055');
+
+            // 화면 흔들림 및 붉은 스파크 이펙트
+            this.shakeScreen(30, 8.0);
+            for (let k = 0; k < 40; k++) {
+                let pAngle = Math.random() * Math.PI * 2;
+                let pSpeed = Math.random() * 6 + 2;
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ff0055', 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+            }
+
+            // 탈출구 포털 활성화
+            this.portals.forEach(p => p.active = true);
+        };
+
+        rejectBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.classList.add('hidden');
+            this.showFloatingText("CONTRACT REJECTED", this.player.x, this.player.y - 30, '#a0aec0');
+            // 거절하더라도 탈출구 포털은 열어줌 (비밀방에서 영원히 갇히는 결함 방지)
+            this.portals.forEach(p => p.active = true);
+        };
+    }
+
+    // [신규 기획] 사이버 낫 휘두르기 타격 판정
+    triggerScytheAttack(angle, damage) {
+        let scytheRadius = 110 + (this.player.range - 350) * 0.15;
+        let scytheArc = 1.6; // 넓은 부채꼴 휩쓸기 궤적
+
+        // 명중한 몬스터 검사
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+            if (dist < scytheRadius + m.radius) {
+                let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                let angleDiff = Math.abs(targetAngle - angle);
+                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+                if (Math.abs(angleDiff) < scytheArc) {
+                    let finalDmg = damage;
+                    if (m.scytheDebuffTimer > 0) {
+                        finalDmg *= 1.25; // 이미 부식 상태면 25% 추가 피해
+                    }
+
+                    // 부식/표식 디버프 부여 (3초지속 = 180프레임)
+                    m.scytheDebuffTimer = 180;
+                    
+                    m.hp -= finalDmg;
+                    m.flashTimer = 2;
+                    
+                    // 낫 특유의 살짝 당기는 넉백 물리 가미
+                    let kbAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                    m.vx += Math.cos(kbAngle) * 2.5;
+                    m.vy += Math.sin(kbAngle) * 2.5;
+
+                    for (let k = 0; k < 3; k++) {
+                        this.particles.push(new Particle(m.x, m.y, '#ba55d3', 1.5, (Math.random()-0.5)*2, (Math.random()-0.5)*2, 15, 'spark'));
+                    }
+
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+
+        // 융합 효과: 주(낫) + 부(총) -> 낫 궤적 상 3군데 지점에서 원형 유도 칼날 투사체 퍼짐
+        let secondary = this.player.equippedWeapons[1];
+        if (secondary === 'gun') {
+            let gunLvl = this.player.weaponLevels.gun || 1;
+            let gunDmg = this.player.atk * 0.45 * (1 + (gunLvl - 1) * 0.15);
+            for (let offset of [-0.8, 0, 0.8]) {
+                let wAngle = angle + offset;
+                let sx = this.player.x + Math.cos(wAngle) * (scytheRadius * 0.8);
+                let sy = this.player.y + Math.sin(wAngle) * (scytheRadius * 0.8);
+                let vx = Math.cos(wAngle) * 5;
+                let vy = Math.sin(wAngle) * 5;
+                
+                this.bullets.push(new Bullet(sx, sy, vx, vy, gunDmg, true, {
+                    color: '#ba55d3',
+                    radius: 4.5,
+                    life: 120,
+                    homing: true,
+                    homingSpeed: this.player.homingAngleSpeed
+                }));
+            }
+        }
+    }
+
+    // [신규 기획] 레일 캐논 일직선 관통 레이저 발사
+    triggerRailCannonBeam(angle, damage) {
+        let beamLength = this.player.range * 2; // 기본 사거리의 2배 적용
+        let beamWidth = 25;
+
+        // 레이저 비주얼 파티클 빔 생성
+        let stepCount = Math.floor(beamLength / 20);
+        for (let j = 0; j < stepCount; j++) {
+            let px = this.player.x + Math.cos(angle) * (j * 20);
+            let py = this.player.y + Math.sin(angle) * (j * 20);
+            this.particles.push(new Particle(
+                px + (Math.random()-0.5)*8,
+                py + (Math.random()-0.5)*8,
+                '#00f0ff', 2.0,
+                (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5,
+                20, 'spark'
+            ));
+        }
+
+        // 일직선 몬스터 충돌 체크 (선분-원 충돌 판정)
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dot = ((m.x - this.player.x) * Math.cos(angle) + (m.y - this.player.y) * Math.sin(angle));
+            if (dot >= 0 && dot <= beamLength) {
+                let projX = this.player.x + Math.cos(angle) * dot;
+                let projY = this.player.y + Math.sin(angle) * dot;
+                let distToBeam = Math.hypot(m.x - projX, m.y - projY);
+
+                if (distToBeam < (beamWidth / 2) + m.radius) {
+                    let finalDmg = damage;
+                    if (m.scytheDebuffTimer > 0) {
+                        finalDmg *= 1.25;
+                    }
+
+                    m.hp -= finalDmg;
+                    m.flashTimer = 2;
+
+                    // 강한 일직선 넉백
+                    m.vx += Math.cos(angle) * 5.0;
+                    m.vy += Math.sin(angle) * 5.0;
+
+                    for (let k = 0; k < 4; k++) {
+                        this.particles.push(new Particle(m.x, m.y, '#00f0ff', 1.8, (Math.random()-0.5)*3, (Math.random()-0.5)*3, 15, 'spark'));
+                    }
+
+                    // 융합 효과: 주(레일) + 부(총) -> 명중 지점에서 뒤로 유도탄 3발 튕겨 나감
+                    let secondary = this.player.equippedWeapons[1];
+                    if (secondary === 'gun') {
+                        let gunLvl = this.player.weaponLevels.gun || 1;
+                        let gunDmg = this.player.atk * 0.4 * (1 + (gunLvl - 1) * 0.15);
+                        for (let k = 0; k < 3; k++) {
+                            let pAngle = angle + Math.PI + (Math.random() * 1.5 - 0.75);
+                            let vx = Math.cos(pAngle) * 6;
+                            let vy = Math.sin(pAngle) * 6;
+                            this.bullets.push(new Bullet(m.x, m.y, vx, vy, gunDmg, true, {
+                                color: '#00f0ff',
+                                radius: 3,
+                                life: 25,
+                                homing: true,
+                                homingSpeed: this.player.homingAngleSpeed
+                            }));
+                        }
+                    }
+
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+
+        Sound.play('laser');
+        this.shakeScreen(10, 4.0);
+    }
+
+    // 융합 시너지: 주(레일) + 부(검)
+    triggerRailSwordSynergy(angle) {
+        let swordLvl = this.player.weaponLevels.sword || 1;
+        let bonusDmg = this.player.atk * 0.6 * (1 + (swordLvl - 1) * 0.15);
+        
+        for (let dist of [120, 240, 360]) {
+            let sx = this.player.x + Math.cos(angle) * dist;
+            let sy = this.player.y + Math.sin(angle) * dist;
+            
+            this.particles.push(new Particle(sx, sy, '#b026ff', 3.5, 0, 0, 10, 'slash'));
+            
+            for (let i = this.monsters.length - 1; i >= 0; i--) {
+                let m = this.monsters[i];
+                let mDist = Math.hypot(m.x - sx, m.y - sy);
+                if (mDist < 60 + m.radius) {
+                    m.hp -= bonusDmg;
+                    m.flashTimer = 2;
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+    }
+
+    // 융합 시너지: 주(레일) + 부(총) (동시 격발 용이성 대비)
+    triggerRailGunSynergy(angle) {
+        // 이미 triggerRailCannonBeam 명중 판정 내에서 처리하였으므로 방어용 선언만 둡니다.
+    }
+
+    // 융합 시너지: 주(낫) + 부(검)
+    triggerScytheSwordSynergy(angle, damage) {
+        let scytheRadius = 110 + (this.player.range - 350) * 0.15;
+        let extRadius = scytheRadius + 45;
+        let scytheArc = 1.6;
+
+        for (let offset of [-1.0, 0, 1.0]) {
+            let wAngle = angle + offset;
+            let sx = this.player.x + Math.cos(wAngle) * extRadius;
+            let sy = this.player.y + Math.sin(wAngle) * extRadius;
+            this.particles.push(new Particle(sx, sy, '#b026ff', 2.0, 0, 0, 8, 'spark'));
+        }
+
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+            if (dist >= scytheRadius && dist < extRadius + m.radius) {
+                let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                let angleDiff = Math.abs(targetAngle - angle);
+                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+                if (Math.abs(angleDiff) < scytheArc) {
+                    m.hp -= damage;
+                    m.flashTimer = 2;
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+    }
+
+    // 융합 시너지: 주(검) + 부(레일)
+    triggerSwordRailSynergy(angle, damage) {
+        let beamLength = 400;
+        let beamWidth = 12;
+
+        for (let j = 0; j < 15; j++) {
+            let px = this.player.x + Math.cos(angle) * (j * 26);
+            let py = this.player.y + Math.sin(angle) * (j * 26);
+            this.particles.push(new Particle(px, py, '#00f0ff', 1.5, 0, 0, 10, 'spark'));
+        }
+
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dot = ((m.x - this.player.x) * Math.cos(angle) + (m.y - this.player.y) * Math.sin(angle));
+            if (dot >= 0 && dot <= beamLength) {
+                let projX = this.player.x + Math.cos(angle) * dot;
+                let projY = this.player.y + Math.sin(angle) * dot;
+                let distToBeam = Math.hypot(m.x - projX, m.y - projY);
+
+                if (distToBeam < (beamWidth / 2) + m.radius) {
+                    m.hp -= damage;
+                    m.flashTimer = 2;
+                    m.vx += Math.cos(angle) * 3;
+                    m.vy += Math.sin(angle) * 3;
+                    if (m.hp <= 0) {
+                        this.killMonster(m, i);
+                    }
+                }
+            }
+        }
+        Sound.play('laser');
+    }
+
+    // 융합 시너지: 주(총) + 부(낫) -> 총알 명중 지점에 낫 충격파 발생
+    triggerScytheImpactSlash(x, y, damage) {
+        for (let k = 0; k < 12; k++) {
+            let angle = Math.random() * Math.PI * 2;
+            let speed = Math.random() * 3 + 1.5;
+            this.particles.push(new Particle(x, y, '#ba55d3', 1.8, Math.cos(angle) * speed, Math.sin(angle) * speed, 15, 'spark'));
+        }
+
+        for (let i = this.monsters.length - 1; i >= 0; i--) {
+            let m = this.monsters[i];
+            let dist = Math.hypot(m.x - x, m.y - y);
+            if (dist < 60 + m.radius) {
+                let finalDmg = damage;
+                if (m.scytheDebuffTimer > 0) {
+                    finalDmg *= 1.25;
+                }
+                m.scytheDebuffTimer = 180;
+                m.hp -= finalDmg;
+                m.flashTimer = 3;
+                
+                if (m.hp <= 0) {
+                    this.killMonster(m, i);
+                }
+            }
+        }
+    }
+
+    // [신규 기획] 3슬롯 및 획득 무기 일반 분기 배치 헬퍼
+    acquireWeapon(wpnId) {
+        const p = this.player;
+        if (p.equippedWeapons.includes(wpnId) || p.thirdSlotWeapon === wpnId) {
+            return;
+        }
+        if (p.equippedWeapons.length < 2) {
+            p.equippedWeapons.push(wpnId);
+        } else if (p.maxWeaponSlots === 3 && p.thirdSlotWeapon === null) {
+            p.thirdSlotWeapon = wpnId;
+        }
+    }
+
+    // [신규 기획] 3번째 보조 무기 쿨타임 별 자동 독립 격발 연동 함수
+    triggerThirdSlotWeapon() {
+        const p = this.player;
+        if (!p.thirdSlotWeapon || p.thirdSlotWeaponCooldown > 0) return;
+
+        let baseCd = 40;
+        if (p.thirdSlotWeapon === 'gun') baseCd = 15;
+        if (p.thirdSlotWeapon === 'sword') baseCd = 40;
+        if (p.thirdSlotWeapon === 'spear') baseCd = 35;
+        if (p.thirdSlotWeapon === 'whip') baseCd = 30;
+        if (p.thirdSlotWeapon === 'lightning') baseCd = 45;
+        if (p.thirdSlotWeapon === 'fire') baseCd = 50;
+        if (p.thirdSlotWeapon === 'ice') baseCd = 40;
+        if (p.thirdSlotWeapon === 'scythe') baseCd = 55;
+        if (p.thirdSlotWeapon === 'railcannon') baseCd = 70;
+
+        p.thirdSlotWeaponCooldown = Math.max(10, baseCd / p.aspd);
+
+        let angle = p.angle;
+        let wLvl = p.weaponLevels[p.thirdSlotWeapon] || 1;
+        let finalDamage = p.atk * (1 + (wLvl - 1) * 0.15) * 0.7; // 보조 무기이므로 30% 감쇄
+
+        switch (p.thirdSlotWeapon) {
+            case 'gun':
+                let vx = Math.cos(angle) * 7.0;
+                let vy = Math.sin(angle) * 7.0;
+                this.bullets.push(new Bullet(p.x, p.y, vx, vy, finalDamage, true, {
+                    color: '#00f0ff',
+                    radius: 4,
+                    life: p.range / 7.0,
+                    pierce: p.pierceCount,
+                    homing: p.homing,
+                    homingSpeed: p.homingAngleSpeed,
+                    splash: p.splashRadius,
+                    bounceLimit: p.wallBounceLimit,
+                    monsterBounceLimit: p.monsterBounceLimit
+                }));
+                Sound.play('shoot');
+                break;
+            case 'sword':
+                p.isSlashActive = true;
+                p.slashTimer = 10;
+                p.slashAngle = angle;
+                p.slashAngles = [angle];
+                this.triggerSwordInstantAttack([angle], finalDamage);
+                Sound.play('slash');
+                break;
+            case 'spear':
+                p.isSpearActive = true;
+                p.spearTimer = 8;
+                p.spearAngle = angle;
+                p.spearAngles = [angle];
+                this.triggerSpearInstantAttack([angle], finalDamage);
+                Sound.play('slash');
+                break;
+            case 'whip':
+                p.isSlashActive = true;
+                p.slashTimer = 12;
+                p.slashAngle = angle;
+                p.slashAngles = [angle];
+                this.triggerWhipInstantAttack([angle], finalDamage);
+                Sound.play('slash');
+                break;
+            case 'lightning':
+                this.triggerLightningBolt(angle, finalDamage);
+                break;
+            case 'fire':
+                let fvx = Math.cos(angle) * 6.2;
+                let fvy = Math.sin(angle) * 6.2;
+                this.bullets.push(new Bullet(p.x, p.y, fvx, fvy, finalDamage, true, {
+                    color: '#ff5e00',
+                    radius: 7.0,
+                    life: p.range / 6.2,
+                    isFire: true,
+                    splash: p.splashRadius + 30
+                }));
+                Sound.play('shoot');
+                break;
+            case 'ice':
+                let ivx = Math.cos(angle) * 7.5;
+                let ivy = Math.sin(angle) * 7.5;
+                this.bullets.push(new Bullet(p.x, p.y, ivx, ivy, finalDamage, true, {
+                    color: '#00f0ff',
+                    radius: 5.0,
+                    life: p.range / 7.5,
+                    isIce: true,
+                    pierce: p.pierceCount + 1
+                }));
+                Sound.play('shoot');
+                break;
+            case 'scythe':
+                p.isScytheActive = true;
+                p.scytheTimer = 12;
+                p.scytheAngle = angle;
+                this.triggerScytheAttack(angle, finalDamage);
+                Sound.play('slash');
+                break;
+            case 'railcannon':
+                this.triggerRailCannonBeam(angle, finalDamage);
+                break;
+        }
     }
 
     // 몬스터 처치 성공
@@ -4337,6 +4886,29 @@ class GameEngine {
 
     // 주무기 탄환 및 마법 격발 메커니즘
     shootWeapon() {
+        let mainWeapon = this.player.equippedWeapons[0] || 'gun';
+        if (mainWeapon === 'railcannon') {
+            this.player.isRailActive = true;
+            this.player.railChargeTimer = 18;
+            this.player.railAngle = this.player.angle;
+            
+            let activeAspd = this.player.getEffectiveAspd();
+            let cooldownFrames = Math.max(20, 90 / activeAspd);
+            
+            // E-09 Haste Ring 5레벨 돌파: 시전 딜레이 15% 영구 단축
+            if (this.player.equipLevels.ring_aspd >= 5) {
+                cooldownFrames *= 0.85;
+            }
+            this.player.shootCooldown = cooldownFrames;
+            
+            Sound.play('laser'); 
+            this.triggerThirdSlotWeapon();
+            return;
+        }
+
+        let secondaryWeapon = this.player.equippedWeapons[1];
+        let hasScytheSynergy = (secondaryWeapon === 'scythe');
+
         let activeMagics = [];
         if (this.player.weaponLevels.fire > 0) activeMagics.push('fire');
         if (this.player.weaponLevels.ice > 0) activeMagics.push('ice');
@@ -4502,7 +5074,8 @@ class GameEngine {
                                 isDna: true,
                                 dnaWavePhase: 0,
                                 dnaAmplitude: 18,
-                                dnaFrequency: 0.16
+                                dnaFrequency: 0.16,
+                                isScytheSynergy: hasScytheSynergy
                             }));
 
                             // 2. 얼음마법 초월 DNA 탄환 (위상 Math.PI, 관통 보너스)
@@ -4522,7 +5095,8 @@ class GameEngine {
                                 isDna: true,
                                 dnaWavePhase: Math.PI, // 180도 반대 위상
                                 dnaAmplitude: 18,
-                                dnaFrequency: 0.16
+                                dnaFrequency: 0.16,
+                                isScytheSynergy: hasScytheSynergy
                             }));
                         }
                     } else {
@@ -4573,7 +5147,8 @@ class GameEngine {
                             isFire: bulletIsFire,
                             isIce: bulletIsIce,
                             bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
-                            monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0
+                            monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0,
+                            isScytheSynergy: hasScytheSynergy
                         }));
                     }
                 }
@@ -4600,6 +5175,7 @@ class GameEngine {
 
         // 1회 즉시 사격
         fireBulletPack();
+        this.triggerThirdSlotWeapon();
     }
 
     // [신규 기획] 채찍 즉발 베기 및 견인/기절 물리 충돌 판정
@@ -4876,6 +5452,33 @@ class GameEngine {
     }
 
     slashWeapon() {
+        let mainWeapon = this.player.equippedWeapons[0] || 'sword';
+        if (mainWeapon === 'scythe') {
+            let activeAspd = this.player.getEffectiveAspd();
+            let cooldownFrames = Math.max(15, 55 / activeAspd);
+            this.player.slashCooldown = cooldownFrames;
+            
+            let scytheLvl = this.player.weaponLevels.scythe || 1;
+            let finalDamage = this.player.atk * 0.9 * (1 + (scytheLvl - 1) * 0.15);
+            
+            this.player.isScytheActive = true;
+            this.player.scytheTimer = 12;
+            this.player.scytheAngle = this.player.angle;
+            
+            this.triggerScytheAttack(this.player.angle, finalDamage);
+            
+            let secondary = this.player.equippedWeapons[1];
+            if (secondary === 'sword') {
+                this.triggerScytheSwordSynergy(this.player.angle, finalDamage * 0.5);
+            }
+            
+            Sound.play('slash');
+            this.shakeScreen(6, 2.8);
+            
+            this.triggerThirdSlotWeapon();
+            return;
+        }
+
         let hasSword = (this.player.weaponLevels.sword > 0);
         let hasSpear = (this.player.weaponLevels.spear > 0);
         let hasWhip = (this.player.weaponLevels.whip > 0);
@@ -5049,6 +5652,12 @@ class GameEngine {
                         }));
                     }
                 }
+
+                // 융합 시너지: 주(검) + 부(레일)
+                let secondary = this.player.equippedWeapons[1];
+                if (secondary === 'railcannon') {
+                    this.triggerSwordRailSynergy(startAngle, swordDmg * 0.6);
+                }
             }
 
             Sound.play('slash');
@@ -5073,6 +5682,7 @@ class GameEngine {
         }
 
         fireSlashPack(swordAngles, whipAngles, spearAngles);
+        this.triggerThirdSlotWeapon();
     }
 
     // HUD 데이터 동기화 및 바 게이지 드로잉
@@ -5130,29 +5740,102 @@ class GameEngine {
         document.getElementById('stat-range').innerText = `${this.player.range}px`;
         document.getElementById('stat-pets').innerText = `${this.pets.length}기`;
 
-        // 무기 상태 출력
-        let wpnStr = "총 (Gun)";
-        if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
-        if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
-        if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
-        if (this.player.weaponType === 'fire') wpnStr = "불마법 (Fire)";
-        if (this.player.weaponType === 'ice') wpnStr = "얼음마법 (Ice)";
-        if (this.player.weaponType === 'icefiredance') wpnStr = "아이스 앤드 파이어 댄스 (Transcendence)";
-        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
-        document.getElementById('stat-wpn').innerText = wpnStr;
+        // 최대 무기 슬롯 수량 표기
+        const slotsEl = document.getElementById('stat-slots');
+        if (slotsEl) {
+            slotsEl.innerText = `${this.player.maxWeaponSlots}개`;
+        }
 
-        document.getElementById('stat-bullets').innerText = `${this.player.multishot} / ${this.player.burstCount}`;
+        // 장착된 무기 이름 매핑 함수
+        const getWeaponName = (id) => {
+            if (id === 'gun') return '총 (Gun)';
+            if (id === 'sword') return '검 (Sword)';
+            if (id === 'spear') return '창 (Spear)';
+            if (id === 'whip') return '채찍 (Whip)';
+            if (id === 'thorns') return '가시 (Thorns)';
+            if (id === 'trap') return '함정 (Trap)';
+            if (id === 'lightning') return '번개 (Lightning)';
+            if (id === 'fire') return '화염 (Fire)';
+            if (id === 'ice') return '빙결 (Ice)';
+            if (id === 'scythe') return '낫 (Scythe)';
+            if (id === 'railcannon') return '레일 (Rail)';
+            return id;
+        };
 
-        let pText = this.player.pierceCount;
-        let hText = this.player.homing ? "O" : "X";
-        let sText = this.player.splashRadius > 0 ? `${this.player.splashRadius}px` : "X";
-        document.getElementById('stat-effects').innerText = `${pText} / ${hText} / ${sText}`;
+        // 무기 상태 출력 (장착 중인 주/부무기 전체 표시)
+        const equippedWpnNames = this.player.equippedWeapons.map(w => getWeaponName(w));
+        document.getElementById('stat-wpn').innerText = equippedWpnNames.join(' + ') || '없음';
+
+        // 3번째 보조 무기 슬롯 상태
+        const subWpnEl = document.getElementById('stat-sub');
+        if (subWpnEl) {
+            if (this.player.maxWeaponSlots < 3) {
+                subWpnEl.innerText = '비활성 (잠금)';
+                subWpnEl.style.color = '#718096';
+            } else if (this.player.thirdSlotWeapon) {
+                subWpnEl.innerText = getWeaponName(this.player.thirdSlotWeapon);
+                subWpnEl.style.color = '#b026ff';
+            } else {
+                subWpnEl.innerText = '장착 가능 (비어)';
+                subWpnEl.style.color = '#00f0ff';
+            }
+        }
+
+        // 미사용 기억의 조각
+        const frgEl = document.getElementById('stat-fragments');
+        if (frgEl) {
+            this.loadMemoryFragments(); // 실시간 수치 동기화
+            frgEl.innerText = `${this.unusedFragments}개`;
+        }
+
+        // 글리치 율
+        const glitchEl = document.getElementById('stat-glitch');
+        if (glitchEl) {
+            let noiseRate = 45;
+            if (this.unusedFragments >= 10) noiseRate = 0;
+            else if (this.unusedFragments >= 5) noiseRate = 15;
+            glitchEl.innerText = `${noiseRate}%`;
+        }
+
+        // 보안 상태 및 지표
+        const secEl = document.getElementById('stat-security');
+        if (secEl) {
+            if (this.unusedFragments >= 7) {
+                secEl.innerText = '안전 (CLEAR)';
+                secEl.style.color = '#39ff14';
+                secEl.className = 'stat-value text-glow-green';
+            } else if (this.unusedFragments >= 3) {
+                secEl.innerText = '주의 (CAUTION)';
+                secEl.style.color = '#ffdf00';
+                secEl.className = 'stat-value text-glow-yellow';
+            } else {
+                secEl.innerText = '위험 (DANGER)';
+                secEl.style.color = '#ff0055';
+                secEl.className = 'stat-value text-glow-red';
+            }
+        }
     }
 
     // --------------------------------------------------------------------------
     // 9. 카드 보상 선택 레이아웃 트리거
     // --------------------------------------------------------------------------
     triggerRewardSelector(isFromHiddenChest = false, isExtraDraw = false) {
+        // [신규 기획] 일반 스탯 방(5의 배수 방도 아니고 보물상자도 아니며 weapon/equipment 유형도 아닌 경우)일 경우
+        // 카드 보상 선택기를 건너뛰고, 몬스터 스폰 수에 비례한 네온 코인만 지급 후 즉시 포털을 개방합니다.
+        const isSpecialReward = (this.roomNum % 5 === 0) || isFromHiddenChest || this.currentRoomType === 'weapon' || this.currentRoomType === 'equipment';
+        
+        if (!isSpecialReward && !isExtraDraw) {
+            let coinGain = Math.max(1, Math.floor(this.currentSpawnTotal * 2 * (1 + (this.player.luk - 1) * 0.15)));
+            this.player.coins = (this.player.coins || 0) + coinGain;
+            
+            this.showFloatingText(`+📀 ${coinGain} COINS`, this.player.x, this.player.y - 30, '#fff01f');
+            Sound.play('coin');
+
+            this.portals.forEach(p => p.active = true);
+            this.updateHUD();
+            return;
+        }
+
         const overlay = document.getElementById('reward-overlay');
         overlay.classList.remove('hidden');
 
@@ -5231,6 +5914,161 @@ class GameEngine {
                 // 기존 이벤트 핸들러 제거 후 새로 바인딩
                 cardEl.onclick = (e) => {
                     e.stopPropagation();
+
+                    // [신규 기획] 무기 슬롯 제한 및 교체 로직 가동
+                    const WEAPON_IDS = ['sword', 'spear', 'whip', 'lightning', 'fire', 'ice', 'scythe', 'railcannon', 'thorns', 'trap'];
+                    const isWeaponCard = WEAPON_IDS.includes(data.id);
+                    const alreadyHasWeapon = this.player.equippedWeapons.includes(data.id) || (this.player.thirdSlotWeapon === data.id);
+
+                    if (isWeaponCard && !alreadyHasWeapon) {
+                        // 1. 주/부무기 슬롯이 아직 비어있는 경우 (2개 미만) -> 바로 획득
+                        if (this.player.equippedWeapons.length < 2) {
+                            this.player.equippedWeapons.push(data.id);
+                            let newLvl = 1;
+                            if (data.rarity === 'RARE') newLvl = 2;
+                            else if (data.rarity === 'EPIC') newLvl = 3;
+                            else if (data.rarity === 'LEGENDARY') newLvl = 4;
+                            this.player.weaponLevels[data.id] = newLvl;
+
+                            // 해금 상태 동적 반영
+                            if (data.id === 'spear') {
+                                this.player.weaponUnlocks.spear.tip = newLvl >= 2;
+                                this.player.weaponUnlocks.spear.range = newLvl >= 2;
+                                this.player.weaponUnlocks.spear.knockback = newLvl >= 3;
+                                this.player.weaponUnlocks.spear.wall = newLvl >= 4;
+                                this.player.weaponUnlocks.spear.multi = newLvl >= 5;
+                            } else if (data.id === 'whip') {
+                                this.player.weaponUnlocks.whip.haste = newLvl >= 2;
+                                this.player.weaponUnlocks.whip.range = newLvl >= 2;
+                                this.player.weaponUnlocks.whip.break = newLvl >= 3;
+                                this.player.weaponUnlocks.whip.shock = newLvl >= 4;
+                                this.player.weaponUnlocks.whip.multi = newLvl >= 5;
+                            }
+
+                            overlay.classList.add('hidden');
+                            this.player.updateWeaponType();
+                            this.updateHUD();
+                            this.triggerPowerUpVisuals(data);
+                            this.portals.forEach(p => p.active = true);
+                            Sound.play('powerup');
+                            return;
+                        }
+                        // 2. 주/부무기가 꽉 찼는데, 3슬롯 계약이 체결되었고 아직 보조 무기가 없는 경우 -> 자동 보조무기 장착
+                        else if (this.player.maxWeaponSlots === 3 && this.player.thirdSlotWeapon === null) {
+                            this.player.thirdSlotWeapon = data.id;
+                            let newLvl = 1;
+                            if (data.rarity === 'RARE') newLvl = 2;
+                            else if (data.rarity === 'EPIC') newLvl = 3;
+                            else if (data.rarity === 'LEGENDARY') newLvl = 4;
+                            this.player.weaponLevels[data.id] = newLvl;
+
+                            // 해금 상태 동적 반영
+                            if (data.id === 'spear') {
+                                this.player.weaponUnlocks.spear.tip = newLvl >= 2;
+                                this.player.weaponUnlocks.spear.range = newLvl >= 2;
+                                this.player.weaponUnlocks.spear.knockback = newLvl >= 3;
+                                this.player.weaponUnlocks.spear.wall = newLvl >= 4;
+                                this.player.weaponUnlocks.spear.multi = newLvl >= 5;
+                            } else if (data.id === 'whip') {
+                                this.player.weaponUnlocks.whip.haste = newLvl >= 2;
+                                this.player.weaponUnlocks.whip.range = newLvl >= 2;
+                                this.player.weaponUnlocks.whip.break = newLvl >= 3;
+                                this.player.weaponUnlocks.whip.shock = newLvl >= 4;
+                                this.player.weaponUnlocks.whip.multi = newLvl >= 5;
+                            }
+
+                            overlay.classList.add('hidden');
+                            this.player.updateWeaponType();
+                            this.updateHUD();
+                            this.triggerPowerUpVisuals(data);
+                            this.portals.forEach(p => p.active = true);
+                            Sound.play('powerup');
+                            return;
+                        }
+                        // 3. 슬롯이 완전히 부족하여 교체해야 하는 경우 -> 교체 팝업 노출
+                        else {
+                            // 카드 컨테이너와 액션 버튼 숨기고 교체 패널 활성화
+                            document.querySelector('.card-container').classList.add('hidden');
+                            const rActions = document.querySelector('.reward-actions');
+                            if (rActions) rActions.classList.add('hidden');
+
+                            const replacePanel = document.getElementById('reward-weapon-replace-panel');
+                            replacePanel.classList.remove('hidden');
+
+                            const slotsContainer = document.getElementById('replace-slots-container');
+                            slotsContainer.innerHTML = ''; // 초기화
+
+                            this.player.equippedWeapons.forEach(oldWpnId => {
+                                const btn = document.createElement('button');
+                                btn.className = 'replace-slot-btn';
+
+                                let wpnName = oldWpnId;
+                                if (oldWpnId === 'gun') wpnName = '기본 총 (Gun)';
+                                if (oldWpnId === 'sword') wpnName = '네온 검 (Sword)';
+                                if (oldWpnId === 'spear') wpnName = '네온 창 (Spear)';
+                                if (oldWpnId === 'whip') wpnName = '네온 채찍 (Whip)';
+                                if (oldWpnId === 'thorns') wpnName = '네온 가시 (Thorns)';
+                                if (oldWpnId === 'trap') wpnName = '네온 함정 (Trap)';
+                                if (oldWpnId === 'lightning') wpnName = '번개마법 (Lightning)';
+                                if (oldWpnId === 'fire') wpnName = '불마법 (Fire)';
+                                if (oldWpnId === 'ice') wpnName = '얼음마법 (Ice)';
+                                if (oldWpnId === 'scythe') wpnName = '사이버 낫 (Scythe)';
+                                if (oldWpnId === 'railcannon') wpnName = '레일 캐논 (Rail)';
+
+                                const lvl = this.player.weaponLevels[oldWpnId] || (oldWpnId === 'gun' ? 1 : 0);
+                                btn.innerText = `[${wpnName} (Lv.${lvl})] 버리고 교체`;
+
+                                btn.onclick = (event) => {
+                                    event.stopPropagation();
+
+                                    // 무기 리스트 교체
+                                    this.player.equippedWeapons = this.player.equippedWeapons.filter(w => w !== oldWpnId);
+                                    this.player.equippedWeapons.push(data.id);
+
+                                    if (oldWpnId !== 'gun') {
+                                        this.player.weaponLevels[oldWpnId] = 0;
+                                    }
+
+                                    // 획득 등급에 비례한 레벨 부여
+                                    let newLvl = 1;
+                                    if (data.rarity === 'RARE') newLvl = 2;
+                                    else if (data.rarity === 'EPIC') newLvl = 3;
+                                    else if (data.rarity === 'LEGENDARY') newLvl = 4;
+                                    this.player.weaponLevels[data.id] = newLvl;
+
+                                    // 해금 상태 동적 반영
+                                    if (data.id === 'spear') {
+                                        this.player.weaponUnlocks.spear.tip = newLvl >= 2;
+                                        this.player.weaponUnlocks.spear.range = newLvl >= 2;
+                                        this.player.weaponUnlocks.spear.knockback = newLvl >= 3;
+                                        this.player.weaponUnlocks.spear.wall = newLvl >= 4;
+                                        this.player.weaponUnlocks.spear.multi = newLvl >= 5;
+                                    } else if (data.id === 'whip') {
+                                        this.player.weaponUnlocks.whip.haste = newLvl >= 2;
+                                        this.player.weaponUnlocks.whip.range = newLvl >= 2;
+                                        this.player.weaponUnlocks.whip.break = newLvl >= 3;
+                                        this.player.weaponUnlocks.whip.shock = newLvl >= 4;
+                                        this.player.weaponUnlocks.whip.multi = newLvl >= 5;
+                                    }
+
+                                    overlay.classList.add('hidden');
+                                    replacePanel.classList.add('hidden');
+                                    document.querySelector('.card-container').classList.remove('hidden');
+                                    if (rActions) rActions.classList.remove('hidden');
+
+                                    this.player.updateWeaponType();
+                                    this.updateHUD();
+
+                                    this.triggerPowerUpVisuals(data);
+                                    this.portals.forEach(p => p.active = true);
+                                    Sound.play('powerup');
+                                };
+                                slotsContainer.appendChild(btn);
+                            });
+                            return; // 카드 기본 적용 방지
+                        }
+                    }
+
                     overlay.classList.add('hidden');
 
                     // 오버레이 스타일 원상 복구 (초기화)
@@ -5348,6 +6186,8 @@ class GameEngine {
             { id: 'lightning', title: '네온 번개마법 (Lightning)', icon: '⚡', desc: '마나를 소모해 적들 사이를 연쇄 전이하며 단체 감전 기절을 주는 벼락을 발사합니다.' },
             { id: 'fire', title: '네온 불마법 (Fire)', icon: '🔥', desc: '마나(MP)를 소모해 지속적인 화상을 주며 5중첩 시 연쇄 폭발을 일으키는 불꽃을 격발합니다.' },
             { id: 'ice', title: '네온 얼음마법 (Ice)', icon: '❄️', desc: '마나(MP)를 소모해 적을 동결 정지시키며 동결된 적 타격 시 3배 파쇄 피해를 입칩니다.' },
+            { id: 'scythe', title: '사이버 낫(Scythe) 장착', icon: '💀', desc: '전방에 큰 휩쓸기 궤적을 그리며 낫으로 벱니다. 맞은 적에게 부식 표식을 걸어 받는 피해를 영구히 늘립니다.' },
+            { id: 'railcannon', title: '레일 캐논(Rail Cannon) 장착', icon: '📡', desc: '짧은 충전 후 적과 장애물을 모두 꿰뚫어 버리는 강력한 관통 레이저 빔을 격발합니다.' },
             { id: 'multishot', title: '멀티샷 (Multi-Shot)', icon: '🏹', desc: '한 번 사격 시 부채꼴 형태로 다중 탄환이 뿜어져 나갑니다.' },
             { id: 'burst', title: '점사 (Burst Fire)', icon: '🔫', desc: '마우스 조준 방향으로 다다닥 연속 탄환을 연사합니다.' },
             { id: 'pierce', title: '관통 탄환 (Pierce)', icon: '💎', desc: '탄환이 몬스터에 맞고 소멸하지 않고 관통 횟수를 획득합니다.' },
@@ -5595,6 +6435,26 @@ class GameEngine {
                 }
                 break;
             }
+            case 'scythe': {
+                let lvl = this.player.weaponLevels.scythe || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `주무기에 광역 베기(낫)를 장착합니다. 적에게 피해 증폭 표식을 남깁니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `낫 베기 대미지가 +15% 상승하고 표식의 피해 배율이 추가 보강됩니다. (현재 레벨: ${lvl} -> ${nextLvl})`;
+                }
+                break;
+            }
+            case 'railcannon': {
+                let lvl = this.player.weaponLevels.railcannon || 0;
+                let nextLvl = Math.min(5, lvl + 1);
+                if (lvl === 0) {
+                    desc = `지형 관통 차징 빔(레일캐논)을 장착합니다. (현재 레벨: 0 -> 1)`;
+                } else {
+                    desc = `레일캐논 대미지가 +15% 상승하고 차징 시간이 단축됩니다. (현재 레벨: ${lvl} -> ${nextLvl})`;
+                }
+                break;
+            }
             case 'multishot':
                 // [3차 밸런싱] 추가 발사 탄환 수 최대 5발 ➔ 최대 2발로 축소 (Math.max(1, Math.floor(기존값 * 0.5)) 적용)
                 value = Math.max(1, Math.floor(Math.ceil((rarity === 'COMMON' ? 1 : (rarity === 'RARE' ? 2 : 3)) * (mult >= 2.0 ? 1.5 : 1.0)) * 0.5));
@@ -5740,6 +6600,7 @@ class GameEngine {
                 p.stamina = p.maxStamina;
                 break;
             case 'sword':
+                if (!p.equippedWeapons.includes('sword')) p.equippedWeapons.push('sword');
                 p.weaponLevels.sword = Math.min(5, (p.weaponLevels.sword || 0) + 1);
                 if (p.weaponLevels.sword === 5) {
                     this.showFloatingText("🪓 SWORD MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#b026ff');
@@ -5751,6 +6612,7 @@ class GameEngine {
                 p.updateWeaponType();
                 break;
             case 'spear':
+                if (!p.equippedWeapons.includes('spear')) p.equippedWeapons.push('spear');
                 p.weaponLevels.spear = Math.min(5, (p.weaponLevels.spear || 0) + 1);
                 if (p.weaponLevels.spear === 2) {
                     p.weaponUnlocks.spear.tip = true;
@@ -5771,6 +6633,7 @@ class GameEngine {
                 p.updateWeaponType();
                 break;
             case 'thorns':
+                if (!p.equippedWeapons.includes('thorns')) p.equippedWeapons.push('thorns');
                 p.weaponLevels.thorns = Math.min(5, (p.weaponLevels.thorns || 0) + 1);
                 if (p.weaponLevels.thorns === 5) {
                     this.showFloatingText("🌵 THORNS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ff00aa');
@@ -5781,6 +6644,7 @@ class GameEngine {
                 }
                 break;
             case 'whip':
+                if (!p.equippedWeapons.includes('whip')) p.equippedWeapons.push('whip');
                 p.weaponLevels.whip = Math.min(5, (p.weaponLevels.whip || 0) + 1);
                 if (p.weaponLevels.whip === 2) {
                     p.weaponUnlocks.whip.haste = true;
@@ -5801,6 +6665,7 @@ class GameEngine {
                 p.updateWeaponType();
                 break;
             case 'trap':
+                if (!p.equippedWeapons.includes('trap')) p.equippedWeapons.push('trap');
                 p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
                 if (p.weaponLevels.trap === 5) {
                     this.showFloatingText("💣 TRAPS MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
@@ -5811,6 +6676,7 @@ class GameEngine {
                 }
                 break;
             case 'lightning':
+                if (!p.equippedWeapons.includes('lightning')) p.equippedWeapons.push('lightning');
                 p.weaponLevels.lightning = Math.min(5, (p.weaponLevels.lightning || 0) + 1);
                 if (p.weaponLevels.lightning === 5) {
                     this.showFloatingText("⚡ LIGHTNING MAGIC MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ffdf00');
@@ -5820,6 +6686,7 @@ class GameEngine {
                 p.updateWeaponType();
                 break;
             case 'fire':
+                if (!p.equippedWeapons.includes('fire')) p.equippedWeapons.push('fire');
                 if (p.weaponType === 'icefiredance') {
                     p.iceFireProjectilesStack++;
                     this.showFloatingText("EVOLUTION UPGRADE: +2 PROJ! 🌀", p.x, p.y - 30, '#ff5e00');
@@ -5835,6 +6702,7 @@ class GameEngine {
                 }
                 break;
             case 'ice':
+                if (!p.equippedWeapons.includes('ice')) p.equippedWeapons.push('ice');
                 if (p.weaponType === 'icefiredance') {
                     p.iceFireProjectilesStack++;
                     this.showFloatingText("EVOLUTION UPGRADE: +2 PROJ! 🌀", p.x, p.y - 30, '#00f0ff');
@@ -5848,6 +6716,30 @@ class GameEngine {
                     }
                     p.updateWeaponType();
                 }
+                break;
+            case 'scythe':
+                if (!p.equippedWeapons.includes('scythe')) p.equippedWeapons.push('scythe');
+                p.weaponLevels.scythe = Math.min(5, (p.weaponLevels.scythe || 0) + 1);
+                if (p.weaponLevels.scythe === 5) {
+                    this.showFloatingText("💀 SCYTHE MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#ba55d3');
+                } else if (p.weaponLevels.scythe > 1) {
+                    this.showFloatingText(`💀 SCYTHE UPGRADED! (Lv.${p.weaponLevels.scythe}) 💀`, p.x, p.y - 30, '#ba55d3');
+                } else {
+                    this.showFloatingText("REAPER SCYTHE UNLOCKED 💀", p.x, p.y - 30, '#ba55d3');
+                }
+                p.updateWeaponType();
+                break;
+            case 'railcannon':
+                if (!p.equippedWeapons.includes('railcannon')) p.equippedWeapons.push('railcannon');
+                p.weaponLevels.railcannon = Math.min(5, (p.weaponLevels.railcannon || 0) + 1);
+                if (p.weaponLevels.railcannon === 5) {
+                    this.showFloatingText("📡 RAIL CANNON MASTERED! (Lv.5) 👑", p.x, p.y - 30, '#00f0ff');
+                } else if (p.weaponLevels.railcannon > 1) {
+                    this.showFloatingText(`📡 RAIL CANNON UPGRADED! (Lv.${p.weaponLevels.railcannon}) 📡`, p.x, p.y - 30, '#00f0ff');
+                } else {
+                    this.showFloatingText("RAIL CANNON UNLOCKED 📡", p.x, p.y - 30, '#00f0ff');
+                }
+                p.updateWeaponType();
                 break;
             case 'multishot':
                 p.multishot = Math.min(16, p.multishot + card.effectValue);
@@ -6079,18 +6971,23 @@ class GameEngine {
     }
 
     triggerGameClear() {
-        // [v0.95] 100층 돌파 최종 대성공 극상 연출 (무지개 파편 은하수 및 3연속 victory 팡파르)
+        // [v0.95] 100층/101층 돌파 최종 대성공 극상 연출 (무지개 파편 은하수 및 3연속 victory 팡파르)
         if (this.gameClearActive) return;
         this.gameClearActive = true;
         this.clearSavedGame();
+
+        const isTrueEnding = (this.roomNum === 101);
 
         // 청아한 승리 3연음 아르페지오 팡파르 재생
         Sound.play('victory');
         setTimeout(() => Sound.play('victory'), 600);
         setTimeout(() => Sound.play('victory'), 1200);
 
-        // 100개의 찬란한 무지개빛 은하수 네온 파티클 사방 폭사 물리
-        const rainbowColors = ['#ff0055', '#00f0ff', '#b026ff', '#39ff14', '#ffdf00', '#ff5e00'];
+        // 100개의 찬란한 은하수 네온 파티클 사방 폭사 물리 (진 엔딩일 시 마젠타/시안 색조 위주 글리치 스타일)
+        const rainbowColors = isTrueEnding 
+            ? ['#ff00ff', '#00ffff', '#d900ff', '#00f0ff', '#ff00aa', '#00ffd5']
+            : ['#ff0055', '#00f0ff', '#b026ff', '#39ff14', '#ffdf00', '#ff5e00'];
+            
         for (let i = 0; i < 100; i++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 8 + 3; // 폭발적 기하 속도
@@ -6108,25 +7005,80 @@ class GameEngine {
         // 화면 극대 대진동
         this.shakeScreen(90, 8);
 
-        // 1.5초간 화려한 축제 연출이 가동된 뒤, 자연스럽게 통계 오버레이를 열고 루프 정지
+        // 1.5초간 화려한 축제 연출이 가동된 뒤, 대화창 연출을 재생하고 그 완료 시점에 통계 오버레이를 열고 루프 정지
         setTimeout(() => {
-            this.isPlaying = false;
-
-            document.getElementById('result-title').innerText = "VICTORY ESCAPE!";
-            document.getElementById('result-title').className = "text-glow-green";
-            document.getElementById('result-message').innerText = "100개의 미로 방을 돌파하고 네온의 던전을 무사히 탈출했습니다!";
-
-            this.populateResultOverlay();
+            if (isTrueEnding) {
+                // 진 엔딩 대화 상자 재생
+                const dialogueLines = [
+                    "최종 연산 코어 '크로노스 리얼 마스터' 파괴 확인.",
+                    "서브시스템 동기화가 중단되었으며, 콜로세움 코어 엔진의 제어권이 탈환되었습니다.",
+                    "경고: 가상 경계벽 붕괴 진행 중... 모든 갇힌 기억들이 현실의 세계로 방류됩니다.",
+                    "축하합니다. 당신은 거짓된 루프를 끊어내고 진짜 세계의 해방을 쟁취하였습니다!"
+                ];
+                this.showDialogue("SYSTEM", dialogueLines, () => {
+                    this.isPlaying = false;
+                    
+                    const titleEl = document.getElementById('result-title');
+                    const msgEl = document.getElementById('result-message');
+                    const boxEl = document.querySelector('.result-box');
+                    
+                    if (titleEl) {
+                        titleEl.innerText = "TRUE LIBERATION!";
+                        titleEl.className = "text-glow-magenta";
+                    }
+                    if (msgEl) {
+                        msgEl.innerText = "진정한 지배자를 격파하고, 시스템의 거짓된 굴레에서 완전히 벗어났습니다!";
+                    }
+                    if (boxEl) {
+                        boxEl.style.borderColor = '#ff00aa';
+                        boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 45px rgba(255, 0, 170, 0.65)';
+                    }
+                    
+                    this.populateResultOverlay();
+                });
+            } else {
+                // 노멀 엔딩 대화 상자 재생
+                const dialogueLines = [
+                    "차원 탈출 포털이 가동되었습니다. 물리적 형체가 네온 콜로세움에서 이탈합니다...",
+                    "경고: 잔류 기억의 완전한 포맷 프로세스가 시작됩니다.",
+                    "기억은 말끔히 포맷되었습니다. 당신은 다시 1층에서 깨어나 이 굴레를 반복할 것입니다..."
+                ];
+                this.showDialogue("SYSTEM", dialogueLines, () => {
+                    this.isPlaying = false;
+                    
+                    const titleEl = document.getElementById('result-title');
+                    const msgEl = document.getElementById('result-message');
+                    const boxEl = document.querySelector('.result-box');
+                    
+                    if (titleEl) {
+                        titleEl.innerText = "NORMAL ENDING";
+                        titleEl.className = "text-glow-blue";
+                    }
+                    if (msgEl) {
+                        msgEl.innerText = "네온 콜로세움을 탈출했지만 기억은 소멸되었고, 루프는 재시작됩니다.";
+                    }
+                    if (boxEl) {
+                        boxEl.style.borderColor = '#00f0ff';
+                        boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.35)';
+                    }
+                    
+                    this.populateResultOverlay();
+                });
+            }
         }, 1500);
     }
 
     // 모달창 최종 통계 수치 기입
     populateResultOverlay() {
         // 이번 판에서 획득한 기억의 조각 계산 및 가산
-        let gainedFragments = Math.floor(Math.min(100, this.roomNum) * 0.1 + this.score * 0.0005);
+        let maxRoomLimit = this.roomNum >= 101 ? 101 : 100;
+        let gainedFragments = Math.floor(Math.min(maxRoomLimit, this.roomNum) * 0.1 + this.score * 0.0005);
+        if (this.roomNum === 101) {
+            gainedFragments += 10; // 진 엔딩 기념 보너스 조각
+        }
         this.addMemoryFragments(gainedFragments);
 
-        document.getElementById('res-room').innerText = `${Math.min(100, this.roomNum)} / 100`;
+        document.getElementById('res-room').innerText = `${this.roomNum} / ${maxRoomLimit}`;
         document.getElementById('res-score').innerText = this.score;
         document.getElementById('res-kills').innerText = this.kills;
         document.getElementById('res-gained-fragments').innerText = gainedFragments;
@@ -6468,7 +7420,13 @@ class GameEngine {
         // 방 벽 테두리 네온 사각형 그리기 (50px wallMargin 경계선에 정렬)
         this.ctx.beginPath();
         this.ctx.rect(48, 48, this.mapWidth - 96, this.mapHeight - 96);
-        this.ctx.strokeStyle = this.timeDilationActive ? 'rgba(176, 38, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+        let borderOuterStroke = 'rgba(255, 255, 255, 0.05)';
+        if (this.roomNum === 101) {
+            borderOuterStroke = `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`;
+        } else if (this.timeDilationActive) {
+            borderOuterStroke = 'rgba(176, 38, 255, 0.15)';
+        }
+        this.ctx.strokeStyle = borderOuterStroke;
         this.ctx.lineWidth = 4;
         this.ctx.stroke();
 
@@ -6478,8 +7436,24 @@ class GameEngine {
         this.ctx.fill();
 
         // 시간 왜곡 시 벽 테두리가 보랏빛 네온으로 맥박치며 번쩍임
+        // 101층(에러 섹터)일 경우 마젠타 글리치 효과 연출
         let wallStrokeColor = 'rgba(0, 240, 255, 0.1)';
-        if (this.timeDilationActive) {
+        if (this.roomNum === 101) {
+            const glitchOffset = (Math.random() < 0.25) ? (Math.random() * 6 - 3) : 0;
+            const alpha = 0.4 + Math.random() * 0.5;
+            wallStrokeColor = `rgba(255, 0, 255, ${alpha})`;
+            
+            // 101층 마젠타 글리치 보조 라인 렌더링
+            if (Math.random() < 0.3) {
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.ctx.rect(48 + glitchOffset, 48 + glitchOffset, this.mapWidth - 96, this.mapHeight - 96);
+                this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.stroke();
+                this.ctx.restore();
+            }
+        } else if (this.timeDilationActive) {
             wallStrokeColor = `rgba(176, 38, 255, ${0.35 + Math.sin(Date.now() * 0.007) * 0.15})`;
         }
         this.ctx.strokeStyle = wallStrokeColor;
@@ -6972,13 +7946,30 @@ class GameEngine {
         document.getElementById('cheat-stamina').value = Math.ceil(p.stamina);
         document.getElementById('cheat-max-stamina').value = p.maxStamina;
 
-        // 2. 무기 유형 동기화
+        // 2. 무기 유형 동기화 및 무기 레벨 정보 표기 갱신
         const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
         wpnBtns.forEach(btn => {
-            if (btn.getAttribute('data-wpn') === p.weaponType) {
+            const wpn = btn.getAttribute('data-wpn');
+            if (wpn === p.weaponType) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
+            }
+
+            if (!btn.hasAttribute('data-original-label')) {
+                btn.setAttribute('data-original-label', btn.innerText.split(' [')[0]);
+            }
+            const baseLabel = btn.getAttribute('data-original-label');
+
+            if (wpn === 'gun') {
+                btn.innerText = `${baseLabel} [Lv.1]`;
+            } else if (wpn === 'dual' || wpn === 'icefiredance') {
+                btn.innerText = `${baseLabel}`;
+            } else if (wpn === 'time') {
+                btn.innerText = `${baseLabel} [${p.hasTimeWarp ? '해금' : '잠금'}]`;
+            } else if (p.weaponLevels[wpn] !== undefined) {
+                const lvl = p.weaponLevels[wpn] || 0;
+                btn.innerText = `${baseLabel} [Lv.${lvl}]`;
             }
         });
 
@@ -7172,6 +8163,108 @@ class GameEngine {
             this.warpStageCheat(stageVal);
         });
 
+        // 기억의 조각 치트
+        const addFrag10 = document.getElementById('cheat-add-fragment-10');
+        if (addFrag10) {
+            addFrag10.addEventListener('click', () => {
+                this.addMemoryFragments(10);
+                this.updateUpgradeShopUI();
+                this.showFloatingText("기억의 조각 +10 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+            });
+        }
+
+        const addFrag100 = document.getElementById('cheat-add-fragment-100');
+        if (addFrag100) {
+            addFrag100.addEventListener('click', () => {
+                this.addMemoryFragments(100);
+                this.updateUpgradeShopUI();
+                this.showFloatingText("기억의 조각 +100 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+            });
+        }
+
+        const resetFrag = document.getElementById('cheat-reset-fragment');
+        if (resetFrag) {
+            resetFrag.addEventListener('click', () => {
+                this.totalFragments = 0;
+                this.spentFragments = 0;
+                this.saveMemoryFragments();
+                this.updateUpgradeShopUI();
+                this.showFloatingText("기억의 조각 초기화 🔄", this.player.x, this.player.y - 40, '#ff0055');
+            });
+        }
+
+        // [신규] 히든 아이템 치트 버튼 바인딩
+        const cheatJoystick = document.getElementById('cheat-hidden-joystick');
+        if (cheatJoystick) {
+            cheatJoystick.addEventListener('click', () => {
+                this.acquireHiddenItem('brokenJoystick');
+            });
+        }
+        const cheatRepairKit = document.getElementById('cheat-hidden-repairkit');
+        if (cheatRepairKit) {
+            cheatRepairKit.addEventListener('click', () => {
+                this.acquireHiddenItem('repairKit');
+            });
+        }
+        const cheatManual = document.getElementById('cheat-hidden-manual');
+        if (cheatManual) {
+            cheatManual.addEventListener('click', () => {
+                this.acquireHiddenItem('manual');
+            });
+        }
+
+        // 3슬롯 계약 강제 해금
+        const unlock3SlotBtn = document.getElementById('cheat-unlock-3slot-btn');
+        if (unlock3SlotBtn) {
+            unlock3SlotBtn.addEventListener('click', () => {
+                this.player.maxWeaponSlots = 3;
+                this.player.thirdSlotWeapon = null;
+                this.showFloatingText("3슬롯 계약 강제 해금! 🔮", this.player.x, this.player.y - 40, '#b026ff');
+            });
+        }
+
+        // 무기 목록 전체 리셋
+        const resetWeaponsFn = () => {
+            this.player.equippedWeapons = ['gun'];
+            this.player.thirdSlotWeapon = null;
+            this.player.weaponLevels = {
+                sword: 0,
+                spear: 0,
+                whip: 0,
+                lightning: 0,
+                fire: 0,
+                ice: 0,
+                thorns: 0,
+                trap: 0,
+                scythe: 0,
+                railcannon: 0
+            };
+            this.player.updateWeaponType();
+            this.updateHUD();
+            this.syncCheatUIFromPlayer(); // 치트 레벨 표기 실시간 초기화 갱신
+            this.showFloatingText("무기 목록 전체 리셋 🔄", this.player.x, this.player.y - 40, '#ff0055');
+        };
+
+        const resetWeaponsBtn = document.getElementById('cheat-reset-weapons-btn');
+        if (resetWeaponsBtn) {
+            resetWeaponsBtn.addEventListener('click', resetWeaponsFn);
+        }
+
+        const resetWeaponsTabBtn = document.getElementById('cheat-reset-weapons-tab-btn');
+        if (resetWeaponsTabBtn) {
+            resetWeaponsTabBtn.addEventListener('click', resetWeaponsFn);
+        }
+
+        // 보상 선택 즉시 소환 치트 바인딩
+        const spawnRewardBtn = document.getElementById('cheat-spawn-reward');
+        if (spawnRewardBtn) {
+            spawnRewardBtn.addEventListener('click', () => {
+                this.triggerRewardSelector(true);
+                this.toggleCheatMenu(); // 치트 메뉴 닫기
+                this.showFloatingText("보상 선택 오버레이 즉시 호출 🎁", this.player.x, this.player.y - 40, '#00f0ff');
+            });
+        }
+
         // [신규] 커스텀 맵 로더 이벤트 핸들러 바인딩
         const mapFileInput = document.getElementById('cheat-map-file-input');
         const mapFileBtn = document.getElementById('cheat-map-file-btn');
@@ -7273,6 +8366,108 @@ class GameEngine {
         }
     }
 
+    // [신규 추가] 바이츠의 영구 업그레이드 상점 이벤트 리스너 바인딩
+    initUpgradeShopEvents() {
+        const lobbyBtn = document.getElementById('lobby-upgrade-btn');
+        const shopOverlay = document.getElementById('upgrade-shop-overlay');
+        const closeBtn = document.getElementById('upgrade-shop-close-btn');
+        const resetBtn = document.getElementById('upgrade-reset-btn');
+
+        if (lobbyBtn && shopOverlay) {
+            lobbyBtn.addEventListener('click', () => {
+                this.updateUpgradeShopUI();
+                shopOverlay.classList.remove('hidden');
+                const startOverlay = document.getElementById('start-overlay');
+                if (startOverlay) startOverlay.classList.add('hidden');
+            });
+        }
+
+        if (closeBtn && shopOverlay) {
+            closeBtn.addEventListener('click', () => {
+                shopOverlay.classList.add('hidden');
+                const startOverlay = document.getElementById('start-overlay');
+                if (startOverlay) startOverlay.classList.remove('hidden');
+            });
+        }
+
+        const upgradeButtons = document.querySelectorAll('.upgrade-btn');
+        upgradeButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const stat = btn.getAttribute('data-stat');
+                this.buyBitesUpgrade(stat);
+            });
+        });
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetBitesUpgrades();
+            });
+        }
+    }
+
+    updateUpgradeShopUI() {
+        this.loadMemoryFragments();
+
+        const totalEl = document.getElementById('shop-total-fragments');
+        const spentEl = document.getElementById('shop-spent-fragments');
+        const unusedEl = document.getElementById('shop-unused-fragments');
+
+        if (totalEl) totalEl.innerText = this.totalFragments;
+        if (spentEl) spentEl.innerText = this.spentFragments;
+        if (unusedEl) unusedEl.innerText = this.unusedFragments;
+
+        const stats = ['atk', 'ms', 'aspd', 'hp', 'mp'];
+        stats.forEach(stat => {
+            const lvl = parseInt(localStorage.getItem(`neon_upgrade_${stat}`)) || 0;
+            const lbl = document.getElementById(`lbl-upgrade-${stat}`);
+            if (lbl) {
+                lbl.innerText = `${lvl} / 5`;
+            }
+        });
+    }
+
+    buyBitesUpgrade(stat) {
+        this.loadMemoryFragments();
+        const lvlKey = `neon_upgrade_${stat}`;
+        const currentLvl = parseInt(localStorage.getItem(lvlKey)) || 0;
+
+        if (currentLvl >= 5) {
+            this.showFloatingText("이미 최대 개조 단계입니다! 🚫", this.player.x, this.player.y - 20, '#ff0055');
+            return;
+        }
+
+        if (this.unusedFragments < 1) {
+            this.showFloatingText("미사용 기억의 조각이 부족합니다! 🧩", this.player.x, this.player.y - 20, '#ff0055');
+            return;
+        }
+
+        localStorage.setItem(lvlKey, currentLvl + 1);
+        this.spentFragments += 1;
+        this.unusedFragments = Math.max(0, this.totalFragments - this.spentFragments);
+        this.saveMemoryFragments();
+
+        this.updateUpgradeShopUI();
+        Sound.play('powerup');
+        this.showFloatingText("개조 성공! ⚡", this.player.x, this.player.y - 30, '#39ff14');
+        this.player.loadBitesUpgrades();
+    }
+
+    resetBitesUpgrades() {
+        const stats = ['atk', 'ms', 'aspd', 'hp', 'mp'];
+        stats.forEach(stat => {
+            localStorage.setItem(`neon_upgrade_${stat}`, 0);
+        });
+
+        this.spentFragments = 0;
+        this.unusedFragments = this.totalFragments;
+        this.saveMemoryFragments();
+
+        this.updateUpgradeShopUI();
+        Sound.play('explosion');
+        this.showFloatingText("기억 복원 완료! 🔄", this.player.x, this.player.y - 30, '#ffdf00');
+        this.player.loadBitesUpgrades();
+    }
+
     // [신규 추가] 시스템 옵션 모달 조작 이벤트 리스너 바인딩
     initOptionEvents() {
         // 상단 HUD OPTION 버튼 클릭 시 옵션 토글
@@ -7372,8 +8567,8 @@ class GameEngine {
 
     applyGlitchFilter(text) {
         const unused = this.unusedFragments !== undefined ? this.unusedFragments : 0;
-        if (unused >= 7) return text; // 3단계: 완전 복원
-        let noiseRate = unused >= 3 ? 0.15 : 0.45; // 2단계 vs 1단계
+        if (unused >= 10) return text; // 3단계: 완전 복원
+        let noiseRate = unused >= 5 ? 0.15 : 0.45; // 2단계 vs 1단계
         return text.split('').map(char => {
             if (char !== ' ' && char !== '\n' && Math.random() < noiseRate) {
                 const noiseChars = ['@', '#', '$', '%', '&', '*', '_', '!', '?'];
@@ -8006,57 +9201,74 @@ class GameEngine {
     applyWeaponCheat(wpnType) {
         const p = this.player;
 
-        // 무기 레벨 초기화
-        p.weaponLevels = {
-            sword: 0,
-            spear: 0,
-            whip: 0,
-            lightning: 0,
-            fire: 0,
-            ice: 0,
-            thorns: 0,
-            trap: 0
-        };
-
         if (wpnType === 'dual') {
-            // 하이브리드는 모든 무기를 5레벨로 활성화하여 테스트 가능하게 함
-            p.weaponLevels.sword = 5;
-            p.weaponLevels.spear = 5;
-            p.weaponLevels.whip = 5;
-            p.weaponLevels.lightning = 5;
-            p.weaponLevels.fire = 5;
-            p.weaponLevels.ice = 5;
-            p.weaponLevels.thorns = 5;
-            p.weaponLevels.trap = 5;
+            p.weaponLevels.sword = Math.min(5, (p.weaponLevels.sword || 0) + 1);
+            if (!p.equippedWeapons.includes('sword')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('sword');
+            }
+            if (!p.equippedWeapons.includes('gun')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('gun');
+            }
         } else if (wpnType === 'icefiredance') {
-            // 아앤파 초월은 불과 얼음 5레벨 활성화
-            p.weaponLevels.fire = 5;
-            p.weaponLevels.ice = 5;
+            p.weaponLevels.fire = Math.min(5, (p.weaponLevels.fire || 0) + 1);
+            p.weaponLevels.ice = Math.min(5, (p.weaponLevels.ice || 0) + 1);
+            if (!p.equippedWeapons.includes('fire')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('fire');
+            }
+            if (!p.equippedWeapons.includes('ice')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('ice');
+            }
         } else if (wpnType === 'thorns') {
-            p.weaponLevels.thorns = 5;
-            this.showFloatingText("THORNS ENABLED 🌵", p.x, p.y - 40, '#ff00aa');
-            return;
+            p.weaponLevels.thorns = Math.min(5, (p.weaponLevels.thorns || 0) + 1);
+            if (!p.equippedWeapons.includes('thorns')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('thorns');
+            }
+            this.showFloatingText(`THORNS LEVEL UP: Lv.${p.weaponLevels.thorns} 🌵`, p.x, p.y - 40, '#ff00aa');
         } else if (wpnType === 'trap') {
-            p.weaponLevels.trap = 5;
-            this.showFloatingText("TRAPS ENABLED 💣", p.x, p.y - 40, '#ffdf00');
-            return;
+            p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
+            if (!p.equippedWeapons.includes('trap')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
+                p.equippedWeapons.push('trap');
+            }
+            this.showFloatingText(`TRAP LEVEL UP: Lv.${p.weaponLevels.trap} 💣`, p.x, p.y - 40, '#ffdf00');
         } else if (wpnType === 'time') {
             p.hasTimeWarp = true;
             this.showFloatingText("TIME WARP ENABLED ⏳", p.x, p.y - 40, '#00ff66');
-            return;
         } else if (wpnType === 'gun') {
-            // 기본 총
+            if (!p.equippedWeapons.includes('gun')) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) {
+                    p.equippedWeapons.shift();
+                }
+                p.equippedWeapons.push('gun');
+            }
         } else {
             // 개별 무기
             if (p.weaponLevels.hasOwnProperty(wpnType)) {
-                p.weaponLevels[wpnType] = 5;
+                p.weaponLevels[wpnType] = Math.min(5, (p.weaponLevels[wpnType] || 0) + 1);
+            }
+            if (!p.equippedWeapons.includes(wpnType)) {
+                if (p.equippedWeapons.length >= p.maxWeaponSlots) {
+                    p.equippedWeapons.shift();
+                }
+                p.equippedWeapons.push(wpnType);
             }
         }
 
         p.weaponType = wpnType;
         p.updateWeaponType();
         this.updateHUD();
-        this.showFloatingText(`WEAPON CHANGED: ${wpnType.toUpperCase()}`, p.x, p.y - 40, '#00f0ff');
+        this.syncCheatUIFromPlayer(); // 치트 창 텍스트 갱신
+
+        let lvlText = "";
+        if (wpnType !== 'gun' && wpnType !== 'time' && p.weaponLevels[wpnType] !== undefined) {
+            lvlText = ` (Lv.${p.weaponLevels[wpnType]})`;
+        }
+        this.showFloatingText(`WEAPON UPGRADED: ${wpnType.toUpperCase()}${lvlText}`, p.x, p.y - 40, '#39ff14');
     }
 
     // 장비 레벨 실시간 스탯 누적 변경 보정

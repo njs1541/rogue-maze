@@ -79,6 +79,8 @@
                         style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25);">🏆 리더보드</button>
                     <a href="map_editor.html" target="_blank" class="neon-btn"
                         style="text-decoration: none; display: flex; align-items: center; justify-content: center; border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">🛠️ 맵 에디터</a>
+                    <button id="lobby-upgrade-btn" class="neon-btn"
+                        style="border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25);">💾 슈트 개조 (바이츠 상점)</button>
                 </div>
             </div>
 
@@ -164,6 +166,13 @@
                     style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲 다시 굴리기 (0)</button>
                 <button id="skip-btn" class="neon-btn"
                     style="border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️ 건너뛰기 (0)</button>
+            </div>
+            <!-- [신규] 무기 슬롯 초과 시 어떤 무기와 바꿀지 고르는 교체 UI 영역 -->
+            <div id="reward-weapon-replace-panel" class="hidden" style="margin-top: 20px; text-align: center; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 15px;">
+                <p style="color: #ff0055; font-size: 0.9rem; font-weight: bold; margin-bottom: 10px;" class="text-glow-red">⚠️ 무기 소지 한도를 초과했습니다! 교체할 기존 무기 슬롯을 선택하세요:</p>
+                <div id="replace-slots-container" style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px;">
+                    <!-- JS에서 동적으로 슬롯 버튼 바인딩 -->
+                </div>
             </div>
         </div>
 
@@ -347,6 +356,97 @@
             </div>
         </div>
 
+        <!-- [신규 추가] 바이츠의 영구 업그레이드 상점 모달 레이어 -->
+        <div id="upgrade-shop-overlay" class="overlay-panel hidden" style="z-index: 100;">
+            <div class="option-container" style="max-width: 600px;">
+                <h2 class="option-title text-glow-green" style="color: #39ff14;">💾 BYTES UPGRADE SHOP (슈트 개조)</h2>
+                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: -15px; margin-bottom: 15px;">사망/클리어 시 획득한 기억의 조각을 사용하여 슈트 성능을 영구 개조합니다.</p>
+
+                <!-- 기억의 조각 현황 정보 -->
+                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; background: rgba(0, 0, 0, 0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(57, 255, 20, 0.25);">
+                    <div style="text-align: center; flex: 1;">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">기억의 조각 총량</div>
+                        <div id="shop-total-fragments" class="text-glow-yellow" style="font-size: 1.3rem; font-weight: 800; color: #ffdf00;">0</div>
+                    </div>
+                    <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255, 255, 255, 0.08); border-right: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">사용한 조각 (성능)</div>
+                        <div id="shop-spent-fragments" class="text-glow-red" style="font-size: 1.3rem; font-weight: 800; color: #ff0055;">0</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="font-size: 0.75rem; color: #718096; text-transform: uppercase;">미사용 조각 (기억 잔상)</div>
+                        <div id="shop-unused-fragments" class="text-glow-cyan" style="font-size: 1.3rem; font-weight: 800; color: #00f0ff;">0</div>
+                    </div>
+                </div>
+
+                <div class="option-content" style="max-height: 320px; overflow-y: auto; padding-right: 5px;">
+                    <!-- 공격력 업그레이드 -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:white; margin:0;">⚔️ 슈트 연산 오버클럭 (ATK +3)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">기본 물리 공격력을 영구히 +3 증가시킵니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-atk" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="atk" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+
+                    <!-- 이동속도 업그레이드 -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:white; margin:0;">🏃 기동 서브모터 개조 (MOV +0.15)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">기본 이동 속도를 영구히 +0.15 증가시킵니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-ms" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="ms" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+
+                    <!-- 공격속도 업그레이드 -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:white; margin:0;">⚡ 신경 전도 제어기 (ASPD +0.05)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">기본 공격 및 연사 속도를 영구히 +0.05배 증가시킵니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-aspd" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="aspd" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+
+                    <!-- 최대체력 업그레이드 -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:white; margin:0;">❤️ 메모리 아머 강화 (Max HP +15)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">최대 체력을 영구히 +15 확장합니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-hp" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="hp" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+
+                    <!-- 최대마력 업그레이드 -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:white; margin:0;">🔮 마나 보조 셀 개조 (Max MP +15)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">최대 마력량(MP)을 영구히 +15 확장합니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-mp" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="mp" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="option-actions" style="margin-top: 15px;">
+                    <button id="upgrade-reset-btn" class="neon-btn danger" style="border-color:#ff0055; color:#ff0055; margin:0;">🔄 기억 복원 (개조 초기화)</button>
+                    <button id="upgrade-shop-close-btn" class="neon-btn" style="margin:0;">닫기 (Return)</button>
+                </div>
+            </div>
+        </div>
+
         <!-- [신규 추가] 시스템 옵션 모달 레이어 (일시정지 및 볼륨/재시작 연동) -->
         <div id="option-overlay" class="overlay-panel hidden">
             <div class="option-container">
@@ -485,12 +585,23 @@
                         </div>
                         <button id="cheat-apply-stats" class="neon-btn font-small"
                             style="margin-top: 15px; border-color: #00f0ff; color: #00f0ff;">스탯 일괄 적용</button>
+                        <div style="margin-top: 15px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 12px; text-align: left;">
+                            <label style="color: var(--neon-cyan); font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 8px;">🧩 기억의 조각 치트</label>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="cheat-add-fragment-10" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 6px 12px;">+10개 획득</button>
+                                <button id="cheat-add-fragment-100" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 6px 12px;">+100개 획득</button>
+                                <button id="cheat-reset-fragment" class="neon-btn font-small danger" style="margin: 0; border-color: #ff0055; color: #ff0055; padding: 6px 12px;">조각 초기화 (0)</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 탭 2: 무기/투사체 -->
                     <div id="cheat-tab-weapons" class="cheat-tab-content">
                         <div class="cheat-weapon-section">
-                            <span class="section-title">주무기 유형 변경</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span class="section-title" style="margin: 0;">주무기 유형 변경 (누를 때마다 +1 레벨)</span>
+                                <button id="cheat-reset-weapons-tab-btn" class="cheat-action-btn danger" style="margin: 0; padding: 4px 10px; font-size: 0.78rem; border-color: #ff0055; color: #ff0055; background: rgba(255, 0, 85, 0.08);">🔄 무기 전체 초기화</button>
+                            </div>
                             <div class="cheat-btn-group">
                                 <button class="cheat-wpn-btn" data-wpn="gun">🔫 총 (Gun)</button>
                                 <button class="cheat-wpn-btn" data-wpn="sword">🪓 검 (Sword)</button>
@@ -509,6 +620,8 @@
                                 <button class="cheat-wpn-btn" data-wpn="thorns">🌵 가시 (Thorns)</button>
                                 <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
                                 <button class="cheat-wpn-btn" data-wpn="trap">💣 함정 (Trap)</button>
+                                <button class="cheat-wpn-btn" data-wpn="scythe" style="border-color:#b026ff; color:#b026ff;">💀 낫 (Scythe)</button>
+                                <button class="cheat-wpn-btn" data-wpn="railcannon" style="border-color:#00f0ff; color:#00f0ff;">📡 레일 (Rail)</button>
                             </div>
                         </div>
 
@@ -556,6 +669,8 @@
                                 <button id="cheat-whip-btn" class="cheat-action-btn">🧣 채찍 속성 즉시 부여</button>
                                 <button id="cheat-trap-btn" class="cheat-action-btn">💣 지뢰/레이저 함정 활성화</button>
                                 <button id="cheat-thorns-btn" class="cheat-action-btn">🌵 가시 피해 반사 오라 부여</button>
+                                <button id="cheat-unlock-3slot-btn" class="cheat-action-btn" style="border-color:#b026ff; color:#b026ff; background:rgba(176,38,255,0.08);">3슬롯 강제 계약 해금</button>
+                                <button id="cheat-reset-weapons-btn" class="cheat-action-btn" style="border-color:#ff0055; color:#ff0055; background:rgba(255,0,85,0.08);">무기 목록 전체 리셋</button>
                             </div>
                         </div>
                         <button id="cheat-apply-weapons" class="neon-btn font-small"
@@ -688,12 +803,28 @@
                                         style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁
                                         보상 선택 즉시 소환</button>
                                     <div class="cheat-warp-group" style="flex: 1.2; display: flex; gap: 5px;">
-                                        <input type="number" id="cheat-warp-stage-input" min="1" max="99" value="1"
+                                        <input type="number" id="cheat-warp-stage-input" min="1" max="100" value="1"
                                             style="width: 60px; text-align: center;">
                                         <button id="cheat-warp-stage-btn" class="cheat-action-btn"
                                             style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0; flex: 1;">🌀
                                             스테이지 워프</button>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- [신규] 히든 아이템 획득 치트 버튼 -->
+                            <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                                <span class="card-label">🕹️ 히든 아이템 (해방의 컨트롤러)</span>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+                                    <button id="cheat-hidden-joystick" class="cheat-action-btn"
+                                        style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1; font-size: 0.8rem;">🕹️
+                                        Broken Joystick</button>
+                                    <button id="cheat-hidden-repairkit" class="cheat-action-btn"
+                                        style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #10b981; flex: 1; font-size: 0.8rem;">🔧
+                                        Repair Kit</button>
+                                    <button id="cheat-hidden-manual" class="cheat-action-btn"
+                                        style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; flex: 1; font-size: 0.8rem;">📖
+                                        Manual</button>
                                 </div>
                             </div>
                         </div>
@@ -938,11 +1069,11 @@
                 <div class="stat-column">
                     <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk"
                             class="stat-value">10</span></div>
-                    <div class="stat-row" title="공격 속도"><span class="stat-name">지능 (SPD)</span><span id="stat-aspd"
+                    <div class="stat-row" title="초당 공격 속도"><span class="stat-name">공속 (ASPD)</span><span id="stat-aspd"
                             class="stat-value">1.0</span></div>
                     <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms"
                             class="stat-value">3.0</span></div>
-                    <div class="stat-row" title="회피율"><span class="stat-name">민첩 (EVD)</span><span id="stat-evd"
+                    <div class="stat-row" title="회피율"><span class="stat-name">회피 (EVD)</span><span id="stat-evd"
                             class="stat-value">5%</span></div>
                     <div class="stat-row" title="방어력 및 대미지 감소율"><span class="stat-name">방어 (DEF)</span><span id="stat-def"
                             class="stat-value">0 (0%)</span></div>
@@ -956,16 +1087,20 @@
                             id="stat-range" class="stat-value">350px</span></div>
                     <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span
                             id="stat-pets" class="stat-value">0기</span></div>
+                    <div class="stat-row" title="장착 가능 무기 수량"><span class="stat-name">최대 슬롯 (SLT)</span><span
+                            id="stat-slots" class="stat-value">2개</span></div>
                 </div>
                 <div class="stat-column">
-                    <div class="stat-row" title="현재 장착 중인 무기 유형"><span class="stat-name">무기 (WPN)</span><span
+                    <div class="stat-row" title="현재 장착 중인 주/부무기 목록"><span class="stat-name">무기 (WPN)</span><span
                             id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
-                    <div class="stat-row" title="동시 사격수 / 연속 사격수"><span class="stat-name">탄환 / 연사</span><span
-                            id="stat-bullets" class="stat-value">1 / 1</span></div>
-                    <div class="stat-row" title="관통 / 유도 / 스플래시"><span class="stat-name">옵션 (P/H/S)</span><span
-                            id="stat-effects" class="stat-value">0 / X / X</span></div>
-                    <div class="stat-row" title="안전 경계 충돌 마찰력"><span class="stat-name">보안 (SEC)</span><span
-                            class="stat-value text-glow-green">안전</span></div>
+                    <div class="stat-row" title="3번째 보조 무기 슬롯 상태"><span class="stat-name">보조 (SUB)</span><span
+                            id="stat-sub" class="stat-value">없음</span></div>
+                    <div class="stat-row" title="보유 중인 미사용 기억의 조각"><span class="stat-name">미사용 조각 (FRG)</span><span
+                            id="stat-fragments" class="stat-value text-glow-yellow">0개</span></div>
+                    <div class="stat-row" title="미사용 조각 비례 텍스트 글리치 율"><span class="stat-name">글리치 율 (GLT)</span><span
+                            id="stat-glitch" class="stat-value">45%</span></div>
+                    <div class="stat-row" title="시스템 안전성 및 보안 지표"><span class="stat-name">보안 상태 (SEC)</span><span
+                            id="stat-security" class="stat-value text-glow-green">안전</span></div>
                 </div>
             </div>
         </footer>

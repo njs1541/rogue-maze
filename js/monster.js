@@ -433,6 +433,21 @@ class Monster {
                 this.glowColor = '#ff4444';
                 this.shootCooldown = 60;
                 break;
+            case 'boss_real_master': // 101층 진 최종 보스: 크로노스 리얼 마스터
+                this.radius = Math.ceil(48 * scaleRadius);
+                this.maxHp = Math.ceil((800 + roomNum * 35) * roomFactor * scaleHp);
+                this.atk = Math.ceil((35 + roomNum * 1.5) * roomFactor * scaleAtk);
+                this.speed = 1.4 + Math.min(0.6, roomNum * 0.005);
+                this.color = '#ff00aa';
+                this.glowColor = '#ff00aa';
+                this.phase = 1;
+                this.shootCooldown = 40;
+                this.teleportCooldown = 180;
+                this.isTanker = true; // 넉백 완전면제 상속
+                this.laserWarningTimer = 0;
+                this.laserActiveTimer = 0;
+                this.laserX = (window.gameEngine && window.gameEngine.mapWidth / 2) || 400;
+                break;
         }
 
         this.hp = this.maxHp;
@@ -1844,6 +1859,196 @@ class Monster {
                         Sound.play('shoot');
                     }
                     break;
+
+                case 'boss_real_master': // 101층 진 최종 보스: 크로노스 리얼 마스터
+                    {
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+                        let activeSpeed = this.speed * timeScale;
+                        
+                        if (this.teleportCooldown > 0) {
+                            this.teleportCooldown -= timeScale;
+                        }
+
+                        // 1페이즈 & 2페이즈 공통: 플레이어 추적 카이팅 기동
+                        let trackSpeed = isFrenzy ? activeSpeed * 1.3 : activeSpeed;
+                        if (dist > 120) {
+                            this.x += Math.cos(angle) * trackSpeed;
+                            this.y += Math.sin(angle) * trackSpeed;
+                        }
+
+                        // --- 1페이즈 패턴 (HP > 50%) ---
+                        if (!isFrenzy) {
+                            // 패턴 A: 2.5초마다 플레이어 조준 8방향 탄막 사격
+                            this.shootCooldown -= timeScale;
+                            if (this.shootCooldown <= 0) {
+                                this.shootCooldown = 150;
+                                for (let i = 0; i < 8; i++) {
+                                    let bAngle = (i * Math.PI / 4) + angle;
+                                    let vx = Math.cos(bAngle) * 3.0;
+                                    let vy = Math.sin(bAngle) * 3.0;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.65, false, {
+                                        color: '#ff00aa',
+                                        radius: 6
+                                    }));
+                                }
+                                Sound.play('shoot');
+                            }
+
+                            // 패턴 B: 3.5초마다 플레이어 배후로 텔레포트 및 횡단 참격
+                            if (this.teleportCooldown <= 0) {
+                                this.teleportCooldown = 210; // 3.5초 쿨다운
+                                
+                                // 플레이어 뒤쪽 위치 계산
+                                let tpDist = 150;
+                                let tpX = player.x - Math.cos(player.angle || 0) * tpDist;
+                                let tpY = player.y - Math.sin(player.angle || 0) * tpDist;
+                                
+                                // 이탈 방지 경계 체크
+                                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1320;
+                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+                                tpX = Math.max(80, Math.min(mapW - 80, tpX));
+                                tpY = Math.max(80, Math.min(mapH - 80, tpY));
+
+                                // 이전 위치에 파티클 스파크
+                                if (window.gameEngine) {
+                                    for (let i = 0; i < 20; i++) {
+                                        let pAngle = Math.random() * Math.PI * 2;
+                                        let pSpeed = Math.random() * 4 + 1;
+                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff00aa', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 30));
+                                    }
+                                }
+
+                                // 순간이동
+                                this.x = tpX;
+                                this.y = tpY;
+                                
+                                // 새 위치에 파티클 스파크
+                                if (window.gameEngine) {
+                                    for (let i = 0; i < 20; i++) {
+                                        let pAngle = Math.random() * Math.PI * 2;
+                                        let pSpeed = Math.random() * 4 + 1;
+                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff00aa', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 30));
+                                    }
+                                    window.gameEngine.showFloatingText("TELEPORT CLASH! 🌀", this.x, this.y - 35, '#ff00aa');
+                                }
+                                Sound.play('boss_alert');
+
+                                // 텔레포트 후 횡단 부채꼴 참격 5발 발사
+                                for (let i = -2; i <= 2; i++) {
+                                    let cAngle = Math.atan2(player.y - this.y, player.x - this.x) + (i * 0.15);
+                                    let vx = Math.cos(cAngle) * 4.0;
+                                    let vy = Math.sin(cAngle) * 4.0;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.8, false, {
+                                        color: '#ff00aa',
+                                        radius: 7
+                                    }));
+                                }
+                            }
+                        }
+                        // --- 2페이즈 패턴 (HP <= 50% - 폭주) ---
+                        else {
+                            this.boss_warningText = "🚨 HYPER OVERLOAD";
+
+                            // 패턴 C: 3초(180프레임)마다 온 스크린 파동 방출 및 강한 넉백
+                            if (this.boss_chaosWaveTimer === undefined) this.boss_chaosWaveTimer = 180;
+                            this.boss_chaosWaveTimer -= timeScale;
+                            if (this.boss_chaosWaveTimer <= 0) {
+                                this.boss_chaosWaveTimer = 180;
+                                if (window.gameEngine) {
+                                    for (let i = 0; i < 36; i++) {
+                                        let pAngle = (i * Math.PI / 18);
+                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff00aa', 3.5, Math.cos(pAngle) * 6, Math.sin(pAngle) * 6, 60, 'spark'));
+                                    }
+                                    window.gameEngine.shakeScreen(45, 5);
+                                    window.gameEngine.showFloatingText("GLITCH SHOCKWAVE! ⚡", this.x, this.y - 45, '#ff00aa');
+                                    Sound.play('explosion');
+                                    
+                                    let force = 12.0;
+                                    player.knockbackX = Math.cos(angle) * force;
+                                    player.knockbackY = Math.sin(angle) * force;
+                                    window.gameEngine.damagePlayer(this.atk * 0.5, this.x, this.y);
+                                }
+                            }
+
+                            // 패턴 D: 중앙 중력 블랙홀 지속 소환
+                            if (window.gameEngine) {
+                                let mapW = window.gameEngine.mapWidth;
+                                let mapH = window.gameEngine.mapHeight;
+                                let cx = mapW / 2;
+                                let cy = mapH / 2;
+                                let pl = window.gameEngine.player;
+                                let bdx = cx - pl.x;
+                                let bdy = cy - pl.y;
+                                let bdist = Math.hypot(bdx, bdy);
+                                if (bdist > 40) {
+                                    pl.x += (bdx / bdist) * 1.25 * timeScale;
+                                    pl.y += (bdy / bdist) * 1.25 * timeScale;
+                                    
+                                    if (Math.random() < 0.25) {
+                                        let rAngle = Math.random() * Math.PI * 2;
+                                        let rDist = Math.random() * 80 + 30;
+                                        window.gameEngine.particles.push(new Particle(cx + Math.cos(rAngle)*rDist, cy + Math.sin(rAngle)*rDist, '#ff00aa', 1.5, -Math.cos(rAngle)*2, -Math.sin(rAngle)*2, 20));
+                                    }
+                                }
+                            }
+
+                            // 패턴 E: 1.5초 간격 경고 후 파멸 Sweep 레이저 스윙
+                            if (this.laserWarningTimer <= 0 && this.laserActiveTimer <= 0) {
+                                this.laserWarningTimer = 60;
+                                this.laserX = player.x;
+                                Sound.play('boss_alert');
+                            }
+
+                            if (this.laserWarningTimer > 0) {
+                                this.laserWarningTimer -= timeScale;
+                                if (this.laserWarningTimer <= 0) {
+                                    this.laserActiveTimer = 35;
+                                    Sound.play('explosion');
+                                }
+                            }
+
+                            if (this.laserActiveTimer > 0) {
+                                this.laserActiveTimer -= timeScale;
+                                if (window.gameEngine) {
+                                    let mapH = window.gameEngine.mapHeight;
+                                    let pl = window.gameEngine.player;
+                                    if (Math.abs(pl.x - this.laserX) < 38 + pl.radius && pl.y > 40 && pl.y < mapH - 40) {
+                                        window.gameEngine.damagePlayer(this.atk * 0.08 * timeScale, this.x, this.y);
+                                    }
+                                }
+                            }
+
+                            if (this.laserWarningTimer > 0) {
+                                this.boss_warningText = "SWEEP LASER WARNING";
+                                this.boss_timerText = (this.laserWarningTimer / 60).toFixed(1) + "s";
+                                this.boss_castProgress = 60 - this.laserWarningTimer;
+                                this.boss_castMax = 60;
+                            } else if (this.laserActiveTimer > 0) {
+                                this.boss_warningText = "SWEEP LASER ACTIVE 🚨";
+                                this.boss_timerText = (this.laserActiveTimer / 60).toFixed(1) + "s";
+                                this.boss_castProgress = this.laserActiveTimer;
+                                this.boss_castMax = 35;
+                            }
+
+                            // 2페이즈 속사 나선 탄막 사격
+                            this.shootCooldown -= timeScale;
+                            if (this.shootCooldown <= 0) {
+                                this.shootCooldown = 25;
+                                this.rotationAngle = (this.rotationAngle || 0) + 0.25;
+                                for (let i = 0; i < 4; i++) {
+                                    let bAngle = this.rotationAngle + (i * Math.PI / 2);
+                                    let vx = Math.cos(bAngle) * 3.2;
+                                    let vy = Math.sin(bAngle) * 3.2;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.5, false, {
+                                        color: '#ff00aa',
+                                        radius: 5
+                                    }));
+                                }
+                                Sound.play('shoot');
+                            }
+                        }
+                    }
+                    break;
             }
 
             // 보스 이탈 방지 처리 (벽 마진 적용)
@@ -2926,6 +3131,100 @@ class Monster {
                     ctx.stroke();
                     ctx.restore();
                     break;
+
+                case 'boss_real_master': // 101층 진 최종 보스: 크로노스 리얼 마스터
+                    {
+                        ctx.save();
+                        // 글리치 느낌을 주기 위해 무작위 미세 좌표 오프셋 흔들림 적용
+                        let glitchX = (Math.random() - 0.5) * 2.5;
+                        let glitchY = (Math.random() - 0.5) * 2.5;
+                        ctx.translate(glitchX, glitchY);
+
+                        let masterRot1 = (Date.now() * 0.0035);
+                        let masterRot2 = -(Date.now() * 0.002);
+
+                        // 사각형 역회전 링 2개 드로잉
+                        ctx.strokeStyle = '#ff00aa';
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = '#ff00aa';
+                        ctx.lineWidth = 2.5;
+
+                        // 바깥 사각형 링
+                        ctx.save();
+                        ctx.rotate(masterRot1);
+                        ctx.beginPath();
+                        ctx.strokeRect(-this.radius * 0.9, -this.radius * 0.9, this.radius * 1.8, this.radius * 1.8);
+                        ctx.restore();
+
+                        // 안쪽 사각형 링
+                        ctx.save();
+                        ctx.rotate(masterRot2);
+                        ctx.beginPath();
+                        ctx.strokeRect(-this.radius * 0.6, -this.radius * 0.6, this.radius * 1.2, this.radius * 1.2);
+                        ctx.restore();
+
+                        // 코어 안구 (중심 원)
+                        ctx.beginPath();
+                        let masterCoreRad = this.radius * 0.35 + (this.hp <= this.maxHp * 0.5 ? Math.sin(Date.now() * 0.035) * 4.5 : 0);
+                        ctx.arc(0, 0, masterCoreRad, 0, Math.PI * 2);
+                        ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : '#ff00aa';
+                        ctx.fill();
+                        ctx.restore();
+
+                        // [2페이즈 전용: 블랙홀 및 넉백 파동, 레이저 스윙 드로잉]
+                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+                        if (isFrenzy) {
+                            // 넉백 파동 이펙트
+                            ctx.save();
+                            let baseRadius = (Date.now() * 0.06) % 180 + 30;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
+                            ctx.strokeStyle = `rgba(255, 0, 170, ${Math.max(0, 1.0 - baseRadius / 220)})`;
+                            ctx.lineWidth = 3.0;
+                            ctx.shadowBlur = 12;
+                            ctx.shadowColor = '#ff00aa';
+                            ctx.stroke();
+                            ctx.restore();
+
+                            // 레이저 스윙 경고 (마젠타 점선 세로 기둥)
+                            if (this.laserWarningTimer > 0) {
+                                ctx.save();
+                                ctx.translate(-this.x, -this.y); // 전역좌표 변환
+                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+                                ctx.fillStyle = 'rgba(255, 0, 170, 0.15)';
+                                ctx.fillRect(this.laserX - 38, 40, 76, mapH - 80);
+                                
+                                ctx.strokeStyle = 'rgba(255, 0, 170, 0.6)';
+                                ctx.lineWidth = 2.0;
+                                ctx.setLineDash([6, 8]);
+                                ctx.beginPath();
+                                ctx.moveTo(this.laserX - 38, 40);
+                                ctx.lineTo(this.laserX - 38, mapH - 40);
+                                ctx.moveTo(this.laserX + 38, 40);
+                                ctx.lineTo(this.laserX + 38, mapH - 40);
+                                ctx.stroke();
+                                ctx.restore();
+                            }
+
+                            // 레이저 스윙 발사 (굵은 마젠타/자색 빔 기둥)
+                            if (this.laserActiveTimer > 0) {
+                                ctx.save();
+                                ctx.translate(-this.x, -this.y); // 전역좌표 변환
+                                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+                                
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                                ctx.fillRect(this.laserX - 35, 40, 70, mapH - 80);
+                                
+                                ctx.strokeStyle = '#ff00aa';
+                                ctx.lineWidth = 10;
+                                ctx.shadowBlur = 35;
+                                ctx.shadowColor = '#ff00aa';
+                                ctx.strokeRect(this.laserX - 38, 40, 76, mapH - 80);
+                                ctx.restore();
+                            }
+                        }
+                    }
+                    break;
             }
 
             // 보스 머리 위 공통 캐스팅 게이지 바 및 경고 타이머 텍스트 렌더링
@@ -2942,7 +3241,7 @@ class Monster {
                 
                 let textY = -this.radius - 16;
                 // 최종 보스 머리 위 오프셋 조정
-                if (this.type === 'boss_final') textY = -this.radius - 45;
+                if (this.type === 'boss_final' || this.type === 'boss_real_master') textY = -this.radius - 45;
 
                 let displayText = this.boss_warningText + (this.boss_timerText ? " (" + this.boss_timerText + ")" : "");
                 ctx.fillText(displayText, 0, textY);

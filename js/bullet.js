@@ -46,6 +46,7 @@ class Bullet {
         this.dnaTime = 0;
         this.virtualX = x;
         this.virtualY = y;
+        this.isScytheSynergy = options.isScytheSynergy || false;
     }
 
     update(monsters) {
