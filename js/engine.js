@@ -221,6 +221,9 @@ class GameEngine {
         this.bossWarningTimer = 0; // [v0.95] 보스 출현 테두리 경보 타이머
         this.gameClearActive = false; // [v0.95] 최종 클리어 중복 방지 플래그
 
+        // 기억의 조각 로드
+        this.loadMemoryFragments();
+
         // [신규 기믹] 보상 상자 획득 후 카드 선택 오버레이 활성화 지연 타이머 시스템
         this.rewardSelectorDelayTimer = -1;
         this.rewardSelectorIsFromHiddenChest = false;
@@ -660,6 +663,12 @@ class GameEngine {
         if (hudHeader) hudHeader.classList.remove('hidden');
         if (hudFooter) hudFooter.classList.remove('hidden');
 
+        // [신규 기획] Manual 화면 테두리 노이즈 필터 초기화
+        const filter = document.getElementById('manual-noise-filter');
+        if (filter) {
+            filter.classList.add('hidden');
+        }
+
         this.clearSavedGame();
         this.isPlaying = true;
         this.roomNum = 1;
@@ -740,6 +749,25 @@ class GameEngine {
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
         Sound.play('powerup');
         Sound.startBGM(); // [추가] 게임 시작 시 BGM 연주 강제 시작/보장
+
+        // [신규 기획] 오프닝 프롤로그 트리거
+        let prologueLines = [];
+        prologueLines.push("SYSTEM: 의식 동기화 완료...");
+        prologueLines.push("LOG: 복제 번호 #138C18-G605 가동");
+
+        const unused = this.unusedFragments !== undefined ? this.unusedFragments : 0;
+        if (unused >= 7) {
+            prologueLines.push("WARNING: 메모리 복원 성공. 잔류 데이터 87.2% 동기화 중...");
+            prologueLines.push("정신을 차리자 머리가 깨질 듯한 데자뷔가 몰려온다.\n나는 이 1층의 네온 바닥을 최소 수십 번은 밟아보았다.\n저 위에는 크로노스가 아닌, 무언가 다른 감시자가 숨어 있다...");
+        } else {
+            prologueLines.push("ERROR: 이전 로그 복원 실패. 잔류 데이터 0.00%");
+            prologueLines.push("기억은 말끔히 포맷되었습니다. 오직 오늘 밤의 격투와 눈앞의 적에만 집중하십시오.");
+        }
+
+        // 조금 뒤에 첫 대사가 출력될 수 있도록 스케줄링하여 연출 안정성 확보
+        setTimeout(() => {
+            this.showDialogue("SYSTEM", prologueLines);
+        }, 100);
     }
 
     restartGame() {
@@ -1926,6 +1954,7 @@ class GameEngine {
         const optionOverlay = document.getElementById('option-overlay'); // [신규] 시스템 옵션 모달 연동
         const secretShopOverlay = document.getElementById('secret-shop-overlay'); // [결함 수정] 네온 암시장 모달 검증 변수 추가
         const statusOverlay = document.getElementById('in-game-status-overlay'); // [신규] 인게임 상태창 모달
+        const storyOverlay = document.getElementById('story-dialogue-overlay'); // [신규] 스토리 대화 오버레이
 
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
@@ -1935,6 +1964,7 @@ class GameEngine {
             (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
             (optionOverlay && !optionOverlay.classList.contains('hidden')) ||
             (statusOverlay && !statusOverlay.classList.contains('hidden')) ||
+            (storyOverlay && !storyOverlay.classList.contains('hidden')) ||
             (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) { // [결함 수정] 암시장 오버레이 조건식 반영
             isOverlayOpen = true;
         }
@@ -3171,6 +3201,19 @@ class GameEngine {
                 if (!this.roomRewardSpawned && this.rewardChests.length === 0 && this.vendingMachines.length === 0 && this.portals.length > 0 && !this.portals[0].active) {
                     this.roomRewardSpawned = true; // [버그 수정] 단 1회 보상 스폰 즉시 잠금
 
+                    // [신규 기획] Repair Kit 보유 시 방 클리어 마다 잃은 체력 10% 쉴드 충전
+                    if (this.player.hiddenItems && this.player.hiddenItems.repairKit) {
+                        let lossHp = this.player.maxHp - this.player.hp;
+                        if (lossHp > 0) {
+                            let shieldGain = Math.floor(lossHp * 0.1);
+                            if (shieldGain > 0) {
+                                this.player.armorShield = (this.player.armorShield || 0) + shieldGain;
+                                this.showFloatingText(`ARMOR CHARGED! 🛡️ (+${shieldGain})`, this.player.x, this.player.y - 45, '#10b981');
+                                Sound.play('powerup');
+                            }
+                        }
+                    }
+
                     // [수정] 맵 중앙 부근에 벽이 있을 가능성이 있으므로, 타일맵의 안전한 빈 공간(0)을 골라 스폰시킵니다.
                     const safeSpawn = this.getSafeSpawnPosition(false);
                     const spawnX = safeSpawn.x;
@@ -3973,6 +4016,29 @@ class GameEngine {
             return;
         }
 
+        // [신규 기획] Broken Joystick 15% 탄환 반사 기믹
+        if (this.player.hiddenItems && this.player.hiddenItems.brokenJoystick && Math.random() < 0.15) {
+            this.showFloatingText("DEFLECT! 🛡️", this.player.x, this.player.y - 20, '#00f0ff');
+            
+            // 반격 탄환 쏘기
+            let angle = Math.atan2(fromY - this.player.y, fromX - this.player.x);
+            let vx = Math.cos(angle) * 7.5;
+            let vy = Math.sin(angle) * 7.5;
+            
+            if (typeof Bullet !== 'undefined') {
+                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, this.player.atk * 1.5, true, {
+                    color: '#00f0ff',
+                    size: 5.5,
+                    pierceCount: 1
+                }));
+            }
+            Sound.play('slash'); // 칼 사운드로 반사음 연출
+            
+            // 피격 면제 및 가벼운 무적 프레임 부여
+            this.player.invincibleTimer = 30;
+            return;
+        }
+
         if (this.player.isGodMode) {
             this.showFloatingText("GOD MODE ACTIVE 🛡️", this.player.x, this.player.y - 20, '#ffdf00');
             return;
@@ -4320,6 +4386,10 @@ class GameEngine {
         this.player.shootCooldown = cooldownFrames;
 
         let startAngle = this.player.angle;
+        if (this.player.hiddenItems && this.player.hiddenItems.brokenJoystick && !this.player.isStopped) {
+            // 이동 중일 때 Sine 파형으로 조준 각도 흔들림 (±10도 범위 = 약 ±0.174 라디안)
+            startAngle += Math.sin(Date.now() * 0.006) * 0.174;
+        }
         let bulletsToLaunch = [];
 
         // 멀티샷(multishot) 부채꼴 살상 각도 배치
@@ -5024,7 +5094,12 @@ class GameEngine {
         // 생명력 HP 연산
         let hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
         document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
-        document.getElementById('hp-text').innerText = `${Math.ceil(this.player.hp)} / ${this.player.maxHp}`;
+        
+        let hpTextStr = `${Math.ceil(this.player.hp)} / ${this.player.maxHp}`;
+        if (this.player.armorShield > 0) {
+            hpTextStr += ` (+🛡️${Math.ceil(this.player.armorShield)})`;
+        }
+        document.getElementById('hp-text').innerText = hpTextStr;
 
         // 스태미너 Stamina 연산
         let stPct = Math.max(0, (this.player.stamina / this.player.maxStamina) * 100);
@@ -6047,9 +6122,15 @@ class GameEngine {
 
     // 모달창 최종 통계 수치 기입
     populateResultOverlay() {
+        // 이번 판에서 획득한 기억의 조각 계산 및 가산
+        let gainedFragments = Math.floor(Math.min(100, this.roomNum) * 0.1 + this.score * 0.0005);
+        this.addMemoryFragments(gainedFragments);
+
         document.getElementById('res-room').innerText = `${Math.min(100, this.roomNum)} / 100`;
         document.getElementById('res-score').innerText = this.score;
         document.getElementById('res-kills').innerText = this.kills;
+        document.getElementById('res-gained-fragments').innerText = gainedFragments;
+        document.getElementById('res-unused-fragments').innerText = this.unusedFragments;
 
         let wpnStr = "총 (Gun)";
         if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
@@ -7289,13 +7370,95 @@ class GameEngine {
         }
     }
 
+    applyGlitchFilter(text) {
+        const unused = this.unusedFragments !== undefined ? this.unusedFragments : 0;
+        if (unused >= 7) return text; // 3단계: 완전 복원
+        let noiseRate = unused >= 3 ? 0.15 : 0.45; // 2단계 vs 1단계
+        return text.split('').map(char => {
+            if (char !== ' ' && char !== '\n' && Math.random() < noiseRate) {
+                const noiseChars = ['@', '#', '$', '%', '&', '*', '_', '!', '?'];
+                return noiseChars[Math.floor(Math.random() * noiseChars.length)];
+            }
+            return char;
+        }).join('');
+    }
+
+    showDialogue(speaker, lines, onComplete) {
+        const overlay = document.getElementById('story-dialogue-overlay');
+        const speakerEl = document.getElementById('dialogue-speaker');
+        const textEl = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('dialogue-next-btn');
+
+        if (!overlay || !speakerEl || !textEl || !nextBtn) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        overlay.classList.remove('hidden');
+        speakerEl.innerText = `[ ${speaker} ]`;
+
+        let currentLineIdx = 0;
+        let isTyping = false;
+        let typingTimeout = null;
+
+        const renderLine = (lineText) => {
+            textEl.innerHTML = "";
+            isTyping = true;
+            let charIdx = 0;
+            const fullText = this.applyGlitchFilter(lineText);
+
+            const typeChar = () => {
+                if (charIdx < fullText.length) {
+                    textEl.textContent += fullText[charIdx];
+                    charIdx++;
+                    typingTimeout = setTimeout(typeChar, 25);
+                } else {
+                    isTyping = false;
+                }
+            };
+            typeChar();
+        };
+
+        const nextLine = () => {
+            if (isTyping) {
+                clearTimeout(typingTimeout);
+                textEl.textContent = this.applyGlitchFilter(lines[currentLineIdx]);
+                isTyping = false;
+                return;
+            }
+
+            currentLineIdx++;
+            if (currentLineIdx < lines.length) {
+                renderLine(lines[currentLineIdx]);
+            } else {
+                overlay.classList.add('hidden');
+                nextBtn.removeEventListener('click', nextLine);
+                window.removeEventListener('keydown', onKeyDown);
+                if (onComplete) onComplete();
+            }
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+                e.preventDefault();
+                nextLine();
+            }
+        };
+
+        nextBtn.addEventListener('click', nextLine);
+        window.addEventListener('keydown', onKeyDown);
+
+        renderLine(lines[0]);
+    }
+
     // [신규 추가] 임의의 게임 오버레이/모달창이 활성화되어 있는지 여부를 판정하는 헬퍼 함수
     checkAnyOverlayOpen() {
         const overlays = [
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
+            'story-dialogue-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
@@ -7309,7 +7472,8 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
+            'story-dialogue-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;
@@ -7544,6 +7708,80 @@ class GameEngine {
         } catch (e) {
             console.error("게임 세션 저장 실패:", e);
         }
+    }
+
+    acquireHiddenItem(itemKey) {
+        if (!this.player.hiddenItems) {
+            this.player.hiddenItems = {
+                brokenJoystick: false,
+                repairKit: false,
+                manual: false
+            };
+        }
+
+        if (itemKey === 'brokenJoystick') {
+            this.player.hiddenItems.brokenJoystick = true;
+            this.showFloatingText("OBTAINED: BROKEN JOYSTICK 🕹️", this.player.x, this.player.y - 30, '#00f0ff');
+        } else if (itemKey === 'repairKit') {
+            this.player.hiddenItems.repairKit = true;
+            this.player.maxHp = Math.ceil(this.player.maxHp * 0.8);
+            this.player.hp = Math.min(this.player.maxHp, this.player.hp);
+            this.player.armorShield = (this.player.armorShield || 0);
+            this.showFloatingText("OBTAINED: REPAIR KIT 🔧", this.player.x, this.player.y - 30, '#10b981');
+        } else if (itemKey === 'manual') {
+            this.player.hiddenItems.manual = true;
+            this.showFloatingText("OBTAINED: MANUAL 📖", this.player.x, this.player.y - 30, '#ffdf00');
+            const filter = document.getElementById('manual-noise-filter');
+            if (filter) {
+                filter.classList.remove('hidden');
+            }
+        }
+
+        Sound.play('powerup');
+        this.updateHUD();
+
+        // 3종 융합 조건 체크
+        if (this.player.hiddenItems.brokenJoystick && this.player.hiddenItems.repairKit && this.player.hiddenItems.manual) {
+            this.player.fusedController = true;
+            this.showFloatingText("COMBINED: CONTROLLER OF LIBERATION 👑", this.player.x, this.player.y - 45, '#ff00aa');
+            for (let i = 0; i < 30; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 4 + 1.5;
+                if (typeof Particle !== 'undefined') {
+                    this.particles.push(new Particle(this.player.x, this.player.y, '#ff00aa', 2.0, Math.cos(angle) * speed, Math.sin(angle) * speed, 40, 'spark'));
+                }
+            }
+        }
+    }
+
+    loadMemoryFragments() {
+        try {
+            const total = parseInt(localStorage.getItem('neon_rogue_total_fragments')) || 0;
+            const spent = parseInt(localStorage.getItem('neon_rogue_spent_fragments')) || 0;
+            this.totalFragments = total;
+            this.spentFragments = spent;
+            this.unusedFragments = Math.max(0, total - spent);
+        } catch (e) {
+            console.error("기억의 조각 로드 실패:", e);
+            this.totalFragments = 0;
+            this.spentFragments = 0;
+            this.unusedFragments = 0;
+        }
+    }
+
+    saveMemoryFragments() {
+        try {
+            localStorage.setItem('neon_rogue_total_fragments', this.totalFragments);
+            localStorage.setItem('neon_rogue_spent_fragments', this.spentFragments);
+            this.unusedFragments = Math.max(0, this.totalFragments - this.spentFragments);
+        } catch (e) {
+            console.error("기억의 조각 저장 실패:", e);
+        }
+    }
+
+    addMemoryFragments(amount) {
+        this.totalFragments += amount;
+        this.saveMemoryFragments();
     }
 
     clearSavedGame() {

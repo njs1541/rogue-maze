@@ -3361,6 +3361,24 @@ class Monster {
             }
         }
 
+        // [신규 기획] Manual 보유 시 원거리 몬스터 예측 레이저 사선 드로잉
+        if (window.gameEngine && window.gameEngine.player && window.gameEngine.player.hiddenItems && window.gameEngine.player.hiddenItems.manual) {
+            const isRanged = this.type === 'shooter' || this.type === 'scatterer' || this.type === 'boss' || this.type === 'boss_speaker' || this.type === 'boss_chaser';
+            if (isRanged && this.hp > 0 && !this.dead) {
+                ctx.save();
+                let playerAngle = Math.atan2(window.gameEngine.player.y - this.y, window.gameEngine.player.x - this.x);
+                ctx.rotate(playerAngle);
+                ctx.beginPath();
+                ctx.moveTo(this.radius, 0);
+                ctx.lineTo(800, 0); // 사선 길이 800px
+                ctx.strokeStyle = 'rgba(255, 0, 85, 0.28)';
+                ctx.lineWidth = 1.2;
+                ctx.setLineDash([4, 6]);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
         ctx.restore();
     }
 }

@@ -144,6 +144,15 @@ class Player {
         this.stunnedTimer = 0;
         this.slowTimer = 0;
         this.slowMultiplier = 1.0;
+
+        // [신규 기획] 히든 아이템 및 아머 쉴드
+        this.hiddenItems = {
+            brokenJoystick: false,
+            repairKit: false,
+            manual: false
+        };
+        this.fusedController = false;
+        this.armorShield = 0;
     }
 
     // [신규] 채찍 버프 및 반지 오버리미트, 그리고 콤보 가속을 감안한 최종 실효 공격 속도 산출
