@@ -5728,24 +5728,6 @@ class GameEngine {
         }
         document.getElementById('mp-text').innerText = mpTextStr;
 
-        // 세부 스탯 패널 텍스트 동기화
-        document.getElementById('stat-atk').innerText = this.player.atk;
-        document.getElementById('stat-aspd').innerText = this.player.aspd.toFixed(1);
-        document.getElementById('stat-ms').innerText = this.player.ms.toFixed(1);
-        document.getElementById('stat-evd').innerText = `${(this.player.evd * 100).toFixed(0)}%`;
-        let defPct = (this.player.def / (this.player.def + 100)) * 100;
-        document.getElementById('stat-def').innerText = `${this.player.def} (${defPct.toFixed(0)}%)`;
-        document.getElementById('stat-luk').innerText = this.player.luk.toFixed(1);
-        document.getElementById('stat-regen').innerText = `${this.player.hpRegen.toFixed(1)}/s`;
-        document.getElementById('stat-range').innerText = `${this.player.range}px`;
-        document.getElementById('stat-pets').innerText = `${this.pets.length}기`;
-
-        // 최대 무기 슬롯 수량 표기
-        const slotsEl = document.getElementById('stat-slots');
-        if (slotsEl) {
-            slotsEl.innerText = `${this.player.maxWeaponSlots}개`;
-        }
-
         // 장착된 무기 이름 매핑 함수
         const getWeaponName = (id) => {
             if (id === 'gun') return '총 (Gun)';
@@ -5762,57 +5744,138 @@ class GameEngine {
             return id;
         };
 
-        // 무기 상태 출력 (장착 중인 주/부무기 전체 표시)
-        const equippedWpnNames = this.player.equippedWeapons.map(w => getWeaponName(w));
-        document.getElementById('stat-wpn').innerText = equippedWpnNames.join(' + ') || '없음';
+        // 장착된 무기 아이콘 매핑 함수
+        const getWeaponIcon = (id) => {
+            if (id === 'gun') return '🔫';
+            if (id === 'sword') return '🪓';
+            if (id === 'spear') return '🔱';
+            if (id === 'whip') return '🧣';
+            if (id === 'thorns') return '🌵';
+            if (id === 'trap') return '⚙️';
+            if (id === 'lightning') return '⚡';
+            if (id === 'fire') return '🔥';
+            if (id === 'ice') return '❄️';
+            if (id === 'scythe') return '🗡️';
+            if (id === 'railcannon') return '💎';
+            return '❓';
+        };
 
-        // 3번째 보조 무기 슬롯 상태
-        const subWpnEl = document.getElementById('stat-sub');
-        if (subWpnEl) {
-            if (this.player.maxWeaponSlots < 3) {
-                subWpnEl.innerText = '비활성 (잠금)';
-                subWpnEl.style.color = '#718096';
-            } else if (this.player.thirdSlotWeapon) {
-                subWpnEl.innerText = getWeaponName(this.player.thirdSlotWeapon);
-                subWpnEl.style.color = '#b026ff';
+        // [신규] 무기 슬롯 UI 동적 업데이트
+        const wpnSlot0 = document.getElementById('wpn-slot-0');
+        const wpnSlot1 = document.getElementById('wpn-slot-1');
+        const wpnSlotSub = document.getElementById('wpn-slot-sub');
+
+        if (wpnSlot0 && this.player.equippedWeapons.length > 0) {
+            const w0 = this.player.equippedWeapons[0];
+            wpnSlot0.className = 'weapon-slot';
+            document.getElementById('wpn-slot-name-0').innerText = getWeaponName(w0);
+            document.getElementById('wpn-slot-lv-0').innerText = `Lv.${this.player.weaponLevels[w0] || (w0 === 'gun' ? 1 : 0)}`;
+            wpnSlot0.querySelector('.weapon-slot-icon').innerText = getWeaponIcon(w0);
+        }
+
+        if (wpnSlot1) {
+            if (this.player.equippedWeapons.length > 1) {
+                const w1 = this.player.equippedWeapons[1];
+                wpnSlot1.className = 'weapon-slot';
+                document.getElementById('wpn-slot-name-1').innerText = getWeaponName(w1);
+                document.getElementById('wpn-slot-lv-1').innerText = `Lv.${this.player.weaponLevels[w1] || 0}`;
+                wpnSlot1.querySelector('.weapon-slot-icon').innerText = getWeaponIcon(w1);
             } else {
-                subWpnEl.innerText = '장착 가능 (비어)';
-                subWpnEl.style.color = '#00f0ff';
+                wpnSlot1.className = 'weapon-slot empty';
+                document.getElementById('wpn-slot-name-1').innerText = '비어있음';
+                document.getElementById('wpn-slot-lv-1').innerText = '—';
+                wpnSlot1.querySelector('.weapon-slot-icon').innerText = '➕';
             }
         }
 
-        // 미사용 기억의 조각
-        const frgEl = document.getElementById('stat-fragments');
-        if (frgEl) {
-            this.loadMemoryFragments(); // 실시간 수치 동기화
-            frgEl.innerText = `${this.unusedFragments}개`;
+        if (wpnSlotSub) {
+            if (this.player.maxWeaponSlots < 3) {
+                wpnSlotSub.className = 'weapon-slot sub locked';
+                document.getElementById('wpn-slot-name-sub').innerText = '잠금';
+                document.getElementById('wpn-slot-lv-sub').innerText = '—';
+                wpnSlotSub.querySelector('.weapon-slot-icon').innerText = '🔒';
+            } else if (this.player.thirdSlotWeapon) {
+                const ws = this.player.thirdSlotWeapon;
+                wpnSlotSub.className = 'weapon-slot sub';
+                document.getElementById('wpn-slot-name-sub').innerText = getWeaponName(ws);
+                document.getElementById('wpn-slot-lv-sub').innerText = `Lv.${this.player.weaponLevels[ws] || 0}`;
+                wpnSlotSub.querySelector('.weapon-slot-icon').innerText = getWeaponIcon(ws);
+            } else {
+                wpnSlotSub.className = 'weapon-slot sub';
+                document.getElementById('wpn-slot-name-sub').innerText = '비어있음';
+                document.getElementById('wpn-slot-lv-sub').innerText = '장착 가능';
+                wpnSlotSub.querySelector('.weapon-slot-icon').innerText = '➕';
+            }
         }
 
-        // 글리치 율
-        const glitchEl = document.getElementById('stat-glitch');
-        if (glitchEl) {
-            let noiseRate = 45;
-            if (this.unusedFragments >= 10) noiseRate = 0;
-            else if (this.unusedFragments >= 5) noiseRate = 15;
-            glitchEl.innerText = `${noiseRate}%`;
+        // [리뉴얼] 세부 스탯 패널 — 수치 변동 감지 + 하이라이트 트리거
+        // 이전 프레임 스탯 캐시 초기화 (최초 호출 시)
+        if (!this._prevStatCache) {
+            this._prevStatCache = {};
         }
+
+        // 스탯 값 변동 감지 및 하이라이트 적용 유틸 함수
+        const updateStatWithHighlight = (elId, newText) => {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            const oldText = this._prevStatCache[elId];
+            el.innerText = newText;
+            if (oldText !== undefined && oldText !== newText) {
+                // 수치 파싱으로 증감 판별
+                const oldNum = parseFloat(String(oldText).replace(/[^0-9.\-]/g, ''));
+                const newNum = parseFloat(String(newText).replace(/[^0-9.\-]/g, ''));
+                el.classList.remove('stat-up', 'stat-down');
+                void el.offsetWidth; // 리플로우 트리거로 애니메이션 리셋
+                if (!isNaN(oldNum) && !isNaN(newNum)) {
+                    el.classList.add(newNum > oldNum ? 'stat-up' : 'stat-down');
+                } else {
+                    el.classList.add('stat-up'); // 텍스트 변경은 기본 up 효과
+                }
+            }
+            this._prevStatCache[elId] = newText;
+        };
+
+        let defPct = (this.player.def / (this.player.def + 100)) * 100;
+        updateStatWithHighlight('stat-atk', String(this.player.atk));
+        updateStatWithHighlight('stat-aspd', this.player.aspd.toFixed(1));
+        updateStatWithHighlight('stat-ms', this.player.ms.toFixed(1));
+        updateStatWithHighlight('stat-evd', `${(this.player.evd * 100).toFixed(0)}%`);
+        updateStatWithHighlight('stat-def', `${this.player.def}`);
+        updateStatWithHighlight('stat-luk', this.player.luk.toFixed(1));
+        updateStatWithHighlight('stat-regen', `${this.player.hpRegen.toFixed(1)}`);
+        updateStatWithHighlight('stat-range', `${this.player.range}`);
+        updateStatWithHighlight('stat-pets', `${this.pets.length}`);
+
+        // 미사용 기억의 조각
+        this.loadMemoryFragments(); // 실시간 수치 동기화
+        updateStatWithHighlight('stat-fragments', `${this.unusedFragments}`);
+
+        // 글리치 율
+        let noiseRate = 45;
+        if (this.unusedFragments >= 10) noiseRate = 0;
+        else if (this.unusedFragments >= 5) noiseRate = 15;
+        updateStatWithHighlight('stat-glitch', `${noiseRate}%`);
 
         // 보안 상태 및 지표
         const secEl = document.getElementById('stat-security');
         if (secEl) {
+            let secText, secColor, secClass;
             if (this.unusedFragments >= 7) {
-                secEl.innerText = '안전 (CLEAR)';
-                secEl.style.color = '#39ff14';
-                secEl.className = 'stat-value text-glow-green';
+                secText = '안전';
+                secColor = '#39ff14';
+                secClass = 'stat-card-value text-glow-green';
             } else if (this.unusedFragments >= 3) {
-                secEl.innerText = '주의 (CAUTION)';
-                secEl.style.color = '#ffdf00';
-                secEl.className = 'stat-value text-glow-yellow';
+                secText = '주의';
+                secColor = '#ffdf00';
+                secClass = 'stat-card-value text-glow-yellow';
             } else {
-                secEl.innerText = '위험 (DANGER)';
-                secEl.style.color = '#ff0055';
-                secEl.className = 'stat-value text-glow-red';
+                secText = '위험';
+                secColor = '#ff0055';
+                secClass = 'stat-card-value text-glow-red';
             }
+            secEl.innerText = secText;
+            secEl.style.color = secColor;
+            secEl.className = secClass;
         }
     }
 

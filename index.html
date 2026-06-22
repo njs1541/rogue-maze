@@ -1030,12 +1030,12 @@
         <footer id="hud-footer" class="hidden">
             <!-- 우측 패널 상단 캐릭터 닉네임 & 레벨 표시 영역 -->
             <div class="hud-status-title">NEON RUNNER <span id="runner-lv" class="text-glow-yellow" style="margin-left: 8px;">LV.1</span></div>
-            <!-- 좌측: 플레이어 생명력, 스태미너, 마력 게이지 -->
+            <!-- 플레이어 생명력, 스태미너, 마력 게이지 (아이콘 강화) -->
             <div id="player-bars">
                 <!-- HP Bar -->
                 <div class="bar-container">
                     <div class="bar-info">
-                        <span class="bar-label">HP</span>
+                        <span class="bar-label"><span class="bar-icon">❤️</span> HP</span>
                         <span id="hp-text">100 / 100</span>
                     </div>
                     <div class="bar-track">
@@ -1045,7 +1045,7 @@
                 <!-- Stamina Bar -->
                 <div class="bar-container">
                     <div class="bar-info">
-                        <span class="bar-label">STAMINA</span>
+                        <span class="bar-label"><span class="bar-icon">⚡</span> STAMINA</span>
                         <span id="stamina-text">100 / 100</span>
                     </div>
                     <div class="bar-track">
@@ -1055,7 +1055,7 @@
                 <!-- MP/Magic Bar -->
                 <div class="bar-container">
                     <div class="bar-info">
-                        <span class="bar-label">MAGIC POWER</span>
+                        <span class="bar-label"><span class="bar-icon">🔮</span> MAGIC POWER</span>
                         <span id="mp-text">0 / 100</span>
                     </div>
                     <div class="bar-track">
@@ -1064,43 +1064,104 @@
                 </div>
             </div>
 
-            <!-- 우측: 세부 능력치 정보 대시보드 (3열 확장 프리미엄 설계) -->
+            <!-- [신규] 현재 장착 무기 슬롯 UI -->
+            <div id="weapon-slots-panel">
+                <div class="weapon-slots-header">
+                    <span class="weapon-slots-label">⚔️ EQUIPPED WEAPONS</span>
+                </div>
+                <div id="weapon-slots-container">
+                    <!-- 주무기 슬롯 1 -->
+                    <div class="weapon-slot" id="wpn-slot-0">
+                        <div class="weapon-slot-icon">🔫</div>
+                        <div class="weapon-slot-info">
+                            <span class="weapon-slot-name" id="wpn-slot-name-0">총 (Gun)</span>
+                            <span class="weapon-slot-level" id="wpn-slot-lv-0">Lv.1</span>
+                        </div>
+                    </div>
+                    <!-- 주무기 슬롯 2 -->
+                    <div class="weapon-slot empty" id="wpn-slot-1">
+                        <div class="weapon-slot-icon">➕</div>
+                        <div class="weapon-slot-info">
+                            <span class="weapon-slot-name" id="wpn-slot-name-1">비어있음</span>
+                            <span class="weapon-slot-level" id="wpn-slot-lv-1">—</span>
+                        </div>
+                    </div>
+                    <!-- 보조 무기 슬롯 -->
+                    <div class="weapon-slot sub locked" id="wpn-slot-sub">
+                        <div class="weapon-slot-icon">🔒</div>
+                        <div class="weapon-slot-info">
+                            <span class="weapon-slot-name" id="wpn-slot-name-sub">잠금</span>
+                            <span class="weapon-slot-level" id="wpn-slot-lv-sub">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 세부 능력치 정보 대시보드 (3×4 아이콘 그리드 카드) -->
             <div id="stats-dashboard">
-                <div class="stat-column">
-                    <div class="stat-row" title="공격 피해량"><span class="stat-name">힘 (ATK)</span><span id="stat-atk"
-                            class="stat-value">10</span></div>
-                    <div class="stat-row" title="초당 공격 속도"><span class="stat-name">공속 (ASPD)</span><span id="stat-aspd"
-                            class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="이동 및 대시 속도"><span class="stat-name">이속 (MOV)</span><span id="stat-ms"
-                            class="stat-value">3.0</span></div>
-                    <div class="stat-row" title="회피율"><span class="stat-name">회피 (EVD)</span><span id="stat-evd"
-                            class="stat-value">5%</span></div>
-                    <div class="stat-row" title="방어력 및 대미지 감소율"><span class="stat-name">방어 (DEF)</span><span id="stat-def"
-                            class="stat-value">0 (0%)</span></div>
+                <!-- 전투 스탯 (COMBAT) — 행 1 -->
+                <div class="stat-card" title="공격 피해량">
+                    <span class="stat-card-icon">⚔️</span>
+                    <span class="stat-card-label">ATK</span>
+                    <span id="stat-atk" class="stat-card-value">10</span>
                 </div>
-                <div class="stat-column">
-                    <div class="stat-row" title="스폰서 보상 후원율"><span class="stat-name">매력 (CHA)</span><span id="stat-luk"
-                            class="stat-value">1.0</span></div>
-                    <div class="stat-row" title="초당 체력 자연 재생량"><span class="stat-name">재생 (REG)</span><span
-                            id="stat-regen" class="stat-value">0.0/s</span></div>
-                    <div class="stat-row" title="탄환 사거리 및 검 베기 반경"><span class="stat-name">사거리 (RNG)</span><span
-                            id="stat-range" class="stat-value">350px</span></div>
-                    <div class="stat-row" title="호위 디펜더 드론 대수"><span class="stat-name">드론 (PET)</span><span
-                            id="stat-pets" class="stat-value">0기</span></div>
-                    <div class="stat-row" title="장착 가능 무기 수량"><span class="stat-name">최대 슬롯 (SLT)</span><span
-                            id="stat-slots" class="stat-value">2개</span></div>
+                <div class="stat-card" title="초당 공격 속도">
+                    <span class="stat-card-icon">⚡</span>
+                    <span class="stat-card-label">ASPD</span>
+                    <span id="stat-aspd" class="stat-card-value">1.0</span>
                 </div>
-                <div class="stat-column">
-                    <div class="stat-row" title="현재 장착 중인 주/부무기 목록"><span class="stat-name">무기 (WPN)</span><span
-                            id="stat-wpn" class="stat-value text-glow-blue">총 (Gun)</span></div>
-                    <div class="stat-row" title="3번째 보조 무기 슬롯 상태"><span class="stat-name">보조 (SUB)</span><span
-                            id="stat-sub" class="stat-value">없음</span></div>
-                    <div class="stat-row" title="보유 중인 미사용 기억의 조각"><span class="stat-name">미사용 조각 (FRG)</span><span
-                            id="stat-fragments" class="stat-value text-glow-yellow">0개</span></div>
-                    <div class="stat-row" title="미사용 조각 비례 텍스트 글리치 율"><span class="stat-name">글리치 율 (GLT)</span><span
-                            id="stat-glitch" class="stat-value">45%</span></div>
-                    <div class="stat-row" title="시스템 안전성 및 보안 지표"><span class="stat-name">보안 상태 (SEC)</span><span
-                            id="stat-security" class="stat-value text-glow-green">안전</span></div>
+                <div class="stat-card" title="방어력 및 대미지 감소율">
+                    <span class="stat-card-icon">🛡️</span>
+                    <span class="stat-card-label">DEF</span>
+                    <span id="stat-def" class="stat-card-value">0</span>
+                </div>
+                <!-- 행 2 -->
+                <div class="stat-card" title="탄환 사거리 및 검 베기 반경">
+                    <span class="stat-card-icon">📏</span>
+                    <span class="stat-card-label">RNG</span>
+                    <span id="stat-range" class="stat-card-value">350</span>
+                </div>
+                <div class="stat-card" title="이동 및 대시 속도">
+                    <span class="stat-card-icon">🏃</span>
+                    <span class="stat-card-label">MOV</span>
+                    <span id="stat-ms" class="stat-card-value">3.0</span>
+                </div>
+                <div class="stat-card" title="회피율">
+                    <span class="stat-card-icon">💨</span>
+                    <span class="stat-card-label">EVD</span>
+                    <span id="stat-evd" class="stat-card-value">5%</span>
+                </div>
+                <!-- 유틸리티 (UTILITY) — 행 3 -->
+                <div class="stat-card" title="초당 체력 자연 재생량">
+                    <span class="stat-card-icon">💖</span>
+                    <span class="stat-card-label">REG</span>
+                    <span id="stat-regen" class="stat-card-value">0.0</span>
+                </div>
+                <div class="stat-card" title="스폰서 보상 후원율">
+                    <span class="stat-card-icon">✨</span>
+                    <span class="stat-card-label">CHA</span>
+                    <span id="stat-luk" class="stat-card-value">1.0</span>
+                </div>
+                <div class="stat-card" title="호위 디펜더 드론 대수">
+                    <span class="stat-card-icon">🤖</span>
+                    <span class="stat-card-label">PET</span>
+                    <span id="stat-pets" class="stat-card-value">0</span>
+                </div>
+                <!-- 시스템 (SYSTEM) — 행 4 -->
+                <div class="stat-card" title="보유 중인 미사용 기억의 조각">
+                    <span class="stat-card-icon">🧩</span>
+                    <span class="stat-card-label">FRG</span>
+                    <span id="stat-fragments" class="stat-card-value text-glow-yellow">0</span>
+                </div>
+                <div class="stat-card" title="미사용 조각 비례 텍스트 글리치 율">
+                    <span class="stat-card-icon">📡</span>
+                    <span class="stat-card-label">GLT</span>
+                    <span id="stat-glitch" class="stat-card-value">45%</span>
+                </div>
+                <div class="stat-card" title="시스템 안전성 및 보안 지표">
+                    <span class="stat-card-icon">🔒</span>
+                    <span class="stat-card-label">SEC</span>
+                    <span id="stat-security" class="stat-card-value text-glow-green">안전</span>
                 </div>
             </div>
         </footer>

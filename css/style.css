@@ -438,50 +438,200 @@ body {
     animation: barPulse 2.2s infinite ease-in-out, flowLight 3.5s infinite linear;
 }
 
-/* 스탯 보드 */
+/* 게이지바 라벨 아이콘 */
+.bar-icon {
+    font-size: 0.9rem;
+    margin-right: 3px;
+    filter: drop-shadow(0 0 3px currentColor);
+}
+
+/* 스탯 대시보드 — 3×4 그리드 카드 레이아웃 */
 #stats-dashboard {
     position: absolute;
     top: 578px;
-    left: 85px;
-    width: 400px;
+    left: 72px;
+    width: 426px;
     height: 600px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+    overflow: hidden;
     border-top: none;
-    padding-top: 0;
-    margin-top: 0;
-    white-space: nowrap;
+    padding: 0;
+    margin: 0;
 }
 
-.stat-column {
-    flex: none;
-    width: 100%;
+/* 개별 스탯 카드 */
+.stat-card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 3px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    white-space: nowrap;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    text-align: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.stat-name {
-    color: #718096;
-    font-weight: 500;
-    white-space: nowrap;
+.stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
 }
 
-.stat-value {
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-card-icon {
+    font-size: 1.4rem;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+    line-height: 1;
+}
+
+.stat-card-label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #5a6577;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.stat-card-value {
+    font-size: 1.0rem;
+    font-weight: 800;
     color: #edf2f7;
-    font-weight: 700;
+    letter-spacing: 0.02em;
     white-space: nowrap;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* 수치 변동 하이라이트 애니메이션 */
+.stat-card-value.stat-up {
+    animation: statValueUp 0.6s ease-out;
+}
+
+.stat-card-value.stat-down {
+    animation: statValueDown 0.6s ease-out;
+}
+
+@keyframes statValueUp {
+    0% { color: #39ff14; text-shadow: 0 0 12px rgba(57, 255, 20, 0.9); transform: scale(1.15); }
+    100% { color: #edf2f7; text-shadow: none; transform: scale(1); }
+}
+
+@keyframes statValueDown {
+    0% { color: #ff0055; text-shadow: 0 0 12px rgba(255, 0, 85, 0.9); transform: scale(1.15); }
+    100% { color: #edf2f7; text-shadow: none; transform: scale(1); }
+}
+
+/* --------------------------------------------------------------------------
+   무기 슬롯 UI
+   -------------------------------------------------------------------------- */
+#weapon-slots-panel {
+    position: absolute;
+    top: 460px;
+    left: 62px;
+    width: 446px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.weapon-slots-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weapon-slots-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #5a6577;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+#weapon-slots-container {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.weapon-slot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1.5px solid rgba(176, 38, 255, 0.4);
+    transition: all 0.3s ease;
+    max-width: 160px;
+}
+
+.weapon-slot:hover {
+    border-color: rgba(176, 38, 255, 0.7);
+    box-shadow: 0 0 10px rgba(176, 38, 255, 0.2);
+}
+
+.weapon-slot.empty {
+    border-color: rgba(255, 255, 255, 0.08);
+    opacity: 0.5;
+}
+
+.weapon-slot.sub {
+    border-color: rgba(0, 240, 255, 0.3);
+}
+
+.weapon-slot.sub:hover {
+    border-color: rgba(0, 240, 255, 0.6);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.weapon-slot.locked {
+    border-color: rgba(255, 255, 255, 0.06);
+    opacity: 0.35;
+}
+
+.weapon-slot-icon {
+    font-size: 1.3rem;
+    min-width: 24px;
+    text-align: center;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.1));
+}
+
+.weapon-slot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+}
+
+.weapon-slot-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #edf2f7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.weapon-slot-level {
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #b026ff;
+    text-shadow: 0 0 5px rgba(176, 38, 255, 0.4);
 }
 
 /* --------------------------------------------------------------------------
@@ -810,10 +960,7 @@ body {
     }
 
     #stats-dashboard {
-        border-left: none;
-        padding-left: 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        padding-top: 16px;
+        gap: 6px;
     }
 
     .card-container {
