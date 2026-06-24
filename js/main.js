@@ -14,6 +14,11 @@ window.onload = async () => {
     
     // UI/UX 시스템 초기화 및 바인딩 가동
     initNeonGameUISystem();
+
+    // 3. [신규 추가] 방향키 연동 캐릭터 걷기 애니메이션 데모 가동
+    if (window.KeyboardWalkCharacter) {
+        window.keyboardWalkCharacter = new KeyboardWalkCharacter();
+    }
 };
 
 // ==========================================================================

@@ -52,6 +52,10 @@
 
         <!-- 메인 게임 캔버스 -->
         <div id="canvas-container">
+            <!-- [신규 추가] 방향키 연동 캐릭터 걷기 애니메이션 데모 영역 -->
+            <div id="character-walk-indicator">
+                <canvas id="walk-canvas" width="256" height="256"></canvas>
+            </div>
             <canvas id="game-canvas"></canvas>
             <!-- [신규] Manual 아이템 획득 시 화면 테두리 노이즈 필터 -->
             <div id="manual-noise-filter" class="hidden"></div>
@@ -1194,6 +1198,7 @@
     <script src="js/player.js"></script>
     <script src="js/monster.js"></script>
     <script src="js/engine.js"></script>
+    <script src="js/walkCharacter.js"></script>
     <script src="js/main.js"></script>
 </body>
 

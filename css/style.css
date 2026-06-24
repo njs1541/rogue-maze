@@ -3009,3 +3009,29 @@ textarea:focus-visible {
 .replace-slot-btn:active {
     transform: translateY(1px) !important;
 }
+
+/* ==========================================================================
+   [신규 추가] 방향키 연동 캐릭터 걷기 애니메이션 데모 CSS 스타일
+   ========================================================================== */
+#character-walk-indicator {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 210px;
+    height: 210px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 105;
+}
+
+#character-walk-indicator #walk-canvas {
+    width: 210px;
+    height: 210px;
+    pointer-events: none;
+    image-rendering: pixelated; /* 도트 이미지 깨짐 방지 */
+    filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.7)); /* 네온 글로우 효과 강화 */
+    opacity: 0.95;
+    transition: filter 0.3s ease;
+}
