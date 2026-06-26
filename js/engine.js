@@ -544,6 +544,11 @@ class GameEngine {
                 document.getElementById('result-overlay').classList.add('hidden');
                 document.getElementById('start-overlay').classList.remove('hidden');
 
+                const storyOverlay = document.getElementById('story-dialogue-overlay');
+                if (storyOverlay) {
+                    storyOverlay.classList.add('hidden');
+                }
+
                 // 처음 화면 복귀 시 HUD 헤더와 푸터 숨기기
                 const hudHeader = document.getElementById('hud-header');
                 const hudFooter = document.getElementById('hud-footer');
@@ -767,6 +772,8 @@ class GameEngine {
 
         // 조금 뒤에 첫 대사가 출력될 수 있도록 스케줄링하여 연출 안정성 확보
         setTimeout(() => {
+            const overlay = document.getElementById('story-dialogue-overlay');
+            if (overlay) overlay.classList.add('dimmed');
             this.showDialogue("SYSTEM", prologueLines);
         }, 100);
     }
@@ -1985,7 +1992,7 @@ class GameEngine {
             (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
             (optionOverlay && !optionOverlay.classList.contains('hidden')) ||
             (statusOverlay && !statusOverlay.classList.contains('hidden')) ||
-            (storyOverlay && !storyOverlay.classList.contains('hidden')) ||
+            this.isDialogueActive || // [수정] 대화창 존재 유무가 아닌 실제 활성 대화 중인지를 체크
             (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) { // [결함 수정] 암시장 오버레이 조건식 반영
             isOverlayOpen = true;
         }
@@ -7133,6 +7140,12 @@ class GameEngine {
 
     // 모달창 최종 통계 수치 기입
     populateResultOverlay() {
+        // [신규] 결과 오버레이 진입 시 스토리 대화창 숨김 처리
+        const storyOverlay = document.getElementById('story-dialogue-overlay');
+        if (storyOverlay) {
+            storyOverlay.classList.add('hidden');
+        }
+
         // 이번 판에서 획득한 기억의 조각 계산 및 가산
         let maxRoomLimit = this.roomNum >= 101 ? 101 : 100;
         let gainedFragments = Math.floor(Math.min(maxRoomLimit, this.roomNum) * 0.1 + this.score * 0.0005);
@@ -8276,6 +8289,25 @@ class GameEngine {
             });
         }
 
+        // [신규] 임시 대화창 테스트 바인딩
+        const cheatTestDialogue = document.getElementById('cheat-test-dialogue');
+        if (cheatTestDialogue) {
+            cheatTestDialogue.addEventListener('click', () => {
+                // 치트창 닫기
+                const cheatOverlay = document.getElementById('cheat-overlay');
+                if (cheatOverlay) cheatOverlay.classList.add('hidden');
+                
+                // 임시 대화 스크립트 실행
+                this.showDialogue("OP-RUNNER", [
+                    "안전 프로토콜이 해제되었습니다. 시스템 제어가 개시됩니다.",
+                    "경고: 차원 미로 47구역에서 치명적인 신호 간섭이 검출되었습니다.",
+                    "전투 슈트 아머의 출력을 최대로 고정하고 생존하십시오."
+                ], () => {
+                    this.showFloatingText("대화 테스트 완료 🗣️", this.player.x, this.player.y - 40, '#22c55e');
+                });
+            });
+        }
+
         // 3슬롯 계약 강제 해금
         const unlock3SlotBtn = document.getElementById('cheat-unlock-3slot-btn');
         if (unlock3SlotBtn) {
@@ -8652,12 +8684,24 @@ class GameEngine {
             return;
         }
 
+        // [안전 가드] 이전 호출의 이벤트 리스너 및 타이머가 남아있을 경우 깨끗이 제거하여 백그라운드 꼬임 현상 원천 차단
+        if (this.currentDialogueNextListener) {
+            nextBtn.removeEventListener('click', this.currentDialogueNextListener);
+        }
+        if (this.currentDialogueKeyDownListener) {
+            window.removeEventListener('keydown', this.currentDialogueKeyDownListener);
+        }
+        if (this.currentDialogueTimeout) {
+            clearTimeout(this.currentDialogueTimeout);
+        }
+
+        this.isDialogueActive = true; // 활성 대화 중 플래그 활성화
         overlay.classList.remove('hidden');
+        nextBtn.classList.remove('hidden'); // 계속 버튼 강제 노출
         speakerEl.innerText = `[ ${speaker} ]`;
 
         let currentLineIdx = 0;
         let isTyping = false;
-        let typingTimeout = null;
 
         const renderLine = (lineText) => {
             textEl.innerHTML = "";
@@ -8669,7 +8713,7 @@ class GameEngine {
                 if (charIdx < fullText.length) {
                     textEl.textContent += fullText[charIdx];
                     charIdx++;
-                    typingTimeout = setTimeout(typeChar, 25);
+                    this.currentDialogueTimeout = setTimeout(typeChar, 8); // 클래스 멤버에 타이머 저장
                 } else {
                     isTyping = false;
                 }
@@ -8679,7 +8723,9 @@ class GameEngine {
 
         const nextLine = () => {
             if (isTyping) {
-                clearTimeout(typingTimeout);
+                if (this.currentDialogueTimeout) {
+                    clearTimeout(this.currentDialogueTimeout);
+                }
                 textEl.textContent = this.applyGlitchFilter(lines[currentLineIdx]);
                 isTyping = false;
                 return;
@@ -8689,9 +8735,21 @@ class GameEngine {
             if (currentLineIdx < lines.length) {
                 renderLine(lines[currentLineIdx]);
             } else {
-                overlay.classList.add('hidden');
+                // 대화 완료 - 대기 모드로 상태 변경
+                this.isDialogueActive = false; // 대화 플래그 비활성화
+                overlay.classList.remove('dimmed'); // 딤드 해제
+                nextBtn.classList.add('hidden'); // 계속 버튼 숨김
+                speakerEl.innerText = "[ SYSTEM ]";
+                textEl.innerText = "SYSTEM ONLINE. SIGNAL STABLE.";
+
                 nextBtn.removeEventListener('click', nextLine);
                 window.removeEventListener('keydown', onKeyDown);
+                
+                // 멤버 참조 리셋
+                this.currentDialogueNextListener = null;
+                this.currentDialogueKeyDownListener = null;
+                this.currentDialogueTimeout = null;
+
                 if (onComplete) onComplete();
             }
         };
@@ -8702,6 +8760,10 @@ class GameEngine {
                 nextLine();
             }
         };
+
+        // 현재 핸들러를 킵하여 중복 호출 시 제거할 수 있게 보장
+        this.currentDialogueNextListener = nextLine;
+        this.currentDialogueKeyDownListener = onKeyDown;
 
         nextBtn.addEventListener('click', nextLine);
         window.addEventListener('keydown', onKeyDown);
@@ -8715,13 +8777,12 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
-            'story-dialogue-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
             return el && !el.classList.contains('hidden');
-        });
+        }) || this.isDialogueActive; // [신규] 활성 대화 진행 중일 때만 오버레이 차단 판정 추가
     }
 
     // [신규 추가] 특정 모달(exceptId)을 제외하고 활성화된 다른 오버레이가 있는지 판정하는 헬퍼 함수
@@ -9074,6 +9135,11 @@ class GameEngine {
 
             // 게임 UI 및 오버레이 정리
             document.getElementById('start-overlay').classList.add('hidden');
+            const storyOverlay = document.getElementById('story-dialogue-overlay');
+            if (storyOverlay) {
+                storyOverlay.classList.remove('hidden');
+                storyOverlay.classList.remove('dimmed');
+            }
             const hudHeader = document.getElementById('hud-header');
             const hudFooter = document.getElementById('hud-footer');
             if (hudHeader) hudHeader.classList.remove('hidden');

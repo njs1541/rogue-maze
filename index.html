@@ -831,6 +831,15 @@
                                         Manual</button>
                                 </div>
                             </div>
+                            <!-- [신규] 대화창 테스트 치트 버튼 -->
+                            <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                                <span class="card-label">🗣️ 대화창 시뮬레이터</span>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+                                    <button id="cheat-test-dialogue" class="cheat-action-btn"
+                                        style="background: rgba(21, 128, 61, 0.15); border-color: #15803d; color: #15803d; flex: 1; font-size: 0.8rem; cursor: pointer;">🗣️
+                                        임시 대화창 테스트</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="cheat-util-row" style="margin-top: 15px;">
@@ -1028,6 +1037,35 @@
         </div>
     </div>
 
+    <!-- [신규] 스토리 대화 및 시나리오 텍스트 오버레이 (상시 노출 및 딤드 설정) -->
+    <div id="story-dialogue-overlay" class="overlay-panel crt-overlay hidden">
+        <div class="dialogue-container crt-dialogue">
+            <!-- CRT 모니터 스캔라인 효과용 가상 레이어 -->
+            <div class="crt-scanline"></div>
+            
+            <!-- 좌측 캐릭터 초상화/화면 영역 -->
+            <div class="dialogue-portrait-area">
+                <div class="dialogue-portrait-monitor">
+                    <div class="portrait-signal-active">LIVE</div>
+                    <div class="portrait-avatar"></div>
+                </div>
+            </div>
+            
+            <!-- 우측 대화 내용 영역 -->
+            <div class="dialogue-content-area">
+                <div class="dialogue-header">
+                    <span id="dialogue-speaker">[ SYSTEM ]</span>
+                </div>
+                <div class="dialogue-body">
+                    <p id="dialogue-text"></p>
+                </div>
+                <div class="dialogue-footer">
+                    <button id="dialogue-next-btn">계속 (Space/Click)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 
         <!-- 하단 플레이어 상태 및 스탯 패널 -->
@@ -1170,21 +1208,6 @@
             </div>
         </footer>
     </div> <!-- #game-container 닫음 -->
-
-    <!-- [신규] 스토리 대화 및 시나리오 텍스트 오버레이 -->
-    <div id="story-dialogue-overlay" class="overlay-panel hidden" style="background: rgba(5, 6, 12, 0.92); z-index: 200;">
-        <div class="dialogue-container" style="max-width: 650px; width: 95%; background: rgba(10, 11, 22, 0.95); border: 2px solid #ff00aa; box-shadow: 0 0 25px rgba(255, 0, 170, 0.25); border-radius: 12px; padding: 25px; position: relative;">
-            <div class="dialogue-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <span id="dialogue-speaker" class="text-glow-purple" style="font-weight: 800; font-size: 1.25rem;">[ SYSTEM ]</span>
-            </div>
-            <div class="dialogue-body" style="min-height: 120px; font-size: 1rem; line-height: 1.6; color: #e2e8f0; font-family: 'Outfit', sans-serif;">
-                <p id="dialogue-text" style="margin: 0; white-space: pre-wrap;"></p>
-            </div>
-            <div class="dialogue-footer" style="text-align: right; margin-top: 20px;">
-                <button id="dialogue-next-btn" class="neon-btn small" style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); margin: 0; padding: 8px 24px; font-size: 0.95rem;">계속 (Space/Click)</button>
-            </div>
-        </div>
-    </div>
 
         <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
     <script src="js/assetManager.js"></script>
