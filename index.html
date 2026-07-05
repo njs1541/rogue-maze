@@ -52,10 +52,6 @@
 
         <!-- 메인 게임 캔버스 -->
         <div id="canvas-container">
-            <!-- [신규 추가] 방향키 연동 캐릭터 걷기 애니메이션 데모 영역 -->
-            <div id="character-walk-indicator">
-                <canvas id="walk-canvas" width="256" height="256"></canvas>
-            </div>
             <canvas id="game-canvas"></canvas>
             <!-- [신규] Manual 아이템 획득 시 화면 테두리 노이즈 필터 -->
             <div id="manual-noise-filter" class="hidden"></div>
@@ -879,7 +875,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- [신규] 실시간 네온 몬스터 도감(Bestiary) 모달 오버레이 -->
     <div id="monster-bestiary-overlay" class="overlay-panel hidden">
@@ -1062,7 +1057,7 @@
             <div class="dialogue-portrait-area">
                 <div class="dialogue-portrait-monitor">
                     <div class="portrait-signal-active">LIVE</div>
-                    <div class="portrait-avatar"></div>
+                    <canvas id="walk-canvas" width="256" height="256"></canvas>
                 </div>
             </div>
             
@@ -1080,8 +1075,7 @@
             </div>
         </div>
     </div>
-
-
+</div>
 
         <!-- 하단 플레이어 상태 및 스탯 패널 -->
         <footer id="hud-footer" class="hidden">

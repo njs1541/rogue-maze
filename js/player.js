@@ -24,7 +24,7 @@ class Player {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.radius = 16;
+        this.radius = 24; // 플레이어 캐릭터 크기 1.5배 확대 (기존 16 -> 24)
         this.angle = 0; // 마우스 조준 방향 각도
         
         // 기본 8대 스탯

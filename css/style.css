@@ -219,10 +219,10 @@ body {
     image-rendering: pixelated;
     background-color: #08090e;
     position: absolute;
-    top: 13.18%;
+    top: 2% !important; /* 위쪽 경계로 정렬 */
     left: 13.18%;
     width: 73.63%;
-    height: 73.63%;
+    height: 73.63% !important; /* 원래 세로비율 복구 */
     object-fit: fill;
 }
 
@@ -3043,17 +3043,20 @@ textarea:focus-visible {
 /* 대화 오버레이: 뒷배경은 그대로 어둡게 유지하되, 레이아웃 정렬을 하단으로 유도 */
 .crt-overlay {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    top: 2% !important; /* game-canvas 위치 상단 마진과 동기화 */
+    left: 13.18% !important; /* game-canvas 위치 좌측 마진과 동기화 */
+    width: 73.63% !important; /* game-canvas 가로 너비 비율과 동기화 */
+    height: 96% !important; /* 하단 2% 마진 조정을 위해 세로 높이 비율 확장 */
+    min-width: 73.63% !important;
+    min-height: 96% !important;
+    padding: 0 !important; /* overlay-panel 기본 30px 패딩 제거 */
     background: transparent !important; /* 평상시 딤드 제거 */
     backdrop-filter: none !important; /* 평상시 블러 제거 */
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-end !important;
     align-items: center !important;
-    padding-bottom: 80px !important;
+    padding-bottom: 0 !important; /* game-canvas 하단 가장자리에 밀착되도록 여백 제거 */
     z-index: 250 !important;
     pointer-events: none !important; /* 캔버스 조작 이벤트 투과 */
     transition: background 0.3s ease, backdrop-filter 0.3s ease !important;
@@ -3071,9 +3074,9 @@ textarea:focus-visible {
     position: relative !important;
     display: flex !important;
     flex-direction: row !important;
-    width: 1320px !important; /* 크기 10% 확장 */
-    max-width: 95% !important;
-    height: 275px !important; /* 크기 10% 확장 */
+    width: 100% !important; /* game-canvas 넓이와 동일하게 맞춤 */
+    max-width: 100% !important;
+    height: 268px !important; /* 대화창 높이값을 268px로 최적 조정 */
     background-color: #12141c !important; /* 다크 그레이 */
     border: 3px solid #15803d !important; /* 둔탁한 그린 */
     box-shadow: 0 0 20px rgba(21, 128, 61, 0.25) !important;
