@@ -16,6 +16,7 @@ const Sound = {
     bgmGainNode: null, // [추가] 배경음악 전용 Gain 노드
     bgmInterval: null, // [추가] Synth BGM 스케줄 루프 타이머
     bgmStep: 0, // [추가] Synth BGM 16단계 리듬 스텝 카운터
+    bgmPitchScale: 1.0, // [신규] BGM 피치 조절 스케일러 (기본 1.0, 히트스톱 시 0.55)
 
     // 오디오 컨텍스트 초기화 (브라우저 정책 상 첫 상호작용 시 활성화)
     init() {
@@ -132,12 +133,12 @@ const Sound = {
         const baseGain = this.ctx.createGain();
 
         baseOsc.type = 'sawtooth';
-        baseOsc.frequency.setValueAtTime(baseFreq, now);
+        baseOsc.frequency.setValueAtTime(baseFreq * this.bgmPitchScale, now);
 
-        // 로우패스 필터를 걸어 귀 아픈 고주파를 차단하고 묵직함만 보존
+        // 로우패스 필터를 걸어 귀 아픈 고주파를 차단하고 묵직함만 보존 (필터 주파수도 피치 감쇄 연동)
         const baseFilter = this.ctx.createBiquadFilter();
         baseFilter.type = 'lowpass';
-        baseFilter.frequency.setValueAtTime(180, now);
+        baseFilter.frequency.setValueAtTime(180 * this.bgmPitchScale, now);
 
         // 볼륨 감쇄 (둥~ 소리가 0.18초에 걸쳐 사라짐)
         baseGain.gain.setValueAtTime(0.18, now);
@@ -159,7 +160,7 @@ const Sound = {
             const melGain = this.ctx.createGain();
 
             melOsc.type = 'triangle';
-            melOsc.frequency.setValueAtTime(melFreq, now);
+            melOsc.frequency.setValueAtTime(melFreq * this.bgmPitchScale, now);
 
             // 잔향 효과를 대신할 부드럽고 긴 감쇄 (0.35초)
             melGain.gain.setValueAtTime(0.05, now);

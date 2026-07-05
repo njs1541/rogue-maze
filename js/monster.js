@@ -509,6 +509,13 @@ class Monster {
         }
         if (this.isFrozenActive > 0) {
             this.isFrozenActive -= timeScale;
+            // 동결 시 미세한 푸른 서리 가루(Particle)를 15% 확률로 주위에 흩날림
+            if (window.gameEngine && Math.random() < 0.15) {
+                let pColor = Math.random() < 0.5 ? '#00f0ff' : '#ffffff';
+                let rx = (Math.random() - 0.5) * 0.6;
+                let ry = (Math.random() - 0.5) * 0.6;
+                window.gameEngine.particles.push(new Particle(this.x, this.y, pColor, 1.2, rx, ry, 12, 'spark'));
+            }
         }
 
         // 넉백 감쇠 처리 및 이동도 시간 지연 영향 받음
@@ -3607,7 +3614,7 @@ class Monster {
                 ctx.stroke();
                 ctx.restore();
             }
-            // [신규] 동결(Frozen) 차가운 링 및 얼음 장막 바디 껍질
+            // [신규] 동결(Frozen) 차가운 링 및 얼음 장막 바디 껍질 & 6각 눈꽃 송이 문양 마스킹
             if (this.isFrozenActive > 0) {
                 ctx.save();
                 ctx.beginPath();
@@ -3622,6 +3629,30 @@ class Monster {
                 ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(0, 240, 255, 0.32)';
                 ctx.fill();
+
+                // 6각 눈꽃 송이(Snowflake geometric line) 렌더링
+                ctx.save();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#00f0ff';
+                for (let k = 0; k < 6; k++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(this.radius * 0.85, 0);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.radius * 0.45, 0);
+                    ctx.lineTo(this.radius * 0.65, this.radius * 0.2);
+                    ctx.moveTo(this.radius * 0.45, 0);
+                    ctx.lineTo(this.radius * 0.65, -this.radius * 0.2);
+                    ctx.stroke();
+
+                    ctx.rotate(Math.PI / 3);
+                }
+                ctx.restore();
+
                 ctx.restore();
             }
 
