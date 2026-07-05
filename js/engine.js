@@ -146,6 +146,59 @@ const MAP_PRESETS = {
     ]
 };
 
+// [신규] 방 레벨(층)에 따른 가변 맵 테마 정의
+const SECTOR_THEMES = {
+    cyberGrid: { // Sector 1: 1~9층 (시안/청록)
+        bgColor: '#05070c',
+        innerBgColor: '#090d16',
+        outerBorder: 'rgba(0, 240, 255, 0.15)',
+        innerBorder: 'rgba(0, 240, 255, 0.4)',
+        gridColor: 'rgba(0, 240, 255, 0.04)'
+    },
+    volcanicCore: { // Sector 2: 11~19층 (용암 오렌지 레드)
+        bgColor: '#100505',
+        innerBgColor: '#1d0a0a',
+        outerBorder: 'rgba(255, 51, 0, 0.2)',
+        innerBorder: 'rgba(255, 51, 0, 0.5)',
+        gridColor: 'rgba(255, 51, 0, 0.06)'
+    },
+    frozenVoid: { // Sector 3: 21~29층 (차가운 빙결 스카이블루)
+        bgColor: '#050a12',
+        innerBgColor: '#0a1322',
+        outerBorder: 'rgba(0, 191, 255, 0.18)',
+        innerBorder: 'rgba(0, 191, 255, 0.45)',
+        gridColor: 'rgba(0, 191, 255, 0.05)'
+    },
+    overgrownLab: { // Sector 4: 31~39층 (비비드 네온 그린)
+        bgColor: '#051008',
+        innerBgColor: '#0a1d10',
+        outerBorder: 'rgba(57, 255, 20, 0.18)',
+        innerBorder: 'rgba(57, 255, 20, 0.45)',
+        gridColor: 'rgba(57, 255, 20, 0.05)'
+    },
+    abyssalRift: { // Sector 5: 41~49층 (심연 마젠타 퍼플)
+        bgColor: '#0d0514',
+        innerBgColor: '#170a24',
+        outerBorder: 'rgba(176, 38, 255, 0.2)',
+        innerBorder: 'rgba(176, 38, 255, 0.5)',
+        gridColor: 'rgba(176, 38, 255, 0.06)'
+    },
+    singularityCore: { // Sector 6: 50층 이상 (태양 골든 옐로우)
+        bgColor: '#121005',
+        innerBgColor: '#201d0a',
+        outerBorder: 'rgba(255, 215, 0, 0.22)',
+        innerBorder: 'rgba(255, 215, 0, 0.52)',
+        gridColor: 'rgba(255, 215, 0, 0.06)'
+    },
+    voidMarket: { // 특수: 비밀방 (자홍/마젠타 암시장)
+        bgColor: '#14051a',
+        innerBgColor: '#22092c',
+        outerBorder: 'rgba(255, 0, 127, 0.25)',
+        innerBorder: 'rgba(255, 0, 127, 0.6)',
+        gridColor: 'rgba(255, 0, 127, 0.08)'
+    }
+};
+
 // [신규] 프리셋별 문(포털) 소환 정보 매핑
 const PORTAL_SPAWN_INFOS = {
     PRESET_SIZE_NORMAL: {
@@ -7461,6 +7514,53 @@ class GameEngine {
         }
     }
 
+    // [신규] 방 레벨(층) 및 방 타입에 따른 가변 맵 테마 정보 반환
+    getSectorTheme(roomNum, roomType) {
+        // 1. 에러 섹터 (101층 이스터에그) 테마
+        if (roomNum === 101) {
+            return {
+                bgColor: '#05060a',
+                innerBgColor: '#08090e',
+                outerBorder: `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`,
+                innerBorder: 'rgba(255, 0, 255, 0.5)',
+                gridColor: 'rgba(255, 0, 255, 0.015)'
+            };
+        }
+
+        // 2. 비밀방 (Void Market) 테마
+        if (roomType === 'secret_room') {
+            return SECTOR_THEMES.voidMarket;
+        }
+
+        // 3. 보스방 (10의 배수 층) 테마 - 붉은색 사이렌 경보 연출
+        if (roomNum > 0 && roomNum % 10 === 0) {
+            const blink = 0.3 + Math.sin(Date.now() * 0.008) * 0.2;
+            return {
+                bgColor: '#0a0303',
+                innerBgColor: '#140505',
+                outerBorder: `rgba(255, 0, 55, ${blink * 0.7})`,
+                innerBorder: `rgba(255, 0, 55, ${blink})`,
+                gridColor: 'rgba(255, 0, 55, 0.03)'
+            };
+        }
+
+        // 4. 일반 섹터 테마 분기
+        if (roomNum >= 1 && roomNum <= 9) {
+            return SECTOR_THEMES.cyberGrid;
+        } else if (roomNum >= 11 && roomNum <= 19) {
+            return SECTOR_THEMES.volcanicCore;
+        } else if (roomNum >= 21 && roomNum <= 29) {
+            return SECTOR_THEMES.frozenVoid;
+        } else if (roomNum >= 31 && roomNum <= 39) {
+            return SECTOR_THEMES.overgrownLab;
+        } else if (roomNum >= 41 && roomNum <= 49) {
+            return SECTOR_THEMES.abyssalRift;
+        } else {
+            // 50층 이상
+            return SECTOR_THEMES.singularityCore;
+        }
+    }
+
     // --------------------------------------------------------------------------
     // 11. HTML5 Canvas 커스텀 네온 렌더러
     // --------------------------------------------------------------------------
@@ -7483,8 +7583,10 @@ class GameEngine {
             }
         }
 
+        const theme = this.getSectorTheme(this.roomNum, this.currentRoomType);
+
         // 배경 페인팅 (어두운 던전 분위기 및 옅은 리프레시 흔적 트레일 연출)
-        this.ctx.fillStyle = '#05060a';
+        this.ctx.fillStyle = theme.bgColor;
         this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
 
         // [시각 효과] 시간 왜곡 작동 시 배경을 은은한 보랏빛 장막으로 덮음
@@ -7496,7 +7598,7 @@ class GameEngine {
         // 방 벽 테두리 네온 사각형 그리기 (50px wallMargin 경계선에 정렬)
         this.ctx.beginPath();
         this.ctx.rect(48, 48, this.mapWidth - 96, this.mapHeight - 96);
-        let borderOuterStroke = 'rgba(255, 255, 255, 0.05)';
+        let borderOuterStroke = theme.outerBorder;
         if (this.roomNum === 101) {
             borderOuterStroke = `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`;
         } else if (this.timeDilationActive) {
@@ -7508,12 +7610,12 @@ class GameEngine {
 
         this.ctx.beginPath();
         this.ctx.rect(50, 50, this.mapWidth - 100, this.mapHeight - 100);
-        this.ctx.fillStyle = '#08090e';
+        this.ctx.fillStyle = theme.innerBgColor;
         this.ctx.fill();
 
         // 시간 왜곡 시 벽 테두리가 보랏빛 네온으로 맥박치며 번쩍임
         // 101층(에러 섹터)일 경우 마젠타 글리치 효과 연출
-        let wallStrokeColor = 'rgba(0, 240, 255, 0.1)';
+        let wallStrokeColor = theme.innerBorder;
         if (this.roomNum === 101) {
             const glitchOffset = (Math.random() < 0.25) ? (Math.random() * 6 - 3) : 0;
             const alpha = 0.4 + Math.random() * 0.5;
@@ -7537,7 +7639,7 @@ class GameEngine {
         this.ctx.stroke();
 
         // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (그리드 타일 크기 50px에 동기화)
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
+        this.ctx.strokeStyle = theme.gridColor;
         this.ctx.lineWidth = 1;
         for (let x = 50; x < this.mapWidth - 50; x += 50) {
             this.ctx.beginPath();
@@ -8308,6 +8410,29 @@ class GameEngine {
             });
         }
 
+        // [신규] 맵 테마 시뮬레이터 치트 바인딩
+        const bindThemeCheat = (btnId, roomNum, roomType = 'normal') => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    this.currentRoomType = roomType;
+                    this.roomNum = roomNum;
+                    this.updateHUD(); // HUD 동적 싱크
+                    this.showFloatingText(`테마 강제 변경: ${roomNum}층 (${roomType}) 🎨`, this.player.x, this.player.y - 40, '#00f0ff');
+                });
+            }
+        };
+
+        bindThemeCheat('cheat-theme-cyber', 1);
+        bindThemeCheat('cheat-theme-volcanic', 15);
+        bindThemeCheat('cheat-theme-frozen', 25);
+        bindThemeCheat('cheat-theme-overgrown', 35);
+        bindThemeCheat('cheat-theme-abyssal', 45);
+        bindThemeCheat('cheat-theme-singularity', 55);
+        bindThemeCheat('cheat-theme-boss', 10);
+        bindThemeCheat('cheat-theme-secret', 1, 'secret_room');
+        bindThemeCheat('cheat-theme-reset', 1, 'normal');
+
         // 3슬롯 계약 강제 해금
         const unlock3SlotBtn = document.getElementById('cheat-unlock-3slot-btn');
         if (unlock3SlotBtn) {
@@ -8791,14 +8916,13 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
-            'story-dialogue-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;
             const el = document.getElementById(id);
             return el && !el.classList.contains('hidden');
-        });
+        }) || this.isDialogueActive;
     }
 
     // [신규 추가] 인게임 습득 장비 상태창 모달 토글
