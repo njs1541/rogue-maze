@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Rogue-Maze: Synergy Combiner & Builder</title>
+    <!-- 프리미엄 타이포그래피 구글 폰트 적용 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-darker: #040508;
+            --bg-dark: #08090e;
+            --bg-card: rgba(13, 16, 26, 0.7);
+            --border-neon: rgba(0, 240, 255, 0.15);
+            
+            /* 네온 테마 시스템 컬러 */
+            --neon-blue: #00f0ff;
+            --neon-purple: #b026ff;
+            --neon-green: #39ff14;
+            --neon-pink: #ff0055;
+            --neon-yellow: #ffdf00;
+            --neon-orange: #ff5e00;
+            
+            --font-main: 'Noto Sans KR', sans-serif;
+            --font-title: 'Outfit', 'Noto Sans KR', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(176, 38, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        body {
+            background-color: var(--bg-darker);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(176, 38, 255, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 240, 255, 0.08) 0px, transparent 50%);
+            color: #e2e8f0;
+            font-family: var(--font-main);
+            min-height: 100vh;
+            padding: 2.5rem 1.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 스타일 */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .hud-btn {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-family: var(--font-title);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.6rem 1.2rem;
+            background: rgba(0, 240, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .hud-btn:hover {
+            color: #fff;
+            background: var(--neon-blue);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            transform: translateY(-50%) translateX(-2px);
+        }
+
+        header h1 {
+            font-family: var(--font-title);
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(176, 38, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.2);
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            font-weight: 300;
+        }
+
+        /* 메인 레이아웃 */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (min-width: 992px) {
+            .workspace {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        /* 글래스모피즘 패널 스타일 */
+        .panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.8rem;
+        }
+
+        /* 1. 무기 선택 셀렉터 */
+        .weapon-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .weapon-group-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--neon-blue);
+            letter-spacing: 0.5px;
+            margin-bottom: 0.6rem;
+        }
+
+        .weapon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.8rem;
+        }
+
+        .weapon-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .weapon-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        .weapon-card.selected-slot-a {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.05);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+        }
+
+        .weapon-card.selected-slot-b {
+            border-color: var(--neon-pink);
+            background: rgba(255, 0, 85, 0.05);
+            box-shadow: 0 0 12px rgba(255, 0, 85, 0.2);
+        }
+
+        .weapon-icon {
+            font-size: 2rem;
+            margin-bottom: 0.4rem;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.1));
+        }
+
+        .weapon-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        /* 2. 조합 벤치 (조합 진행 상황) */
+        .combiner-bench {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .slots-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .slot-box {
+            width: 120px;
+            height: 120px;
+            background: rgba(5, 6, 10, 0.8);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .slot-box.filled {
+            border-style: solid;
+        }
+
+        .slot-box#slot-a.filled {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            background: rgba(0, 240, 255, 0.02);
+        }
+
+        .slot-box#slot-b.filled {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.2);
+            background: rgba(255, 0, 85, 0.02);
+        }
+
+        .slot-box:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .slot-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            position: absolute;
+            bottom: -22px;
+            letter-spacing: 1px;
+        }
+
+        .slot-box#slot-a .slot-label { color: var(--neon-blue); }
+        .slot-box#slot-b .slot-label { color: var(--neon-pink); }
+
+        .combiner-plus {
+            font-size: 2rem;
+            color: #475569;
+            font-family: var(--font-title);
+            font-weight: 300;
+        }
+
+        .bench-instruction {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 3. 조합 결과 및 저장 폼 */
+        .result-container {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 1.5rem;
+            margin-top: 1rem;
+            display: none; /* 슬롯 가득 찼을 때 노출 */
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .official-badge {
+            background: rgba(57, 255, 20, 0.08);
+            border: 1px solid rgba(57, 255, 20, 0.25);
+            color: var(--neon-green);
+            padding: 0.25rem 0.6rem;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .custom-badge {
+            background: rgba(255, 223, 0, 0.08);
+            border: 1px solid rgba(255, 223, 0, 0.25);
+            color: var(--neon-yellow);
+            padding: 0.25rem 0.6rem;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            font-weight: 800;
+            display: inline-block;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .result-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-icon {
+            font-size: 2rem;
+        }
+
+        .result-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .form-input {
+            background: rgba(5, 6, 10, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(176, 38, 255, 0.2);
+        }
+
+        select.form-input {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+            border: none;
+            color: #fff;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(176, 38, 255, 0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(176, 38, 255, 0.45), 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        /* 4. 저장된 조합 저장소 */
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--neon-purple);
+            padding-left: 1rem;
+        }
+
+        .storage-header h2 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.3rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(176, 38, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(176, 38, 255, 0.3);
+        }
+
+        .combos-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .combos-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .combos-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .combo-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .combo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+            opacity: 0.7;
+        }
+
+        .combo-card.type-official::before {
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+        }
+
+        .combo-card.type-custom::before {
+            background: linear-gradient(90deg, var(--neon-yellow), var(--neon-orange));
+        }
+
+        .combo-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4), 0 0 15px rgba(176, 38, 255, 0.1);
+        }
+
+        .card-top {
+            margin-bottom: 1.2rem;
+        }
+
+        .card-badge-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .card-recipe {
+            display: flex;
+            gap: 0.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .recipe-item {
+            font-size: 0.72rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+        }
+
+        .recipe-item span {
+            color: var(--neon-blue);
+            font-weight: bold;
+        }
+
+        .combo-card.type-custom .recipe-item span {
+            color: var(--neon-yellow);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .delete-btn {
+            background: rgba(255, 0, 85, 0.05);
+            border: 1px solid rgba(255, 0, 85, 0.2);
+            color: var(--neon-pink);
+            padding: 0.4rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.2rem;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .delete-btn:hover {
+            background: var(--neon-pink);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.35);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 2rem;
+            border: 2px dashed rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* 알림 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-card);
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(57, 255, 20, 0.2);
+            color: #fff;
+            padding: 0.8rem 1.8rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="index.html" class="hud-btn" id="btn-back">🔙 GAME HUD</a>
+        <h1>Synergy Combiner</h1>
+        <p>원하는 무기들을 순서대로 골라 장착하여 숨겨진 시너지를 완성하거나 나만의 전설 무기를 조립해 저장하세요!</p>
+    </header>
+
+    <div class="workspace">
+        <!-- 왼쪽 패널: 무기 선택소 -->
+        <section class="panel">
+            <h2 class="panel-title">🎒 무기 라이브러리</h2>
+            
+            <div class="weapon-selector">
+                <div>
+                    <h3 class="weapon-group-title">⚔️ 물리 / 무기류</h3>
+                    <div class="weapon-grid" id="physical-grid">
+                        <!-- 동적 주입 -->
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="weapon-group-title">🔮 원소 / 마법류</h3>
+                    <div class="weapon-grid" id="element-grid">
+                        <!-- 동적 주입 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 오른쪽 패널: 조합 벤치 -->
+        <section class="panel">
+            <div class="combiner-bench">
+                <div>
+                    <h2 class="panel-title">🧬 조합 실험 벤치</h2>
+                    <p class="bench-instruction">라이브러리에서 무기 카드를 순서대로 선택하거나, 채워진 슬롯을 눌러 장착을 해제하세요.</p>
+                    
+                    <div class="slots-container">
+                        <div class="slot-box" id="slot-a" onclick="clearSlot('a')">
+                            <span class="weapon-icon" id="slot-a-icon">❓</span>
+                            <span class="weapon-name" id="slot-a-name">비어있음</span>
+                            <span class="slot-label">Slot A (주무기)</span>
+                        </div>
+                        
+                        <div class="combiner-plus">+</div>
+                        
+                        <div class="slot-box" id="slot-b" onclick="clearSlot('b')">
+                            <span class="weapon-icon" id="slot-b-icon">❓</span>
+                            <span class="weapon-name" id="slot-b-name">비어있음</span>
+                            <span class="slot-label">Slot B (부무기)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 조합 성공 시 노출되는 결과 폼 -->
+                <div class="result-container" id="result-container">
+                    <div id="result-header-badge"></div>
+                    
+                    <div class="result-title-row">
+                        <span class="result-icon" id="result-icon-view">❓</span>
+                        <h3 class="result-name" id="result-name-view">조합 무기명</h3>
+                    </div>
+
+                    <form id="synergy-form" onsubmit="saveSynergy(event)">
+                        <div class="form-group" id="group-title-input" style="display: none;">
+                            <label for="input-title">조합 무기명 입력</label>
+                            <input type="text" id="input-title" class="form-input" placeholder="조합 무기의 이름을 입력하세요" maxlength="20">
+                        </div>
+
+                        <div class="form-group" id="group-icon-input" style="display: none;">
+                            <label for="input-icon">조합 아이콘 선택</label>
+                            <select id="input-icon" class="form-input">
+                                <option value="💥">💥 폭발 (Explosion)</option>
+                                <option value="⚡">⚡ 번개 (Lightning)</option>
+                                <option value="🔥">🔥 화염 (Fire)</option>
+                                <option value="❄️">❄️ 서리 (Frost)</option>
+                                <option value="🌀">🌀 원소회오리 (Vortex)</option>
+                                <option value="⚔️">⚔️ 듀얼블레이드 (Dual)</option>
+                                <option value="⛓️">⛓️ 사슬 (Chain)</option>
+                                <option value="🔱">🔱 창격 (Spear)</option>
+                                <option value="🧬">🧬 융합체 (Hybrid)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="input-desc">시너지 효과 / 격발 메커니즘</label>
+                            <textarea id="input-desc" class="form-input" rows="3" placeholder="두 무기가 융합되어 어떤 화려한 효과를 내는지 설명해 주세요." required></textarea>
+                        </div>
+
+                        <button type="submit" class="save-btn">💾 이 조합 설계 저장하기</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 하단: 저장소 영역 -->
+    <section>
+        <div class="storage-header">
+            <h2>📦 조합 레시피 저장소</h2>
+            
+            <div class="filter-tabs">
+                <button class="tab-btn active" onclick="filterStorage('all')">전체보기</button>
+                <button class="tab-btn" onclick="filterStorage('official')">공식 시너지</button>
+                <button class="tab-btn" onclick="filterStorage('custom')">커스텀 조합</button>
+            </div>
+        </div>
+
+        <div class="combos-grid" id="storage-grid">
+            <!-- 동적 주입 -->
+        </div>
+    </section>
+</div>
+
+<!-- 알림 토스트 -->
+<div class="toast" id="toast-message">조합이 완료되었습니다!</div>
+
+<script>
+    // 1. 무기 기본 라이브러리 데이터
+    const WEAPONS = [
+        { id: 'gun', name: '네온 총', icon: '🔫', type: 'physical' },
+        { id: 'sword', name: '네온 검', icon: '🪓', type: 'physical' },
+        { id: 'spear', name: '네온 창', icon: '🔱', type: 'physical' },
+        { id: 'whip', name: '네온 채찍', icon: '🧣', type: 'physical' },
+        { id: 'thorns', name: '가시', icon: '🌵', type: 'physical' },
+        { id: 'scythe', name: '낫', icon: '🪚', type: 'physical' },
+        { id: 'railcannon', name: '레일캐논', icon: '⚡', type: 'physical' },
+        { id: 'trap', name: '덫', icon: '🕸️', type: 'physical' },
+        { id: 'fire', name: '불마법', icon: '🔥', type: 'element' },
+        { id: 'ice', name: '얼음마법', icon: '❄️', type: 'element' },
+        { id: 'lightning', name: '번개마법', icon: '⚡', type: 'element' }
+    ];
+
+    // 2. 인게임 공식 시너지 사전 정의 데이터 (a + b 조합)
+    const OFFICIAL_SYNERGIES = [
+        {
+            a: 'railcannon',
+            b: 'sword',
+            name: '레일 소드 융합 (Rail-Sword)',
+            icon: '⚡',
+            desc: '레일캐논 차징 레이저 발사 궤적을 따라 거대한 검기 파동이 추가 방출됩니다. 넓은 범위의 물리 피해를 가합니다.'
+        },
+        {
+            a: 'railcannon',
+            b: 'gun',
+            name: '레일 건 융합 (Rail-Gun)',
+            icon: '💥',
+            desc: '레일캐논 빔 격발에 총기 특성이 융합되어 도탄 탄환 및 스플래시가 물리적으로 연계 격발됩니다.'
+        },
+        {
+            a: 'scythe',
+            b: 'sword',
+            name: '낫 검 융합 (Scythe-Sword)',
+            icon: '🪓',
+            desc: '낫 회전 베기 중 주변 몬스터들을 전류 유도처럼 탐색하여 50%의 대미지를 입히는 원형 번개 검기 파편을 방출합니다.'
+        },
+        {
+            a: 'sword',
+            b: 'railcannon',
+            name: '소드 레일 융합 (Sword-Rail)',
+            icon: '⚡',
+            desc: '검을 휘두를 때 전방에 400px 길이의 강력한 관통형 네온 광선 빔이 즉시 추가 격발됩니다.'
+        },
+        {
+            a: 'fire',
+            b: 'ice',
+            name: '아이스 앤드 파이어 댄스',
+            icon: '🌀',
+            desc: '원소 균형이 극대화되어 냉기와 열기가 나선 구조로 회오리치며, 10초마다 하나의 극대화 하이브리드 플라즈마 레이저로 병합 폭사합니다.'
+        },
+        {
+            a: 'whip',
+            b: 'fire',
+            name: '화염 사슬 (Flame Whip)',
+            icon: '⛓️',
+            desc: '채찍으로 적을 당겨 무력화시키는 즉시, 타격 지점에 불마법의 고열 화염 폭발이 일어나 적들을 불태웁니다.'
+        },
+        {
+            a: 'gun',
+            b: 'lightning',
+            name: '뇌전 소총 (Plasma Rifle)',
+            icon: '🌀',
+            desc: '총탄이 적이나 벽면에 도탄될 때 주변 적들을 유도 탐색하여 벼락 번개 와이어를 전이 결합시킵니다.'
+        },
+        {
+            a: 'sword',
+            b: 'ice',
+            name: '서리 검 (Frost Sword)',
+            icon: '🧊',
+            desc: '검을 휘두를 때 고드름 서리 칼날풍이 함께 방출되어 적을 70% 둔화시키고 빙결 게이지를 신속히 중첩시킵니다.'
+        },
+        {
+            a: 'sword',
+            b: 'lightning',
+            name: '뇌신검 (Thunder Sword)',
+            icon: '⚡',
+            desc: '검 베기 모션이 마나 소모가 없는 3갈래 뇌전 충격파로 리메이크되며 적들을 기절시킵니다.'
+        },
+        {
+            a: 'gun',
+            b: 'fire',
+            name: '화염 산탄총 (Fire Shotgun)',
+            icon: '🔥',
+            desc: '소총이 화염 샷건 형태로 진화하여 8발의 화염구가 전방 80도 각도로 부채꼴 폭사되며 화상 장막을 남깁니다.'
+        },
+        {
+            a: 'spear',
+            b: 'ice',
+            name: '서리창 (Frost Spear)',
+            icon: '❄️',
+            desc: '찌르기 경로 상의 지면 전체가 영구 동토로 얼어붙어 모든 몬스터를 강제 동결시키고 관통 파쇄 피해를 가합니다.'
+        }
+    ];
+
+    // 상태 변수
+    let selectedSlotA = null;
+    let selectedSlotB = null;
+    let currentFilter = 'all';
+
+    // DOM 요소
+    const physicalGrid = document.getElementById('physical-grid');
+    const elementGrid = document.getElementById('element-grid');
+    const slotABox = document.getElementById('slot-a');
+    const slotBBox = document.getElementById('slot-b');
+    const resultContainer = document.getElementById('result-container');
+    const storageGrid = document.getElementById('storage-grid');
+
+    // 초기화 함수
+    function init() {
+        renderWeaponLibrary();
+        loadMyCombinations();
+        checkBenchCombination();
+    }
+
+    // 1. 무기 선택소 랜더링
+    function renderWeaponLibrary() {
+        physicalGrid.innerHTML = '';
+        elementGrid.innerHTML = '';
+
+        WEAPONS.forEach(wpn => {
+            const card = document.createElement('div');
+            card.className = 'weapon-card';
+            card.id = `library-card-${wpn.id}`;
+            card.innerHTML = `
+                <div class="weapon-icon">${wpn.icon}</div>
+                <div class="weapon-name">${wpn.name}</div>
+            `;
+            card.onclick = () => selectWeapon(wpn.id);
+
+            if (wpn.type === 'physical') {
+                physicalGrid.appendChild(card);
+            } else {
+                elementGrid.appendChild(card);
+            }
+        });
+    }
+
+    // 2. 무기 선택 시 로직 (Slot A -> Slot B 순서대로 채워짐)
+    function selectWeapon(wpnId) {
+        // 이미 해당 슬롯에 등록되어 있으면 해제 처리
+        if (selectedSlotA === wpnId) {
+            clearSlot('a');
+            return;
+        }
+        if (selectedSlotB === wpnId) {
+            clearSlot('b');
+            return;
+        }
+
+        // 비어있는 슬롯 우선 할당
+        if (!selectedSlotA) {
+            selectedSlotA = wpnId;
+        } else if (!selectedSlotB) {
+            selectedSlotB = wpnId;
+        } else {
+            // 둘 다 차있으면 B를 대체
+            selectedSlotB = wpnId;
+        }
+
+        updateLibraryVisuals();
+        updateBenchSlots();
+        checkBenchCombination();
+    }
+
+    // 슬롯 해제
+    function clearSlot(slot) {
+        if (slot === 'a') {
+            selectedSlotA = null;
+        } else if (slot === 'b') {
+            selectedSlotB = null;
+        }
+        updateLibraryVisuals();
+        updateBenchSlots();
+        checkBenchCombination();
+    }
+
+    // 라이브러리 카드 시각적 업데이트
+    function updateLibraryVisuals() {
+        WEAPONS.forEach(wpn => {
+            const card = document.getElementById(`library-card-${wpn.id}`);
+            card.className = 'weapon-card';
+            if (selectedSlotA === wpn.id) {
+                card.classList.add('selected-slot-a');
+            } else if (selectedSlotB === wpn.id) {
+                card.classList.add('selected-slot-b');
+            }
+        });
+    }
+
+    // 벤치 슬롯 내용 렌더링
+    function updateBenchSlots() {
+        if (selectedSlotA) {
+            const wpn = WEAPONS.find(w => w.id === selectedSlotA);
+            document.getElementById('slot-a-icon').innerText = wpn.icon;
+            document.getElementById('slot-a-name').innerText = wpn.name;
+            slotABox.classList.add('filled');
+        } else {
+            document.getElementById('slot-a-icon').innerText = '❓';
+            document.getElementById('slot-a-name').innerText = '비어있음';
+            slotABox.classList.remove('filled');
+        }
+
+        if (selectedSlotB) {
+            const wpn = WEAPONS.find(w => w.id === selectedSlotB);
+            document.getElementById('slot-b-icon').innerText = wpn.icon;
+            document.getElementById('slot-b-name').innerText = wpn.name;
+            slotBBox.classList.add('filled');
+        } else {
+            document.getElementById('slot-b-icon').innerText = '❓';
+            document.getElementById('slot-b-name').innerText = '비어있음';
+            slotBBox.classList.remove('filled');
+        }
+    }
+
+    // 3. 조합 결과 확인 (공식 공식 조회 or 커스텀 입력 양식 노출)
+    function checkBenchCombination() {
+        if (!selectedSlotA || !selectedSlotB) {
+            resultContainer.style.display = 'none';
+            return;
+        }
+
+        resultContainer.style.display = 'block';
+        
+        // 공식 조합 매핑 (양방향 대조 가능하나 순서 구분 필요 시 exact 대조)
+        const synergy = OFFICIAL_SYNERGIES.find(s => 
+            (s.a === selectedSlotA && s.b === selectedSlotB) || 
+            (s.a === selectedSlotB && s.b === selectedSlotA)
+        );
+
+        const badgeContainer = document.getElementById('result-header-badge');
+        const titleInputGroup = document.getElementById('group-title-input');
+        const iconInputGroup = document.getElementById('group-icon-input');
+        
+        if (synergy) {
+            // 공식 조합 발견
+            badgeContainer.innerHTML = '<span class="official-badge">📜 공식 레시피 시너지</span>';
+            document.getElementById('result-icon-view').innerText = synergy.icon;
+            document.getElementById('result-name-view').innerText = synergy.name;
+            
+            titleInputGroup.style.display = 'none';
+            iconInputGroup.style.display = 'none';
+            
+            document.getElementById('input-desc').value = synergy.desc;
+            document.getElementById('input-desc').readOnly = true; // 공식 설명은 수정 불가능하게 처리
+        } else {
+            // 커스텀 신규 조합
+            badgeContainer.innerHTML = '<span class="custom-badge">🧬 새로운 커스텀 조합 설계</span>';
+            document.getElementById('result-icon-view').innerText = '🧬';
+            document.getElementById('result-name-view').innerText = '신규 융합체 발견';
+            
+            titleInputGroup.style.display = 'flex';
+            iconInputGroup.style.display = 'flex';
+            
+            document.getElementById('input-title').value = '';
+            document.getElementById('input-desc').value = '';
+            document.getElementById('input-desc').readOnly = false;
+        }
+    }
+
+    // 4. 로컬 스토리지 CRUD 및 저장소
+    function saveSynergy(e) {
+        e.preventDefault();
+        
+        if (!selectedSlotA || !selectedSlotB) return;
+
+        const synergy = OFFICIAL_SYNERGIES.find(s => 
+            (s.a === selectedSlotA && s.b === selectedSlotB) || 
+            (s.a === selectedSlotB && s.b === selectedSlotA)
+        );
+
+        let myCombos = JSON.parse(localStorage.getItem('my_synergies') || '[]');
+
+        if (synergy) {
+            // 공식 조합 저장
+            // 중복 검사
+            const exists = myCombos.some(c => c.isOfficial && c.name === synergy.name);
+            if (exists) {
+                showToast('이미 보관소에 저장된 공식 시너지입니다.');
+                return;
+            }
+
+            const item = {
+                id: 'official_' + Date.now(),
+                a: selectedSlotA,
+                b: selectedSlotB,
+                name: synergy.name,
+                icon: synergy.icon,
+                desc: synergy.desc,
+                isOfficial: true
+            };
+            myCombos.push(item);
+        } else {
+            // 커스텀 조합 저장
+            const titleInput = document.getElementById('input-title').value.trim();
+            const iconSelect = document.getElementById('input-icon').value;
+            const descInput = document.getElementById('input-desc').value.trim();
+
+            if (!titleInput) {
+                showToast('조합 무기명을 입력해주세요.');
+                return;
+            }
+
+            const item = {
+                id: 'custom_' + Date.now(),
+                a: selectedSlotA,
+                b: selectedSlotB,
+                name: titleInput,
+                icon: iconSelect,
+                desc: descInput,
+                isOfficial: false
+            };
+            myCombos.push(item);
+        }
+
+        localStorage.setItem('my_synergies', JSON.stringify(myCombos));
+        showToast('성공적으로 저장소에 보관하였습니다!');
+        
+        // 슬롯 초기화
+        selectedSlotA = null;
+        selectedSlotB = null;
+        updateLibraryVisuals();
+        updateBenchSlots();
+        checkBenchCombination();
+        
+        loadMyCombinations();
+    }
+
+    // 조합 저장소 로드 및 렌더링
+    function loadMyCombinations() {
+        storageGrid.innerHTML = '';
+        const myCombos = JSON.parse(localStorage.getItem('my_synergies') || '[]');
+
+        // 필터링 적용
+        let filtered = myCombos;
+        if (currentFilter === 'official') {
+            filtered = myCombos.filter(c => c.isOfficial);
+        } else if (currentFilter === 'custom') {
+            filtered = myCombos.filter(c => !c.isOfficial);
+        }
+
+        if (filtered.length === 0) {
+            storageGrid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🧬</div>
+                    <div>보관된 무기 조합이 없습니다.</div>
+                    <p style="font-size: 0.8rem; margin-top: 0.4rem; color: #475569;">실험 벤치에서 무기를 융합하여 설계도를 수집해 보세요!</p>
+                </div>
+            `;
+            return;
+        }
+
+        filtered.forEach(combo => {
+            const wpnA = WEAPONS.find(w => w.id === combo.a) || { name: combo.a, icon: '❓' };
+            const wpnB = WEAPONS.find(w => w.id === combo.b) || { name: combo.b, icon: '❓' };
+
+            const card = document.createElement('article');
+            card.className = `combo-card ${combo.isOfficial ? 'type-official' : 'type-custom'}`;
+            
+            card.innerHTML = `
+                <div class="card-top">
+                    <div class="card-badge-row">
+                        <span class="card-badge ${combo.isOfficial ? 'official-badge' : 'custom-badge'}">
+                            ${combo.isOfficial ? '공식' : '커스텀'}
+                        </span>
+                    </div>
+                    <h3 class="card-title">
+                        <span>${combo.icon}</span> ${combo.name}
+                    </h3>
+                    <div class="card-recipe">
+                        <span class="recipe-item"><span>A</span> ${wpnA.icon} ${wpnA.name}</span>
+                        <span class="recipe-item"><span>B</span> ${wpnB.icon} ${wpnB.name}</span>
+                    </div>
+                    <p class="card-desc">${combo.desc}</p>
+                </div>
+                <button class="delete-btn" onclick="deleteCombo('${combo.id}')">🗑️ 설계도 파기</button>
+            `;
+
+            storageGrid.appendChild(card);
+        });
+    }
+
+    // 조합 파기(삭제)
+    function deleteCombo(id) {
+        let myCombos = JSON.parse(localStorage.getItem('my_synergies') || '[]');
+        myCombos = myCombos.filter(c => c.id !== id);
+        localStorage.setItem('my_synergies', JSON.stringify(myCombos));
+        showToast('보관소에서 무기 설계를 해체하였습니다.');
+        loadMyCombinations();
+    }
+
+    // 필터링 탭 교체
+    function filterStorage(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(
+            btn => btn.getAttribute('onclick').includes(filter)
+        );
+        if (targetBtn) targetBtn.classList.add('active');
+        
+        loadMyCombinations();
+    }
+
+    // 5. 토스트 알림 연출
+    function showToast(msg) {
+        const toast = document.getElementById('toast-message');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2200);
+    }
+
+    // 초기 로딩
+    window.onload = init;
+</script>
+</body>
+</html>
