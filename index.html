@@ -1046,35 +1046,6 @@
             </div>
         </div>
     </div>
-
-    <!-- [신규] 스토리 대화 및 시나리오 텍스트 오버레이 (상시 노출 및 딤드 설정) -->
-    <div id="story-dialogue-overlay" class="overlay-panel crt-overlay hidden">
-        <div class="dialogue-container crt-dialogue">
-            <!-- CRT 모니터 스캔라인 효과용 가상 레이어 -->
-            <div class="crt-scanline"></div>
-            
-            <!-- 좌측 캐릭터 초상화/화면 영역 -->
-            <div class="dialogue-portrait-area">
-                <div class="dialogue-portrait-monitor">
-                    <div class="portrait-signal-active">LIVE</div>
-                    <canvas id="walk-canvas" width="256" height="256"></canvas>
-                </div>
-            </div>
-            
-            <!-- 우측 대화 내용 영역 -->
-            <div class="dialogue-content-area">
-                <div class="dialogue-header">
-                    <span id="dialogue-speaker">[ SYSTEM ]</span>
-                </div>
-                <div class="dialogue-body">
-                    <p id="dialogue-text"></p>
-                </div>
-                <div class="dialogue-footer">
-                    <button id="dialogue-next-btn">계속 (Space/Click)</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
         <!-- 하단 플레이어 상태 및 스탯 패널 -->
@@ -1217,6 +1188,37 @@
             </div>
         </footer>
     </div> <!-- #game-container 닫음 -->
+
+    <!-- [신규] 스토리 대화 및 시나리오 텍스트 오버레이 (상시 노출 및 딤드 설정) -->
+    <div id="story-dialogue-overlay" class="overlay-panel crt-overlay hidden">
+        <div class="crt-dialogue-scaling-wrapper">
+            <div class="dialogue-container crt-dialogue">
+                <!-- CRT 모니터 스캔라인 효과용 가상 레이어 -->
+                <div class="crt-scanline"></div>
+                
+                <!-- 좌측 캐릭터 초상화/화면 영역 -->
+                <div class="dialogue-portrait-area">
+                    <div class="dialogue-portrait-monitor">
+                        <div class="portrait-signal-active">LIVE</div>
+                        <canvas id="walk-canvas" width="256" height="256"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 우측 대화 내용 영역 -->
+                <div class="dialogue-content-area">
+                    <div class="dialogue-header">
+                        <span id="dialogue-speaker">[ SYSTEM ]</span>
+                    </div>
+                    <div class="dialogue-body">
+                        <p id="dialogue-text"></p>
+                    </div>
+                    <div class="dialogue-footer">
+                        <button id="dialogue-next-btn">계속 (Space/Click)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <!-- Web Audio API 효과음 & 게임 전반적인 로직 통합 JS 호출 -->
     <script src="js/assetManager.js"></script>

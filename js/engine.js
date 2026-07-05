@@ -416,6 +416,8 @@ class GameEngine {
         }
 
         container.style.transform = `translate(-50%, -50%) scale(${minScale})`;
+        // [신규] CSS 변수로 현재 스케일 비율 전달 (외부 이관된 대화 오버레이 스케일링 연동용)
+        document.documentElement.style.setProperty('--game-scale', minScale);
     }
 
     // 입력 장치 이벤트 바인딩
@@ -2055,10 +2057,17 @@ class GameEngine {
             return;
         }
 
-        // [신규 추가] Hit Stop(역경직) 감쇠 및 물리 업데이트 일시 정지
+        // [신규 추가] Hit Stop(역경직) 감쇠 및 물리 업데이트 일시 정지 (이때 BGM 피치도 동시 연동)
         if (this.hitStopFrames > 0) {
             this.hitStopFrames--;
+            if (typeof Sound !== 'undefined') {
+                Sound.bgmPitchScale = 0.55;
+            }
             return;
+        } else {
+            if (typeof Sound !== 'undefined' && Sound.bgmPitchScale !== 1.0) {
+                Sound.bgmPitchScale = 1.0;
+            }
         }
 
         // [신규 추가] Hit Stop 쿨다운 타이머 매 프레임 감쇠
@@ -7756,29 +7765,52 @@ class GameEngine {
             this.ctx.restore();
         }
 
-        // [v0.95 신규 구현] 보스 경보 발동 시 화면 테두리 붉은색 네온 경보 및 경고 텍스트
+        // [v0.95 신규 구현] 보스 경보 발동 시 화면 테두리 섹터 테마 네온 경보 및 경고 텍스트 & 글리치 연출
         if (this.bossWarningTimer > 0) {
             this.ctx.save();
 
             // 0.5초(30프레임) 주기 명멸 알파값 연산 (0.25 <-> 0.8)
             let warningAlpha = (Math.floor(this.bossWarningTimer / 15) % 2 === 0) ? 0.8 : 0.25;
 
-            // 화면 외벽에 두꺼운 8px 네온 붉은 사각형 렌더링
-            this.ctx.strokeStyle = `rgba(255, 0, 85, ${warningAlpha})`;
+            // 현재 방 번호와 테마에 맞는 컬러 추출
+            const theme = this.getSectorTheme(this.roomNum, this.currentRoomType);
+            let rawColor = theme.innerBorder || 'rgba(255, 0, 85, 0.4)';
+            
+            // rgba 형태로 정의된 색상 문자열의 알파값 치환
+            let strokeColor = rawColor.replace(/[^,]+(?=\s*\)$)/, ` ${warningAlpha}`);
+            let shadowColor = rawColor.replace(/[^,]+(?=\s*\)$)/, ` 1`);
+
+            // 화면 외벽에 두꺼운 8px 네온 섹터 테마 사각형 렌더링
+            this.ctx.strokeStyle = strokeColor;
             this.ctx.lineWidth = 8;
             this.ctx.shadowBlur = 20;
-            this.ctx.shadowColor = '#ff0055';
+            this.ctx.shadowColor = shadowColor;
             this.ctx.strokeRect(4, 4, this.mapWidth - 8, this.mapHeight - 8);
 
-            // 화면 중앙에 거대한 WARNING 네온 붉은 경고 텍스트
+            // 화면 중앙에 거대한 WARNING 네온 섹터 테마 경고 텍스트
             this.ctx.font = '900 36px "Outfit"';
-            this.ctx.fillStyle = `rgba(255, 0, 85, ${warningAlpha})`;
+            this.ctx.fillStyle = strokeColor;
             this.ctx.textAlign = 'center';
             this.ctx.shadowBlur = 15;
-            this.ctx.shadowColor = '#ff0055';
+            this.ctx.shadowColor = shadowColor;
             this.ctx.fillText("WARNING! BOSS ENCOUNTER 🚨", this.mapWidth / 2, 240);
 
             this.ctx.restore();
+
+            // [추가] 화면 찢어짐(Glitch Screen Tear) 왜곡 필터 렌더링 (경보 중 무작위 찢어짐 효과)
+            if (Math.random() < 0.25) {
+                let glitchLines = Math.floor(Math.random() * 3) + 1; // 1~3개의 글리치 라인
+                for (let g = 0; g < glitchLines; g++) {
+                    let sliceY = Math.random() * this.mapHeight;
+                    let sliceH = Math.random() * 40 + 10; // 10~50px 높이
+                    let offset = (Math.random() - 0.5) * 24; // -12 ~ 12px 좌우 슬라이드
+                    this.ctx.drawImage(
+                        this.canvas,
+                        0, sliceY, this.mapWidth, sliceH,
+                        offset, sliceY, this.mapWidth, sliceH
+                    );
+                }
+            }
         }
 
         // [신규] 보스 출현 시 상단 중앙 보스 전용 네온 HP HUD 렌더러
