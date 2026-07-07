@@ -3250,36 +3250,34 @@ textarea:focus-visible {
     }
 }
 
-.portrait-avatar {
-    width: 100px !important;
-    height: 100px !important;
-    background-image: url('../assets/walk/walk_front_12f_256.png') !important;
-    background-size: 1200% 100% !important;
-    /* 12프레임 중 첫 프레임 슬라이싱 */
-    background-position: 0% 0% !important;
-    background-repeat: no-repeat !important;
+/* 대화창 전용 캐릭터 캔버스 초상화 스타일 */
+.dialogue-portrait-monitor #walk-canvas {
+    width: 256px !important;
+    height: 256px !important;
+    min-width: 256px !important;
+    min-height: 256px !important;
+    max-width: none !important;
+    max-height: none !important;
     image-rendering: pixelated !important;
-    transform: scale(2.2) !important;
-    /* 상반신 노출 확대 배율 */
-    transform-origin: center 25% !important;
-    /* 얼굴 중심 확대 기준점 */
-    margin-top: 50px !important;
-    /* 모니터 내부 중심점 보정 */
+    transform-origin: center 25% !important; /* 얼굴 중심 확대 기준점 */
+    margin-top: 80px !important; /* 모니터 내부 중심점 보정 */
     filter: drop-shadow(0 0 8px rgba(21, 128, 61, 0.4)) !important;
-    animation: staticNoise 0.5s infinite steps(2) !important;
+    animation: portraitNoise 0.5s infinite steps(2) !important;
+    pointer-events: none !important;
 }
 
-@keyframes staticNoise {
+/* 2.2배 확대 비율이 유지되면서 1px씩 흔들리는 노이즈 애니메이션 */
+@keyframes portraitNoise {
     0% {
-        transform: translate(1px, 1px) rotate(0deg);
+        transform: scale(2.2) translate(1px, 1px) rotate(0deg) !important;
     }
 
     50% {
-        transform: translate(-1px, -1px) rotate(1deg);
+        transform: scale(2.2) translate(-1px, -1px) rotate(1deg) !important;
     }
 
     100% {
-        transform: translate(1px, 1px) rotate(0deg);
+        transform: scale(2.2) translate(1px, 1px) rotate(0deg) !important;
     }
 }
 
