@@ -747,17 +747,17 @@
 <script>
     // 1. 무기 기본 라이브러리 데이터
     const WEAPONS = [
-        { id: 'gun', name: '네온 총', icon: '🔫', type: 'physical' },
-        { id: 'sword', name: '네온 검', icon: '🪓', type: 'physical' },
-        { id: 'spear', name: '네온 창', icon: '🔱', type: 'physical' },
-        { id: 'whip', name: '네온 채찍', icon: '🧣', type: 'physical' },
-        { id: 'thorns', name: '가시', icon: '🌵', type: 'physical' },
-        { id: 'scythe', name: '낫', icon: '🪚', type: 'physical' },
-        { id: 'railcannon', name: '레일캐논', icon: '⚡', type: 'physical' },
-        { id: 'trap', name: '덫', icon: '🕸️', type: 'physical' },
-        { id: 'fire', name: '불마법', icon: '🔥', type: 'element' },
-        { id: 'ice', name: '얼음마법', icon: '❄️', type: 'element' },
-        { id: 'lightning', name: '번개마법', icon: '⚡', type: 'element' }
+        { id: 'gun', name: '에너지 볼 (기본)', icon: '🔵', type: 'physical' },
+        { id: 'sword', name: '조잡한 검', icon: '🪓', type: 'physical' },
+        { id: 'spear', name: '조잡한 창', icon: '🔱', type: 'physical' },
+        { id: 'whip', name: '조잡한 채찍', icon: '🧣', type: 'physical' },
+        { id: 'thorns', name: '조잡 가시갑옷', icon: '🌵', type: 'physical' },
+        { id: 'scythe', name: '조잡한 낫', icon: '⛏️', type: 'physical' },
+        { id: 'railcannon', name: '조잡 레일건', icon: '📡', type: 'physical' },
+        { id: 'trap', name: '조잡한 덫', icon: '⚙️', type: 'physical' },
+        { id: 'fire', name: '조잡 화방', icon: '🔥', type: 'element' },
+        { id: 'ice', name: '조잡 냉각총', icon: '❄️', type: 'element' },
+        { id: 'lightning', name: '조잡 전격기', icon: '🔌', type: 'element' }
     ];
 
     // 2. 인게임 공식 시너지 사전 정의 데이터 (a + b 조합)
@@ -765,79 +765,79 @@
         {
             a: 'railcannon',
             b: 'sword',
-            name: '레일 소드 융합 (Rail-Sword)',
+            name: '태키온 세이버 (Tachyon Saber)',
             icon: '⚡',
-            desc: '레일캐논 차징 레이저 발사 궤적을 따라 거대한 검기 파동이 추가 방출됩니다. 넓은 범위의 물리 피해를 가합니다.'
+            desc: '태키온 레일건 격발 레이저 발사 궤적을 따라 플라즈마 세이버의 광선 검기 파동이 추가 방출됩니다. 넓은 범위의 치명적인 복합 피해를 가합니다.'
         },
         {
             a: 'railcannon',
             b: 'gun',
-            name: '레일 건 융합 (Rail-Gun)',
+            name: '태키온 볼 버스터 (Tachyon Ball)',
             icon: '💥',
-            desc: '레일캐논 빔 격발에 총기 특성이 융합되어 도탄 탄환 및 스플래시가 물리적으로 연계 격발됩니다.'
+            desc: '레일건의 레이저 빔 격발에 에너지 볼 특성이 융합되어 거대 에너지 도탄 탄환 및 스플래시가 물리적으로 연계 격발됩니다.'
         },
         {
             a: 'scythe',
             b: 'sword',
-            name: '낫 검 융합 (Scythe-Sword)',
-            icon: '🪓',
-            desc: '낫 회전 베기 중 주변 몬스터들을 전류 유도처럼 탐색하여 50%의 대미지를 입히는 원형 번개 검기 파편을 방출합니다.'
+            name: '보이드 세이버 (Void Saber)',
+            icon: '🌌',
+            desc: '보이드 디스트로이어의 공간 참격 중 주변 몬스터들을 전류 유도처럼 탐색하여 50%의 대미지를 입히는 원형 번개 검기 파편을 방출합니다.'
         },
         {
             a: 'sword',
             b: 'railcannon',
-            name: '소드 레일 융합 (Sword-Rail)',
+            name: '플라즈마 태키온 (Plasma Tachyon)',
             icon: '⚡',
-            desc: '검을 휘두를 때 전방에 400px 길이의 강력한 관통형 네온 광선 빔이 즉시 추가 격발됩니다.'
+            desc: '플라즈마 세이버를 휘두를 때 전방에 400px 길이의 강력한 관통형 태키온 광선 빔이 즉시 추가 격발됩니다.'
         },
         {
             a: 'fire',
             b: 'ice',
             name: '아이스 앤드 파이어 댄스',
             icon: '🌀',
-            desc: '원소 균형이 극대화되어 냉기와 열기가 나선 구조로 회오리치며, 10초마다 하나의 극대화 하이브리드 플라즈마 레이저로 병합 폭사합니다.'
+            desc: '융합 플라즈마 캐논의 냉기와 열기가 나선 구조로 회오리치며, 10초마다 하나의 극대화 하이브리드 플라즈마 레이저로 병합 폭사합니다.'
         },
         {
             a: 'whip',
             b: 'fire',
-            name: '화염 사슬 (Flame Whip)',
+            name: '나노 퓨전 채찍 (Nano Fusion)',
             icon: '⛓️',
-            desc: '채찍으로 적을 당겨 무력화시키는 즉시, 타격 지점에 불마법의 고열 화염 폭발이 일어나 적들을 불태웁니다.'
+            desc: '나노 레이저 와이어로 적을 당겨 무력화시키는 즉시, 타격 지점에 퓨전 플라즈마 캐논의 고열 플라즈마 폭발이 일어나 적들을 불태웁니다.'
         },
         {
             a: 'gun',
             b: 'lightning',
-            name: '뇌전 소총 (Plasma Rifle)',
-            icon: '🌀',
-            desc: '총탄이 적이나 벽면에 도탄될 때 주변 적들을 유도 탐색하여 벼락 번개 와이어를 전이 결합시킵니다.'
+            name: '에너지 EMP 소총 (Energy EMP)',
+            icon: '🔋',
+            desc: '에너지 볼이 적이나 벽면에 도탄될 때 주변 적들을 유도 탐색하여 체인 EMP 전자기 펄스 와이어를 전이 결합시킵니다.'
         },
         {
             a: 'sword',
             b: 'ice',
-            name: '서리 검 (Frost Sword)',
+            name: '크라이오 세이버 (Cryo Saber)',
             icon: '🧊',
-            desc: '검을 휘두를 때 고드름 서리 칼날풍이 함께 방출되어 적을 70% 둔화시키고 빙결 게이지를 신속히 중첩시킵니다.'
+            desc: '플라즈마 세이버를 휘두를 때 크라이오 프리저의 절대영도 서리 칼날풍이 함께 방출되어 적을 70% 둔화시키고 빙결 게이지를 신속히 중첩시킵니다.'
         },
         {
             a: 'sword',
             b: 'lightning',
-            name: '뇌신검 (Thunder Sword)',
+            name: '체인 플라즈마 (Chain Plasma)',
             icon: '⚡',
-            desc: '검 베기 모션이 마나 소모가 없는 3갈래 뇌전 충격파로 리메이크되며 적들을 기절시킵니다.'
+            desc: '플라즈마 세이버의 참격 모션이 마나 소모가 없는 3갈래 EMP 뇌전 충격파로 리메이크되며 적들을 기절시킵니다.'
         },
         {
             a: 'gun',
             b: 'fire',
-            name: '화염 산탄총 (Fire Shotgun)',
+            name: '퓨전 플라즈마 건 (Fusion Gun)',
             icon: '🔥',
-            desc: '소총이 화염 샷건 형태로 진화하여 8발의 화염구가 전방 80도 각도로 부채꼴 폭사되며 화상 장막을 남깁니다.'
+            desc: '에너지 볼이 퓨전 플라즈마 형태로 진화하여 8발의 플라즈마 구체가 전방 80도 각도로 부채꼴 폭사되며 화상 장막을 남깁니다.'
         },
         {
             a: 'spear',
             b: 'ice',
-            name: '서리창 (Frost Spear)',
+            name: '크라이오 파일벙커 (Cryo Bunker)',
             icon: '❄️',
-            desc: '찌르기 경로 상의 지면 전체가 영구 동토로 얼어붙어 모든 몬스터를 강제 동결시키고 관통 파쇄 피해를 가합니다.'
+            desc: '에너지 파일벙커 찌르기 경로 상의 지면 전체가 영구 동토로 얼어붙어 모든 몬스터를 강제 동결시키고 관통 파쇄 피해를 가합니다.'
         }
     ];
 

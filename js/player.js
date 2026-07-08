@@ -3,22 +3,175 @@
 // --------------------------------------------------------------------------
 // 무기 시스템 데이터 선언 (새로운 무기나 융합 무기 추가 시 여기에 등록)
 const WEAPON_CATEGORIES = {
-    sword: 'melee',
-    spear: 'melee',
-    whip: 'melee',
-    lightning: 'ranged',
-    fire: 'ranged',
-    ice: 'ranged',
-    thorns: 'utility',
-    trap: 'utility'
+    energy_ball: 'ranged',
+    
+    // 1차 조잡한 무기군
+    crude_sword: 'melee',
+    crude_spear: 'melee',
+    crude_whip: 'melee',
+    crude_shock: 'ranged',
+    crude_flamethrower: 'ranged',
+    crude_cryo: 'ranged',
+    crude_thorns: 'utility',
+    crude_trap: 'utility',
+    crude_scythe: 'melee',
+    crude_rail: 'ranged',
+    
+    // 2차 진화형 하이테크 무기군
+    plasma_saber: 'melee',
+    energy_pilebunker: 'melee',
+    nano_laser_wire: 'melee',
+    chain_emp_shock: 'ranged',
+    fusion_plasma_cannon: 'ranged',
+    cryo_freezer: 'ranged',
+    gravity_singularity_field: 'utility',
+    proximity_cyber_mine: 'utility',
+    void_destroyer: 'melee',
+    tachyon_railgun: 'ranged'
 };
 
 const WEAPON_FUSIONS = [
     {
-        name: 'icefiredance',
-        materials: { fire: 5, ice: 5 }
+        name: 'supercritical_plasma_fusion', // 기존 icefiredance ➔ 초임계 플라즈마 융합
+        materials: { fusion_plasma_cannon: 5, cryo_freezer: 5 }
     }
 ];
+
+const CRAFTING_RECIPES = {
+    // 1차 조잡한 무기군
+    crude_sword: {
+        name: '조잡한 검',
+        type: 'crude',
+        desc: '짧은 막대기와 칼날을 결합한 급조 접근전용 검.',
+        materials: { short_rod: 1, blade: 1 }
+    },
+    crude_spear: {
+        name: '조잡한 창',
+        type: 'crude',
+        desc: '긴 막대기에 칼날을 묶어 사거리를 늘린 창.',
+        materials: { long_rod: 1, blade: 1 }
+    },
+    crude_whip: {
+        name: '조잡한 채찍',
+        type: 'crude',
+        desc: '전선을 꼬아 채찍 형태로 만든 전술 타격 무기.',
+        materials: { wire: 2, short_rod: 1 }
+    },
+    crude_shock: {
+        name: '조잡한 전기 충격기',
+        type: 'crude',
+        desc: '배터리와 전선을 이은 초기 전기 방출기.',
+        materials: { battery: 1, wire: 1 }
+    },
+    crude_flamethrower: {
+        name: '조잡한 화염방사기',
+        type: 'crude',
+        desc: '고장난 화염방사기 부품에 배터리를 연결해 작동시킨 화기.',
+        materials: { broken_flamethrower: 1, battery: 1 }
+    },
+    crude_cryo: {
+        name: '조잡한 냉각총',
+        type: 'crude',
+        desc: '과냉각기를 배터리로 냉각 순환시키는 동결 유도총.',
+        materials: { cryo_cooler: 1, battery: 1 }
+    },
+    crude_thorns: {
+        name: '조잡한 가시갑옷',
+        type: 'crude',
+        desc: '넓은 판에 칼날을 촘촘히 꽂아 신체를 방어하는 가시 갑장.',
+        materials: { metal_plate: 2, blade: 1 }
+    },
+    crude_trap: {
+        name: '조잡한 덫',
+        type: 'crude',
+        desc: '전선과 배터리를 엮어 지나가는 대상을 붙잡는 설치물.',
+        materials: { wire: 1, battery: 1, short_rod: 1 }
+    },
+    crude_scythe: {
+        name: '조잡한 낫',
+        type: 'crude',
+        desc: '긴 막대기와 칼날, 전선을 연결한 사이버네틱 낫.',
+        materials: { blade: 1, long_rod: 1, wire: 1 }
+    },
+    crude_rail: {
+        name: '조잡한 레일건',
+        type: 'crude',
+        desc: '듀얼 배터리와 다중 전선 코일로 발사하는 조잡한 전자기 가속포.',
+        materials: { battery: 2, wire: 1 }
+    },
+
+    // 2차 진화형 하이테크 무기군
+    plasma_saber: {
+        name: '플라즈마 세이버',
+        type: 'advanced',
+        desc: '조잡한 검에서 진화. 고농축 에너지가 흐르는 광선검.',
+        reqWeapon: 'crude_sword',
+        materials: { sensor_lens: 1, nanite_jar: 1 }
+    },
+    energy_pilebunker: {
+        name: '에너지 파일벙커',
+        type: 'advanced',
+        desc: '조잡한 창에서 진화. 실린더식 압축 타격으로 꿰뚫는 충격 병기.',
+        reqWeapon: 'crude_spear',
+        materials: { hydraulic_cylinder: 2, metal_plate: 1 }
+    },
+    nano_laser_wire: {
+        name: '나노 레이저 와이어',
+        type: 'advanced',
+        desc: '조잡한 채찍에서 진화. 분자 단위 나노 레이저 선으로 절단하는 채찍.',
+        reqWeapon: 'crude_whip',
+        materials: { nanite_jar: 2, wire: 2 }
+    },
+    chain_emp_shock: {
+        name: '체인 EMP 쇼크',
+        type: 'advanced',
+        desc: '조잡한 전기 충격기에서 진화. 연쇄 EMP 전자기 펄스 방출총.',
+        reqWeapon: 'crude_shock',
+        materials: { sensor_lens: 1, battery: 2 }
+    },
+    fusion_plasma_cannon: {
+        name: '퓨전 플라즈마 캐논',
+        type: 'advanced',
+        desc: '조잡한 화염방사기에서 진화. 핵융합 플라즈마 투사 대포.',
+        reqWeapon: 'crude_flamethrower',
+        materials: { hydraulic_cylinder: 1, battery: 2 }
+    },
+    cryo_freezer: {
+        name: '크라이오 프리저',
+        type: 'advanced',
+        desc: '조잡한 냉각총에서 진화. 절대영도 과냉각 고리 분사 빙결총.',
+        reqWeapon: 'crude_cryo',
+        materials: { cryo_cooler: 1, nanite_jar: 1 }
+    },
+    gravity_singularity_field: {
+        name: '중력 특이점 필드',
+        type: 'advanced',
+        desc: '조잡한 가시갑옷에서 진화. 중력장을 압축해 가시 중력 오라를 방출하는 장갑.',
+        reqWeapon: 'crude_thorns',
+        materials: { hydraulic_cylinder: 1, metal_plate: 2 }
+    },
+    proximity_cyber_mine: {
+        name: '프록시미티 사이버 마인',
+        type: 'advanced',
+        desc: '조잡한 덫에서 진화. 감지 렌즈 기반 근접 감응식 사이버 지뢰.',
+        reqWeapon: 'crude_trap',
+        materials: { sensor_lens: 1, battery: 1 }
+    },
+    void_destroyer: {
+        name: '보이드 디스트로이어',
+        type: 'advanced',
+        desc: '조잡한 낫에서 진화. 허공의 힘(보이드)으로 공간을 가르는 파괴의 낫.',
+        reqWeapon: 'crude_scythe',
+        materials: { nanite_jar: 1, wire: 2 }
+    },
+    tachyon_railgun: {
+        name: '태키온 레일건',
+        type: 'advanced',
+        desc: '조잡한 레일건에서 진화. 타키온 입자를 빛의 속도로 가속하여 초고속 관통하는 광선포.',
+        reqWeapon: 'crude_rail',
+        materials: { sensor_lens: 2, battery: 2 }
+    }
+};
 
 class Player {
     constructor(x, y) {
@@ -63,6 +216,21 @@ class Player {
             goggles: 0
         };
 
+        // [신규 기획] 부품 재료 11종 인벤토리 (기본 0개)
+        this.materials = {
+            short_rod: 0,
+            long_rod: 0,
+            metal_plate: 0,
+            blade: 0,
+            wire: 0,
+            battery: 0,
+            broken_flamethrower: 0,
+            cryo_cooler: 0,
+            sensor_lens: 0,
+            nanite_jar: 0,
+            hydraulic_cylinder: 0
+        };
+
         // [신규] Phase 5 물리 기믹 및 초월 상태 변수 선언
         this.thornsFieldTimer = 0;
         this.whipSpeedStack = 0;
@@ -80,24 +248,71 @@ class Player {
         this.hpRegen = 0.0;     // 초당 체력 회복량
         this.range = 350;       // 투사체 사정거리 (기본 350px)
         
-        // 무기 스탯
-        this.weaponType = 'gun'; 
-        this.equippedWeapons = ['gun']; // [신규] 장착 무기 슬롯 리스트 (기본 'gun' 포함)
+        // 무기 스탯 (기본 무기 'energy_ball'로 설정)
+        this.weaponType = 'energy_ball'; 
+        this.equippedWeapons = ['energy_ball']; // [신규] 장착 무기 슬롯 리스트 (기본 'energy_ball' 포함)
         this.maxWeaponSlots = 2;        // [신규] 최대 무기 장착 가능 슬롯
         this.thirdSlotWeapon = null;    // [신규] 3번째 보조 무기 슬롯 (계약 시 고정 장착)
-
-        this.weaponLevels = {
-            sword: 0,
-            spear: 0,
-            whip: 0,
-            lightning: 0,
-            fire: 0,
-            ice: 0,
-            thorns: 0,
-            trap: 0,
-            scythe: 0,       // [신규] 사이버 낫 레벨
-            railcannon: 0    // [신규] 레일 캐논 레벨
+ 
+        // 무기 기본 레벨 내부 저장소
+        const rawLevels = {
+            energy_ball: 1,
+            crude_sword: 0, crude_spear: 0, crude_whip: 0, crude_shock: 0,
+            crude_flamethrower: 0, crude_cryo: 0, crude_thorns: 0, crude_trap: 0,
+            crude_scythe: 0, crude_rail: 0,
+            plasma_saber: 0, energy_pilebunker: 0, nano_laser_wire: 0, chain_emp_shock: 0,
+            fusion_plasma_cannon: 0, cryo_freezer: 0, gravity_singularity_field: 0, proximity_cyber_mine: 0,
+            void_destroyer: 0, tachyon_railgun: 0
         };
+
+        // 기존 판타지 무기 ID와 신규 조잡/진화 무기 매핑
+        const legacyMapping = {
+            sword: ['crude_sword', 'plasma_saber'],
+            spear: ['crude_spear', 'energy_pilebunker'],
+            whip: ['crude_whip', 'nano_laser_wire'],
+            lightning: ['crude_shock', 'chain_emp_shock'],
+            fire: ['crude_flamethrower', 'fusion_plasma_cannon'],
+            ice: ['crude_cryo', 'cryo_freezer'],
+            thorns: ['crude_thorns', 'gravity_singularity_field'],
+            trap: ['crude_trap', 'proximity_cyber_mine'],
+            scythe: ['crude_scythe', 'void_destroyer'],
+            railcannon: ['crude_rail', 'tachyon_railgun'],
+            gun: ['energy_ball']
+        };
+
+        // Proxy를 활용하여 legacy 무기 ID 요청 시 최댓값 자동 반환 및 값 갱신 시 신규 무기 레벨로 포워딩
+        this.weaponLevels = new Proxy(rawLevels, {
+            get(target, prop) {
+                // legacy ID인 경우 맵핑된 신규 무기 레벨 중 최댓값 반환
+                if (legacyMapping[prop]) {
+                    let vals = legacyMapping[prop].map(newKey => target[newKey] || 0);
+                    return Math.max(...vals);
+                }
+                return target[prop] !== undefined ? target[prop] : 0;
+            },
+            set(target, prop, value) {
+                // legacy ID에 값을 직접 세팅하려는 경우 (예: 기존 카드 보상 획득 로직 호환)
+                if (legacyMapping[prop]) {
+                    // 맵핑된 키 중 첫 번째(조잡한 무기군) 또는 더 적합한 쪽에 값을 직접 할당
+                    const primaryKey = legacyMapping[prop][0];
+                    target[primaryKey] = value;
+                    return true;
+                }
+                target[prop] = value;
+                return true;
+            },
+            ownKeys(target) {
+                // keys() 호출 시 legacy 및 new key 모두 노출하여 리액트/HUD 그리기 시 누락 방지
+                return [...Object.keys(target), ...Object.keys(legacyMapping)];
+            },
+            getOwnPropertyDescriptor(target, prop) {
+                return {
+                    enumerable: true,
+                    configurable: true,
+                    writable: true
+                };
+            }
+        });
         this.multishot = 1;      // 부채꼴로 동시 발사될 탄환 수
         this.burstCount = 1;     // 한 번 사격 시 연속 점사 횟수
         this.pierceCount = 0;    // 탄환 관통력 개수
@@ -129,10 +344,14 @@ class Player {
         
         // 무기 진화 해금 속성들 (기본적으로 비활성화 후 무기 중복 획득 시 테크트리에 따라 단계별 해금)
         this.weaponUnlocks = {
-            sword: { wave: false },
-            whip: { range: false, haste: false, break: false, shock: false, multi: false },
-            spear: { range: false, tip: false, knockback: false, wall: false, multi: false },
-            ice: { shatter: false }
+            crude_sword: { wave: false },
+            plasma_saber: { wave: false },
+            crude_whip: { range: false, haste: false, break: false, shock: false, multi: false },
+            nano_laser_wire: { range: false, haste: false, break: false, shock: false, multi: false },
+            crude_spear: { range: false, tip: false, knockback: false, wall: false, multi: false },
+            energy_pilebunker: { range: false, tip: false, knockback: false, wall: false, multi: false },
+            crude_cryo: { shatter: false },
+            cryo_freezer: { shatter: false }
         };
         
         // 회피 성공 피드백 연출 (붉은색 잔상)
@@ -141,7 +360,7 @@ class Player {
         this.evadeAlpha = 0;
         this.evadeDirectionX = 0; // 회피 시 잔상이 노출될 X축 오프셋
         this.evadeDirectionY = 0; // 회피 시 잔상이 노출될 Y축 오프셋
-
+ 
         this.runDuration = 0;       // [추가] 연속 Shift 달리기 시간
         this.windScarActive = false; // [추가] Speed Ring 5레벨 달리기 공증 10% 플래그
         this.supernovaTimer = 0;     // [추가] Speed Ring 10레벨 스치기 회피 성공 시 이속 50% 가속 타이머
@@ -150,8 +369,8 @@ class Player {
         this.burstRemaining = 0;
         this.burstIntervalTimer = 0;
         this.burstAngle = 0;
-        this.burstType = 'gun'; // 'gun', 'sword' 등
-        this.invincibleTimer = 0; // [신규 추가] 피격 시 무적 쿨타임 타이머
+        this.burstType = 'energy_ball'; // 'energy_ball' 등 기본 무기 타입
+        this.invincibleTimer = 0; // [신규 추가] 피격 무적 쿨타임 타이머
         this.burstBulletsToLaunch = []; // [추가] 점사/난무 연속 격발 탄환 궤적 배열 사전 정의
         this.resurrected = false; // [추가] Plate Armor 10레벨 극적 부활 작동 여부 트래킹
         this.iceFireProjectilesStack = 0; // 초월 융합 업그레이드 사출수 스택 초기화
@@ -240,25 +459,25 @@ class Player {
         if (hasRanged && hasMelee) {
             this.weaponType = 'dual';
         } else if (hasMelee) {
-            // 근접 무기 중 레벨이 높은 순, 같으면 명시적 룰(sword -> spear -> whip 순)에 의해 우선순위 결정
+            // 근접 무기 중 레벨이 높은 순, 같으면 명시적 룰에 의해 우선순위 결정
             activeMelee.sort((a, b) => {
                 let lvlDiff = (this.weaponLevels[b] || 0) - (this.weaponLevels[a] || 0);
                 if (lvlDiff !== 0) return lvlDiff;
-                const order = ['sword', 'spear', 'whip'];
+                const order = ['plasma_saber', 'crude_sword', 'energy_pilebunker', 'crude_spear', 'nano_laser_wire', 'crude_whip', 'void_destroyer', 'crude_scythe'];
                 return order.indexOf(a) - order.indexOf(b);
             });
-            this.weaponType = activeMelee[0] || 'sword';
+            this.weaponType = activeMelee[0] || 'crude_sword';
         } else if (hasRanged) {
-            // 원거리 무기 중 레벨이 높은 순, 같으면 명시적 룰(fire -> ice -> lightning 순)에 의해 우선순위 결정
+            // 원거리 무기 중 레벨이 높은 순, 같으면 명시적 룰에 의해 우선순위 결정
             activeRanged.sort((a, b) => {
                 let lvlDiff = (this.weaponLevels[b] || 0) - (this.weaponLevels[a] || 0);
                 if (lvlDiff !== 0) return lvlDiff;
-                const order = ['fire', 'ice', 'lightning'];
+                const order = ['fusion_plasma_cannon', 'crude_flamethrower', 'cryo_freezer', 'crude_cryo', 'chain_emp_shock', 'crude_shock', 'tachyon_railgun', 'crude_rail', 'energy_ball'];
                 return order.indexOf(a) - order.indexOf(b);
             });
-            this.weaponType = activeRanged[0] || 'gun';
+            this.weaponType = activeRanged[0] || 'energy_ball';
         } else {
-            this.weaponType = 'gun';
+            this.weaponType = 'energy_ball';
         }
     }
 
@@ -617,9 +836,16 @@ class Player {
             ctx.save();
             ctx.translate(this.x, this.y);
             
-            let isWhip = this.weaponType === 'whip';
-            let color = isWhip ? 'rgba(255, 0, 170, 0.85)' : 'rgba(176, 38, 255, 0.85)';
-            let shadowColor = isWhip ? '#ff00aa' : '#b026ff';
+            const wType = String(this.weaponType);
+            let isWhip = wType.includes('whip');
+            let isAdvanced = !wType.includes('crude') && wType !== 'energy_ball';
+            
+            let color = isWhip 
+                ? (isAdvanced ? 'rgba(255, 0, 170, 0.95)' : 'rgba(235, 120, 20, 0.7)')
+                : (isAdvanced ? 'rgba(0, 240, 255, 0.9)' : 'rgba(200, 200, 200, 0.65)');
+            let shadowColor = isWhip 
+                ? (isAdvanced ? '#ff00aa' : '#eb7814')
+                : (isAdvanced ? '#00f0ff' : '#64748b');
             let radius = isWhip ? (this.weaponUnlocks.whip.range ? 220 : 150) : this.slashRadius;
             
             let drawAngles = this.slashAngles && this.slashAngles.length > 0 ? this.slashAngles : [this.slashAngle];
@@ -632,8 +858,9 @@ class Player {
                     for (let s = 1; s <= segments; s++) {
                         let t = s / segments;
                         let currentDist = radius * t;
-                        // 플레이어부터 조준방향 끝단까지 S자로 출렁이며 굽이치는 Sine 파형 계산
-                        let wave = Math.sin(t * Math.PI * 2) * 15 * (this.slashTimer / 12);
+                        // 조잡한 무기는 S자 왜곡 폭을 키워 엉성하게 흔들림 연출
+                        let waveAmp = isAdvanced ? 12 : 24;
+                        let wave = Math.sin(t * Math.PI * 2) * waveAmp * (this.slashTimer / 12);
                         
                         let sx = Math.cos(angle) * currentDist - Math.sin(angle) * wave;
                         let sy = Math.sin(angle) * currentDist + Math.cos(angle) * wave;
@@ -641,10 +868,28 @@ class Player {
                     }
                     ctx.strokeStyle = color;
                     let scaleFactor = Math.sqrt(this.atk / 10);
-                    ctx.lineWidth = 3.5 * (this.slashTimer / 12) * scaleFactor;
-                    ctx.shadowBlur = 15;
+                    ctx.lineWidth = (isAdvanced ? 4.5 : 2.0) * (this.slashTimer / 12) * scaleFactor;
+                    ctx.shadowBlur = isAdvanced ? 20 : 6;
                     ctx.shadowColor = shadowColor;
                     ctx.stroke();
+
+                    // 진화형 채찍은 내부에 얇은 화이트 레이어 겹쳐 그려 네온 레이저선 연출
+                    if (isAdvanced) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        for (let s = 1; s <= segments; s++) {
+                            let t = s / segments;
+                            let currentDist = radius * t;
+                            let wave = Math.sin(t * Math.PI * 2) * 12 * (this.slashTimer / 12);
+                            let sx = Math.cos(angle) * currentDist - Math.sin(angle) * wave;
+                            let sy = Math.sin(angle) * currentDist + Math.cos(angle) * wave;
+                            ctx.lineTo(sx, sy);
+                        }
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.2 * (this.slashTimer / 12) * scaleFactor;
+                        ctx.shadowBlur = 0;
+                        ctx.stroke();
+                    }
                 } else {
                     // 검 베기 아크 드로잉
                     ctx.beginPath();
@@ -654,10 +899,27 @@ class Player {
                     
                     ctx.strokeStyle = color;
                     let scaleFactor = Math.sqrt(this.atk / 10);
-                    ctx.lineWidth = 6 * (this.slashTimer / 10) * scaleFactor;
-                    ctx.shadowBlur = 15;
+                    ctx.lineWidth = (isAdvanced ? 8 : 3.5) * (this.slashTimer / 10) * scaleFactor;
+                    ctx.shadowBlur = isAdvanced ? 22 : 5;
                     ctx.shadowColor = shadowColor;
                     ctx.stroke();
+
+                    // 진화형 플라즈마 세이버 전용 내부 화이트 코어 궤적 추가
+                    if (isAdvanced) {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, radius, start, end);
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2.0 * (this.slashTimer / 10) * scaleFactor;
+                        ctx.shadowBlur = 0;
+                        ctx.stroke();
+                    } else {
+                        // 조잡한 검은 외곽에 살짝 엉성한 잔상 톱니라인 오버레이
+                        ctx.beginPath();
+                        ctx.arc(0, 0, radius + 3, start + 0.1, end - 0.1);
+                        ctx.strokeStyle = 'rgba(235, 120, 20, 0.4)';
+                        ctx.lineWidth = 1.0;
+                        ctx.stroke();
+                    }
                 }
             }
             
@@ -673,8 +935,11 @@ class Player {
             let targetRange = 80 + (this.range - 350) * 0.3;
             if (this.weaponUnlocks.spear.range) targetRange += 20;
             
-            let color = 'rgba(0, 240, 255, 0.95)';
-            let shadowColor = '#00f0ff';
+            const wType = String(this.weaponType);
+            let isAdvanced = !wType.includes('crude') && wType !== 'energy_ball';
+
+            let color = isAdvanced ? 'rgba(0, 240, 255, 0.95)' : 'rgba(239, 120, 40, 0.7)';
+            let shadowColor = isAdvanced ? '#00f0ff' : '#ef7828';
             
             for (let angle of drawAngles) {
                 ctx.beginPath();
@@ -686,26 +951,48 @@ class Player {
                 
                 ctx.strokeStyle = color;
                 let scaleFactor = Math.sqrt(this.atk / 10);
-                ctx.lineWidth = 5 * (this.spearTimer / 8) * scaleFactor;
-                ctx.shadowBlur = 15;
+                ctx.lineWidth = (isAdvanced ? 7.5 : 3.0) * (this.spearTimer / 8) * scaleFactor;
+                ctx.shadowBlur = isAdvanced ? 22 : 6;
                 ctx.shadowColor = shadowColor;
                 ctx.stroke();
+                
+                if (isAdvanced) {
+                    // 에너지 파일벙커 내부 화이트 고농축 코어선 그리기
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(tx, ty);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2.0 * (this.spearTimer / 8) * scaleFactor;
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                }
                 
                 // [S-02 창의 끝단 날카로운 다이아몬드(창끝 촉) 글로우 데코 렌더링]
                 ctx.save();
                 ctx.translate(tx, ty);
                 ctx.rotate(angle);
                 ctx.beginPath();
-                ctx.moveTo(12, 0);    // 창끝 뾰족한 앞
-                ctx.lineTo(0, -4.5);  // 위 날
-                ctx.lineTo(-12, 0);   // 뒷 끝
-                ctx.lineTo(0, 4.5);   // 아래 날
+                
+                if (isAdvanced) {
+                    // 파일벙커 형태의 세련된 고밀도 촉 장식
+                    ctx.moveTo(15, 0);    
+                    ctx.lineTo(0, -6);  
+                    ctx.lineTo(-4, -2);   
+                    ctx.lineTo(-4, 2);   
+                    ctx.lineTo(0, 6);   
+                } else {
+                    // 조잡한 창 형태의 엉성한 쇠조각 삼각형
+                    ctx.moveTo(10, 0);    
+                    ctx.lineTo(-4, -4);  
+                    ctx.lineTo(-10, 0);   
+                    ctx.lineTo(-4, 4);   
+                }
                 ctx.closePath();
                 ctx.fillStyle = '#ffffff';
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 1.5;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00f0ff';
+                ctx.shadowBlur = isAdvanced ? 15 : 4;
+                ctx.shadowColor = shadowColor;
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();

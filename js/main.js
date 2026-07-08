@@ -28,16 +28,29 @@ window.onload = async () => {
 // 카드 도감 데이터 정의
 const CODEX_DATA = {
     weapon: [
-        { name: "가시 (Thorns)", icon: "🌵", rarity: "rare", desc: "피격 시 입은 피해를 강력한 가시 충격파로 되돌려주고, 주변 적들을 정밀 타격합니다." },
-        { name: "채찍 (Whip)", icon: "🪢", rarity: "rare", desc: "전방의 적을 사슬 채찍으로 낚아채 내 앞 지점으로 그랩하여 끌어당기고 마비시킵니다." },
-        { name: "네온 총 (Neon Gun)", icon: "🔫", rarity: "common", desc: "빠른 연사력과 튕김(도탄) 궤적으로 전장을 어지럽히는 원거리 기본 화기입니다." },
-        { name: "네온 검 (Neon Sword)", icon: "⚔️", rarity: "common", desc: "플레이어 주변 180도를 베어 넘기며 적의 탄막을 소멸시키는 근접 방어 화기입니다." },
-        { name: "불마법 (Fire Magic)", icon: "🔥", rarity: "epic", desc: "폭발적이고 파괴적인 지속 화염을 폭사하여 적을 불태우는 고화력 스킬입니다." },
-        { name: "얼음마법 (Ice Magic)", icon: "❄️", rarity: "epic", desc: "유도형 한파 고드름을 사출하여 적의 속도를 늦추고 완전히 얼려 정지시킵니다." },
-        { name: "번개마법 (Lightning)", icon: "⚡", rarity: "epic", desc: "최초 타격 시 주변 수많은 적들에게 전류를 연쇄적으로 전이시키는 학살 마법입니다." },
-        { name: "네온 창 (Neon Spear)", icon: "🔱", rarity: "rare", desc: "정밀 찌르기로 일직선상의 모든 적을 관통하고 벽 충돌 기절(Slam)을 연계합니다." },
-        { name: "뇌신검 (Thunder Sword)", icon: "⚡", rarity: "legendary", desc: "[초월진화] 검 Lv.5 + 번개 Lv.5 합체. 휘두를 때마다 3갈래 연쇄 뇌전파를 방출합니다." },
-        { name: "화염 산탄총 (Fire Shotgun)", icon: "💥", rarity: "legendary", desc: "[초월진화] 총 Lv.5 + 불마법 Lv.5 합체. 부채꼴 모양의 넓은 화염 스플래시 폭발탄을 사격합니다." }
+        // 1차 조잡한 무기군
+        { name: "조잡한 검 (Crude Sword)", icon: "🪓", rarity: "common", desc: "짧은 막대기와 칼날을 조합. 플레이어 전방을 넓게 휘두르며 적의 투사체를 파괴합니다." },
+        { name: "조잡한 창 (Crude Spear)", icon: "🔱", rarity: "common", desc: "긴 막대기와 칼날을 조합. 정밀 관통 찌르기로 적들을 꿰뚫고 기절을 연계합니다." },
+        { name: "조잡한 채찍 (Crude Whip)", icon: "🧣", rarity: "common", desc: "전선과 긴 막대기를 조합. 전방의 적들을 S자 형태로 후려치며 감속시킵니다." },
+        { name: "조잡한 전기 충격기 (Crude Shock)", icon: "🔌", rarity: "common", desc: "전선과 배터리, 짧은 막대기를 조합. 전류를 방출해 근접한 적들을 마비시킵니다." },
+        { name: "조잡한 화염방사기 (Crude Flamethrower)", icon: "🔥", rarity: "common", desc: "고장난 화방과 배터리, 짧은 막대기 조합. 전방에 불안정한 지속 불꽃을 발사합니다." },
+        { name: "조잡한 냉각총 (Crude Cryo)", icon: "❄️", rarity: "common", desc: "과냉각기와 배터리, 짧은 막대기 조합. 냉기를 뿜어 적들을 둔화하고 빙결시킵니다." },
+        { name: "조잡한 가시갑옷 (Crude Thorns)", icon: "🌵", rarity: "common", desc: "넓은 판과 칼날을 조합. 피격 시 충격파 반사를 유발하는 보호용 외골격 갑옷입니다." },
+        { name: "조잡한 덫 (Crude Trap)", icon: "⚙️", rarity: "common", desc: "넓은 판과 배터리, 전선 조합. 바닥에 근접 감지 함정을 배치하여 광역 스네어를 겁니다." },
+        { name: "조잡한 낫 (Crude Scythe)", icon: "⛏️", rarity: "common", desc: "긴 막대기와 넓은 판, 칼날 조합. 플레이어 주변을 회전하며 적들을 쓸어버리는 회전 낫입니다." },
+        { name: "조잡한 레일건 (Crude Railgun)", icon: "📡", rarity: "common", desc: "배터리와 전선, 넓은 판 조합. 에너지를 모아 전방을 길게 꿰뚫는 관통 레이저를 발사합니다." },
+        
+        // 2차 진화형 하이테크 무기군
+        { name: "플라즈마 세이버 (Plasma Saber)", icon: "🗡️", rarity: "legendary", desc: "조잡한 검에서 진화. 고농축 에너지가 흐르는 초발광 네온 광선검으로 적을 일도양단합니다." },
+        { name: "에너지 파일벙커 (Energy Pilebunker)", icon: "⚡", rarity: "legendary", desc: "조잡한 창에서 진화. 실린더식 압축 초강력 충격파를 방출하여 일직선의 적을 초토화합니다." },
+        { name: "나노 레이저 와이어 (Nano Laser Wire)", icon: "🧬", rarity: "legendary", desc: "조잡한 채찍에서 진화. 분자 단위의 나노 레이저 선을 휘둘러 닿는 적들을 즉시 절단합니다." },
+        { name: "체인 EMP 쇼크 (Chain EMP Shock)", icon: "🔋", rarity: "legendary", desc: "조잡한 전기 충격기에서 진화. 연쇄 EMP 전자기 전도 펄스를 분사해 다수 기체를 무력화합니다." },
+        { name: "퓨전 플라즈마 캐논 (Fusion Plasma Cannon)", icon: "💥", rarity: "legendary", desc: "조잡한 화염방사기에서 진화. 핵융합 핵플라즈마 광역 탄환을 고속으로 사격합니다." },
+        { name: "크라이오 프리저 (Cryo Freezer)", icon: "🧊", rarity: "legendary", desc: "조잡한 냉각총에서 진화. 절대영도 과냉각 고리를 분사하여 적 무리를 즉시 빙결 큐브 상태로 만듭니다." },
+        { name: "중력 특이점 필드 (Gravity Singularity)", icon: "🧲", rarity: "legendary", desc: "조잡한 가시갑옷에서 진화. 플레이어 주변 중력장을 붕괴시켜 적들을 무자비하게 끌어당깁니다." },
+        { name: "프록시미티 사이버 마인 (Cyber Mine)", icon: "🛰️", rarity: "legendary", desc: "조잡한 덫에서 진화. 다중 유도 신관 지뢰를 다량 매설해 기습적인 지능형 화망을 구성합니다." },
+        { name: "보이드 디스트로이어 (Void Destroyer)", icon: "🌌", rarity: "legendary", desc: "조잡한 낫에서 진화. 허공의 힘(보이드 차원)으로 시공간을 가르며 주변 모든 적을 소멸시킵니다." },
+        { name: "태키온 레일건 (Tachyon Railgun)", icon: "⚡", rarity: "legendary", desc: "조잡한 레일건에서 진화. 타키온 가속 입자를 뿜어 사거리 무제한의 초음속 광선포를 연사합니다." }
     ],
     equipment: [
         { name: "방어 갑옷 (Armor)", icon: "🛡️", rarity: "common", desc: "최대 체력(HP)을 증가시킵니다. 5레벨 도발 필드, 10레벨 치명 피해 90% 면역 쉴드를 켭니다." },

@@ -268,7 +268,13 @@
 
                 <div class="ranking-list-container"
                     style="min-height: 260px; max-height: 360px; overflow-y: auto; width: 100%; padding: 10px;">
-                    <div id="status-equipments-grid" class="status-grid">
+                    <h3 class="text-glow-blue" style="font-size: 0.92rem; margin: 0 0 8px 0; text-align: left; font-weight: bold;">🛡️ 보유 무기 및 장비</h3>
+                    <div id="status-equipments-grid" class="status-grid" style="margin-bottom: 20px;">
+                        <!-- JS로 동적 생성 -->
+                    </div>
+                    
+                    <h3 class="text-glow-green" style="font-size: 0.92rem; margin: 15px 0 8px 0; text-align: left; font-weight: bold;">🧩 보유 안드로이드 부품 재료</h3>
+                    <div id="status-materials-display" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; background: rgba(255, 255, 255, 0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.04);">
                         <!-- JS로 동적 생성 -->
                     </div>
                 </div>
@@ -599,29 +605,60 @@
                     <div id="cheat-tab-weapons" class="cheat-tab-content">
                         <div class="cheat-weapon-section">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span class="section-title" style="margin: 0;">주무기 유형 변경 (누를 때마다 +1 레벨)</span>
+                                <span class="section-title" style="margin: 0;">조잡한 무기군 획득 (누를 때마다 레벨업)</span>
                                 <button id="cheat-reset-weapons-tab-btn" class="cheat-action-btn danger" style="margin: 0; padding: 4px 10px; font-size: 0.78rem; border-color: #ff0055; color: #ff0055; background: rgba(255, 0, 85, 0.08);">🔄 무기 전체 초기화</button>
                             </div>
-                            <div class="cheat-btn-group">
-                                <button class="cheat-wpn-btn" data-wpn="gun">🔫 총 (Gun)</button>
-                                <button class="cheat-wpn-btn" data-wpn="sword">🪓 검 (Sword)</button>
+                            <div class="cheat-btn-group" style="margin-bottom: 12px;">
+                                <button class="cheat-wpn-btn" data-wpn="energy_ball">🔵 에너지볼 (기본)</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_sword">🪓 조잡한 검</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_spear">🔱 조잡한 창</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_whip">🧣 조잡한 채찍</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_shock">🔌 조잡 전격기</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_flamethrower">🔥 조잡 화방</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_cryo">❄️ 조잡 냉각총</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_thorns">🌵 조잡 가시갑옷</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_trap">⚙️ 조잡한 덫</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_scythe">⛏️ 조잡한 낫</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_rail">📡 조잡 레일건</button>
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <span class="section-title" style="margin: 0;">하이테크 진화 무기군 획득</span>
+                            </div>
+                            <div class="cheat-btn-group" style="margin-bottom: 12px;">
+                                <button class="cheat-wpn-btn" data-wpn="plasma_saber" style="border-color: #00f0ff; color: #00f0ff;">🗡️ 플라즈마 세이버</button>
+                                <button class="cheat-wpn-btn" data-wpn="energy_pilebunker" style="border-color: #00f0ff; color: #00f0ff;">⚡ 에너지 파일벙커</button>
+                                <button class="cheat-wpn-btn" data-wpn="nano_laser_wire" style="border-color: #00f0ff; color: #00f0ff;">🧬 나노 레이저선</button>
+                                <button class="cheat-wpn-btn" data-wpn="chain_emp_shock" style="border-color: #00f0ff; color: #00f0ff;">🔋 체인 EMP</button>
+                                <button class="cheat-wpn-btn" data-wpn="fusion_plasma_cannon" style="border-color: #00f0ff; color: #00f0ff;">💥 퓨전 플라즈마</button>
+                                <button class="cheat-wpn-btn" data-wpn="cryo_freezer" style="border-color: #00f0ff; color: #00f0ff;">🧊 크라이오 프리저</button>
+                                <button class="cheat-wpn-btn" data-wpn="gravity_singularity_field" style="border-color: #00f0ff; color: #00f0ff;">🧲 중력 특이점</button>
+                                <button class="cheat-wpn-btn" data-wpn="proximity_cyber_mine" style="border-color: #00f0ff; color: #00f0ff;">🛰️ 사이버 지뢰</button>
+                                <button class="cheat-wpn-btn" data-wpn="void_destroyer" style="border-color: #b026ff; color: #b026ff;">🌌 보이드 디스트로이어</button>
+                                <button class="cheat-wpn-btn" data-wpn="tachyon_railgun" style="border-color: #00f0ff; color: #00f0ff;">⚡ 태키온 레일건</button>
                                 <button class="cheat-wpn-btn" data-wpn="dual">⚔️ 복합 (Dual)</button>
-                                <button class="cheat-wpn-btn" data-wpn="spear">🔱 창 (Spear)</button>
-                                <button class="cheat-wpn-btn" data-wpn="whip">🧣 채찍 (Whip)</button>
-                                <button class="cheat-wpn-btn" data-wpn="lightning">⚡ 번개마법</button>
-                                <button class="cheat-wpn-btn" data-wpn="fire">🔥 불마법</button>
-                                <button class="cheat-wpn-btn" data-wpn="ice">❄️ 얼음마법</button>
-                                <button class="cheat-wpn-btn" data-wpn="icefiredance"
-                                    style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀
-                                    아앤파 댄스 (초월)</button>
-                                <button id="cheat-prep-evo"
-                                    style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬
-                                    아앤파 초월 조건 즉시 충전</button>
-                                <button class="cheat-wpn-btn" data-wpn="thorns">🌵 가시 (Thorns)</button>
+                                <button class="cheat-wpn-btn" data-wpn="icefiredance" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 아앤파 댄스 (초월)</button>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 아앤파 초월 조건 즉시 충전</button>
                                 <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
-                                <button class="cheat-wpn-btn" data-wpn="trap">💣 함정 (Trap)</button>
-                                <button class="cheat-wpn-btn" data-wpn="scythe" style="border-color:#b026ff; color:#b026ff;">💀 낫 (Scythe)</button>
-                                <button class="cheat-wpn-btn" data-wpn="railcannon" style="border-color:#00f0ff; color:#00f0ff;">📡 레일 (Rail)</button>
+                            </div>
+
+                            <div style="border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 12px; margin-top: 10px;">
+                                <span class="section-title" style="margin: 0; color: #39ff14;">🧩 안드로이드 제작 부품 획득 치트</span>
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+                                <button id="cheat-add-all-materials" class="neon-btn font-small" style="border-color: #39ff14; color: #39ff14; padding: 4px 8px; margin: 0; font-size: 0.78rem;">모든 부품 +5개</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="short_rod" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">짧은 막대기</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="long_rod" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">긴 막대기</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="metal_plate" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">넓은 판</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="blade" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">칼날</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="wire" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">전선</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="battery" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">배터리</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="broken_flamethrower" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">고장난 화방</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="cryo_cooler" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">과냉각기</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="sensor_lens" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">광학 렌즈</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="nanite_jar" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">나노머신 병</button>
+                                <button class="cheat-mat-btn neon-btn font-small" data-mat="hydraulic_cylinder" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">유압 실린더</button>
                             </div>
                         </div>
 
@@ -1187,6 +1224,41 @@
                 </div>
             </div>
         </footer>
+        
+        <!-- [신규] 충전소 전용 제작(조합) 팝업창 -->
+        <div id="crafting-overlay" class="overlay-panel hidden" style="z-index: 100;">
+            <div class="option-container" style="max-width: 700px; width: 95%;">
+                <div class="ranking-modal-header" style="border-bottom: 1px solid rgba(0, 240, 255, 0.25); padding-bottom: 10px;">
+                    <h2 class="text-glow-cyan" style="font-size: 1.8rem; margin: 0; font-weight: 800;">🛠️ ANDROID CRAFTING DEPOT</h2>
+                    <button id="crafting-close" class="cheat-close" aria-label="제작창 닫기">&times;</button>
+                </div>
+                <p style="color: #a0aec0; font-size: 0.85rem; margin-top: 5px; margin-bottom: 15px; text-align: center;">
+                    충전 스테이션 범위 내에서 몬스터를 물리치고 획득한 부품들을 조합하여 장비 및 무기들을 제작합니다.
+                </p>
+
+                <!-- 11종 부품 실시간 보유 현황판 -->
+                <div id="crafting-materials-display" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; background: rgba(0, 0, 0, 0.4); padding: 10px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.2);">
+                    <!-- JS로 동적 렌더링 -->
+                </div>
+
+                <!-- 제작법 선택 및 필터 탭 -->
+                <div class="ranking-filter-container" style="margin-bottom: 12px;">
+                    <button class="codex-filter-btn crafting-tab-btn active" data-tab="crude">🔨 조잡한 무기 (Crude)</button>
+                    <button class="codex-filter-btn crafting-tab-btn" data-tab="advanced">🧬 하이테크 무기 (Advanced)</button>
+                </div>
+
+                <!-- 레시피 리스트 컨테이너 -->
+                <div class="ranking-list-container" style="min-height: 220px; max-height: 320px; overflow-y: auto; width: 100%; padding: 5px 10px;">
+                    <div id="crafting-recipes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+                        <!-- JS로 동적 레시피 렌더링 -->
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 15px;">
+                    <button id="crafting-close-btn" class="neon-btn" style="border-color: #00f0ff; color: #00f0ff; font-size: 0.9rem; padding: 8px 30px; margin: 0;">닫기 (Return)</button>
+                </div>
+            </div>
+        </div>
     </div> <!-- #game-container 닫음 -->
 
     <!-- [신규] 스토리 대화 및 시나리오 텍스트 오버레이 (상시 노출 및 딤드 설정) -->

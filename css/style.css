@@ -3357,3 +3357,113 @@ textarea:focus-visible {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
+
+/* --------------------------------------------------------------------------
+   Android Crafting Depot UI 스타일
+   -------------------------------------------------------------------------- */
+#crafting-materials-display {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+}
+.craft-material-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 6px;
+    text-align: center;
+}
+.craft-material-item .mat-name {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    margin-bottom: 2px;
+}
+.craft-material-item .mat-count {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.3);
+}
+.recipe-card {
+    background: rgba(18, 20, 36, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+.recipe-card:hover {
+    border-color: rgba(0, 240, 255, 0.35);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+.recipe-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.recipe-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+.recipe-level {
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: var(--neon-purple);
+}
+.recipe-desc {
+    font-size: 0.76rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+.recipe-reqs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+.recipe-req-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+}
+.recipe-req-item.met {
+    color: var(--neon-green);
+}
+.recipe-req-item.unmet {
+    color: var(--neon-red);
+}
+.craft-btn {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-family: var(--font-primary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+.craft-btn:disabled {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #475569;
+    cursor: not-allowed;
+}
+.craft-btn:not(:disabled):hover {
+    background: var(--neon-blue);
+    color: #000000;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}

@@ -307,6 +307,10 @@ class GameEngine {
         this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 리스트
         this.traps = [];   // [신규] 함정 엔티티 리스트
         this.obstacles = []; // [신규] 25등분 격자 장애물 리스트
+        this.chargingStations = []; // 충전소 리스트
+        this.chargingStationLevel = 1; // 충전소 업그레이드 레벨
+        this.nearChargingStation = false; // 플레이어가 충전소 근처에 있는지 여부
+        this.materialsList = []; // 필드에 드롭된 부품 재료 엔티티 리스트
 
         // [신규 기획] 포털 특화 보상 및 상점 관리 리스트
         this.currentRoomType = 'stat';
@@ -498,6 +502,30 @@ class GameEngine {
                 this.spawnQueue = [];
                 this.updateHUD();
                 this.showFloatingText("CHEAT: WARP TO ROOM 99", this.player.x, this.player.y - 40, '#ff3300');
+            }
+
+            // [신규 기획] C키: 충전소 제작소 토글
+            if (e.key === 'c' || e.key === 'C') {
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+                    return;
+                }
+                e.preventDefault();
+
+                if (!this.isPlaying) return;
+
+                if (!this.nearChargingStation) {
+                    this.showFloatingText("MUST BE IN CHARGING STATION RANGE!", this.player.x, this.player.y - 30, '#ff5e00');
+                    return;
+                }
+
+                // 제작 메뉴 열기 토글
+                const craftingOverlay = document.getElementById('crafting-overlay');
+                const isAlreadyOpen = craftingOverlay && !craftingOverlay.classList.contains('hidden');
+                if (!isAlreadyOpen) {
+                    if (this.checkAnyOverlayOpenExcept('crafting-overlay')) return;
+                }
+                this.toggleCraftingMenu();
             }
         });
 
@@ -1185,6 +1213,8 @@ class GameEngine {
         this.monsters = [];
         this.spawnQueue = [];
         this.traps = []; // [신규] 함정 리스트 초기화
+        this.chargingStations = [];
+        this.generateChargingStations();
 
         // 콤보 리셋
         this.comboCount = 0;
@@ -1504,6 +1534,8 @@ class GameEngine {
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
         this.traps = []; // [신규] 함정 리스트 청소
+        this.chargingStations = []; // 충전소 삭제
+        this.materialsList = []; // 드롭된 재료 청소
         this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
         this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
         this.player.burstRemaining = 0;     // [신규] 방 이동 시 비동기 잔상 사격 완전 차단 리셋!
@@ -1542,6 +1574,7 @@ class GameEngine {
             this.spawnSecretWall();
         }
 
+        this.generateChargingStations();
         this.updateHUD();
         Sound.play('powerup');
         this.saveGame(scoreBonus);
@@ -1934,14 +1967,15 @@ class GameEngine {
         } else if (type === 'sword') {
             // 3. [질풍의 마력 네온 검사 (Neon Tempest)]
             // 조건: 검 또는 듀얼 소유, 공격속도(지능) 1.6 이상, 힘(공격력) 20 이상
-            if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.aspd >= 1.6 && p.atk >= 20) {
+            let hasSword = (p.weaponType === 'crude_sword' || p.weaponType === 'plasma_saber');
+            if ((hasSword || p.weaponType === 'dual') && p.aspd >= 1.6 && p.atk >= 20) {
                 synergyMultiplier = 1.12; // 3차 밸런싱 패치 (증가분 50% 하향: 1.25 -> 1.12)
                 synergyName = "🪓 NEON TEMPEST!";
                 synergyColor = '#b026ff'; // 퍼플
             }
             // 4. [차원 유도 환영검 (Spectral Blade)]
             // 조건: 검 또는 듀얼 소유, 유도 추적 보유
-            else if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.homing) {
+            else if ((hasSword || p.weaponType === 'dual') && p.homing) {
                 synergyMultiplier = 1.07; // 3차 밸런싱 패치 (증가분 50% 하향: 1.15 -> 1.07)
                 synergyName = "🔮 SPECTRAL BLADE!";
                 synergyColor = '#ff0055'; // 마젠타
@@ -2100,6 +2134,65 @@ class GameEngine {
         if (this.player.thirdSlotWeaponCooldown > 0) {
             this.player.thirdSlotWeaponCooldown--;
         }
+
+        // 드롭 부품 재료 업데이트 및 플레이어 습득 처리
+        for (let i = this.materialsList.length - 1; i >= 0; i--) {
+            let mat = this.materialsList[i];
+            mat.update(this.player);
+            
+            // 플레이어 획득 검사
+            let dist = Math.hypot(this.player.x - mat.x, this.player.y - mat.y);
+            if (dist < this.player.radius + mat.radius) {
+                // 획득 성공!
+                this.player.materials[mat.type]++;
+                this.showFloatingText(`+1 ${mat.name} 🔧`, this.player.x, this.player.y - 35, '#39ff14');
+                Sound.play('coin');
+                this.materialsList.splice(i, 1);
+            }
+        }
+
+        // 충전 스테이션 상호작용 및 MP 충전 로직
+        this.nearChargingStation = false;
+        let baseChargeRate = 0.02; // 매우매우 천천히 충전되는 기본 속도 (프레임당 0.02)
+        let chargeRate = baseChargeRate * (1 + (this.chargingStationLevel - 1) * 0.5);
+
+        for (let cs of this.chargingStations) {
+            let dist = Math.hypot(this.player.x - cs.x, this.player.y - cs.y);
+            if (dist < cs.radius + this.player.radius) {
+                this.nearChargingStation = true;
+                
+                // 플레이어 MP 충전
+                if (this.player.mp < this.player.maxMp) {
+                    this.player.mp = Math.min(this.player.maxMp, this.player.mp + chargeRate);
+                    
+                    // 충전 스파크 파티클 생성
+                    if (Math.random() < 0.25) {
+                        let sparkAngle = Math.random() * Math.PI * 2;
+                        let sparkDist = Math.random() * cs.radius;
+                        let sx = cs.x + Math.cos(sparkAngle) * sparkDist;
+                        let sy = cs.y + Math.sin(sparkAngle) * sparkDist;
+                        // 플레이어 방향으로 날아가는 파티클 속도 연산
+                        let pAngle = Math.atan2(this.player.y - sy, this.player.x - sx);
+                        this.particles.push(new Particle(
+                            sx, sy, 
+                            '#00d0ff', 1.2, 
+                            Math.cos(pAngle) * 2, Math.sin(pAngle) * 2, 
+                            15, 'spark'
+                        ));
+                    }
+                }
+            }
+        }
+
+        // 충전소 범위를 벗어나면 열려있는 제작소 UI 강제 종료
+        if (!this.nearChargingStation) {
+            const craftingOverlay = document.getElementById('crafting-overlay');
+            if (craftingOverlay && !craftingOverlay.classList.contains('hidden')) {
+                craftingOverlay.classList.add('hidden');
+                Sound.play('hit');
+            }
+        }
+
         // 레일 캐논 격발 타이밍 검사 (18프레임 차징 만료 직전인 1일 때 발사)
         if (this.player.isRailActive && this.player.railChargeTimer === 1) {
             let wLvl = this.player.weaponLevels.railcannon || 1;
@@ -2131,9 +2224,9 @@ class GameEngine {
                     if (this.player.weaponLevels.ice > 0) activeMagics.push('ice');
                     if (this.player.weaponLevels.lightning > 0) activeMagics.push('lightning');
 
-                    let isLightning = this.player.weaponType === 'lightning';
-                    let isFire = this.player.weaponType === 'fire';
-                    let isIce = this.player.weaponType === 'ice';
+                    let isLightning = (this.player.weaponType === 'crude_shock' || this.player.weaponType === 'chain_emp_shock');
+                    let isFire = (this.player.weaponType === 'crude_flamethrower' || this.player.weaponType === 'fusion_plasma_cannon');
+                    let isIce = (this.player.weaponType === 'crude_cryo' || this.player.weaponType === 'cryo_freezer');
                     let isDual = this.player.weaponType === 'dual';
 
                     let synergyMult = this.checkBuildSynergy('gun');
@@ -2409,7 +2502,7 @@ class GameEngine {
         }
 
         // [E-09 공속 반지 10레벨 속사 초월 트래킹]
-        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
         let canShoot = hasRangedWeapon;
         if (this.mouse.isDown && canShoot && !isOverlayOpen) {
             this.player.continuousShootTimer = (this.player.continuousShootTimer || 0) + 1;
@@ -2512,7 +2605,7 @@ class GameEngine {
             this.player.angle = Math.atan2(kdy, kdx);
 
             // 자동 사격/베기 격발
-            let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+            let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
             let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
             if (this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
@@ -2644,7 +2737,7 @@ class GameEngine {
         // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
         this.player.isStopped = (dx === 0 && dy === 0);
 
-        let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'gun') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+        let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
         let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
         if (!this.keyboardAimActive && this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged && !(this.player.stunnedTimer > 0)) {
@@ -4573,7 +4666,8 @@ class GameEngine {
         this.player.mp = Math.min(this.player.maxMp, this.player.mp + mpGain);
 
         // [W-04 검 흡혈 베기 기믹]
-        if (this.player.weaponType === 'sword' || this.player.weaponType === 'spear' || this.player.weaponType === 'dual') {
+        let hasMeleeLifesteal = (this.player.weaponType === 'crude_sword' || this.player.weaponType === 'plasma_saber' || this.player.weaponType === 'crude_spear' || this.player.weaponType === 'energy_pilebunker' || this.player.weaponType === 'crude_whip' || this.player.weaponType === 'nano_laser_wire' || this.player.weaponType === 'crude_scythe' || this.player.weaponType === 'void_destroyer');
+        if (hasMeleeLifesteal || this.player.weaponType === 'dual') {
             if (this.player.hp < this.player.maxHp) {
                 let healAmount = Math.max(1, (this.player.maxHp - this.player.hp) * 0.01);
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
@@ -4592,6 +4686,23 @@ class GameEngine {
 
         for (let k = 0; k < coinDropCount; k++) {
             this.coinsList.push(new NeonCoin(m.x, m.y, 1));
+        }
+
+        // 몬스터 사망 시 35% 확률로 11종의 부품 재료 드롭
+        if (Math.random() < 0.35) {
+            const pool = [];
+            const weights = {
+                short_rod: 15, blade: 15, wire: 15, battery: 15,
+                long_rod: 10, metal_plate: 10,
+                broken_flamethrower: 6, cryo_cooler: 6, sensor_lens: 6, nanite_jar: 6, hydraulic_cylinder: 6
+            };
+            for (let key in weights) {
+                for (let w = 0; w < weights[key]; w++) {
+                    pool.push(key);
+                }
+            }
+            let chosen = pool[Math.floor(Math.random() * pool.length)];
+            this.materialsList.push(new DropMaterial(m.x, m.y, chosen));
         }
 
         // 몬스터 사망 시 흩어지는 빛 파편 (기본 수량 축소 및 프레임당 생성량 30개로 캡핑)
@@ -4983,10 +5094,10 @@ class GameEngine {
         if (this.player.weaponLevels.ice > 0) activeMagics.push('ice');
         if (this.player.weaponLevels.lightning > 0) activeMagics.push('lightning');
 
-        let isLightning = activeMagics.includes('lightning') || this.player.weaponType === 'lightning';
-        let isFire = activeMagics.includes('fire') || this.player.weaponType === 'fire';
-        let isIce = activeMagics.includes('ice') || this.player.weaponType === 'ice';
-        let isWhip = false; // 채찍은 즉발형 근접 베기 무기로 개편되었으므로 탄환 발사를 전면 중단함
+        let isLightning = activeMagics.includes('lightning') || (this.player.weaponType === 'crude_shock' || this.player.weaponType === 'chain_emp_shock');
+        let isFire = activeMagics.includes('fire') || (this.player.weaponType === 'crude_flamethrower' || this.player.weaponType === 'fusion_plasma_cannon');
+        let isIce = activeMagics.includes('ice') || (this.player.weaponType === 'crude_cryo' || this.player.weaponType === 'cryo_freezer');
+        let isWhip = (this.player.weaponType === 'crude_whip' || this.player.weaponType === 'nano_laser_wire');
         let isDual = this.player.weaponType === 'dual' || (activeMagics.length > 1);
 
         // 번개/불/얼음 마법 격발 시 마력(MP) 소모 및 잔량 차단 체크
@@ -5090,6 +5201,7 @@ class GameEngine {
                     let vy = Math.sin(angle) * speed;
                     let bulletLife = 200 / speed; // 그랩 사거리 약 200px
 
+                    let isAdvancedBullet = (this.player.weaponType.indexOf('crude') === -1 && this.player.weaponType !== 'energy_ball');
                     this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                         color: '#ff00aa',
                         radius: 6,
@@ -5100,7 +5212,8 @@ class GameEngine {
                         homingSpeed: this.player.homingAngleSpeed,
                         splash: this.player.splashRadius,
                         bounceLimit: this.player.wallBounceLimit,
-                        monsterBounceLimit: this.player.monsterBounceLimit
+                        monsterBounceLimit: this.player.monsterBounceLimit,
+                        isAdvanced: isAdvancedBullet
                     }));
 
                     // 사슬 네온 조각들
@@ -5170,9 +5283,9 @@ class GameEngine {
                         }
                     } else {
                         // dual 상태 및 다중 마법 활성화 시 보유 마법탄을 섞어서 발사!
-                        let bulletIsLightning = this.player.weaponType === 'lightning';
-                        let bulletIsFire = this.player.weaponType === 'fire';
-                        let bulletIsIce = this.player.weaponType === 'ice';
+                        let bulletIsLightning = (this.player.weaponType === 'crude_shock' || this.player.weaponType === 'chain_emp_shock');
+                        let bulletIsFire = (this.player.weaponType === 'crude_flamethrower' || this.player.weaponType === 'fusion_plasma_cannon');
+                        let bulletIsIce = (this.player.weaponType === 'crude_cryo' || this.player.weaponType === 'cryo_freezer');
 
                         if (isDual || activeMagics.length > 0) {
                             let pool = [...activeMagics];
@@ -5204,6 +5317,7 @@ class GameEngine {
                             bulletRadius = 4.8;
                         }
 
+                        let isAdvancedBullet = (this.player.weaponType.indexOf('crude') === -1 && this.player.weaponType !== 'energy_ball');
                         this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
                             pierce: this.player.pierceCount + (bulletIsIce ? 1 : 0), // 얼음탄은 1회 관통력 기본 보정
                             homing: this.player.homing,
@@ -5217,7 +5331,8 @@ class GameEngine {
                             isIce: bulletIsIce,
                             bounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.wallBounceLimit : 0, // [W-03 총 도탄 옵션 연동]
                             monsterBounceLimit: (!bulletIsLightning && !bulletIsFire && !bulletIsIce) ? this.player.monsterBounceLimit : 0,
-                            isScytheSynergy: hasScytheSynergy
+                            isScytheSynergy: hasScytheSynergy,
+                            isAdvanced: isAdvancedBullet
                         }));
                     }
                 }
@@ -5799,34 +5914,38 @@ class GameEngine {
 
         // 장착된 무기 이름 매핑 함수
         const getWeaponName = (id) => {
-            if (id === 'gun') return '총 (Gun)';
-            if (id === 'sword') return '검 (Sword)';
-            if (id === 'spear') return '창 (Spear)';
-            if (id === 'whip') return '채찍 (Whip)';
-            if (id === 'thorns') return '가시 (Thorns)';
-            if (id === 'trap') return '함정 (Trap)';
-            if (id === 'lightning') return '번개 (Lightning)';
-            if (id === 'fire') return '화염 (Fire)';
-            if (id === 'ice') return '빙결 (Ice)';
-            if (id === 'scythe') return '낫 (Scythe)';
-            if (id === 'railcannon') return '레일 (Rail)';
-            return id;
+            const names = {
+                energy_ball: '에너지 볼',
+                crude_sword: '조잡한 검', plasma_saber: '플라즈마 세이버',
+                crude_spear: '조잡한 창', energy_pilebunker: '에너지 파일벙커',
+                crude_whip: '조잡한 채찍', nano_laser_wire: '나노 레이저 와이어',
+                crude_shock: '조잡한 전격기', chain_emp_shock: '체인 EMP 쇼크',
+                crude_flamethrower: '조잡한 화방', fusion_plasma_cannon: '퓨전 플라즈마 캐논',
+                crude_cryo: '조잡한 냉각총', cryo_freezer: '크라이오 프리저',
+                crude_thorns: '조잡한 가시갑옷', gravity_singularity_field: '중력 특이점 필드',
+                crude_trap: '조잡한 덫', proximity_cyber_mine: '사이버 지뢰',
+                crude_scythe: '조잡한 낫', void_destroyer: '보이드 디스트로이어',
+                crude_rail: '조잡한 레일건', tachyon_railgun: '태키온 레일건'
+            };
+            return names[id] || id;
         };
 
         // 장착된 무기 아이콘 매핑 함수
         const getWeaponIcon = (id) => {
-            if (id === 'gun') return '🔫';
-            if (id === 'sword') return '🪓';
-            if (id === 'spear') return '🔱';
-            if (id === 'whip') return '🧣';
-            if (id === 'thorns') return '🌵';
-            if (id === 'trap') return '⚙️';
-            if (id === 'lightning') return '⚡';
-            if (id === 'fire') return '🔥';
-            if (id === 'ice') return '❄️';
-            if (id === 'scythe') return '🗡️';
-            if (id === 'railcannon') return '💎';
-            return '❓';
+            const icons = {
+                energy_ball: '🔵',
+                crude_sword: '🪓', plasma_saber: '🗡️',
+                crude_spear: '🔱', energy_pilebunker: '⚡',
+                crude_whip: '🧣', nano_laser_wire: '🧬',
+                crude_shock: '🔌', chain_emp_shock: '🔋',
+                crude_flamethrower: '🔥', fusion_plasma_cannon: '💥',
+                crude_cryo: '❄️', cryo_freezer: '🧊',
+                crude_thorns: '🌵', gravity_singularity_field: '🧲',
+                crude_trap: '⚙️', proximity_cyber_mine: '🛰️',
+                crude_scythe: '⛏️', void_destroyer: '🌌',
+                crude_rail: '📡', tachyon_railgun: '⚡'
+            };
+            return icons[id] || '❓';
         };
 
         // [신규] 무기 슬롯 UI 동적 업데이트
@@ -7222,14 +7341,25 @@ class GameEngine {
         document.getElementById('res-gained-fragments').innerText = gainedFragments;
         document.getElementById('res-unused-fragments').innerText = this.unusedFragments;
 
-        let wpnStr = "총 (Gun)";
-        if (this.player.weaponType === 'sword') wpnStr = "검 (Sword)";
-        if (this.player.weaponType === 'spear') wpnStr = "창 (Spear)";
-        if (this.player.weaponType === 'lightning') wpnStr = "번개마법 (Lightning)";
-        if (this.player.weaponType === 'fire') wpnStr = "불마법 (Fire)";
-        if (this.player.weaponType === 'ice') wpnStr = "얼음마법 (Ice)";
-        if (this.player.weaponType === 'icefiredance') wpnStr = "아이스 앤드 파이어 댄스 (Transcendence)";
-        if (this.player.weaponType === 'dual') wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
+        let wpnStr = "맨몸 (안드로이드)";
+        const wNames = {
+            energy_ball: "에너지 볼 (Energy Ball)",
+            crude_sword: "조잡한 검 (Crude)", plasma_saber: "플라즈마 세이버 (Advanced)",
+            crude_spear: "조잡한 창 (Crude)", energy_pilebunker: "에너지 파일벙커 (Advanced)",
+            crude_whip: "조잡한 채찍 (Crude)", nano_laser_wire: "나노 레이저 와이어 (Advanced)",
+            crude_shock: "조잡한 전기 충격기 (Crude)", chain_emp_shock: "체인 EMP 쇼크 (Advanced)",
+            crude_flamethrower: "조잡한 화염방사기 (Crude)", fusion_plasma_cannon: "퓨전 플라즈마 캐논 (Advanced)",
+            crude_cryo: "조잡한 냉각총 (Crude)", cryo_freezer: "크라이오 프리저 (Advanced)",
+            crude_thorns: "조잡한 가시갑옷 (Crude)", gravity_singularity_field: "중력 특이점 필드 (Advanced)",
+            crude_trap: "조잡한 덫 (Crude)", proximity_cyber_mine: "프록시미티 사이버 마인 (Advanced)",
+            crude_scythe: "조잡한 낫 (Crude)", void_destroyer: "보이드 디스트로이어 (Advanced)",
+            crude_rail: "조잡한 레일건 (Crude)", tachyon_railgun: "태키온 레일건 (Advanced)"
+        };
+        if (wNames[this.player.weaponType]) {
+            wpnStr = wNames[this.player.weaponType];
+        } else if (this.player.weaponType === 'dual') {
+            wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
+        }
         document.getElementById('res-wpn').innerText = wpnStr;
 
         // [신규] 랭킹 등록 영역 상태 초기화
@@ -7663,45 +7793,14 @@ class GameEngine {
             this.ctx.stroke();
         }
 
-        // [5-5단계] 25등분 격자 장애물 렌더링
-        // 방에 스폰된 자홍색 홀로그램 장벽들을 캔버스에 영롱하게 투사합니다.
-        this.obstacles.forEach(obs => obs.draw(this.ctx));
-
-        // 2. 4개 문(포털) 렌더링
-        this.portals.forEach(p => p.draw(this.ctx));
-
-        // 3. 파티클 이펙트 렌더링
-        this.particles.forEach(p => {
-            if (p.type === 'text') {
-                // 데미지나 회피 등의 둥둥 떠다니는 텍스트 직접 구현
-                this.ctx.save();
-                this.ctx.globalAlpha = p.alpha;
-                this.ctx.font = '800 11px "Outfit"';
-                this.ctx.fillStyle = p.color;
-                this.ctx.textAlign = 'center';
-                this.ctx.shadowBlur = 8;
-                this.ctx.shadowColor = p.color;
-                this.ctx.fillText(p.text, p.x, p.y);
-                this.ctx.restore();
-            } else {
-                p.draw(this.ctx);
-            }
-        });
-
-        // 4. 탄환 렌더링
-        this.bullets.forEach(b => b.draw(this.ctx));
-
-        // 5. 몬스터 렌더링
-        this.monsters.forEach(m => m.draw(this.ctx));
-
-        // 5.5. 플레이어 보조 펫 렌더링
-        this.pets.forEach(pet => pet.draw(this.ctx));
-
-        // [추가] 힐링 Potion 물약 렌더링
-        this.potions.forEach(pot => pot.draw(this.ctx));
+        // 충전소 렌더링
+        this.chargingStations.forEach(cs => this.drawChargingStation(this.ctx, cs));
 
         // [W-08 신규 구현] 드롭된 네온 코인 렌더링
         this.coinsList.forEach(coin => coin.draw(this.ctx));
+
+        // 드롭된 부품 재료 렌더링
+        this.materialsList.forEach(mat => mat.draw(this.ctx));
 
         // [신규 기획] 보상 상자 및 자판기 렌더링
         this.rewardChests.forEach(chest => chest.draw(this.ctx));
@@ -8171,7 +8270,7 @@ class GameEngine {
             }
             const baseLabel = btn.getAttribute('data-original-label');
 
-            if (wpn === 'gun') {
+            if (wpn === 'energy_ball') {
                 btn.innerText = `${baseLabel} [Lv.1]`;
             } else if (wpn === 'dual' || wpn === 'icefiredance') {
                 btn.innerText = `${baseLabel}`;
@@ -8272,6 +8371,32 @@ class GameEngine {
                 // 버튼 액티브 동기화
                 wpnBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+            });
+        });
+
+        // 모든 부품 +5개 치트
+        const allMatsBtn = document.getElementById('cheat-add-all-materials');
+        if (allMatsBtn) {
+            allMatsBtn.addEventListener('click', () => {
+                for (let key in this.player.materials) {
+                    this.player.materials[key] = (this.player.materials[key] || 0) + 5;
+                }
+                this.updateHUD();
+                if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+                this.showFloatingText("ALL MATERIALS +5! 🧩", this.player.x, this.player.y - 40, '#39ff14');
+            });
+        }
+
+        // 개별 부품 +5개 치트
+        document.querySelectorAll('.cheat-mat-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const matKey = btn.getAttribute('data-mat');
+                if (this.player.materials[matKey] !== undefined) {
+                    this.player.materials[matKey] += 5;
+                    this.updateHUD();
+                    if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+                    this.showFloatingText(`+5 ${btn.innerText}! 🧩`, this.player.x, this.player.y - 40, '#00ff66');
+                }
             });
         });
 
@@ -8934,7 +9059,8 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
+            'crafting-overlay'
         ];
         return overlays.some(id => {
             const el = document.getElementById(id);
@@ -8948,7 +9074,8 @@ class GameEngine {
             'start-overlay', 'reward-overlay', 'result-overlay',
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
-            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay'
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
+            'crafting-overlay'
         ];
         return overlays.some(id => {
             if (id === exceptId) return false;
@@ -8980,14 +9107,28 @@ class GameEngine {
             if (statusGrid) {
                 statusGrid.innerHTML = '';
 
-                // 무기 6종
+                // 무기 20종
                 const wpns = [
-                    { key: 'sword', name: '네온 검', icon: '⚔️' },
-                    { key: 'spear', name: '네온 창', icon: '🔱' },
-                    { key: 'whip', name: '네온 채찍', icon: '🧣' },
-                    { key: 'lightning', name: '번개마법', icon: '⚡' },
-                    { key: 'fire', name: '불마법', icon: '🔥' },
-                    { key: 'ice', name: '얼음마법', icon: '❄' }
+                    { key: 'crude_sword', name: '조잡한 검', icon: '🪓' },
+                    { key: 'plasma_saber', name: '플라즈마 세이버', icon: '🗡️' },
+                    { key: 'crude_spear', name: '조잡한 창', icon: '🔱' },
+                    { key: 'energy_pilebunker', name: '에너지 파일벙커', icon: '⚡' },
+                    { key: 'crude_whip', name: '조잡한 채찍', icon: '🧣' },
+                    { key: 'nano_laser_wire', name: '나노 레이저 와이어', icon: '🧬' },
+                    { key: 'crude_shock', name: '조잡 전격기', icon: '🔌' },
+                    { key: 'chain_emp_shock', name: '체인 EMP 쇼크', icon: '🔋' },
+                    { key: 'crude_flamethrower', name: '조잡 화방', icon: '🔥' },
+                    { key: 'fusion_plasma_cannon', name: '퓨전 플라즈마 캐논', icon: '💥' },
+                    { key: 'crude_cryo', name: '조잡 냉각총', icon: '❄️' },
+                    { key: 'cryo_freezer', name: '크라이오 프리저', icon: '🧊' },
+                    { key: 'crude_thorns', name: '조잡 가시갑옷', icon: '🌵' },
+                    { key: 'gravity_singularity_field', name: '중력 특이점 필드', icon: '🧲' },
+                    { key: 'crude_trap', name: '조잡한 덫', icon: '⚙️' },
+                    { key: 'proximity_cyber_mine', name: '사이버 지뢰', icon: '🛰️' },
+                    { key: 'crude_scythe', name: '조잡한 낫', icon: '⛏️' },
+                    { key: 'void_destroyer', name: '보이드 디스트로이어', icon: '🌌' },
+                    { key: 'crude_rail', name: '조잡 레일건', icon: '📡' },
+                    { key: 'tachyon_railgun', name: '태키온 레일건', icon: '⚡' }
                 ];
                 let wpnCount = 0;
                 wpns.forEach(w => {
@@ -9011,16 +9152,16 @@ class GameEngine {
                     const card = document.createElement('div');
                     card.className = 'status-card active-weapon';
                     card.innerHTML = `
-                        <span class="icon">🔫</span>
+                        <span class="icon">🔵</span>
                         <div class="info">
-                            <span class="name">기본 총기</span>
+                            <span class="name">에너지 볼</span>
                             <span class="level">기본 장착</span>
                         </div>
                     `;
                     statusGrid.appendChild(card);
                 }
 
-                // 보조 장비 10종
+                // 보조 장비 11종 (차원 고글 추가됨에 따라 11종 전체 순회)
                 const equips = [
                     { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
                     { key: 'boots', name: '신속 부츠', icon: '🥾' },
@@ -9049,6 +9190,43 @@ class GameEngine {
                         statusGrid.appendChild(card);
                     }
                 });
+
+                // 부품 재료 렌더링
+                const matsDisplay = document.getElementById('status-materials-display');
+                if (matsDisplay) {
+                    matsDisplay.innerHTML = '';
+                    
+                    const materialNames = {
+                        short_rod: '짧은 막대기',
+                        long_rod: '긴 막대기',
+                        metal_plate: '넓은 판',
+                        blade: '칼날',
+                        wire: '전선',
+                        battery: '배터리',
+                        broken_flamethrower: '고장난 화방',
+                        cryo_cooler: '과냉각기',
+                        sensor_lens: '광학 렌즈',
+                        nanite_jar: '나노머신 병',
+                        hydraulic_cylinder: '유압 실린더'
+                    };
+                    
+                    let matsCount = 0;
+                    for (let key in this.player.materials) {
+                        const count = this.player.materials[key] || 0;
+                        if (count > 0) {
+                            matsCount++;
+                            const matItem = document.createElement('div');
+                            matItem.className = 'status-material-badge';
+                            matItem.style.cssText = 'background: rgba(57, 255, 20, 0.08); border: 1px solid #39ff14; color: #39ff14; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: bold;';
+                            matItem.innerHTML = `<span>${materialNames[key] || key} x${count}</span>`;
+                            matsDisplay.appendChild(matItem);
+                        }
+                    }
+                    
+                    if (matsCount === 0) {
+                        matsDisplay.innerHTML = `<span style="color: #64748b; font-size: 0.8rem; font-style: italic;">보유한 부품이 없습니다. 몬스터를 처치하여 부품을 수집하세요!</span>`;
+                    }
+                }
             }
         } else {
             // 상태창 닫기
@@ -9524,16 +9702,16 @@ class GameEngine {
         } else if (wpnType === 'time') {
             p.hasTimeWarp = true;
             this.showFloatingText("TIME WARP ENABLED ⏳", p.x, p.y - 40, '#00ff66');
-        } else if (wpnType === 'gun') {
-            if (!p.equippedWeapons.includes('gun')) {
+        } else if (wpnType === 'energy_ball') {
+            if (!p.equippedWeapons.includes('energy_ball')) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) {
                     p.equippedWeapons.shift();
                 }
-                p.equippedWeapons.push('gun');
+                p.equippedWeapons.push('energy_ball');
             }
         } else {
             // 개별 무기
-            if (p.weaponLevels.hasOwnProperty(wpnType)) {
+            if (p.weaponLevels[wpnType] !== undefined) {
                 p.weaponLevels[wpnType] = Math.min(5, (p.weaponLevels[wpnType] || 0) + 1);
             }
             if (!p.equippedWeapons.includes(wpnType)) {
@@ -9550,7 +9728,7 @@ class GameEngine {
         this.syncCheatUIFromPlayer(); // 치트 창 텍스트 갱신
 
         let lvlText = "";
-        if (wpnType !== 'gun' && wpnType !== 'time' && p.weaponLevels[wpnType] !== undefined) {
+        if (wpnType !== 'energy_ball' && wpnType !== 'time' && p.weaponLevels[wpnType] !== undefined) {
             lvlText = ` (Lv.${p.weaponLevels[wpnType]})`;
         }
         this.showFloatingText(`WEAPON UPGRADED: ${wpnType.toUpperCase()}${lvlText}`, p.x, p.y - 40, '#39ff14');
@@ -9724,4 +9902,377 @@ class GameEngine {
         const typeClass = maxLevel === 5 ? 'weapon' : 'equip';
         return `<span class="level-indicator ${typeClass} ${isMaster}">${dotsHtml}</span>`;
     }
+
+    // [신규 기획] 제작소 오버레이 토글
+    toggleCraftingMenu() {
+        const craftingOverlay = document.getElementById('crafting-overlay');
+        if (!craftingOverlay) return;
+
+        if (craftingOverlay.classList.contains('hidden')) {
+            // 열기
+            craftingOverlay.classList.remove('hidden');
+            this.craftingActiveTab = 'crude';
+            
+            // 탭 선택 클래스 활성화 상태 연동
+            document.querySelectorAll('.crafting-tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'crude') btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            this.refreshCraftingUI();
+            Sound.play('powerup');
+        } else {
+            // 닫기
+            craftingOverlay.classList.add('hidden');
+            Sound.play('hit');
+        }
+    }
+
+    // [신규 기획] 제작소 UI 리프레시 (재료 보유 현황 및 레시피 그리드 재생성)
+    refreshCraftingUI() {
+        // 1. 재료 보유 현황판 렌더링
+        const matDisplay = document.getElementById('crafting-materials-display');
+        if (!matDisplay) return;
+
+        const materialNames = {
+            short_rod: '짧은 막대기',
+            long_rod: '긴 막대기',
+            metal_plate: '넓은 판',
+            blade: '칼날',
+            wire: '전선',
+            battery: '배터리',
+            broken_flamethrower: '고장난 화방',
+            cryo_cooler: '과냉각기',
+            sensor_lens: '광학 렌즈',
+            nanite_jar: '나노머신 병',
+            hydraulic_cylinder: '유압 실린더'
+        };
+
+        let matsHtml = '';
+        for (let key in this.player.materials) {
+            let count = this.player.materials[key] || 0;
+            let displayName = materialNames[key] || key;
+            matsHtml += `
+                <div class="craft-material-item">
+                    <span class="mat-name">${displayName}</span>
+                    <span class="mat-count" style="color: ${count > 0 ? '#39ff14' : '#64748b'};">${count}</span>
+                </div>
+            `;
+        }
+        matDisplay.innerHTML = matsHtml;
+
+        // 2. 레시피 목록 렌더링
+        const recipesGrid = document.getElementById('crafting-recipes-grid');
+        if (!recipesGrid) return;
+
+        let recipesHtml = '';
+        const currentTab = this.craftingActiveTab || 'crude';
+
+        for (let wId in CRAFTING_RECIPES) {
+            const recipe = CRAFTING_RECIPES[wId];
+            if (recipe.type !== currentTab) continue;
+
+            const curLvl = this.player.weaponLevels[wId] || 0;
+            const isMax = curLvl >= 5;
+
+            // 선행 무기 조건 체크 (하이테크 무기 전용)
+            let isReqMet = true;
+            let reqText = '';
+            if (recipe.reqWeapon) {
+                const reqLvl = this.player.weaponLevels[recipe.reqWeapon] || 0;
+                const reqWpnName = CRAFTING_RECIPES[recipe.reqWeapon] ? CRAFTING_RECIPES[recipe.reqWeapon].name : recipe.reqWeapon;
+                if (reqLvl < 1) {
+                    isReqMet = false;
+                    reqText = `<div class="recipe-req-item unmet">⚠️ 필수 선행: ${reqWpnName} 보유 필요</div>`;
+                } else {
+                    reqText = `<div class="recipe-req-item met">✓ 필수 선행: ${reqWpnName} 보유 중</div>`;
+                }
+            }
+
+            // 부품 조건 매칭 검사
+            let isMatsMet = true;
+            let reqsHtml = reqText;
+
+            for (let matKey in recipe.materials) {
+                const reqCount = recipe.materials[matKey];
+                const curCount = this.player.materials[matKey] || 0;
+                const hasEnough = curCount >= reqCount;
+                if (!hasEnough) {
+                    isMatsMet = false;
+                }
+                const matName = materialNames[matKey] || matKey;
+                reqsHtml += `
+                    <div class="recipe-req-item ${hasEnough ? 'met' : 'unmet'}">
+                        <span>${matName}</span>
+                        <span>${curCount} / ${reqCount}</span>
+                    </div>
+                `;
+            }
+
+            // 최종 제작 가능 여부
+            const canCraft = isReqMet && isMatsMet && !isMax;
+            const actionText = isMax ? 'MASTERED' : (curLvl > 0 ? `CRAFT (Lv.${curLvl} ➔ ${curLvl + 1})` : 'CRAFT (제작)');
+
+            recipesHtml += `
+                <div class="recipe-card" style="opacity: ${isMax ? 0.6 : 1.0};">
+                    <div>
+                        <div class="recipe-header">
+                            <span class="recipe-title text-glow-blue">${recipe.name}</span>
+                            <span class="recipe-level">${curLvl > 0 ? `Lv.${curLvl}` : '미보유'}</span>
+                        </div>
+                        <p class="recipe-desc">${recipe.desc}</p>
+                        <div class="recipe-reqs">
+                            ${reqsHtml}
+                        </div>
+                    </div>
+                    <button class="craft-btn" ${canCraft ? '' : 'disabled'} onclick="window.gameEngine.craftWeapon('${wId}')">
+                        ${actionText}
+                    </button>
+                </div>
+            `;
+        }
+
+        recipesGrid.innerHTML = recipesHtml;
+    }
+
+    // [신규 기획] 제작 실행
+    craftWeapon(wId) {
+        const recipe = CRAFTING_RECIPES[wId];
+        if (!recipe) return;
+
+        const curLvl = this.player.weaponLevels[wId] || 0;
+        if (curLvl >= 5) {
+            this.showFloatingText("ALREADY AT MAX LEVEL!", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+
+        // 선행 무기 조건 체크
+        if (recipe.reqWeapon) {
+            const reqLvl = this.player.weaponLevels[recipe.reqWeapon] || 0;
+            if (reqLvl < 1) {
+                this.showFloatingText("REQUIRED PRE-WEAPON IS MISSING!", this.player.x, this.player.y - 30, '#ff5e00');
+                return;
+            }
+        }
+
+        // 재료 잔액 재체크
+        for (let matKey in recipe.materials) {
+            const reqCount = recipe.materials[matKey];
+            const curCount = this.player.materials[matKey] || 0;
+            if (curCount < reqCount) {
+                this.showFloatingText("NOT ENOUGH MATERIALS!", this.player.x, this.player.y - 30, '#ff5e00');
+                Sound.play('hit');
+                return;
+            }
+        }
+
+        // 재료 소모
+        for (let matKey in recipe.materials) {
+            this.player.materials[matKey] -= recipe.materials[matKey];
+        }
+
+        // 무기 부여/레벨 증가
+        if (curLvl === 0) {
+            this.player.weaponLevels[wId] = 1;
+            // 획득 효과 연출
+            this.showFloatingText(`[CRAFTED] ${recipe.name} 🔨`, this.player.x, this.player.y - 45, '#39ff14');
+        } else {
+            this.player.weaponLevels[wId]++;
+            this.showFloatingText(`[UPGRADED] ${recipe.name} Lv.${this.player.weaponLevels[wId]} 🔋`, this.player.x, this.player.y - 45, '#00f0ff');
+        }
+
+        // 플레이어 장착 무기 자동 갱신
+        this.player.updateWeaponType();
+        Sound.play('powerup');
+
+        // UI 갱신
+        this.refreshCraftingUI();
+        this.updateHUD();
+    }
+
+    generateChargingStations() {
+        this.chargingStations = [];
+        // 보스방인 경우 1개, 일반 방인 경우 1~2개 생성
+        let count = (this.roomNum % 10 === 0) ? 1 : (Math.random() < 0.5 ? 1 : 2);
+        
+        // 비밀방인 경우 스폰 제한
+        if (this.currentRoomType === 'secret_room') {
+            count = 1;
+        }
+
+        for (let i = 0; i < count; i++) {
+            // 맵 내부 랜덤 좌표 (마진 150px)
+            let x = Math.random() * (this.mapWidth - 300) + 150;
+            let y = Math.random() * (this.mapHeight - 300) + 150;
+            
+            // 플레이어가 스폰되는 입구 주변에는 생성되지 않도록 조절 (거리 200px 이상)
+            let distToPlayer = Math.hypot(this.player.x - x, this.player.y - y);
+            if (distToPlayer < 200) {
+                // 재배치
+                x = (x + 300) % (this.mapWidth - 300) + 150;
+                y = (y + 300) % (this.mapHeight - 300) + 150;
+            }
+
+            this.chargingStations.push({
+                x: x,
+                y: y,
+                radius: 65, // 충전 범위 반경 65px
+                pulse: 0
+            });
+        }
+    }
+
+    drawChargingStation(ctx, cs) {
+        ctx.save();
+        cs.pulse = (cs.pulse + 0.05) % (Math.PI * 2);
+        let pulseRadius = cs.radius * (1 + Math.sin(cs.pulse) * 0.1);
+
+        // 1. 외부 점선 네온 원
+        ctx.beginPath();
+        ctx.arc(cs.x, cs.y, cs.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 208, 255, 0.25)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. 내부 실선 네온 원 (맥동)
+        ctx.beginPath();
+        ctx.arc(cs.x, cs.y, pulseRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = '#00d0ff';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00d0ff';
+        ctx.stroke();
+
+        // 3. 충전소 중심 코어
+        ctx.beginPath();
+        ctx.arc(cs.x, cs.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00d0ff';
+        ctx.fill();
+
+        // 4. 충전소 레벨/텍스트 정보 렌더링
+        ctx.font = '800 9px "Outfit"';
+        ctx.fillStyle = '#00d0ff';
+        ctx.textAlign = 'center';
+        ctx.fillText(`CHARGE STATION (Lv.${this.chargingStationLevel})`, cs.x, cs.y - cs.radius - 8);
+
+        ctx.restore();
+    }
+
+    upgradeChargingStation() {
+        if (!this.nearChargingStation) {
+            this.showFloatingText("MUST BE IN CHARGING STATION RANGE!", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+
+        let upgradeCost = this.chargingStationLevel * 5; // 레벨업 가격 공식
+        if (this.player.coins < upgradeCost) {
+            this.showFloatingText(`NEED ${upgradeCost} COINS! 📀`, this.player.x, this.player.y - 30, '#ffdf00');
+            Sound.play('hit');
+            return;
+        }
+
+        this.player.coins -= upgradeCost;
+        this.chargingStationLevel++;
+        this.showFloatingText(`STATION UPGRADED TO Lv.${this.chargingStationLevel}! 🔋`, this.player.x, this.player.y - 30, '#00ff66');
+        Sound.play('powerup');
+        this.updateHUD();
+    }
+}
+
+// --------------------------------------------------------------------------
+// [신규] 안드로이드 무기/장비 제작 부품 드롭 재료 클래스
+// --------------------------------------------------------------------------
+class DropMaterial {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'short_rod', 'blade' 등 11종
+        this.radius = 12;
+        this.active = true;
+        this.vy = -2.5; // 드롭 시 위로 튀어오르는 관성
+        this.vx = (Math.random() - 0.5) * 2;
+        this.gravity = 0.15;
+        this.bounceCount = 0;
+        this.name = this.getMaterialName(type);
+    }
+
+    getMaterialName(type) {
+        const names = {
+            short_rod: '짧은 막대기',
+            long_rod: '긴 막대기',
+            metal_plate: '넓은 판',
+            blade: '칼날',
+            wire: '전선',
+            battery: '배터리',
+            broken_flamethrower: '고장난 화염방사기',
+            cryo_cooler: '과냉각기',
+            sensor_lens: '광학 렌즈',
+            nanite_jar: '나노머신 병',
+            hydraulic_cylinder: '유압 실린더'
+        };
+        return names[type] || '미지의 부품';
+    }
+
+    update(player) {
+        // 물리 이동 (간단한 포물선 드롭 연출)
+        if (this.vy !== 0 || this.vx !== 0) {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity;
+            
+            // 바닥 도달 시 반사 튕김
+            if (this.vy > 0 && this.bounceCount < 2) {
+                this.vy = -this.vy * 0.4;
+                this.vx *= 0.6;
+                this.bounceCount++;
+            } else if (this.bounceCount >= 2 && Math.abs(this.vy) < 0.2) {
+                this.vy = 0;
+                this.vx = 0;
+            }
+        }
+
+        // 플레이어와 거리 측정하여 자석 흡수
+        let dist = Math.hypot(player.x - this.x, player.y - this.y);
+        let magnetRange = 120; // 120px 안으로 들어오면 자석 기믹 작동
+        
+        if (dist < magnetRange) {
+            // 플레이어에게 끌려감
+            let angle = Math.atan2(player.y - this.y, player.x - this.x);
+            let speed = 4.5 + (magnetRange - dist) * 0.1; // 가까워질수록 빨라짐
+            this.x += Math.cos(angle) * speed;
+            this.y += Math.sin(angle) * speed;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        // 드롭 아이템 아이콘 (연두색 네온 링)
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(57, 255, 20, 0.25)';
+        ctx.strokeStyle = '#39ff14';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#39ff14';
+        ctx.fill();
+        ctx.stroke();
+
+        // 중심부 작은 하얀 원
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // 간단한 텍스트 표시
+        ctx.font = '800 8px "Outfit", "Noto Sans KR"';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.name, this.x, this.y - this.radius - 2);
+        ctx.restore();
+    }
+}
 }

@@ -30,6 +30,8 @@ class Bullet {
         this.isLightning = options.isLightning || false; // [추가] 번개 마법 연쇄 벼락 여부
         this.isFire = options.isFire || false; // 불마법 탄환 여부
         this.isIce = options.isIce || false; // 얼음마법 탄환 여부
+        this.isEnergyBall = options.isEnergyBall || false; // 에너지볼 여부
+        this.isAdvanced = options.isAdvanced || false; // [신규] 하이테크 진화 무기 여부
         this.bounceCount = 0; // 도탄 튕긴 누적 횟수
         this.bounceLimit = options.bounceLimit || 0; // 최대 허용 도탄 횟수
         this.monsterBounceCount = 0; // 몬스터 튕긴 누적 횟수
@@ -105,13 +107,17 @@ class Bullet {
         }
 
         // 플레이어의 탄환일 때 이동 방향 뒤로 잔상 trail 파티클 생성
-        if (this.isPlayerBullet && window.gameEngine && Math.random() < 0.3) {
-            window.gameEngine.particles.push(new Particle(
-                this.x, this.y,
-                this.color, this.radius * 0.7,
-                (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2,
-                10, 'trail'
-            ));
+        if (this.isPlayerBullet && window.gameEngine) {
+            let trailProb = this.isAdvanced ? 0.75 : 0.25; // 진화 무기는 75% 확률, 조잡한 무기는 25% 확률로 트레일 생성
+            if (Math.random() < trailProb) {
+                window.gameEngine.particles.push(new Particle(
+                    this.x, this.y,
+                    this.color, this.isAdvanced ? this.radius * 0.9 : this.radius * 0.6,
+                    -this.vx * 0.15 + (Math.random() - 0.5) * 0.4, // 탄환 속도 반대 방향 관성 추가로 입체감 부여
+                    -this.vy * 0.15 + (Math.random() - 0.5) * 0.4,
+                    this.isAdvanced ? 15 : 8, 'trail' // 진화 탄환은 잔상 유지 시간이 길고 선명함
+                ));
+            }
         }
 
         // [5-4단계] 탄환과 격자 장애물의 AABB 충돌 및 도탄(Bounce)/소멸 물리 연동
@@ -450,6 +456,21 @@ class Bullet {
             ctx.shadowColor = '#00f0ff';
             ctx.fill();
             ctx.stroke();
+        } else if (this.isEnergyBall) {
+            // 에너지볼 전용 이글거리는 에너지 구체 렌더링
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // 하얀 핵심 코어
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = '#00d0ff'; // 밝은 하늘색 네온 글로우 오라
+            ctx.fill();
+
+            // 바깥 테두리 오라 레이어 추가
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 1.3, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 208, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
         } else {
             Renderer.drawSprite(
                 ctx,
@@ -463,9 +484,30 @@ class Bullet {
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                     ctx.fillStyle = this.color;
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = this.color;
-                    ctx.fill();
+                    
+                    // 등급에 따라 네온 아우라 세기 및 모양 차별화
+                    if (this.isPlayerBullet) {
+                        if (this.isAdvanced) {
+                            ctx.shadowBlur = 25; // 진화 무기는 발광 극대화
+                            ctx.shadowColor = this.color;
+                            ctx.fill();
+                            
+                            // 진화형 하이테크 탄환 전용 이너 화이트 코어 그리기
+                            ctx.beginPath();
+                            ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.shadowBlur = 0;
+                            ctx.fill();
+                        } else {
+                            ctx.shadowBlur = 8; // 조잡한 무기는 둔탁하고 얇은 네온
+                            ctx.shadowColor = this.color;
+                            ctx.fill();
+                        }
+                    } else {
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = this.color;
+                        ctx.fill();
+                    }
                 }
             );
         }
