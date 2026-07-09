@@ -10172,28 +10172,59 @@ class GameEngine {
 
     generateChargingStations() {
         this.chargingStations = [];
-        // 맵마다 항상 정확히 1개의 충전 스테이션만 생성되도록 제약
-        let count = 1;
+        let count = 1; // 맵마다 1개의 충전소 보장
 
-        for (let i = 0; i < count; i++) {
-            // 맵 내부 랜덤 좌표 (마진 150px)
-            let x = Math.random() * (this.mapWidth - 300) + 150;
-            let y = Math.random() * (this.mapHeight - 300) + 150;
-            
-            // 플레이어가 스폰되는 입구 주변에는 생성되지 않도록 조절 (거리 200px 이상)
-            let distToPlayer = Math.hypot(this.player.x - x, this.player.y - y);
-            if (distToPlayer < 200) {
-                // 재배치
-                x = (x + 300) % (this.mapWidth - 300) + 150;
-                y = (y + 300) % (this.mapHeight - 300) + 150;
+        // 1. 2D 격자 맵 상에서 이동 가능한 바닥 타일(0) 수집 (경로 마진을 위해 외곽 2칸 안쪽 타일만 타겟팅)
+        const validTiles = [];
+        if (this.grid && Array.isArray(this.grid)) {
+            for (let r = 2; r < 16; r++) {
+                for (let c = 2; c < 22; c++) {
+                    if (this.grid[r] && this.grid[r][c] === 0) {
+                        validTiles.push({ gridX: c, gridY: r });
+                    }
+                }
             }
+        }
 
-            this.chargingStations.push({
-                x: x,
-                y: y,
-                radius: 65, // 충전 범위 반경 65px
-                pulse: 0
-            });
+        // 2. 플레이어의 초기 스폰 포인트로부터 200px 이상 떨어진 타일만 선별하여 초반 락 방지
+        let filteredTiles = validTiles.filter(tile => {
+            const tx = tile.gridX * 55 + 27.5;
+            const ty = tile.gridY * 50 + 25;
+            return Math.hypot(this.player.x - tx, this.player.y - ty) >= 200;
+        });
+
+        if (filteredTiles.length === 0) {
+            filteredTiles = validTiles; // 예외 폴백
+        }
+
+        // 3. 필터링된 유효 바닥 타일 중 1개를 선택하여 해당 타일의 정중앙에 스폰
+        for (let i = 0; i < count; i++) {
+            if (filteredTiles.length > 0) {
+                const randIdx = Math.floor(Math.random() * filteredTiles.length);
+                const chosen = filteredTiles[randIdx];
+                const x = chosen.gridX * 55 + 27.5;
+                const y = chosen.gridY * 50 + 25;
+
+                this.chargingStations.push({
+                    x: x,
+                    y: y,
+                    radius: 45, // 충전 범위 반경 45px (기존 65px의 70% 수준으로 축소)
+                    pulse: 0
+                });
+
+                // 중복 생성 방지를 위해 선택된 타일은 제외
+                filteredTiles.splice(randIdx, 1);
+            } else {
+                // [폴백] 그리드 맵 정보가 유실되었거나 바닥이 없을 때만 보존용 난수 스폰 가동
+                let x = Math.random() * (this.mapWidth - 300) + 150;
+                let y = Math.random() * (this.mapHeight - 300) + 150;
+                let distToPlayer = Math.hypot(this.player.x - x, this.player.y - y);
+                if (distToPlayer < 200) {
+                    x = (x + 300) % (this.mapWidth - 300) + 150;
+                    y = (y + 300) % (this.mapHeight - 300) + 150;
+                }
+                this.chargingStations.push({ x: x, y: y, radius: 45, pulse: 0 });
+            }
         }
     }
 
