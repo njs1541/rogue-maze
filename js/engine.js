@@ -26,7 +26,7 @@ const MAP_PRESETS = {
     ],
     PRESET_SIZE_MIDDLE: [
         "222222222220022222222222",
-        "220000000000000000000022",
+        "2222222222200222222222222",
         "220000000000000000000022",
         "220000000000000000000022",
         "220000000000000000000022",
@@ -40,7 +40,7 @@ const MAP_PRESETS = {
         "220000000000000000000022",
         "220000000000000000000022",
         "220000000000000000000022",
-        "222222222220022222222222",
+        "220000000000000000000022",
         "222222222220022222222222",
         "222222222220022222222222"
     ],
@@ -110,14 +110,14 @@ const MAP_PRESETS = {
         "200000000000000000000002",
         "200000000000000000000002",
         "200000000000000000000002",
-        "200000111111111111111122",
-        "200000111111111111111122",
-        "200000111111111111111122",
-        "000000111111111111111122",
-        "000000111111111111111122",
-        "200000111111111111111122",
-        "200000111111111111111122",
-        "200000111111111111111122",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "000000111111111111111112",
+        "000000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
         "200000000000000000000002",
         "200000000000000000000002",
         "200000000000000000000002",
@@ -202,43 +202,43 @@ const SECTOR_THEMES = {
 // [신규] 프리셋별 문(포털) 소환 정보 매핑
 const PORTAL_SPAWN_INFOS = {
     PRESET_SIZE_NORMAL: {
-        top:    { x: 1320 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
+        top: { x: 1320 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
         bottom: { x: 1320 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
-        left:   { x: 4.5 * 55, y: 900 / 2, gridX: 4, gridY: 8 },
-        right:  { x: 19.5 * 55, y: 900 / 2, gridX: 19, gridY: 8 }
+        left: { x: 4.5 * 55, y: 900 / 2, gridX: 4, gridY: 8 },
+        right: { x: 19.5 * 55, y: 900 / 2, gridX: 19, gridY: 8 }
     },
     PRESET_SIZE_MIDDLE: {
-        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
         bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 2.5 * 55, y: 900 / 2, gridX: 2, gridY: 8 },
-        right:  { x: 21.5 * 55, y: 900 / 2, gridX: 21, gridY: 8 }
+        left: { x: 2.5 * 55, y: 900 / 2, gridX: 2, gridY: 8 },
+        right: { x: 21.5 * 55, y: 900 / 2, gridX: 21, gridY: 8 }
     },
     PRESET_SIZE_BOSS: {
-        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
         bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_LINE: {
-        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_WINDOW: {
-        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
         bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     },
     PRESET_U_SHAPE: {
-        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
         bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 }
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 }
     },
     PRESET_CROSS: {
-        top:    { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
         bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left:   { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right:  { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
     }
 };
 
@@ -287,11 +287,11 @@ class GameEngine {
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
-        
+
         // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
         this.particles = [];
-        this.particles.push = (function(originalPush) {
-            return function(item) {
+        this.particles.push = (function (originalPush) {
+            return function (item) {
                 // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
                 if (this.length >= 350 && item && item.type !== 'text') {
                     return this.length;
@@ -371,10 +371,10 @@ class GameEngine {
         if (!window.shadowBlurOverridden) {
             const originalShadowBlurDescriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
             Object.defineProperty(CanvasRenderingContext2D.prototype, 'shadowBlur', {
-                get: function() {
+                get: function () {
                     return originalShadowBlurDescriptor.get.call(this);
                 },
-                set: function(val) {
+                set: function (val) {
                     if (window.gameEngine && window.gameEngine.lowSpecMode) {
                         originalShadowBlurDescriptor.set.call(this, 0);
                     } else {
@@ -568,7 +568,7 @@ class GameEngine {
         // 게임 오버 혹은 재시작 버튼 연결
         document.getElementById('start-btn').addEventListener('click', () => {
             document.getElementById('start-overlay').classList.add('hidden');
-            
+
             // [튜토리얼 기믹] 최초 방문 시 튜토리얼 팝업, 이후에는 바로 시작
             const tutorialViewed = localStorage.getItem('neon_rogue_tutorial_viewed');
             if (tutorialViewed !== 'true') {
@@ -690,11 +690,11 @@ class GameEngine {
             btn.addEventListener('click', () => {
                 const tab = btn.getAttribute('data-tab');
                 this.craftingActiveTab = tab;
-                
+
                 // 탭 버튼 active 클래스 제어
                 document.querySelectorAll('.crafting-tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 this.refreshCraftingUI();
             });
         });
@@ -796,11 +796,11 @@ class GameEngine {
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
         this.bullets = [];
-        
+
         // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
         this.particles = [];
-        this.particles.push = (function(originalPush) {
-            return function(item) {
+        this.particles.push = (function (originalPush) {
+            return function (item) {
                 // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
                 if (this.length >= 350 && item && item.type !== 'text') {
                     return this.length;
@@ -1464,7 +1464,7 @@ class GameEngine {
         // 플레이어 캐릭터 좌표를 해당 포털 방향의 정반대 문 앞으로 워프 이동 (비밀 포털은 맵 중앙 워프)
         // [신규] 2차원 그리드 프리셋 문 스폰 정보에 맞추어 워프 처리
         const nextPreset = this.currentMapPreset || 'PRESET_SIZE_BOSS';
-        
+
         let targetOppositeDir = 'center';
         if (this.roomNum % 10 === 0 && !enteringSecretRoom) {
             // 보스전에서는 어느 문으로 들어가도 항상 아래쪽 문에서 등장
@@ -1480,7 +1480,7 @@ class GameEngine {
         if (portal.direction !== 'secret' && PORTAL_SPAWN_INFOS[nextPreset]) {
             // 정반대 방향의 문 정보가 있는 경우
             let spawnInfo = PORTAL_SPAWN_INFOS[nextPreset][targetOppositeDir];
-            
+
             // 만약 정반대 방향 문이 새로운 맵 프리셋에 존재하지 않는다면, 새로운 맵 프리셋에서 사용 가능한 아무 문이나 하나를 임의로 선정
             if (!spawnInfo) {
                 const availableDirs = Object.keys(PORTAL_SPAWN_INFOS[nextPreset]);
@@ -1498,7 +1498,7 @@ class GameEngine {
                 } else {
                     this.player.x = spawnInfo.x;
                     this.player.y = spawnInfo.y;
-                    
+
                     // 문에서 걸어나오는 방향으로 오프셋을 더 줌
                     if (targetOppositeDir === 'top') this.player.y += 60;
                     else if (targetOppositeDir === 'bottom') this.player.y -= 60;
@@ -1652,7 +1652,7 @@ class GameEngine {
             pool.sort(() => 0.5 - Math.random());
             let chosen = pool.slice(0, 3);
             let positions = [{ x: this.mapWidth * 0.325, y: 200 }, { x: this.mapWidth * 0.675, y: 200 }, { x: cx, y: 150 }];
-            
+
             chosen.forEach((type, idx) => {
                 let boss = new Monster(positions[idx].x, positions[idx].y, Math.floor(this.roomNum / 5), this.roomNum);
                 boss.makeBoss(this.roomNum, type, true);
@@ -1687,7 +1687,7 @@ class GameEngine {
             this.bossWave = 1;
             this.currentSpawnTotal = 4; // 총 4개의 보스를 잡아야 클리어
             this.currentSpawnRemaining = 4;
-            
+
             const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
             this.monsters.push(boss);
@@ -1710,7 +1710,7 @@ class GameEngine {
             const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
             boss.makeBoss(this.roomNum, 'boss_real_master');
             this.monsters.push(boss);
-            
+
             // 101층은 텅 빈 보스방 구조로 맵을 갱신
             this.currentMapPreset = 'PRESET_SIZE_BOSS';
             this.generateGridMap(this.currentMapPreset);
@@ -1922,7 +1922,7 @@ class GameEngine {
                     if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                     m.hp -= finalDmg;
                     m.flashTimer = 8;
-                    
+
                     // [버그 수정] 마법 폭발 충격파 대미지로 사망 시 정산 처리 추가
                     if (m.hp <= 0) {
                         this.killMonster(m, i);
@@ -2034,7 +2034,7 @@ class GameEngine {
         if (this.shakeScale <= 0) return;
 
         if (this.recentShakeCount === undefined) this.recentShakeCount = 0;
-        
+
         // 흔들림 요청 횟수 증가
         this.recentShakeCount++;
 
@@ -2169,7 +2169,7 @@ class GameEngine {
         for (let i = this.materialsList.length - 1; i >= 0; i--) {
             let mat = this.materialsList[i];
             mat.update(this.player);
-            
+
             // 플레이어 획득 검사
             let dist = Math.hypot(this.player.x - mat.x, this.player.y - mat.y);
             if (dist < this.player.radius + mat.radius) {
@@ -2190,11 +2190,11 @@ class GameEngine {
             let dist = Math.hypot(this.player.x - cs.x, this.player.y - cs.y);
             if (dist < cs.radius + this.player.radius) {
                 this.nearChargingStation = true;
-                
+
                 // 플레이어 MP 충전
                 if (this.player.mp < this.player.maxMp) {
                     this.player.mp = Math.min(this.player.maxMp, this.player.mp + chargeRate);
-                    
+
                     // 충전 스파크 파티클 생성
                     if (Math.random() < 0.25) {
                         let sparkAngle = Math.random() * Math.PI * 2;
@@ -2204,9 +2204,9 @@ class GameEngine {
                         // 플레이어 방향으로 날아가는 파티클 속도 연산
                         let pAngle = Math.atan2(this.player.y - sy, this.player.x - sx);
                         this.particles.push(new Particle(
-                            sx, sy, 
-                            '#00d0ff', 1.2, 
-                            Math.cos(pAngle) * 2, Math.sin(pAngle) * 2, 
+                            sx, sy,
+                            '#00d0ff', 1.2,
+                            Math.cos(pAngle) * 2, Math.sin(pAngle) * 2,
                             15, 'spark'
                         ));
                     }
@@ -2228,7 +2228,7 @@ class GameEngine {
             let wLvl = this.player.weaponLevels.railcannon || 1;
             let dmg = this.player.atk * 2.5 * (1 + (wLvl - 1) * 0.15);
             this.triggerRailCannonBeam(this.player.railAngle, dmg);
-            
+
             // 융합 시너지: 주(레일) + 부(검/총)
             let secondary = this.player.equippedWeapons[1];
             if (secondary === 'sword') {
@@ -2668,7 +2668,7 @@ class GameEngine {
 
         if (isSprinting) {
             currentSpeed *= 1.6; // 질주 시 60% 가속
-            
+
             // 둠 스피커 음파 진동 기믹에 따른 스태미나 소모 2배
             let isSonicDisrupted = this.monsters.some(m => m.type === 'boss_speaker' && m.boss_sonicDisruptionActive);
             let staminaCost = 0.75 * (isSonicDisrupted ? 2.0 : 1.0);
@@ -3465,7 +3465,7 @@ class GameEngine {
                             this.portals.push(p);
                             this.showFloatingText("COLOSSEUM ESCAPE GATE OPENED! 🚪", this.mapWidth / 2, this.mapHeight / 2 - 30, '#00f0ff');
                         }
-                        
+
                         // 보스 격파 기념 화려한 글로우 파티클 방출
                         for (let k = 0; k < 40; k++) {
                             let pAngle = Math.random() * Math.PI * 2;
@@ -3578,7 +3578,7 @@ class GameEngine {
                         // [신규 기획] 일반 스탯 방인 경우, 보상 상자 스폰을 생략하고 포털 즉시 활성화
                         this.portals.forEach(p => p.active = true);
                         this.showFloatingText("PORTALS ACTIVATED! ⚡", spawnX, spawnY - 60, '#00f0ff');
-                        
+
                         // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (안전 영역 체크)
                         let potionRand = Math.random();
                         let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05);
@@ -4190,17 +4190,17 @@ class GameEngine {
 
                     // 부식/표식 디버프 부여 (3초지속 = 180프레임)
                     m.scytheDebuffTimer = 180;
-                    
+
                     m.hp -= finalDmg;
                     m.flashTimer = 2;
-                    
+
                     // 낫 특유의 살짝 당기는 넉백 물리 가미
                     let kbAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.vx += Math.cos(kbAngle) * 2.5;
                     m.vy += Math.sin(kbAngle) * 2.5;
 
                     for (let k = 0; k < 3; k++) {
-                        this.particles.push(new Particle(m.x, m.y, '#ba55d3', 1.5, (Math.random()-0.5)*2, (Math.random()-0.5)*2, 15, 'spark'));
+                        this.particles.push(new Particle(m.x, m.y, '#ba55d3', 1.5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 15, 'spark'));
                     }
 
                     if (m.hp <= 0) {
@@ -4221,7 +4221,7 @@ class GameEngine {
                 let sy = this.player.y + Math.sin(wAngle) * (scytheRadius * 0.8);
                 let vx = Math.cos(wAngle) * 5;
                 let vy = Math.sin(wAngle) * 5;
-                
+
                 this.bullets.push(new Bullet(sx, sy, vx, vy, gunDmg, true, {
                     color: '#ba55d3',
                     radius: 4.5,
@@ -4244,10 +4244,10 @@ class GameEngine {
             let px = this.player.x + Math.cos(angle) * (j * 20);
             let py = this.player.y + Math.sin(angle) * (j * 20);
             this.particles.push(new Particle(
-                px + (Math.random()-0.5)*8,
-                py + (Math.random()-0.5)*8,
+                px + (Math.random() - 0.5) * 8,
+                py + (Math.random() - 0.5) * 8,
                 '#00f0ff', 2.0,
-                (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5,
+                (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5,
                 20, 'spark'
             ));
         }
@@ -4275,7 +4275,7 @@ class GameEngine {
                     m.vy += Math.sin(angle) * 5.0;
 
                     for (let k = 0; k < 4; k++) {
-                        this.particles.push(new Particle(m.x, m.y, '#00f0ff', 1.8, (Math.random()-0.5)*3, (Math.random()-0.5)*3, 15, 'spark'));
+                        this.particles.push(new Particle(m.x, m.y, '#00f0ff', 1.8, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 15, 'spark'));
                     }
 
                     // 융합 효과: 주(레일) + 부(총) -> 명중 지점에서 뒤로 유도탄 3발 튕겨 나감
@@ -4312,13 +4312,13 @@ class GameEngine {
     triggerRailSwordSynergy(angle) {
         let swordLvl = this.player.weaponLevels.sword || 1;
         let bonusDmg = this.player.atk * 0.6 * (1 + (swordLvl - 1) * 0.15);
-        
+
         for (let dist of [120, 240, 360]) {
             let sx = this.player.x + Math.cos(angle) * dist;
             let sy = this.player.y + Math.sin(angle) * dist;
-            
+
             this.particles.push(new Particle(sx, sy, '#b026ff', 3.5, 0, 0, 10, 'slash'));
-            
+
             for (let i = this.monsters.length - 1; i >= 0; i--) {
                 let m = this.monsters[i];
                 let mDist = Math.hypot(m.x - sx, m.y - sy);
@@ -4422,7 +4422,7 @@ class GameEngine {
                 m.scytheDebuffTimer = 180;
                 m.hp -= finalDmg;
                 m.flashTimer = 3;
-                
+
                 if (m.hp <= 0) {
                     this.killMonster(m, i);
                 }
@@ -4564,12 +4564,12 @@ class GameEngine {
                 mini.color = '#00e1ff';
                 mini.glowColor = '#00e1ff';
                 mini.fillColor = 'rgba(0, 225, 255, 0.12)';
-                
+
                 // 사방으로 튕겨나가는 넉백 관성 추가
                 let scatterAngle = Math.random() * Math.PI * 2;
                 mini.knockbackX = Math.cos(scatterAngle) * 4.5;
                 mini.knockbackY = Math.sin(scatterAngle) * 4.5;
-                
+
                 this.monsters.push(mini);
             }
             this.showFloatingText("SPLIT! 💠", m.x, m.y - 30, '#00f0ff');
@@ -4580,11 +4580,11 @@ class GameEngine {
             for (let k = 0; k < 2; k++) {
                 let mini = new Monster(m.x + (Math.random() * 40 - 20), m.y + (Math.random() * 40 - 20), m.tier, m.roomNum);
                 mini.makeBoss(m.roomNum, 'boss_slime_mini', m.radius < 30);
-                
+
                 let scatterAngle = Math.random() * Math.PI * 2;
                 mini.knockbackX = Math.cos(scatterAngle) * 5.0;
                 mini.knockbackY = Math.sin(scatterAngle) * 5.0;
-                
+
                 this.monsters.push(mini);
             }
             this.showFloatingText("SPLIT SLIME! 💠", m.x, m.y - 35, '#00f0ff');
@@ -4595,7 +4595,7 @@ class GameEngine {
             if (this.bossWave < 4) {
                 this.bossWave++;
                 this.currentSpawnRemaining--;
-                
+
                 let nextType = 'boss_portal';
                 let nextName = "WAVE 2: 차원 차단기 👾";
                 let nextColor = '#8b5cf6';
@@ -4737,7 +4737,7 @@ class GameEngine {
 
         // 몬스터 사망 시 흩어지는 빛 파편 (기본 수량 축소 및 프레임당 생성량 30개로 캡핑)
         if (this.frameSpawnedDeathParticles === undefined) this.frameSpawnedDeathParticles = 0;
-        let particleCount = m.isElite ? 12 : 4; 
+        let particleCount = m.isElite ? 12 : 4;
         if (this.frameSpawnedDeathParticles < 30) {
             for (let k = 0; k < particleCount; k++) {
                 let angle = Math.random() * Math.PI * 2;
@@ -4778,12 +4778,12 @@ class GameEngine {
         // [신규 기획] Broken Joystick 15% 탄환 반사 기믹
         if (this.player.hiddenItems && this.player.hiddenItems.brokenJoystick && Math.random() < 0.15) {
             this.showFloatingText("DEFLECT! 🛡️", this.player.x, this.player.y - 20, '#00f0ff');
-            
+
             // 반격 탄환 쏘기
             let angle = Math.atan2(fromY - this.player.y, fromX - this.player.x);
             let vx = Math.cos(angle) * 7.5;
             let vy = Math.sin(angle) * 7.5;
-            
+
             if (typeof Bullet !== 'undefined') {
                 this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, this.player.atk * 1.5, true, {
                     color: '#00f0ff',
@@ -4792,7 +4792,7 @@ class GameEngine {
                 }));
             }
             Sound.play('slash'); // 칼 사운드로 반사음 연출
-            
+
             // 피격 면제 및 가벼운 무적 프레임 부여
             this.player.invincibleTimer = 30;
             return;
@@ -5101,17 +5101,17 @@ class GameEngine {
             this.player.isRailActive = true;
             this.player.railChargeTimer = 18;
             this.player.railAngle = this.player.angle;
-            
+
             let activeAspd = this.player.getEffectiveAspd();
             let cooldownFrames = Math.max(20, 90 / activeAspd);
-            
+
             // E-09 Haste Ring 5레벨 돌파: 시전 딜레이 15% 영구 단축
             if (this.player.equipLevels.ring_aspd >= 5) {
                 cooldownFrames *= 0.85;
             }
             this.player.shootCooldown = cooldownFrames;
-            
-            Sound.play('laser'); 
+
+            Sound.play('laser');
             this.triggerThirdSlotWeapon();
             return;
         }
@@ -5214,7 +5214,7 @@ class GameEngine {
             let levelMult = 1 + (wLvl - 1) * 0.15;
 
             let baseDmg = isWhip ? (this.player.atk * 0.75) : (this.player.atk * (isLightning ? 0.9 : 1.0));
-            
+
             let hybridDmgFactor = 1.0;
             if (this.player.weaponType === 'dual') {
                 hybridDmgFactor = 0.75;
@@ -5671,24 +5671,24 @@ class GameEngine {
             let activeAspd = this.player.getEffectiveAspd();
             let cooldownFrames = Math.max(15, 55 / activeAspd);
             this.player.slashCooldown = cooldownFrames;
-            
+
             let scytheLvl = this.player.weaponLevels.scythe || 1;
             let finalDamage = this.player.atk * 0.9 * (1 + (scytheLvl - 1) * 0.15);
-            
+
             this.player.isScytheActive = true;
             this.player.scytheTimer = 12;
             this.player.scytheAngle = this.player.angle;
-            
+
             this.triggerScytheAttack(this.player.angle, finalDamage);
-            
+
             let secondary = this.player.equippedWeapons[1];
             if (secondary === 'sword') {
                 this.triggerScytheSwordSynergy(this.player.angle, finalDamage * 0.5);
             }
-            
+
             Sound.play('slash');
             this.shakeScreen(6, 2.8);
-            
+
             this.triggerThirdSlotWeapon();
             return;
         }
@@ -5918,7 +5918,7 @@ class GameEngine {
         // 생명력 HP 연산
         let hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
         document.getElementById('hp-bar-fill').style.width = `${hpPct}%`;
-        
+
         let hpTextStr = `${Math.ceil(this.player.hp)} / ${this.player.maxHp}`;
         if (this.player.armorShield > 0) {
             hpTextStr += ` (+🛡️${Math.ceil(this.player.armorShield)})`;
@@ -6104,11 +6104,11 @@ class GameEngine {
         // [신규 기획] 일반 스탯 방(5의 배수 방도 아니고 보물상자도 아니며 weapon/equipment 유형도 아닌 경우)일 경우
         // 카드 보상 선택기를 건너뛰고, 몬스터 스폰 수에 비례한 네온 코인만 지급 후 즉시 포털을 개방합니다.
         const isSpecialReward = (this.roomNum % 5 === 0) || isFromHiddenChest || this.currentRoomType === 'weapon' || this.currentRoomType === 'equipment';
-        
+
         if (!isSpecialReward && !isExtraDraw) {
             let coinGain = Math.max(1, Math.floor(this.currentSpawnTotal * 2 * (1 + (this.player.luk - 1) * 0.15)));
             this.player.coins = (this.player.coins || 0) + coinGain;
-            
+
             this.showFloatingText(`+📀 ${coinGain} COINS`, this.player.x, this.player.y - 30, '#fff01f');
             Sound.play('coin');
 
@@ -6382,7 +6382,7 @@ class GameEngine {
                     if (canExtraDraw) {
                         this.extraDrawCount++;
                         const nextDrawNum = this.extraDrawCount;
-                        
+
                         // 다음 기회 확률 계산 (안내 텍스트 표시용)
                         let nextChance = this.player.luk;
                         for (let i = 0; i < nextDrawNum; i++) {
@@ -6396,10 +6396,10 @@ class GameEngine {
                         if (nextDrawNum === 2) { floatText = `⚡ 팬덤의 관심 가속! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] ⚡`; floatColor = '#ffdf00'; }
                         if (nextDrawNum === 3) { floatText = `🔮 스폰서의 주목 공명! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 🔮`; floatColor = '#00f0ff'; }
                         if (nextDrawNum === 4) { floatText = `👑 전설적 인기스타: 후원 폭발! (${nextDrawNum}/4) [다음 확률: ${nextChance}%] 👑`; floatColor = '#ff0055'; }
-                        
+
                         setTimeout(() => {
                             this.showFloatingText(floatText, this.player.x, this.player.y - 45, floatColor);
-                            
+
                             // 추가 획득 창 다시 노출
                             this.triggerRewardSelector(isFromHiddenChest, true);
                         }, 800);
@@ -7265,10 +7265,10 @@ class GameEngine {
         setTimeout(() => Sound.play('victory'), 1200);
 
         // 100개의 찬란한 은하수 네온 파티클 사방 폭사 물리 (진 엔딩일 시 마젠타/시안 색조 위주 글리치 스타일)
-        const rainbowColors = isTrueEnding 
+        const rainbowColors = isTrueEnding
             ? ['#ff00ff', '#00ffff', '#d900ff', '#00f0ff', '#ff00aa', '#00ffd5']
             : ['#ff0055', '#00f0ff', '#b026ff', '#39ff14', '#ffdf00', '#ff5e00'];
-            
+
         for (let i = 0; i < 100; i++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 8 + 3; // 폭발적 기하 속도
@@ -7298,11 +7298,11 @@ class GameEngine {
                 ];
                 this.showDialogue("SYSTEM", dialogueLines, () => {
                     this.isPlaying = false;
-                    
+
                     const titleEl = document.getElementById('result-title');
                     const msgEl = document.getElementById('result-message');
                     const boxEl = document.querySelector('.result-box');
-                    
+
                     if (titleEl) {
                         titleEl.innerText = "TRUE LIBERATION!";
                         titleEl.className = "text-glow-magenta";
@@ -7314,7 +7314,7 @@ class GameEngine {
                         boxEl.style.borderColor = '#ff00aa';
                         boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 45px rgba(255, 0, 170, 0.65)';
                     }
-                    
+
                     this.populateResultOverlay();
                 });
             } else {
@@ -7326,11 +7326,11 @@ class GameEngine {
                 ];
                 this.showDialogue("SYSTEM", dialogueLines, () => {
                     this.isPlaying = false;
-                    
+
                     const titleEl = document.getElementById('result-title');
                     const msgEl = document.getElementById('result-message');
                     const boxEl = document.querySelector('.result-box');
-                    
+
                     if (titleEl) {
                         titleEl.innerText = "NORMAL ENDING";
                         titleEl.className = "text-glow-blue";
@@ -7342,7 +7342,7 @@ class GameEngine {
                         boxEl.style.borderColor = '#00f0ff';
                         boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.35)';
                     }
-                    
+
                     this.populateResultOverlay();
                 });
             }
@@ -7789,7 +7789,7 @@ class GameEngine {
             const glitchOffset = (Math.random() < 0.25) ? (Math.random() * 6 - 3) : 0;
             const alpha = 0.4 + Math.random() * 0.5;
             wallStrokeColor = `rgba(255, 0, 255, ${alpha})`;
-            
+
             // 101층 마젠타 글리치 보조 라인 렌더링
             if (Math.random() < 0.3) {
                 this.ctx.save();
@@ -7949,7 +7949,7 @@ class GameEngine {
             // 현재 방 번호와 테마에 맞는 컬러 추출
             const theme = this.getSectorTheme(this.roomNum, this.currentRoomType);
             let rawColor = theme.innerBorder || 'rgba(255, 0, 85, 0.4)';
-            
+
             // rgba 형태로 정의된 색상 문자열의 알파값 치환
             let strokeColor = rawColor.replace(/[^,]+(?=\s*\)$)/, ` ${warningAlpha}`);
             let shadowColor = rawColor.replace(/[^,]+(?=\s*\)$)/, ` 1`);
@@ -8630,7 +8630,7 @@ class GameEngine {
                 // 치트창 닫기
                 const cheatOverlay = document.getElementById('cheat-overlay');
                 if (cheatOverlay) cheatOverlay.classList.add('hidden');
-                
+
                 // 임시 대화 스크립트 실행
                 this.showDialogue("OP-RUNNER", [
                     "안전 프로토콜이 해제되었습니다. 시스템 제어가 개시됩니다.",
@@ -8784,7 +8784,7 @@ class GameEngine {
 
                     for (let r = 0; r < 18; r++) {
                         if (typeof data.grid[r] !== 'string' || data.grid[r].length !== 24) {
-                            throw new Error(`grid의 ${r+1}번째 행은 반드시 24글자 문자열이어야 합니다.`);
+                            throw new Error(`grid의 ${r + 1}번째 행은 반드시 24글자 문자열이어야 합니다.`);
                         }
                     }
 
@@ -9103,7 +9103,7 @@ class GameEngine {
 
                     nextBtn.removeEventListener('click', nextLine);
                     window.removeEventListener('keydown', onKeyDown);
-                    
+
                     // 멤버 참조 리셋
                     this.currentDialogueNextListener = null;
                     this.currentDialogueKeyDownListener = null;
@@ -9275,7 +9275,7 @@ class GameEngine {
                 const matsDisplay = document.getElementById('status-materials-display');
                 if (matsDisplay) {
                     matsDisplay.innerHTML = '';
-                    
+
                     const materialNames = {
                         short_rod: '짧은 막대기',
                         long_rod: '긴 막대기',
@@ -9289,7 +9289,7 @@ class GameEngine {
                         nanite_jar: '나노머신 병',
                         hydraulic_cylinder: '유압 실린더'
                     };
-                    
+
                     let matsCount = 0;
                     for (let key in this.player.materials) {
                         const count = this.player.materials[key] || 0;
@@ -9302,7 +9302,7 @@ class GameEngine {
                             matsDisplay.appendChild(matItem);
                         }
                     }
-                    
+
                     if (matsCount === 0) {
                         matsDisplay.innerHTML = `<span style="color: #64748b; font-size: 0.8rem; font-style: italic;">보유한 부품이 없습니다. 몬스터를 처치하여 부품을 수집하세요!</span>`;
                     }
@@ -9620,11 +9620,11 @@ class GameEngine {
             if (this.inSecretRoom) {
                 // 비밀방 디바이스 복구
                 this.secretGlitchDevices.push(new SecretGlitchDevice(this.mapWidth / 2, this.mapHeight / 2));
-                
+
                 const directions = ['top', 'bottom', 'left', 'right'];
                 const chosenDir = directions[Math.floor(Math.random() * 4)];
                 const exitPortal = new RoomPortal(chosenDir, this.getRandomScoreValue());
-                
+
                 exitPortal.portalType = savedData.exitPortalType || 'stat';
                 exitPortal.difficultyClass = savedData.exitPortalDifficultyClass || 'mid';
                 exitPortal.active = false;
@@ -9899,11 +9899,11 @@ class GameEngine {
         }
 
         // 룸 전환용 가상 포털 생성 후 연동 (보스방 여부에 따라 portalType 분기)
-        let mockPortal = { 
-            direction: 'top', 
-            scoreValue: (targetStage % 10 === 0) ? 0 : Math.floor(10 + targetStage * 0.4), 
-            portalType: (targetStage % 10 === 0) ? 'boss' : 'stat', 
-            difficultyClass: 'low' 
+        let mockPortal = {
+            direction: 'top',
+            scoreValue: (targetStage % 10 === 0) ? 0 : Math.floor(10 + targetStage * 0.4),
+            portalType: (targetStage % 10 === 0) ? 'boss' : 'stat',
+            difficultyClass: 'low'
         };
         this.roomNum = targetStage - 1; // transitionToNextRoom 내부에서 roomNum++이 되어 타겟 도달
 
@@ -9916,7 +9916,7 @@ class GameEngine {
     // [신규] 카드 획득 연출 지연 활성화 및 파티클 연출
     triggerPowerUpVisuals(cardData) {
         this.visualsSuspended = false;
-        
+
         // 1. 대기 텍스트 한 번에 방출
         if (this.suspendedFloatingTexts && this.suspendedFloatingTexts.length > 0) {
             this.suspendedFloatingTexts.forEach(t => {
@@ -9992,7 +9992,7 @@ class GameEngine {
             // 열기
             craftingOverlay.classList.remove('hidden');
             this.craftingActiveTab = 'crude';
-            
+
             // 탭 선택 클래스 활성화 상태 연동
             document.querySelectorAll('.crafting-tab-btn').forEach(btn => {
                 if (btn.getAttribute('data-tab') === 'crude') btn.classList.add('active');
@@ -10335,7 +10335,7 @@ class DropMaterial {
             this.x += this.vx;
             this.y += this.vy;
             this.vy += this.gravity;
-            
+
             // 바닥 도달 시 반사 튕김
             if (this.vy > 0 && this.bounceCount < 2) {
                 this.vy = -this.vy * 0.4;
@@ -10350,7 +10350,7 @@ class DropMaterial {
         // 플레이어와 거리 측정하여 자석 흡수
         let dist = Math.hypot(player.x - this.x, player.y - this.y);
         let magnetRange = 120; // 120px 안으로 들어오면 자석 기믹 작동
-        
+
         if (dist < magnetRange) {
             // 플레이어에게 끌려감
             let angle = Math.atan2(player.y - this.y, player.x - this.x);
