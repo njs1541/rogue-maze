@@ -10,6 +10,7 @@ class Monster {
         this.tier = tier;
         this.roomNum = roomNum;
         this._hp = 0; // [추가] 내부 체력 변수 초기화
+        this.isPlayerKnockback = false; // [추가] 플레이어 공격에 의한 넉백 플래그
         
         let roomFactor = 1.0 + Math.log10(roomNum) * 1.2 + (roomNum / 20) * 0.6;
         let weaponRoomMultiplier = (window.gameEngine && window.gameEngine.currentRoomType === 'weapon') ? 1.25 : 1.0;
@@ -528,6 +529,11 @@ class Monster {
         this.y += this.knockbackY * timeScale;
         this.knockbackX *= 0.85;
         this.knockbackY *= 0.85;
+
+        // [추가] 넉백 속도가 1.0 이하로 감쇠되면 플레이어 넉백 상태 해제
+        if (this.isPlayerKnockback && Math.hypot(this.knockbackX, this.knockbackY) < 1.0) {
+            this.isPlayerKnockback = false;
+        }
 
         // Shock (Stun / 기절) 상태 시 이동 및 행동 불능 처리
         // [수정] 보스 몬스터는 기절에 걸리더라도 공격 패턴이나 이동 AI가 멈추지 않도록 무시 처리 (패턴 정지 버그 방지)
@@ -2410,8 +2416,9 @@ class Monster {
             hasSlammedWall = true;
         }
 
-        if (hasSlammedWall && !this.wallSlamCooldown) {
+        if (hasSlammedWall && !this.wallSlamCooldown && this.isPlayerKnockback) {
             this.wallSlamCooldown = 30; // 0.5초 연속 격돌 방지 쿨다운
+            this.isPlayerKnockback = false; // 벽꽝 데미지 적용 후 플래그 초기화
             
             // 넉백 벽꽝 대미지 (+100% 공격력 가산) 및 1.5초(90프레임) 마비 기절
             let slamDmg = player.atk;

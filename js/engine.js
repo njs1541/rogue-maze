@@ -1932,6 +1932,7 @@ class GameEngine {
                     let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.knockbackX = Math.cos(angle) * 8;
                     m.knockbackY = Math.sin(angle) * 8;
+                    m.isPlayerKnockback = true;
 
                     // 폭발 파티클 조각
                     for (let k = 0; k < 8; k++) {
@@ -3053,6 +3054,7 @@ class GameEngine {
                         m.flashTimer = 5;
                         m.knockbackX = Math.cos(targetAngle) * 6; // 대폭 넉백
                         m.knockbackY = Math.sin(targetAngle) * 6;
+                        m.isPlayerKnockback = true;
 
                         if (hasShattered) {
                             this.showFloatingText("❄️ FREEZE SHATTER! 300% DMG", m.x, m.y - 35, '#00f0ff');
@@ -3241,6 +3243,7 @@ class GameEngine {
                         let kbForce = b.isSpear ? 7.5 : 2.0;
                         m.knockbackX = Math.cos(hitAngle) * kbForce;
                         m.knockbackY = Math.sin(hitAngle) * kbForce;
+                        m.isPlayerKnockback = true;
 
                         if (isSpearTip) {
                             this.showFloatingText("⚡ SPEAR-TIP CRITICAL! ⚡", m.x, m.y - 35, '#00f0ff');
@@ -4023,6 +4026,7 @@ class GameEngine {
                 let angle = Math.atan2(m.y - y, m.x - x);
                 m.knockbackX += Math.cos(angle) * 4.5;
                 m.knockbackY += Math.sin(angle) * 4.5;
+                m.isPlayerKnockback = true;
 
                 // 전이 화상 스택 1개 자동 축적
                 m.statusEffects.burn = 240; // 4초 지속
@@ -4914,6 +4918,7 @@ class GameEngine {
                     let angle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                     m.knockbackX += Math.cos(angle) * 3.5;
                     m.knockbackY += Math.sin(angle) * 3.5;
+                    m.isPlayerKnockback = true;
 
                     this.showFloatingText(`REFLECT -${Math.ceil(fDmg)}`, m.x, m.y - 20, '#ff00aa');
 
@@ -5018,6 +5023,7 @@ class GameEngine {
                 let pushAngle = Math.atan2(m.y - y, m.x - x);
                 m.knockbackX += Math.cos(pushAngle) * 3.5;
                 m.knockbackY += Math.sin(pushAngle) * 3.5;
+                m.isPlayerKnockback = true;
             }
         }
     }
@@ -5608,6 +5614,7 @@ class GameEngine {
                 let kbForce = this.player.weaponUnlocks.spear.knockback ? 12.0 : 7.5;
                 m.knockbackX = cosA * kbForce;
                 m.knockbackY = sinA * kbForce;
+                m.isPlayerKnockback = true;
 
                 if (isSpearTip) {
                     this.showFloatingText("🎯 SPEAR-TIP CRITICAL! 🎯", m.x, m.y - 35, '#00f0ff');
