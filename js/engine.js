@@ -670,6 +670,35 @@ class GameEngine {
             });
         }
 
+        // [신규] 제작창 모달 닫기 버튼 이벤트
+        const craftingClose = document.getElementById('crafting-close');
+        if (craftingClose) {
+            craftingClose.addEventListener('click', () => {
+                this.toggleCraftingMenu();
+            });
+        }
+
+        const craftingCloseBtn = document.getElementById('crafting-close-btn');
+        if (craftingCloseBtn) {
+            craftingCloseBtn.addEventListener('click', () => {
+                this.toggleCraftingMenu();
+            });
+        }
+
+        // [신규] 제작창 탭 전환 이벤트 리스너 연동
+        document.querySelectorAll('.crafting-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                this.craftingActiveTab = tab;
+                
+                // 탭 버튼 active 클래스 제어
+                document.querySelectorAll('.crafting-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                this.refreshCraftingUI();
+            });
+        });
+
         // [신규] 파이어베이스 랭킹 시스템 UI 이벤트 리스너 연동
 
         // 닉네임 입력 실시간 필터 (영어 대문자와 숫자만 허용)
@@ -801,6 +830,7 @@ class GameEngine {
         this.mapHeight = 900;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
+        this.ctx = this.canvas.getContext('2d'); // [보안] 캔버스 초기화 시 2D 컨텍스트 다시 바인딩하여 드로잉 안전 보장
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
             gameContainer.style.maxWidth = '';
@@ -7793,8 +7823,25 @@ class GameEngine {
             this.ctx.stroke();
         }
 
-        // 충전소 렌더링
-        this.chargingStations.forEach(cs => this.drawChargingStation(this.ctx, cs));
+        // 충전소 렌더링 (안전한 예외 처리 적용 및 드로잉 보장)
+        try {
+            if (this.chargingStations && Array.isArray(this.chargingStations)) {
+                this.chargingStations.forEach(cs => {
+                    if (cs && typeof cs.x === 'number' && typeof cs.y === 'number') {
+                        this.drawChargingStation(this.ctx, cs);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn("충전소 그리기 중 에러가 발생했으나 다른 요소를 계속 렌더링합니다:", e);
+        }
+
+        // [복구] 유실되었던 격자 장애물(NeonTileWall) 렌더링
+        if (this.obstacles && Array.isArray(this.obstacles)) {
+            this.obstacles.forEach(obs => {
+                if (obs && typeof obs.draw === 'function') obs.draw(this.ctx);
+            });
+        }
 
         // [W-08 신규 구현] 드롭된 네온 코인 렌더링
         this.coinsList.forEach(coin => coin.draw(this.ctx));
@@ -7817,6 +7864,34 @@ class GameEngine {
 
         // [Phase 7 신규 구현] 비밀방 상호작용 디바이스 렌더링
         this.secretGlitchDevices.forEach(device => device.draw(this.ctx));
+
+        // [복구] 유실되었던 문(Room Portal) 렌더링
+        if (this.portals && Array.isArray(this.portals)) {
+            this.portals.forEach(p => {
+                if (p && typeof p.draw === 'function') p.draw(this.ctx);
+            });
+        }
+
+        // [복구] 유실되었던 몬스터 렌더링
+        if (this.monsters && Array.isArray(this.monsters)) {
+            this.monsters.forEach(m => {
+                if (m && typeof m.draw === 'function') m.draw(this.ctx);
+            });
+        }
+
+        // [복구] 유실되었던 투사체(탄환) 렌더링
+        if (this.bullets && Array.isArray(this.bullets)) {
+            this.bullets.forEach(b => {
+                if (b && typeof b.draw === 'function') b.draw(this.ctx);
+            });
+        }
+
+        // [복구] 유실되었던 파티클 이펙트 렌더링
+        if (this.particles && Array.isArray(this.particles)) {
+            this.particles.forEach(p => {
+                if (p && typeof p.draw === 'function') p.draw(this.ctx);
+            });
+        }
 
         // 6. 플레이어 렌더링
         this.player.draw(this.ctx);
@@ -8956,101 +9031,106 @@ class GameEngine {
     }
 
     showDialogue(speaker, lines, onComplete) {
-        const overlay = document.getElementById('story-dialogue-overlay');
-        const speakerEl = document.getElementById('dialogue-speaker');
-        const textEl = document.getElementById('dialogue-text');
-        const nextBtn = document.getElementById('dialogue-next-btn');
+        try {
+            const overlay = document.getElementById('story-dialogue-overlay');
+            const speakerEl = document.getElementById('dialogue-speaker');
+            const textEl = document.getElementById('dialogue-text');
+            const nextBtn = document.getElementById('dialogue-next-btn');
 
-        if (!overlay || !speakerEl || !textEl || !nextBtn) {
-            if (onComplete) onComplete();
-            return;
-        }
-
-        // [안전 가드] 이전 호출의 이벤트 리스너 및 타이머가 남아있을 경우 깨끗이 제거하여 백그라운드 꼬임 현상 원천 차단
-        if (this.currentDialogueNextListener) {
-            nextBtn.removeEventListener('click', this.currentDialogueNextListener);
-        }
-        if (this.currentDialogueKeyDownListener) {
-            window.removeEventListener('keydown', this.currentDialogueKeyDownListener);
-        }
-        if (this.currentDialogueTimeout) {
-            clearTimeout(this.currentDialogueTimeout);
-        }
-
-        this.isDialogueActive = true; // 활성 대화 중 플래그 활성화
-        overlay.classList.remove('hidden');
-        nextBtn.classList.remove('hidden'); // 계속 버튼 강제 노출
-        speakerEl.innerText = `[ ${speaker} ]`;
-
-        let currentLineIdx = 0;
-        let isTyping = false;
-
-        const renderLine = (lineText) => {
-            textEl.innerHTML = "";
-            isTyping = true;
-            let charIdx = 0;
-            const fullText = this.applyGlitchFilter(lineText);
-
-            const typeChar = () => {
-                if (charIdx < fullText.length) {
-                    textEl.textContent += fullText[charIdx];
-                    charIdx++;
-                    this.currentDialogueTimeout = setTimeout(typeChar, 8); // 클래스 멤버에 타이머 저장
-                } else {
-                    isTyping = false;
-                }
-            };
-            typeChar();
-        };
-
-        const nextLine = () => {
-            if (isTyping) {
-                if (this.currentDialogueTimeout) {
-                    clearTimeout(this.currentDialogueTimeout);
-                }
-                textEl.textContent = this.applyGlitchFilter(lines[currentLineIdx]);
-                isTyping = false;
+            if (!overlay || !speakerEl || !textEl || !nextBtn) {
+                if (onComplete) onComplete();
                 return;
             }
 
-            currentLineIdx++;
-            if (currentLineIdx < lines.length) {
-                renderLine(lines[currentLineIdx]);
-            } else {
-                // 대화 완료 - 대기 모드로 상태 변경
-                this.isDialogueActive = false; // 대화 플래그 비활성화
-                overlay.classList.remove('dimmed'); // 딤드 해제
-                nextBtn.classList.add('hidden'); // 계속 버튼 숨김
-                speakerEl.innerText = "[ SYSTEM ]";
-                textEl.innerText = "SYSTEM ONLINE. SIGNAL STABLE.";
-
-                nextBtn.removeEventListener('click', nextLine);
-                window.removeEventListener('keydown', onKeyDown);
-                
-                // 멤버 참조 리셋
-                this.currentDialogueNextListener = null;
-                this.currentDialogueKeyDownListener = null;
-                this.currentDialogueTimeout = null;
-
-                if (onComplete) onComplete();
+            // [안전 가드] 이전 호출의 이벤트 리스너 및 타이머가 남아있을 경우 깨끗이 제거하여 백그라운드 꼬임 현상 원천 차단
+            if (this.currentDialogueNextListener) {
+                nextBtn.removeEventListener('click', this.currentDialogueNextListener);
             }
-        };
-
-        const onKeyDown = (e) => {
-            if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
-                e.preventDefault();
-                nextLine();
+            if (this.currentDialogueKeyDownListener) {
+                window.removeEventListener('keydown', this.currentDialogueKeyDownListener);
             }
-        };
+            if (this.currentDialogueTimeout) {
+                clearTimeout(this.currentDialogueTimeout);
+            }
 
-        // 현재 핸들러를 킵하여 중복 호출 시 제거할 수 있게 보장
-        this.currentDialogueNextListener = nextLine;
-        this.currentDialogueKeyDownListener = onKeyDown;
+            this.isDialogueActive = true; // 활성 대화 중 플래그 활성화
+            overlay.classList.remove('hidden');
+            nextBtn.classList.remove('hidden'); // 계속 버튼 강제 노출
+            speakerEl.innerText = `[ ${speaker} ]`;
 
-        nextBtn.addEventListener('click', nextLine);
-        window.addEventListener('keydown', onKeyDown);
+            let currentLineIdx = 0;
+            let isTyping = false;
 
-        renderLine(lines[0]);
+            const renderLine = (lineText) => {
+                textEl.innerHTML = "";
+                isTyping = true;
+                let charIdx = 0;
+                const fullText = this.applyGlitchFilter(lineText);
+
+                const typeChar = () => {
+                    if (charIdx < fullText.length) {
+                        textEl.textContent += fullText[charIdx];
+                        charIdx++;
+                        this.currentDialogueTimeout = setTimeout(typeChar, 8); // 클래스 멤버에 타이머 저장
+                    } else {
+                        isTyping = false;
+                    }
+                };
+                typeChar();
+            };
+
+            const nextLine = () => {
+                if (isTyping) {
+                    if (this.currentDialogueTimeout) {
+                        clearTimeout(this.currentDialogueTimeout);
+                    }
+                    textEl.textContent = this.applyGlitchFilter(lines[currentLineIdx]);
+                    isTyping = false;
+                    return;
+                }
+
+                currentLineIdx++;
+                if (currentLineIdx < lines.length) {
+                    renderLine(lines[currentLineIdx]);
+                } else {
+                    // 대화 완료 - 대기 모드로 상태 변경
+                    this.isDialogueActive = false; // 대화 플래그 비활성화
+                    overlay.classList.add('hidden'); // 대화 모달 자체를 완전히 숨김
+                    overlay.classList.remove('dimmed'); // 딤드 해제
+                    nextBtn.classList.add('hidden'); // 계속 버튼 숨김
+                    speakerEl.innerText = "[ SYSTEM ]";
+                    textEl.innerText = "SYSTEM ONLINE. SIGNAL STABLE.";
+
+                    nextBtn.removeEventListener('click', nextLine);
+                    window.removeEventListener('keydown', onKeyDown);
+                    
+                    // 멤버 참조 리셋
+                    this.currentDialogueNextListener = null;
+                    this.currentDialogueKeyDownListener = null;
+                    this.currentDialogueTimeout = null;
+
+                    if (onComplete) onComplete();
+                }
+            };
+
+            const onKeyDown = (e) => {
+                if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+                    e.preventDefault();
+                    nextLine();
+                }
+            };
+
+            // 현재 핸들러를 킵하여 중복 호출 시 제거할 수 있게 보장
+            this.currentDialogueNextListener = nextLine;
+            this.currentDialogueKeyDownListener = onKeyDown;
+
+            nextBtn.addEventListener('click', nextLine);
+            window.addEventListener('keydown', onKeyDown);
+
+            renderLine(lines[0]);
+        } catch (e) {
+            console.error("showDialogue 실행 에러:", e);
+        }
     }
 
     // [신규 추가] 임의의 게임 오버레이/모달창이 활성화되어 있는지 여부를 판정하는 헬퍼 함수
@@ -10092,13 +10172,8 @@ class GameEngine {
 
     generateChargingStations() {
         this.chargingStations = [];
-        // 보스방인 경우 1개, 일반 방인 경우 1~2개 생성
-        let count = (this.roomNum % 10 === 0) ? 1 : (Math.random() < 0.5 ? 1 : 2);
-        
-        // 비밀방인 경우 스폰 제한
-        if (this.currentRoomType === 'secret_room') {
-            count = 1;
-        }
+        // 맵마다 항상 정확히 1개의 충전 스테이션만 생성되도록 제약
+        let count = 1;
 
         for (let i = 0; i < count; i++) {
             // 맵 내부 랜덤 좌표 (마진 150px)
@@ -10123,43 +10198,49 @@ class GameEngine {
     }
 
     drawChargingStation(ctx, cs) {
-        ctx.save();
-        cs.pulse = (cs.pulse + 0.05) % (Math.PI * 2);
-        let pulseRadius = cs.radius * (1 + Math.sin(cs.pulse) * 0.1);
+        try {
+            ctx.save();
+            cs.pulse = (cs.pulse + 0.05) % (Math.PI * 2);
+            let pulseRadius = cs.radius * (1 + Math.sin(cs.pulse) * 0.1);
 
-        // 1. 외부 점선 네온 원
-        ctx.beginPath();
-        ctx.arc(cs.x, cs.y, cs.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0, 208, 255, 0.25)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 10]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+            // 1. 외부 네온 경계선 원 (호환성을 저해하는 setLineDash 제거)
+            ctx.shadowBlur = 0; // 섀도우 초기화
+            ctx.beginPath();
+            ctx.arc(cs.x, cs.y, cs.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 208, 255, 0.18)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
 
-        // 2. 내부 실선 네온 원 (맥동)
-        ctx.beginPath();
-        ctx.arc(cs.x, cs.y, pulseRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#00d0ff';
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00d0ff';
-        ctx.stroke();
+            // 2. 내부 실선 네온 원 (맥동)
+            ctx.beginPath();
+            ctx.arc(cs.x, cs.y, pulseRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 208, 255, 0.4)'; // 은은한 네온 처리
+            ctx.lineWidth = 1.2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00d0ff';
+            ctx.stroke();
+            ctx.shadowBlur = 0; // 명시적 해제
 
-        // 3. 충전소 중심 코어
-        ctx.beginPath();
-        ctx.arc(cs.x, cs.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00d0ff';
-        ctx.fill();
+            // 3. 충전소 중심 코어
+            ctx.beginPath();
+            ctx.arc(cs.x, cs.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00d0ff';
+            ctx.fill();
+            ctx.shadowBlur = 0; // 명시적 해제
 
-        // 4. 충전소 레벨/텍스트 정보 렌더링
-        ctx.font = '800 9px "Outfit"';
-        ctx.fillStyle = '#00d0ff';
-        ctx.textAlign = 'center';
-        ctx.fillText(`CHARGE STATION (Lv.${this.chargingStationLevel})`, cs.x, cs.y - cs.radius - 8);
+            // 4. 충전소 레벨/텍스트 정보 렌더링
+            ctx.font = '800 9px "Outfit"';
+            ctx.fillStyle = '#00d0ff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`CHARGE STATION (Lv.${this.chargingStationLevel})`, cs.x, cs.y - cs.radius - 8);
 
-        ctx.restore();
+            ctx.shadowBlur = 0; // 최종 초기화 보장
+            ctx.restore();
+        } catch (e) {
+            console.error("drawChargingStation 런타임 에러:", e);
+        }
     }
 
     upgradeChargingStation() {
@@ -10274,5 +10355,4 @@ class DropMaterial {
         ctx.fillText(this.name, this.x, this.y - this.radius - 2);
         ctx.restore();
     }
-}
 }

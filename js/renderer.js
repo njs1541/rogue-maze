@@ -18,19 +18,30 @@ const Renderer = {
      * @param {Function} fallbackDrawFn - 이미지가 없을 때 실행할 기존 네온 그래픽 콜백 함수
      */
     drawSprite(ctx, assetKey, x, y, width, height, angle = 0, fallbackDrawFn) {
-        // 전역 AssetManager 참조
-        const img = window.AssetManager ? window.AssetManager.get(assetKey) : null;
+        try {
+            // 전역 AssetManager 참조
+            const img = window.AssetManager ? window.AssetManager.get(assetKey) : null;
 
-        if (img) {
-            // [A] 그래픽 리소스가 존재할 때: 깔끔하게 교체되어 렌더링
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            ctx.drawImage(img, -width / 2, -height / 2, width, height);
-            ctx.restore();
-        } else {
-            // [B] 리소스가 없을 때: 기존에 개발된 네온 그래픽 로직을 그대로 보존하여 실행
-            fallbackDrawFn();
+            // 이미지가 실제로 유효하고, 완전 로드되었으며, 해상도가 양수인 경우에만 drawImage 실행
+            if (img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                ctx.drawImage(img, -width / 2, -height / 2, width, height);
+                ctx.restore();
+            } else {
+                // 리소스가 비어있거나 로딩 전이면 기존 네온 그래픽으로 자동 폴백
+                if (fallbackDrawFn) fallbackDrawFn();
+            }
+        } catch (e) {
+            console.warn(`[Renderer] '${assetKey}' 렌더링 예외 발생, 네온 폴백 실행:`, e);
+            if (fallbackDrawFn) {
+                try {
+                    fallbackDrawFn();
+                } catch (err) {
+                    console.error("[Renderer] 폴백 드로잉 실행 실패:", err);
+                }
+            }
         }
     }
 };

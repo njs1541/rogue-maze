@@ -19,6 +19,36 @@ window.onload = async () => {
     if (window.KeyboardWalkCharacter) {
         window.keyboardWalkCharacter = new KeyboardWalkCharacter();
     }
+
+    // 4. [보안/자가진단] 실시간 캔버스 가시성 및 활성 오버레이 콘솔 감시 도구 가동
+    setInterval(() => {
+        if (!window.gameEngine) return;
+        const activeOverlays = [];
+        const overlays = [
+            'start-overlay', 'reward-overlay', 'result-overlay',
+            'card-detail-overlay', 'shop-confirm-overlay',
+            'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
+            'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
+            'crafting-overlay', 'story-dialogue-overlay'
+        ];
+        overlays.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains('hidden')) {
+                activeOverlays.push(`${id} (Z-Index: ${window.getComputedStyle(el).zIndex})`);
+            }
+        });
+
+        const container = document.getElementById('game-container');
+        const containerVis = container ? `Disp: ${window.getComputedStyle(container).display}, Vis: ${window.getComputedStyle(container).visibility}, Opacity: ${window.getComputedStyle(container).opacity}` : 'MISSING';
+
+        const canvasContainer = document.getElementById('canvas-container');
+        const canvasContVis = canvasContainer ? `Disp: ${window.getComputedStyle(canvasContainer).display}, Vis: ${window.getComputedStyle(canvasContainer).visibility}, Opacity: ${window.getComputedStyle(canvasContainer).opacity}` : 'MISSING';
+
+        const canvas = document.getElementById('game-canvas');
+        const canvasVis = canvas ? `Size: ${canvas.width}x${canvas.height}, Display: ${window.getComputedStyle(canvas).display}, Vis: ${window.getComputedStyle(canvas).visibility}, Opacity: ${window.getComputedStyle(canvas).opacity}` : 'MISSING';
+        
+        console.log(`[자가진단] 활성 오버레이: [${activeOverlays.join(', ') || '없음'}], GameContainer: [${containerVis}], CanvasContainer: [${canvasContVis}], Canvas: [${canvasVis}], 대화방: [Active=${window.gameEngine.isDialogueActive}, Playing=${window.gameEngine.isPlaying}]`);
+    }, 1500); // 1.5초 주기로 콘솔 자동 진단 출력
 };
 
 // ==========================================================================
