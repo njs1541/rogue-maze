@@ -1326,6 +1326,109 @@ class SecretVendingMachine {
 
 
 // --------------------------------------------------------------------------
+// 6.7.2. 네온 무기 상인 NPC 클래스 (Weapon Merchant NPC)
+// 무기 방 클리어 시 맵 중앙에 생성되는 하이테크 홀로그램 NPC.
+// 충돌 시 부품 재료 거래 및 무기 진화(Advanced)가 가능한 UI를 제공합니다.
+// --------------------------------------------------------------------------
+class WeaponMerchant {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 20; // 충돌 반경
+        this.width = 32;
+        this.height = 48;
+        this.color = '#39ff14'; // 네온 그린 (안드로이드/제작 연상)
+        this.glowColor = '#94ff70';
+        this.pulse = 0;
+        this.active = true;
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.05;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.02;
+        let bounceY = Math.sin(this.pulse * 0.8) * 3;
+        ctx.translate(0, bounceY);
+
+        // 네온 홀로그램 바닥 아우라
+        ctx.beginPath();
+        ctx.ellipse(0, this.height / 2 - 2, 24 * scale, 8 * scale, 0, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(57, 255, 20, ${0.12 + Math.sin(this.pulse) * 0.04})`;
+        ctx.fill();
+
+        // 1. 홀로그램 지지판 (바닥 베이스)
+        ctx.beginPath();
+        ctx.rect(-16, this.height / 2 - 4, 32, 4);
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+
+        // 2. 머리 (홀로그램 네온 구체)
+        ctx.beginPath();
+        ctx.arc(0, -this.height / 2 + 10, 8 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 머리 안의 단말 스캔 라인
+        ctx.beginPath();
+        ctx.moveTo(-6 * scale, -this.height / 2 + 10);
+        ctx.lineTo(6 * scale, -this.height / 2 + 10);
+        ctx.strokeStyle = this.glowColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 3. 몸통 (마름모 형태 홀로그램 스타일)
+        ctx.beginPath();
+        ctx.moveTo(0, -this.height / 2 + 18);
+        ctx.lineTo(14 * scale, 0);
+        ctx.lineTo(0, this.height / 2 - 8);
+        ctx.lineTo(-14 * scale, 0);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 몸통 중앙 에너지 코어
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fillStyle = this.glowColor;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.glowColor;
+        ctx.fill();
+
+        // 4. 상호작용 머리 위 텍스트 가이드
+        ctx.font = '800 9px "Outfit"';
+        ctx.fillStyle = '#39ff14';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#39ff14';
+        ctx.textAlign = 'center';
+        ctx.fillText("WEAPON MERCHANT", 0, -this.height / 2 - 14);
+
+        ctx.font = '800 8px "Outfit"';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 3;
+        ctx.shadowColor = '#ffffff';
+        ctx.fillText("CRASH TO TRADE", 0, -this.height / 2 - 4);
+
+        ctx.restore();
+    }
+}
+
+
+// --------------------------------------------------------------------------
 class NeonTrap {
     constructor(x, y, type, player) {
         this.x = x;

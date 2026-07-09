@@ -2,251 +2,12 @@
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 
-// [신규] 24x18 그리드 타일맵 프리셋 데이터 정의 (0: 바닥, 1: 격벽, 2: 외벽)
-const MAP_PRESETS = {
-    PRESET_SIZE_NORMAL: [
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "000000000000000000000000",
-        "000000000000000000000000",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "222200000000000000002222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222"
-    ],
-    PRESET_SIZE_MIDDLE: [
-        "222222222220022222222222",
-        "2222222222200222222222222",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "000000000000000000000000",
-        "000000000000000000000000",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "220000000000000000000022",
-        "222222222220022222222222",
-        "222222222220022222222222"
-    ],
-    PRESET_SIZE_BOSS: [
-        "222222222220022222222222",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "000000000000000000000000",
-        "000000000000000000000000",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "222222222220022222222222"
-    ],
-    PRESET_LINE: [
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "000000000000000000000000",
-        "000000000000000000000000",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222",
-        "222222222222222222222222"
-    ],
-    PRESET_WINDOW: [
-        "222222222220022222222222",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000111111111111000002",
-        "200000111111111111000002",
-        "200000111111111111000002",
-        "000000111111111111000000",
-        "000000111111111111000000",
-        "200000111111111111000002",
-        "200000111111111111000002",
-        "200000111111111111000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "222222222220022222222222"
-    ],
-    PRESET_U_SHAPE: [
-        "222222222220022222222222",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000111111111111111112",
-        "200000111111111111111112",
-        "200000111111111111111112",
-        "000000111111111111111112",
-        "000000111111111111111112",
-        "200000111111111111111112",
-        "200000111111111111111112",
-        "200000111111111111111112",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "200000000000000000000002",
-        "222222222220022222222222"
-    ],
-    PRESET_CROSS: [
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222000000000000222222",
-        "222222000000000000222222",
-        "000000000000000000000000",
-        "000000000000000000000000",
-        "222222000000000000222222",
-        "222222000000000000222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222",
-        "222222222220022222222222"
-    ]
-};
-
-// [신규] 방 레벨(층)에 따른 가변 맵 테마 정의
-const SECTOR_THEMES = {
-    cyberGrid: { // Sector 1: 1~9층 (시안/청록)
-        bgColor: '#05070c',
-        innerBgColor: '#090d16',
-        outerBorder: 'rgba(0, 240, 255, 0.15)',
-        innerBorder: 'rgba(0, 240, 255, 0.4)',
-        gridColor: 'rgba(0, 240, 255, 0.04)'
-    },
-    volcanicCore: { // Sector 2: 11~19층 (용암 오렌지 레드)
-        bgColor: '#100505',
-        innerBgColor: '#1d0a0a',
-        outerBorder: 'rgba(255, 51, 0, 0.2)',
-        innerBorder: 'rgba(255, 51, 0, 0.5)',
-        gridColor: 'rgba(255, 51, 0, 0.06)'
-    },
-    frozenVoid: { // Sector 3: 21~29층 (차가운 빙결 스카이블루)
-        bgColor: '#050a12',
-        innerBgColor: '#0a1322',
-        outerBorder: 'rgba(0, 191, 255, 0.18)',
-        innerBorder: 'rgba(0, 191, 255, 0.45)',
-        gridColor: 'rgba(0, 191, 255, 0.05)'
-    },
-    overgrownLab: { // Sector 4: 31~39층 (비비드 네온 그린)
-        bgColor: '#051008',
-        innerBgColor: '#0a1d10',
-        outerBorder: 'rgba(57, 255, 20, 0.18)',
-        innerBorder: 'rgba(57, 255, 20, 0.45)',
-        gridColor: 'rgba(57, 255, 20, 0.05)'
-    },
-    abyssalRift: { // Sector 5: 41~49층 (심연 마젠타 퍼플)
-        bgColor: '#0d0514',
-        innerBgColor: '#170a24',
-        outerBorder: 'rgba(176, 38, 255, 0.2)',
-        innerBorder: 'rgba(176, 38, 255, 0.5)',
-        gridColor: 'rgba(176, 38, 255, 0.06)'
-    },
-    singularityCore: { // Sector 6: 50층 이상 (태양 골든 옐로우)
-        bgColor: '#121005',
-        innerBgColor: '#201d0a',
-        outerBorder: 'rgba(255, 215, 0, 0.22)',
-        innerBorder: 'rgba(255, 215, 0, 0.52)',
-        gridColor: 'rgba(255, 215, 0, 0.06)'
-    },
-    voidMarket: { // 특수: 비밀방 (자홍/마젠타 암시장)
-        bgColor: '#14051a',
-        innerBgColor: '#22092c',
-        outerBorder: 'rgba(255, 0, 127, 0.25)',
-        innerBorder: 'rgba(255, 0, 127, 0.6)',
-        gridColor: 'rgba(255, 0, 127, 0.08)'
-    }
-};
-
-// [신규] 프리셋별 문(포털) 소환 정보 매핑
-const PORTAL_SPAWN_INFOS = {
-    PRESET_SIZE_NORMAL: {
-        top: { x: 1320 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
-        bottom: { x: 1320 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
-        left: { x: 4.5 * 55, y: 900 / 2, gridX: 4, gridY: 8 },
-        right: { x: 19.5 * 55, y: 900 / 2, gridX: 19, gridY: 8 }
-    },
-    PRESET_SIZE_MIDDLE: {
-        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left: { x: 2.5 * 55, y: 900 / 2, gridX: 2, gridY: 8 },
-        right: { x: 21.5 * 55, y: 900 / 2, gridX: 21, gridY: 8 }
-    },
-    PRESET_SIZE_BOSS: {
-        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
-    },
-    PRESET_LINE: {
-        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
-    },
-    PRESET_WINDOW: {
-        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
-    },
-    PRESET_U_SHAPE: {
-        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 }
-    },
-    PRESET_CROSS: {
-        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
-        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
-        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
-        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
-    }
-};
-
 class GameEngine {
     constructor() {
         // [수정] 생성자 극초반부에 전역 객체 바인딩을 진행하여, setupInitialRoom 등의 하위 초기화 시점에 
         // 맵 크기(mapWidth, mapHeight)를 안전하게 참조할 수 있도록 보장합니다.
         window.gameEngine = this;
+        this.mapEngine = new MapEngine(this); // [추가] 맵 데이터 및 메커니즘 엔진 바인딩
 
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -319,6 +80,7 @@ class GameEngine {
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 연속 출현 제어를 위한 쿨다운 추적 변수 추가
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 리스트
+        this.weaponMerchants = []; // [신규] 무기 상인 NPC 리스트
 
         // 4개의 방향 포털 포지셔닝
         this.portals = [];
@@ -699,6 +461,35 @@ class GameEngine {
             });
         });
 
+        // [신규 기획] 무기 상인 NPC 상점 모달 닫기 버튼 이벤트
+        const npcClose = document.getElementById('npc-close');
+        if (npcClose) {
+            npcClose.addEventListener('click', () => {
+                this.toggleNPCMenu();
+            });
+        }
+
+        const npcCloseBtn = document.getElementById('npc-close-btn');
+        if (npcCloseBtn) {
+            npcCloseBtn.addEventListener('click', () => {
+                this.toggleNPCMenu();
+            });
+        }
+
+        // [신규 기획] 무기 상인 NPC 상점 탭 전환 이벤트 리스너 연동
+        document.querySelectorAll('.npc-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                this.npcActiveTab = tab;
+
+                // 탭 버튼 active 클래스 제어
+                document.querySelectorAll('.npc-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                this.refreshNPCUI();
+            });
+        });
+
         // [신규] 파이어베이스 랭킹 시스템 UI 이벤트 리스너 연동
 
         // 닉네임 입력 실시간 필터 (영어 대문자와 숫자만 허용)
@@ -824,6 +615,7 @@ class GameEngine {
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 쿨다운 변수 리셋
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 초기화
+        this.weaponMerchants = []; // [신규] 무기 상인 NPC 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
 
         this.mapWidth = 1320;
@@ -917,307 +709,23 @@ class GameEngine {
 
     // [신규] 2차원 그리드 기반 맵 구조 생성 메서드
     generateGridMap(presetType) {
-        this.obstacles = [];
-        this.currentMapPreset = presetType;
-        const preset = MAP_PRESETS[presetType] || MAP_PRESETS.PRESET_SIZE_BOSS;
-
-        this.grid = [];
-        for (let r = 0; r < 18; r++) {
-            this.grid[r] = [];
-            for (let c = 0; c < 24; c++) {
-                const tileVal = parseInt(preset[r][c]);
-                this.grid[r][c] = tileVal;
-
-                // 1(일반 격벽) 또는 2(외벽)인 경우 NeonTileWall 벽 오브젝트 배치
-                if (tileVal === 1 || tileVal === 2) {
-                    this.obstacles.push(new NeonTileWall(c, r, tileVal));
-                }
-            }
-        }
+        this.mapEngine.generateGridMap(presetType);
     }
 
-    // [신규] 커스텀 맵 프리셋 런타임 적용 및 즉시 방 재생성 테스트 기능
     loadCustomMapPreset(presetName) {
-        if (!MAP_PRESETS[presetName]) return;
-
-        // 1. 격자 맵 데이터 파싱 및 장애물 재생성
-        this.generateGridMap(presetName);
-
-        // 2. 플레이어 안전 위치 워프
-        this.player.x = this.mapWidth / 2;
-        this.player.y = this.mapHeight / 2;
-        this.lastEnteredPortalDir = 'center';
-
-        // 3. 기존 오브젝트 제거
-        this.bullets = [];
-        this.monsters = [];
-        this.particles = [];
-        this.potions = [];
-        this.coinsList = [];
-        this.secretWalls = [];
-        this.secretGlitchDevices = [];
-        this.rewardChests = [];
-        this.vendingMachines = [];
-        this.secretVendingMachines = [];
-        this.traps = [];
-
-        // 4. 프리셋 내에 정의된 포털 위치에만 문 생성
-        const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
-        this.portals = [];
-        validDirections.forEach(dir => {
-            this.portals.push(new RoomPortal(dir, this.getRandomScoreValue()));
-        });
-
-        // 포털 유형 지정 및 활성화 상태 리셋 (테스트용으로 몬스터 격퇴 전까지 잠금 처리)
-        let types = this.generatePortalTypes();
-        this.portals.forEach((p, idx) => {
-            p.portalType = types[idx % types.length];
-        });
-        this.rankPortals();
-        this.portals.forEach(p => p.active = false);
-
-        // 5. 몬스터 스폰 큐 재생성
-        const monsterCount = this.getRandomScoreValue();
-        this.queueSequentialSpawns(monsterCount);
-
-        this.updateHUD();
-        this.showFloatingText("CUSTOM MAP APPLIED! 🛠️", this.player.x, this.player.y - 40, '#39ff14');
+        this.mapEngine.loadCustomMapPreset(presetName);
     }
 
-    // [신규] 2차원 그리드 정보를 분석하여 바닥 타일과 접하는 안전한 벽면에 비밀방 균열 벽을 스폰하는 메서드
     spawnSecretWall() {
-        let spots = [];
-
-        // 1) Top (상단)
-        let topC = 7;
-        for (let r = 0; r < 18; r++) {
-            if (this.grid[r] && this.grid[r][topC] === 0) {
-                if (r > 0) {
-                    let wType = this.grid[r - 1] ? this.grid[r - 1][topC] : 2;
-                    spots.push({
-                        col: topC,
-                        row: r - 1,
-                        wallX: topC * 55 + 27.5,
-                        wallY: (r - 1) * 50 + 25,
-                        dir: 'top',
-                        type: wType
-                    });
-                }
-                break;
-            }
-        }
-        if (spots.filter(s => s.dir === 'top').length === 0) {
-            for (let c = 4; c < 20; c++) {
-                let found = false;
-                for (let r = 0; r < 18; r++) {
-                    if (this.grid[r] && this.grid[r][c] === 0) {
-                        if (r > 0) {
-                            let wType = this.grid[r - 1] ? this.grid[r - 1][c] : 2;
-                            spots.push({
-                                col: c,
-                                row: r - 1,
-                                wallX: c * 55 + 27.5,
-                                wallY: (r - 1) * 50 + 25,
-                                dir: 'top',
-                                type: wType
-                            });
-                            found = true;
-                        }
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-        }
-
-        // 2) Bottom (하단)
-        let botC = 16;
-        for (let r = 17; r >= 0; r--) {
-            if (this.grid[r] && this.grid[r][botC] === 0) {
-                if (r < 17) {
-                    let wType = this.grid[r + 1] ? this.grid[r + 1][botC] : 2;
-                    spots.push({
-                        col: botC,
-                        row: r + 1,
-                        wallX: botC * 55 + 27.5,
-                        wallY: (r + 1) * 50 + 25,
-                        dir: 'bottom',
-                        type: wType
-                    });
-                }
-                break;
-            }
-        }
-        if (spots.filter(s => s.dir === 'bottom').length === 0) {
-            for (let c = 20; c >= 4; c--) {
-                let found = false;
-                for (let r = 17; r >= 0; r--) {
-                    if (this.grid[r] && this.grid[r][c] === 0) {
-                        if (r < 17) {
-                            let wType = this.grid[r + 1] ? this.grid[r + 1][c] : 2;
-                            spots.push({
-                                col: c,
-                                row: r + 1,
-                                wallX: c * 55 + 27.5,
-                                wallY: (r + 1) * 50 + 25,
-                                dir: 'bottom',
-                                type: wType
-                            });
-                            found = true;
-                        }
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-        }
-
-        // 3) Left (좌측)
-        let leftR = 5;
-        for (let c = 0; c < 24; c++) {
-            if (this.grid[leftR] && this.grid[leftR][c] === 0) {
-                if (c > 0) {
-                    let wType = this.grid[leftR][c - 1] !== undefined ? this.grid[leftR][c - 1] : 2;
-                    spots.push({
-                        col: c - 1,
-                        row: leftR,
-                        wallX: (c - 1) * 55 + 27.5,
-                        wallY: leftR * 50 + 25,
-                        dir: 'left',
-                        type: wType
-                    });
-                }
-                break;
-            }
-        }
-        if (spots.filter(s => s.dir === 'left').length === 0) {
-            for (let r = 4; r < 14; r++) {
-                let found = false;
-                for (let c = 0; c < 24; c++) {
-                    if (this.grid[r] && this.grid[r][c] === 0) {
-                        if (c > 0) {
-                            let wType = this.grid[r][c - 1] !== undefined ? this.grid[r][c - 1] : 2;
-                            spots.push({
-                                col: c - 1,
-                                row: r,
-                                wallX: (c - 1) * 55 + 27.5,
-                                wallY: r * 50 + 25,
-                                dir: 'left',
-                                type: wType
-                            });
-                            found = true;
-                        }
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-        }
-
-        // 4) Right (우측)
-        let rightR = 12;
-        for (let c = 23; c >= 0; c--) {
-            if (this.grid[rightR] && this.grid[rightR][c] === 0) {
-                if (c < 23) {
-                    let wType = this.grid[rightR][c + 1] !== undefined ? this.grid[rightR][c + 1] : 2;
-                    spots.push({
-                        col: c + 1,
-                        row: rightR,
-                        wallX: (c + 1) * 55 + 27.5,
-                        wallY: rightR * 50 + 25,
-                        dir: 'right',
-                        type: wType
-                    });
-                }
-                break;
-            }
-        }
-        if (spots.filter(s => s.dir === 'right').length === 0) {
-            for (let r = 14; r >= 4; r--) {
-                let found = false;
-                for (let c = 23; c >= 0; c--) {
-                    if (this.grid[r] && this.grid[r][c] === 0) {
-                        if (c < 23) {
-                            let wType = this.grid[r][c + 1] !== undefined ? this.grid[r][c + 1] : 2;
-                            spots.push({
-                                col: c + 1,
-                                row: r,
-                                wallX: (c + 1) * 55 + 27.5,
-                                wallY: r * 50 + 25,
-                                dir: 'right',
-                                type: wType
-                            });
-                            found = true;
-                        }
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-        }
-
-        if (spots.length === 0) return;
-
-        // 후보 중 하나를 무작위 선택
-        let chosenSpot = spots[Math.floor(Math.random() * spots.length)];
-
-        // 겹치는 기존 격벽 장애물(NeonTileWall) 제거
-        this.obstacles = this.obstacles.filter(obs => !(obs.col === chosenSpot.col && obs.row === chosenSpot.row));
-
-        // 비밀 균열 외벽 생성 (새로운 생성자 스펙: col, row, dir, type)
-        this.secretWalls.push(new SecretWall(chosenSpot.col, chosenSpot.row, chosenSpot.dir, chosenSpot.type));
+        this.mapEngine.spawnSecretWall();
     }
 
-    // [신규] 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
     isTileWall(x, y) {
-        if (!this.grid) return false;
-        const c = Math.floor(x / 55); // [수정] 가로 타일 너비를 50px에서 55px로 보정 (1320px / 24열 = 55px)
-        const r = Math.floor(y / 50); // (900px / 18행 = 50px)
-        if (c < 0 || c >= 24 || r < 0 || r >= 18) return true; // 맵 범위 밖은 벽으로 간주
-        const val = this.grid[r] ? this.grid[r][c] : undefined;
-        return val === 1 || val === 2;
+        return this.mapEngine.isTileWall(x, y);
     }
 
-    // [신규] 그리드 맵의 빈 공간(0인 곳) 중에서 무작위 셀을 선택하여 픽셀 좌표를 반환하는 메서드
     getSafeSpawnPosition(avoidPlayer = false, minDist = 200, maxAttempts = 100) {
-        let attempts = 0;
-        let safePositions = [];
-
-        // 1. 우선 빈 타일(0) 수집
-        for (let r = 0; r < 18; r++) {
-            for (let c = 0; c < 24; c++) {
-                if (this.grid && this.grid[r] && this.grid[r][c] === 0) {
-                    // 타일 중앙 픽셀 좌표 계산
-                    // [수정] 가로 타일 너비는 55px이므로 c * 55 + 27.5 로 올바르게 보정하여 벽 스폰 방지
-                    const x = c * 55 + 27.5;
-                    const y = r * 50 + 25;
-                    safePositions.push({ x, y, r, c });
-                }
-            }
-        }
-
-        if (safePositions.length === 0) {
-            // 빈 공간이 없다면 기본 맵 중앙 리턴
-            return { x: this.mapWidth / 2, y: this.mapHeight / 2 };
-        }
-
-        // 2. 플레이어를 피해야 하는 경우 필터링 시도
-        if (avoidPlayer && this.player) {
-            while (attempts < maxAttempts) {
-                const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
-                const dx = pos.x - this.player.x;
-                const dy = pos.y - this.player.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist >= minDist) {
-                    return { x: pos.x, y: pos.y };
-                }
-                attempts++;
-            }
-        }
-
-        // 플레이어 피하기를 실패했거나 피할 필요가 없는 경우 랜덤 빈 타일 반환
-        const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
-        return { x: pos.x, y: pos.y };
+        return this.mapEngine.getSafeSpawnPosition(avoidPlayer, minDist, maxAttempts);
     }
 
     // 첫 시작 방은 몬스터가 등장하지 않는 완전히 평화로운 휴식의 안전실
@@ -1563,6 +1071,7 @@ class GameEngine {
         this.rewardChests = []; // [추가] 이전 방 상자들 삭제
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
+        this.weaponMerchants = []; // [신규] 무기 상인 NPC 청소
         this.traps = []; // [신규] 함정 리스트 청소
         this.chargingStations = []; // 충전소 삭제
         this.materialsList = []; // 드롭된 재료 청소
@@ -2533,7 +2042,7 @@ class GameEngine {
         }
 
         // [E-09 공속 반지 10레벨 속사 초월 트래킹]
-        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'supercritical_plasma_fusion') || (this.player.weaponType === 'dual');
         let canShoot = hasRangedWeapon;
         if (this.mouse.isDown && canShoot && !isOverlayOpen) {
             this.player.continuousShootTimer = (this.player.continuousShootTimer || 0) + 1;
@@ -2636,7 +2145,7 @@ class GameEngine {
             this.player.angle = Math.atan2(kdy, kdx);
 
             // 자동 사격/베기 격발
-            let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+            let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'supercritical_plasma_fusion') || (this.player.weaponType === 'dual');
             let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
             if (this.player.hp > 0 && !(this.player.stunnedTimer > 0)) {
@@ -2768,7 +2277,7 @@ class GameEngine {
         // [추가] 플레이어가 현재 이동 키를 누르지 않고 가만히 서 있는지 감지
         this.player.isStopped = (dx === 0 && dy === 0);
 
-        let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'icefiredance') || (this.player.weaponType === 'dual');
+        let hasRanged = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'supercritical_plasma_fusion') || (this.player.weaponType === 'dual');
         let hasMelee = (this.player.weaponLevels.sword > 0) || (this.player.weaponLevels.spear > 0) || (this.player.weaponLevels.whip > 0) || (this.player.weaponType === 'dual');
 
         if (!this.keyboardAimActive && this.mouse.isDown && this.player.hp > 0 && this.player.shootCooldown <= 0 && hasRanged && !(this.player.stunnedTimer > 0)) {
@@ -3594,8 +3103,17 @@ class GameEngine {
                         }
                     } else {
                         // 무기, 장비 및 보스/엘리트 스탯 방(5의 배수 방)인 경우 상자 스폰
-                        this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
-                        this.showFloatingText("REWARD CHEST ARRIVED!", spawnX, spawnY - 60, this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : '#ff6c00'));
+                        if (this.currentRoomType === 'weapon') {
+                            this.weaponMerchants.push(new WeaponMerchant(spawnX, spawnY));
+                            this.portals.forEach(p => p.active = true);
+                        } else {
+                            this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
+                        }
+                        if (this.currentRoomType === 'weapon') {
+                            this.showFloatingText("WEAPON MERCHANT ARRIVED! 🏪", spawnX, spawnY - 60, '#39ff14');
+                        } else {
+                            this.showFloatingText("REWARD CHEST ARRIVED!", spawnX, spawnY - 60, this.currentRoomType === 'stat' ? '#00f0ff' : '#ff6c00');
+                        }
 
                         // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (기본 30% + 행운 계수 비례 추가 확률)
                         let potionRand = Math.random();
@@ -3821,6 +3339,43 @@ class GameEngine {
                         // 차원 거래 팝업 호출 (에픽/레전더리 확정 카드 생성)
                         this.triggerSecretShopPurchase(svm, i);
                     }
+                }
+            }
+        }
+
+        // [신규 기획] 무기 상인(WeaponMerchant) 충돌 감지 및 상점 팝업 호출
+        for (let i = this.weaponMerchants.length - 1; i >= 0; i--) {
+            let wm = this.weaponMerchants[i];
+            if (!wm.active) continue;
+
+            let dist = Math.hypot(this.player.x - wm.x, this.player.y - wm.y);
+            if (dist < this.player.radius + wm.radius) {
+                if (this.vendingCooldown === 0) {
+                    this.vendingCooldown = 60; // 1.0초 쿨다운
+
+                    // 플레이어를 NPC 반대 방향으로 밀어냄 (연속 충돌 방지)
+                    let bounceAngle = Math.atan2(this.player.y - wm.y, this.player.x - wm.x);
+                    this.player.x += Math.cos(bounceAngle) * 38;
+                    this.player.y += Math.sin(bounceAngle) * 38;
+                    const wallMargin = 40;
+                    this.player.x = Math.max(wallMargin + this.player.radius, Math.min(this.mapWidth - wallMargin - this.player.radius, this.player.x));
+                    this.player.y = Math.max(wallMargin + this.player.radius, Math.min(this.mapHeight - wallMargin - this.player.radius, this.player.y));
+
+                    // 튕김 파티클 (초록색)
+                    for (let k = 0; k < 6; k++) {
+                        let angle = bounceAngle + (Math.random() * 0.8 - 0.4);
+                        let speed = Math.random() * 3 + 1.5;
+                        this.particles.push(new Particle(this.player.x, this.player.y, '#39ff14', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 15));
+                    }
+                    Sound.play('dodge');
+
+                    // 모든 코인 끌어당김
+                    this.coinsList.forEach(coin => {
+                        coin.isAttractedToPlayer = true;
+                    });
+
+                    // 무기 상인 거래 창 오픈
+                    this.toggleNPCMenu();
                 }
             }
         }
@@ -5212,7 +4767,7 @@ class GameEngine {
 
             // [수정] 무기 레벨 비례 공격력 상승 (레벨당 +15%)
             let wLvl = 1;
-            if (this.player.weaponType === 'icefiredance') wLvl = 5;
+            if (this.player.weaponType === 'supercritical_plasma_fusion') wLvl = 5;
             else if (isLightning) wLvl = this.player.weaponLevels.lightning || 1;
             else if (isFire) wLvl = this.player.weaponLevels.fire || 1;
             else if (isIce) wLvl = this.player.weaponLevels.ice || 1;
@@ -5224,7 +4779,7 @@ class GameEngine {
             let hybridDmgFactor = 1.0;
             if (this.player.weaponType === 'dual') {
                 hybridDmgFactor = 0.75;
-            } else if (this.player.weaponType === 'icefiredance') {
+            } else if (this.player.weaponType === 'supercritical_plasma_fusion') {
                 hybridDmgFactor = 0.85;
             }
 
@@ -5258,7 +4813,7 @@ class GameEngine {
                     }
                 } else {
                     // [초월 무기] 아이스 앤드 파이어 댄스 상태라면 불과 얼음 DNA 탄환 2발 동시 격발!
-                    if (this.player.weaponType === 'icefiredance') {
+                    if (this.player.weaponType === 'supercritical_plasma_fusion') {
                         let speed = 7.5; // 불마법(6.2)과 얼음마법(7.5)의 시너지 균형 속도
                         let bulletLife = this.player.range / speed;
 
@@ -6502,38 +6057,58 @@ class GameEngine {
             { id: 'equip_goggles', title: '차원 고글', icon: '🥽', desc: '비밀 균열 벽의 위치를 감지합니다. (5레벨: 비밀방 등장 확률 30%로 상승, 10레벨: 비밀 균열 벽 타격 시 1회만에 파괴)' }
         ];
 
+        // 무기 장착/강화 카드와 투사체 강화 카드를 분리
+        const pureWeaponIds = ['sword', 'spear', 'thorns', 'whip', 'trap', 'lightning', 'fire', 'ice', 'scythe', 'railcannon'];
+        const pureWeaponCards = weaponCards.filter(c => pureWeaponIds.includes(c.id));
+        const projectileUpgradeCards = weaponCards.filter(c => !pureWeaponIds.includes(c.id));
+
         // [신규 기획] 현재 방 유형(currentRoomType)에 맞춘 특화 보상 풀 배정
         let pool = [];
-        let isSpecialReward = (this.currentRoomType === 'weapon' || this.currentRoomType === 'equipment') || isFromHiddenChest;
+        const isBossRoom = (this.roomNum % 5 === 0);
 
         if (isFromHiddenChest) {
-            // 보물상자는 무기와 장비 카드를 골고루 혼합
-            pool = [...weaponCards, ...equipmentCards];
-        } else if (this.currentRoomType === 'weapon') {
-            pool = [...weaponCards];
+            // 보물상자는 장비와 투사체 카드 혼합 (무기 습득은 오직 제작/진화로 제한)
+            pool = [...projectileUpgradeCards, ...equipmentCards];
+        } else if (isBossRoom) {
+            // 보스전 보상: 장비 및 투사체 카드 기본 포함
+            pool = [...projectileUpgradeCards, ...equipmentCards];
 
-            // 보유 상태에 따른 무기 강화 연계 시너지 카드 동적 해금 주입 (이미 최고 단계 획득 시 풀에서 배제)
-            const p = this.player;
-            if ((p.weaponType === 'sword' || p.weaponType === 'dual') && p.swordDmgUpgrade < 1.4) {
-                pool.push({ id: 'upgrade_sword', title: '[강화] 쾌검술 연마', icon: '🪓', desc: '검기 대미지를 +40% 상향하고 검기 도달 리치 반경을 +10px 연장시킵니다.' });
+            // 50% 확률(운 스탯 비례 보정)로 이미 보유 중인 무기의 강화 카드 노출
+            let weaponChance = 0.50 + Math.min(0.20, (this.player.luk - 1.0) * 0.05);
+            if (Math.random() < weaponChance) {
+                // 플레이어가 소지(레벨 1 이상)하고 마스터하지 않은 무기의 레벨업 카드만 주입
+                const activeWeaponUpgrades = pureWeaponCards.filter(card => {
+                    const curLvl = this.player.weaponLevels[card.id] || 0;
+                    return curLvl >= 1 && curLvl < 5;
+                });
+                pool.push(...activeWeaponUpgrades);
+
+                // 보유 무기 강화 연계 시너지 카드 동적 해금 주입
+                const p = this.player;
+                if (p.weaponLevels.sword >= 1 && p.swordDmgUpgrade < 1.4) {
+                    pool.push({ id: 'upgrade_sword', title: '[강화] 쾌검술 연마', icon: '🪓', desc: '검기 대미지를 +40% 상향하고 검기 도달 리치 반경을 +10px 연장시킵니다.' });
+                }
+                if (p.multishot >= 2 && p.multishotArc < 0.55) {
+                    pool.push({ id: 'upgrade_multishot', title: '[강화] 샷건 전탄 연마', icon: '🏹', desc: '멀티샷의 탄환수를 추가로 +1발 더 늘리고, 부채꼴 퍼짐각을 대폭 넓힙니다.' });
+                }
+                if (this.pets.length >= 1 && p.petDmgUpgrade < 1.6) {
+                    pool.push({ id: 'upgrade_pet', title: '[강화] 드론 오버로드', icon: '🤖', desc: '드론의 유도 레이저 대미지를 플레이어 힘(ATK) 스탯의 40% 비례로 크게 늘립니다.' });
+                }
+                if (p.splashRadius > 0 && p.splashDmgUpgrade < 0.9) {
+                    pool.push({ id: 'upgrade_splash', title: '[강화] 연쇄 열화 폭발', icon: '💥', desc: '스플래시 대폭발 피해 비율을 90%로 대폭 상향하고 폭발 반경을 +15px 연장시킵니다.' });
+                }
+                if (p.homing && p.homingAngleSpeed < 0.13) {
+                    pool.push({ id: 'upgrade_homing', title: '[강화] 초정밀 유도 궤적', icon: '🔮', desc: '유도탄의 선회 회전각을 60% 향상시켜 더욱 급속한 유도 추적이 가능해집니다.' });
+                }
             }
-            if (p.multishot >= 2 && p.multishotArc < 0.55) {
-                pool.push({ id: 'upgrade_multishot', title: '[강화] 샷건 전탄 연마', icon: '🏹', desc: '멀티샷의 탄환수를 추가로 +1발 더 늘리고, 부채꼴 퍼짐각을 대폭 넓힙니다.' });
-            }
-            if (this.pets.length >= 1 && p.petDmgUpgrade < 1.6) {
-                pool.push({ id: 'upgrade_pet', title: '[강화] 드론 오버로드', icon: '🤖', desc: '드론의 유도 레이저 대미지를 플레이어 힘(ATK) 스탯의 40% 비례로 크게 늘립니다.' });
-            }
-            if (p.splashRadius > 0 && p.splashDmgUpgrade < 0.9) {
-                pool.push({ id: 'upgrade_splash', title: '[강화] 연쇄 열화 폭발', icon: '💥', desc: '스플래시 대폭발 피해 비율을 90%로 대폭 상향하고 폭발 반경을 +15px 연장시킵니다.' });
-            }
-            if (p.homing && p.homingAngleSpeed < 0.13) {
-                pool.push({ id: 'upgrade_homing', title: '[강화] 초정밀 유도 궤적', icon: '🔮', desc: '유도탄의 선회 회전각을 60% 향상시켜 더욱 급속한 유도 추적이 가능해집니다.' });
-            }
+        } else if (this.currentRoomType === 'weapon') {
+            // 무기방은 이제 NPC 상인을 소환하므로 통상적으로 안 쓰이나, 치트나 예외 처리 방어용
+            pool = [...projectileUpgradeCards];
         } else if (this.currentRoomType === 'equipment') {
             pool = [...equipmentCards];
         } else {
-            // 기본은 스탯(stat) 카드 풀
-            pool = [...statusCards];
+            // 기본 스탯 방: 캐릭터 스탯 카드 및 투사체 강화 카드
+            pool = [...statusCards, ...projectileUpgradeCards];
         }
 
         // 3개의 유니크한 카드를 선별
@@ -6975,7 +6550,7 @@ class GameEngine {
                 break;
             case 'fire':
                 if (!p.equippedWeapons.includes('fire')) p.equippedWeapons.push('fire');
-                if (p.weaponType === 'icefiredance') {
+                if (p.weaponType === 'supercritical_plasma_fusion') {
                     p.iceFireProjectilesStack++;
                     this.showFloatingText("EVOLUTION UPGRADE: +2 PROJ! 🌀", p.x, p.y - 30, '#ff5e00');
                     Sound.play('powerup');
@@ -6991,7 +6566,7 @@ class GameEngine {
                 break;
             case 'ice':
                 if (!p.equippedWeapons.includes('ice')) p.equippedWeapons.push('ice');
-                if (p.weaponType === 'icefiredance') {
+                if (p.weaponType === 'supercritical_plasma_fusion') {
                     p.iceFireProjectilesStack++;
                     this.showFloatingText("EVOLUTION UPGRADE: +2 PROJ! 🌀", p.x, p.y - 30, '#00f0ff');
                     Sound.play('powerup');
@@ -7559,7 +7134,7 @@ class GameEngine {
             else if (currentWpn === 'lightning') wpnStr = "번개마법 (Lightning)";
             else if (currentWpn === 'fire') wpnStr = "불마법 (Fire)";
             else if (currentWpn === 'ice') wpnStr = "얼음마법 (Ice)";
-            else if (currentWpn === 'icefiredance') wpnStr = "아앤파 (Evo-초월)";
+            else if (currentWpn === 'supercritical_plasma_fusion') wpnStr = "플라즈마 초융합 (Evo-초월)";
 
             const result = await window.RankSystem.addRankRecord(
                 name,
@@ -7692,49 +7267,7 @@ class GameEngine {
 
     // [신규] 방 레벨(층) 및 방 타입에 따른 가변 맵 테마 정보 반환
     getSectorTheme(roomNum, roomType) {
-        // 1. 에러 섹터 (101층 이스터에그) 테마
-        if (roomNum === 101) {
-            return {
-                bgColor: '#05060a',
-                innerBgColor: '#08090e',
-                outerBorder: `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`,
-                innerBorder: 'rgba(255, 0, 255, 0.5)',
-                gridColor: 'rgba(255, 0, 255, 0.015)'
-            };
-        }
-
-        // 2. 비밀방 (Void Market) 테마
-        if (roomType === 'secret_room') {
-            return SECTOR_THEMES.voidMarket;
-        }
-
-        // 3. 보스방 (10의 배수 층) 테마 - 붉은색 사이렌 경보 연출
-        if (roomNum > 0 && roomNum % 10 === 0) {
-            const blink = 0.3 + Math.sin(Date.now() * 0.008) * 0.2;
-            return {
-                bgColor: '#0a0303',
-                innerBgColor: '#140505',
-                outerBorder: `rgba(255, 0, 55, ${blink * 0.7})`,
-                innerBorder: `rgba(255, 0, 55, ${blink})`,
-                gridColor: 'rgba(255, 0, 55, 0.03)'
-            };
-        }
-
-        // 4. 일반 섹터 테마 분기
-        if (roomNum >= 1 && roomNum <= 9) {
-            return SECTOR_THEMES.cyberGrid;
-        } else if (roomNum >= 11 && roomNum <= 19) {
-            return SECTOR_THEMES.volcanicCore;
-        } else if (roomNum >= 21 && roomNum <= 29) {
-            return SECTOR_THEMES.frozenVoid;
-        } else if (roomNum >= 31 && roomNum <= 39) {
-            return SECTOR_THEMES.overgrownLab;
-        } else if (roomNum >= 41 && roomNum <= 49) {
-            return SECTOR_THEMES.abyssalRift;
-        } else {
-            // 50층 이상
-            return SECTOR_THEMES.singularityCore;
-        }
+        return this.mapEngine.getSectorTheme(roomNum, roomType);
     }
 
     // --------------------------------------------------------------------------
@@ -7862,6 +7395,9 @@ class GameEngine {
 
         // [네온 암시장] 비밀 자판기 렌더링 (보라빛 차원 아우라)
         this.secretVendingMachines.forEach(svm => svm.draw(this.ctx));
+
+        // [신규 기획] 무기 상인 NPC 렌더링
+        this.weaponMerchants.forEach(wm => wm.draw(this.ctx));
 
         // [W-10 함정설치 함정 렌더링]
         this.traps.forEach(trap => trap.draw(this.ctx));
@@ -8354,7 +7890,7 @@ class GameEngine {
 
             if (wpn === 'energy_ball') {
                 btn.innerText = `${baseLabel} [Lv.1]`;
-            } else if (wpn === 'dual' || wpn === 'icefiredance') {
+            } else if (wpn === 'dual' || wpn === 'supercritical_plasma_fusion') {
                 btn.innerText = `${baseLabel}`;
             } else if (wpn === 'time') {
                 btn.innerText = `${baseLabel} [${p.hasTimeWarp ? '해금' : '잠금'}]`;
@@ -9607,6 +9143,7 @@ class GameEngine {
             this.rewardChests = [];
             this.vendingMachines = [];
             this.secretVendingMachines = [];
+            this.weaponMerchants = []; // [신규] 무기 상인 NPC 리셋
             this.traps = [];
             this.obstacles = [];
 
@@ -9752,42 +9289,43 @@ class GameEngine {
         const p = this.player;
 
         if (wpnType === 'dual') {
-            p.weaponLevels.sword = Math.min(5, (p.weaponLevels.sword || 0) + 1);
-            if (!p.equippedWeapons.includes('sword')) {
+            // 복합(Dual) 획득 시 조잡한 검과 기본 에너지볼 획득
+            p.weaponLevels.crude_sword = Math.min(5, (p.weaponLevels.crude_sword || 0) + 1);
+            if (!p.equippedWeapons.includes('crude_sword')) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('sword');
+                p.equippedWeapons.push('crude_sword');
             }
-            if (!p.equippedWeapons.includes('gun')) {
+            if (!p.equippedWeapons.includes('energy_ball')) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('gun');
+                p.equippedWeapons.push('energy_ball');
             }
-        } else if (wpnType === 'icefiredance') {
-            p.weaponLevels.fire = Math.min(5, (p.weaponLevels.fire || 0) + 1);
-            p.weaponLevels.ice = Math.min(5, (p.weaponLevels.ice || 0) + 1);
-            if (!p.equippedWeapons.includes('fire')) {
+        } else if (wpnType === 'supercritical_plasma_fusion') { // supercritical_plasma_fusion (구 icefiredance)
+            p.weaponLevels.fusion_plasma_cannon = Math.min(5, (p.weaponLevels.fusion_plasma_cannon || 0) + 1);
+            p.weaponLevels.cryo_freezer = Math.min(5, (p.weaponLevels.cryo_freezer || 0) + 1);
+            if (!p.equippedWeapons.includes('fusion_plasma_cannon')) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('fire');
+                p.equippedWeapons.push('fusion_plasma_cannon');
             }
-            if (!p.equippedWeapons.includes('ice')) {
+            if (!p.equippedWeapons.includes('cryo_freezer')) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('ice');
+                p.equippedWeapons.push('cryo_freezer');
             }
-        } else if (wpnType === 'thorns') {
-            p.weaponLevels.thorns = Math.min(5, (p.weaponLevels.thorns || 0) + 1);
-            if (!p.equippedWeapons.includes('thorns')) {
+        } else if (wpnType === 'crude_thorns' || wpnType === 'gravity_singularity_field') {
+            p.weaponLevels[wpnType] = Math.min(5, (p.weaponLevels[wpnType] || 0) + 1);
+            if (!p.equippedWeapons.includes(wpnType)) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('thorns');
+                p.equippedWeapons.push(wpnType);
             }
-            this.showFloatingText(`THORNS LEVEL UP: Lv.${p.weaponLevels.thorns} 🌵`, p.x, p.y - 40, '#ff00aa');
-        } else if (wpnType === 'trap') {
-            p.weaponLevels.trap = Math.min(5, (p.weaponLevels.trap || 0) + 1);
-            if (!p.equippedWeapons.includes('trap')) {
+            this.showFloatingText(`THORNS UPGRADED: Lv.${p.weaponLevels[wpnType]} 🌵`, p.x, p.y - 40, '#ff00aa');
+        } else if (wpnType === 'crude_trap' || wpnType === 'proximity_cyber_mine') {
+            p.weaponLevels[wpnType] = Math.min(5, (p.weaponLevels[wpnType] || 0) + 1);
+            if (!p.equippedWeapons.includes(wpnType)) {
                 if (p.equippedWeapons.length >= p.maxWeaponSlots) p.equippedWeapons.shift();
-                p.equippedWeapons.push('trap');
+                p.equippedWeapons.push(wpnType);
             }
-            this.showFloatingText(`TRAP LEVEL UP: Lv.${p.weaponLevels.trap} 💣`, p.x, p.y - 40, '#ffdf00');
+            this.showFloatingText(`TRAP UPGRADED: Lv.${p.weaponLevels[wpnType]} 💣`, p.x, p.y - 40, '#ffdf00');
         } else if (wpnType === 'time') {
-            p.hasTimeWarp = true;
+            p.magicType = 'timeWarp';
             this.showFloatingText("TIME WARP ENABLED ⏳", p.x, p.y - 40, '#00ff66');
         } else if (wpnType === 'energy_ball') {
             if (!p.equippedWeapons.includes('energy_ball')) {
@@ -9809,7 +9347,6 @@ class GameEngine {
             }
         }
 
-        p.weaponType = wpnType;
         p.updateWeaponType();
         this.updateHUD();
         this.syncCheatUIFromPlayer(); // 치트 창 텍스트 갱신
@@ -10174,6 +9711,307 @@ class GameEngine {
 
         // UI 갱신
         this.refreshCraftingUI();
+        this.updateHUD();
+    }
+
+    // [신규 기획] 무기 상인 NPC 메뉴 토글
+    toggleNPCMenu() {
+        const npcOverlay = document.getElementById('npc-overlay');
+        if (!npcOverlay) return;
+
+        if (npcOverlay.classList.contains('hidden')) {
+            // 열기
+            npcOverlay.classList.remove('hidden');
+            this.npcActiveTab = 'trade';
+
+            // 탭 선택 클래스 활성화 상태 연동
+            document.querySelectorAll('.npc-tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'trade') btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            this.refreshNPCUI();
+            Sound.play('powerup');
+        } else {
+            // 닫기
+            npcOverlay.classList.add('hidden');
+            Sound.play('hit');
+        }
+    }
+
+    // [신규 기획] 무기 상인 NPC 상점 UI 리프레시
+    refreshNPCUI() {
+        // 코인 정보 갱신
+        const coinDisplay = document.getElementById('npc-player-coins');
+        if (coinDisplay) {
+            coinDisplay.innerText = `📀 ${this.player.coins || 0}`;
+        }
+
+        // 재료 현황판 렌더링
+        const matDisplay = document.getElementById('npc-materials-display');
+        if (matDisplay) {
+            const materialNames = {
+                short_rod: '짧은 막대기',
+                long_rod: '긴 막대기',
+                metal_plate: '넓은 판',
+                blade: '칼날',
+                wire: '전선',
+                battery: '배터리',
+                broken_flamethrower: '고장난 화방',
+                cryo_cooler: '과냉각기',
+                sensor_lens: '광학 렌즈',
+                nanite_jar: '나노머신 병',
+                hydraulic_cylinder: '유압 실린더'
+            };
+
+            let matsHtml = '';
+            for (let key in this.player.materials) {
+                let count = this.player.materials[key] || 0;
+                let displayName = materialNames[key] || key;
+                matsHtml += `
+                    <div class="craft-material-item" style="border-color: rgba(57, 255, 20, 0.25);">
+                        <span class="mat-name" style="font-size: 0.72rem;">${displayName}</span>
+                        <span class="mat-count" style="color: ${count > 0 ? '#39ff14' : '#64748b'}; font-size: 0.85rem;">${count}</span>
+                    </div>
+                `;
+            }
+            matDisplay.innerHTML = matsHtml;
+        }
+
+        const activeTab = this.npcActiveTab || 'trade';
+        const tradeGrid = document.getElementById('npc-trade-grid');
+        const evolveGrid = document.getElementById('npc-evolve-grid');
+
+        if (!tradeGrid || !evolveGrid) return;
+
+        if (activeTab === 'trade') {
+            tradeGrid.classList.remove('hidden');
+            evolveGrid.classList.add('hidden');
+
+            const materialNames = {
+                short_rod: '짧은 막대기',
+                long_rod: '긴 막대기',
+                metal_plate: '넓은 판',
+                blade: '칼날',
+                wire: '전선',
+                battery: '배터리',
+                broken_flamethrower: '고장난 화방',
+                cryo_cooler: '과냉각기',
+                sensor_lens: '광학 렌즈',
+                nanite_jar: '나노머신 병',
+                hydraulic_cylinder: '유압 실린더'
+            };
+
+            let tradeHtml = '';
+            for (let key in this.player.materials) {
+                const count = this.player.materials[key] || 0;
+                const name = materialNames[key] || key;
+                
+                tradeHtml += `
+                    <div class="recipe-card" style="border-color: rgba(57, 255, 20, 0.25); padding: 10px; display: flex; flex-direction: column; justify-content: space-between; background: rgba(0, 0, 0, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span class="recipe-title" style="color: #39ff14; font-size: 0.95rem; font-weight: bold;">${name}</span>
+                            <span style="font-size: 0.85rem; color: #a0aec0;">보유: <b style="color: #ffffff;">${count}</b></span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="craft-btn" onclick="window.gameEngine.buyMaterialFromNPC('${key}')" style="flex: 1; padding: 6px; font-size: 0.78rem; background: rgba(57, 255, 20, 0.1); border-color: #39ff14; color: #39ff14; cursor: pointer;" ${this.player.coins >= 15 ? '' : 'disabled'}>
+                                구매 (15📀)
+                            </button>
+                            <button class="craft-btn" onclick="window.gameEngine.sellMaterialToNPC('${key}')" style="flex: 1; padding: 6px; font-size: 0.78rem; background: rgba(255, 0, 85, 0.05); border-color: #ff0055; color: #ff0055; cursor: pointer;" ${count > 0 ? '' : 'disabled'}>
+                                판매 (7📀)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            tradeGrid.innerHTML = tradeHtml;
+        } else {
+            tradeGrid.classList.add('hidden');
+            evolveGrid.classList.remove('hidden');
+
+            const materialNames = {
+                short_rod: '짧은 막대기',
+                long_rod: '긴 막대기',
+                metal_plate: '넓은 판',
+                blade: '칼날',
+                wire: '전선',
+                battery: '배터리',
+                broken_flamethrower: '고장난 화방',
+                cryo_cooler: '과냉각기',
+                sensor_lens: '광학 렌즈',
+                nanite_jar: '나노머신 병',
+                hydraulic_cylinder: '유압 실린더'
+            };
+
+            let evolveHtml = '';
+            for (let wId in CRAFTING_RECIPES) {
+                const recipe = CRAFTING_RECIPES[wId];
+                if (recipe.type !== 'advanced') continue;
+
+                const curLvl = this.player.weaponLevels[wId] || 0;
+                const isMax = curLvl >= 5;
+
+                // 선행 무기 확인
+                let isReqMet = true;
+                let reqText = '';
+                if (recipe.reqWeapon) {
+                    const reqLvl = this.player.weaponLevels[recipe.reqWeapon] || 0;
+                    const reqName = CRAFTING_RECIPES[recipe.reqWeapon] ? CRAFTING_RECIPES[recipe.reqWeapon].name : recipe.reqWeapon;
+                    if (reqLvl < 1) {
+                        isReqMet = false;
+                        reqText = `<div class="recipe-req-item unmet">⚠️ 선행: ${reqName} 필요</div>`;
+                    } else {
+                        reqText = `<div class="recipe-req-item met" style="color: #39ff14;">✓ 선행: ${reqName} 보유</div>`;
+                    }
+                }
+
+                // 재료 및 비용 확인
+                let isMatsMet = true;
+                let reqsHtml = reqText;
+                for (let matKey in recipe.materials) {
+                    const reqCount = recipe.materials[matKey];
+                    const curCount = this.player.materials[matKey] || 0;
+                    const hasEnough = curCount >= reqCount;
+                    if (!hasEnough) isMatsMet = false;
+                    
+                    const matName = materialNames[matKey] || matKey;
+                    reqsHtml += `
+                        <div class="recipe-req-item ${hasEnough ? 'met' : 'unmet'}" style="font-size: 0.72rem;">
+                            <span>${matName}</span>
+                            <span>(${curCount} / ${reqCount})</span>
+                        </div>
+                    `;
+                }
+
+                const hasEnoughCoins = (this.player.coins || 0) >= 20;
+                reqsHtml += `
+                    <div class="recipe-req-item ${hasEnoughCoins ? 'met' : 'unmet'}" style="font-size: 0.72rem;">
+                        <span>진화 튜닝 비용</span>
+                        <span>(${this.player.coins || 0} / 20📀)</span>
+                    </div>
+                `;
+
+                const canEvolve = isReqMet && isMatsMet && hasEnoughCoins && !isMax;
+                const actionText = isMax ? 'MASTERED' : (curLvl > 0 ? `EVOLVE (Lv.${curLvl} ➔ ${curLvl + 1})` : 'EVOLVE (진화)');
+
+                evolveHtml += `
+                    <div class="recipe-card" style="border-color: rgba(57, 255, 20, 0.25); opacity: ${isMax ? 0.6 : 1.0}; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; background: rgba(0, 0, 0, 0.3);">
+                        <div>
+                            <div class="recipe-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span class="recipe-title text-glow-green" style="color: #39ff14; font-weight: bold; font-size: 0.95rem;">${recipe.name}</span>
+                                <span class="recipe-level" style="font-size: 0.78rem;">${curLvl > 0 ? `Lv.${curLvl}` : '미진화'}</span>
+                            </div>
+                            <p class="recipe-desc" style="font-size: 0.72rem; color: #a0aec0; margin: 3px 0 8px 0; line-height: 1.3;">${recipe.desc}</p>
+                            <div class="recipe-reqs" style="background: rgba(0, 0, 0, 0.2); padding: 5px; border-radius: 4px;">
+                                ${reqsHtml}
+                            </div>
+                        </div>
+                        <button class="craft-btn" ${canEvolve ? '' : 'disabled'} onclick="window.gameEngine.evolveWeaponNPC('${wId}')" style="margin-top: 10px; width: 100%; border-color: #39ff14; color: #39ff14; background: rgba(57, 255, 20, 0.1); cursor: pointer;">
+                            ${actionText}
+                        </button>
+                    </div>
+                `;
+            }
+            evolveGrid.innerHTML = evolveHtml;
+        }
+    }
+
+    // [신규 기획] NPC로부터 재료 구매
+    buyMaterialFromNPC(matKey) {
+        if (this.player.coins < 15) {
+            this.showFloatingText("NOT ENOUGH COINS!", this.player.x, this.player.y - 30, '#ff0055');
+            Sound.play('hit');
+            return;
+        }
+        this.player.coins -= 15;
+        this.player.materials[matKey] = (this.player.materials[matKey] || 0) + 1;
+        this.showFloatingText(`+1 Purchased! 📦`, this.player.x, this.player.y - 30, '#39ff14');
+        Sound.play('coin');
+        this.refreshNPCUI();
+        this.updateHUD();
+    }
+
+    // [신규 기획] NPC에게 재료 판매
+    sellMaterialToNPC(matKey) {
+        const count = this.player.materials[matKey] || 0;
+        if (count <= 0) {
+            this.showFloatingText("NO MATERIALS TO SELL!", this.player.x, this.player.y - 30, '#ff0055');
+            Sound.play('hit');
+            return;
+        }
+        this.player.materials[matKey]--;
+        this.player.coins = (this.player.coins || 0) + 7;
+        this.showFloatingText(`+7 📀 Earned!`, this.player.x, this.player.y - 30, '#fff01f');
+        Sound.play('coin');
+        this.refreshNPCUI();
+        this.updateHUD();
+    }
+
+    // [신규 기획] NPC를 통한 무기 진화 및 강화
+    evolveWeaponNPC(wId) {
+        const recipe = CRAFTING_RECIPES[wId];
+        if (!recipe) return;
+
+        const curLvl = this.player.weaponLevels[wId] || 0;
+        if (curLvl >= 5) {
+            this.showFloatingText("ALREADY AT MAX LEVEL!", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+
+        // 선행 무기 체크
+        if (recipe.reqWeapon) {
+            const reqLvl = this.player.weaponLevels[recipe.reqWeapon] || 0;
+            if (reqLvl < 1) {
+                this.showFloatingText("REQUIRED PRE-WEAPON IS MISSING!", this.player.x, this.player.y - 30, '#ff5e00');
+                return;
+            }
+        }
+
+        // 재료 잔액 재체크
+        for (let matKey in recipe.materials) {
+            const reqCount = recipe.materials[matKey];
+            const curCount = this.player.materials[matKey] || 0;
+            if (curCount < reqCount) {
+                this.showFloatingText("NOT ENOUGH MATERIALS!", this.player.x, this.player.y - 30, '#ff5e00');
+                Sound.play('hit');
+                return;
+            }
+        }
+
+        // 코인 체크
+        if ((this.player.coins || 0) < 20) {
+            this.showFloatingText("NOT ENOUGH COINS (NEED 20)!", this.player.x, this.player.y - 30, '#ff0055');
+            Sound.play('hit');
+            return;
+        }
+
+        // 재료 소모
+        for (let matKey in recipe.materials) {
+            this.player.materials[matKey] -= recipe.materials[matKey];
+        }
+
+        // 코인 소모
+        this.player.coins -= 20;
+
+        // 무기 부여/레벨 증가
+        if (curLvl === 0) {
+            this.player.weaponLevels[wId] = 1;
+            // 보유 무기 슬롯에 신형 ID 추가
+            if (!this.player.equippedWeapons.includes(wId)) {
+                this.player.equippedWeapons.push(wId);
+            }
+            this.showFloatingText(`[EVOLVED] ${recipe.name} 🧬`, this.player.x, this.player.y - 45, '#39ff14');
+        } else {
+            this.player.weaponLevels[wId]++;
+            this.showFloatingText(`[UPGRADED] ${recipe.name} Lv.${this.player.weaponLevels[wId]} 🔋`, this.player.x, this.player.y - 45, '#39ff14');
+        }
+
+        // 플레이어 장착 무기 자동 갱신
+        this.player.updateWeaponType();
+        Sound.play('powerup');
+
+        // UI 갱신
+        this.refreshNPCUI();
         this.updateHUD();
     }
 

@@ -1,0 +1,600 @@
+// --------------------------------------------------------------------------
+// 맵 데이터 및 메커니즘 엔진 (MapEngine)
+// --------------------------------------------------------------------------
+
+// 24x18 그리드 타일맵 프리셋 데이터 정의 (0: 바닥, 1: 격벽, 2: 외벽)
+const MAP_PRESETS = {
+    PRESET_SIZE_NORMAL: [
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222200000000000000002222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222"
+    ],
+    PRESET_SIZE_MIDDLE: [
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "220000000000000000000022",
+        "222222222220022222222222",
+        "222222222220022222222222"
+    ],
+    PRESET_SIZE_BOSS: [
+        "222222222220022222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222220022222222222"
+    ],
+    PRESET_LINE: [
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222",
+        "222222222222222222222222"
+    ],
+    PRESET_WINDOW: [
+        "222222222220022222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "000000111111111111000000",
+        "000000111111111111000000",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000111111111111000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222220022222222222"
+    ],
+    PRESET_U_SHAPE: [
+        "222222222220022222222222",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "000000111111111111111112",
+        "000000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "200000111111111111111112",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "200000000000000000000002",
+        "222222222220022222222222"
+    ],
+    PRESET_CROSS: [
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222000000000000222222",
+        "222222000000000000222222",
+        "000000000000000000000000",
+        "000000000000000000000000",
+        "222222000000000000222222",
+        "222222000000000000222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222",
+        "222222222220022222222222"
+    ]
+};
+
+// 방 레벨(층)에 따른 가변 맵 테마 정의
+const SECTOR_THEMES = {
+    cyberGrid: { // Sector 1: 1~9층 (시안/청록)
+        bgColor: '#05070c',
+        innerBgColor: '#090d16',
+        outerBorder: 'rgba(0, 240, 255, 0.15)',
+        innerBorder: 'rgba(0, 240, 255, 0.4)',
+        gridColor: 'rgba(0, 240, 255, 0.04)'
+    },
+    volcanicCore: { // Sector 2: 11~19층 (용암 오렌지 레드)
+        bgColor: '#100505',
+        innerBgColor: '#1d0a0a',
+        outerBorder: 'rgba(255, 51, 0, 0.2)',
+        innerBorder: 'rgba(255, 51, 0, 0.5)',
+        gridColor: 'rgba(255, 51, 0, 0.06)'
+    },
+    frozenVoid: { // Sector 3: 21~29층 (차가운 빙결 스카이블루)
+        bgColor: '#050a12',
+        innerBgColor: '#0a1322',
+        outerBorder: 'rgba(0, 191, 255, 0.18)',
+        innerBorder: 'rgba(0, 191, 255, 0.45)',
+        gridColor: 'rgba(0, 191, 255, 0.05)'
+    },
+    overgrownLab: { // Sector 4: 31~39층 (비비드 네온 그린)
+        bgColor: '#051008',
+        innerBgColor: '#0a1d10',
+        outerBorder: 'rgba(57, 255, 20, 0.18)',
+        innerBorder: 'rgba(57, 255, 20, 0.45)',
+        gridColor: 'rgba(57, 255, 20, 0.05)'
+    },
+    abyssalRift: { // Sector 5: 41~49층 (심연 마젠타 퍼절)
+        bgColor: '#0d0514',
+        innerBgColor: '#170a24',
+        outerBorder: 'rgba(176, 38, 255, 0.2)',
+        innerBorder: 'rgba(176, 38, 255, 0.5)',
+        gridColor: 'rgba(176, 38, 255, 0.06)'
+    },
+    singularityCore: { // Sector 6: 50층 이상 (태양 골든 옐로우)
+        bgColor: '#121005',
+        innerBgColor: '#201d0a',
+        outerBorder: 'rgba(255, 215, 0, 0.22)',
+        innerBorder: 'rgba(255, 215, 0, 0.52)',
+        gridColor: 'rgba(255, 215, 0, 0.06)'
+    },
+    voidMarket: { // 특수: 비밀방 (자홍/마젠타 암시장)
+        bgColor: '#14051a',
+        innerBgColor: '#22092c',
+        outerBorder: 'rgba(255, 0, 127, 0.25)',
+        innerBorder: 'rgba(255, 0, 127, 0.6)',
+        gridColor: 'rgba(255, 0, 127, 0.08)'
+    }
+};
+
+// 프리셋별 문(포털) 소환 정보 매핑
+const PORTAL_SPAWN_INFOS = {
+    PRESET_SIZE_NORMAL: {
+        top: { x: 1320 / 2, y: 3.5 * 50, gridX: 11, gridY: 3 },
+        bottom: { x: 1320 / 2, y: 14.5 * 50, gridX: 11, gridY: 14 },
+        left: { x: 4.5 * 55, y: 900 / 2, gridX: 4, gridY: 8 },
+        right: { x: 19.5 * 55, y: 900 / 2, gridX: 19, gridY: 8 }
+    },
+    PRESET_SIZE_MIDDLE: {
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left: { x: 2.5 * 55, y: 900 / 2, gridX: 2, gridY: 8 },
+        right: { x: 21.5 * 55, y: 900 / 2, gridX: 21, gridY: 8 }
+    },
+    PRESET_SIZE_BOSS: {
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_LINE: {
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_WINDOW: {
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+    },
+    PRESET_U_SHAPE: {
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 }
+    },
+    PRESET_CROSS: {
+        top: { x: 1320 / 2, y: 0.5 * 50, gridX: 11, gridY: 0 },
+        bottom: { x: 1320 / 2, y: 17.5 * 50, gridX: 11, gridY: 17 },
+        left: { x: 0.5 * 55, y: 900 / 2, gridX: 0, gridY: 8 },
+        right: { x: 23.5 * 55, y: 900 / 2, gridX: 23, gridY: 8 }
+    }
+};
+
+class MapEngine {
+    constructor(gameEngine) {
+        this.game = gameEngine; // GameEngine 코어 참조 바인딩
+    }
+
+    // 2차원 그리드 기반 맵 구조 생성 메서드
+    generateGridMap(presetType) {
+        this.game.obstacles = [];
+        this.game.currentMapPreset = presetType;
+        const preset = MAP_PRESETS[presetType] || MAP_PRESETS.PRESET_SIZE_BOSS;
+
+        this.game.grid = [];
+        for (let r = 0; r < 18; r++) {
+            this.game.grid[r] = [];
+            for (let c = 0; c < 24; c++) {
+                const tileVal = parseInt(preset[r][c]);
+                this.game.grid[r][c] = tileVal;
+
+                // 1(일반 격벽) 또는 2(외벽)인 경우 NeonTileWall 벽 오브젝트 배치
+                if (tileVal === 1 || tileVal === 2) {
+                    this.game.obstacles.push(new NeonTileWall(c, r, tileVal));
+                }
+            }
+        }
+    }
+
+    // 커스텀 맵 프리셋 런타임 적용 및 즉시 방 재생성 테스트 기능
+    loadCustomMapPreset(presetName) {
+        if (!MAP_PRESETS[presetName]) return;
+
+        // 1. 격자 맵 데이터 파싱 및 장애물 재생성
+        this.generateGridMap(presetName);
+
+        // 2. 플레이어 안전 위치 워프
+        this.game.player.x = this.game.mapWidth / 2;
+        this.game.player.y = this.game.mapHeight / 2;
+        this.game.lastEnteredPortalDir = 'center';
+
+        // 3. 기존 오브젝트 제거
+        this.game.bullets = [];
+        this.game.monsters = [];
+        this.game.particles = [];
+        this.game.potions = [];
+        this.game.coinsList = [];
+        this.game.secretWalls = [];
+        this.game.secretGlitchDevices = [];
+        this.game.rewardChests = [];
+        this.game.vendingMachines = [];
+        this.game.secretVendingMachines = [];
+        this.game.traps = [];
+
+        // 4. 프리셋 내에 정의된 포털 위치에만 문 생성
+        const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
+        this.game.portals = [];
+        validDirections.forEach(dir => {
+            this.game.portals.push(new RoomPortal(dir, this.game.getRandomScoreValue()));
+        });
+
+        // 포털 유형 지정 및 활성화 상태 리셋 (테스트용으로 몬스터 격퇴 전까지 잠금 처리)
+        let types = this.game.generatePortalTypes();
+        this.game.portals.forEach((p, idx) => {
+            p.portalType = types[idx % types.length];
+        });
+        this.game.rankPortals();
+        this.game.portals.forEach(p => p.active = false);
+
+        // 5. 몬스터 스폰 큐 재생성
+        const monsterCount = this.game.getRandomScoreValue();
+        this.game.queueSequentialSpawns(monsterCount);
+
+        this.game.updateHUD();
+        this.game.showFloatingText("CUSTOM MAP APPLIED! 🛠️", this.game.player.x, this.game.player.y - 40, '#39ff14');
+    }
+
+    // 2차원 그리드 정보를 분석하여 바닥 타일과 접하는 안전한 벽면에 비밀방 균열 벽을 스폰하는 메서드
+    spawnSecretWall() {
+        let spots = [];
+
+        // 1) Top (상단)
+        let topC = 7;
+        for (let r = 0; r < 18; r++) {
+            if (this.game.grid[r] && this.game.grid[r][topC] === 0) {
+                if (r > 0) {
+                    let wType = this.game.grid[r - 1] ? this.game.grid[r - 1][topC] : 2;
+                    spots.push({
+                        col: topC,
+                        row: r - 1,
+                        wallX: topC * 55 + 27.5,
+                        wallY: (r - 1) * 50 + 25,
+                        dir: 'top',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'top').length === 0) {
+            for (let c = 4; c < 20; c++) {
+                let found = false;
+                for (let r = 0; r < 18; r++) {
+                    if (this.game.grid[r] && this.game.grid[r][c] === 0) {
+                        if (r > 0) {
+                            let wType = this.game.grid[r - 1] ? this.game.grid[r - 1][c] : 2;
+                            spots.push({
+                                col: c,
+                                row: r - 1,
+                                wallX: c * 55 + 27.5,
+                                wallY: (r - 1) * 50 + 25,
+                                dir: 'top',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 2) Bottom (하단)
+        let botC = 16;
+        for (let r = 17; r >= 0; r--) {
+            if (this.game.grid[r] && this.game.grid[r][botC] === 0) {
+                if (r < 17) {
+                    let wType = this.game.grid[r + 1] ? this.game.grid[r + 1][botC] : 2;
+                    spots.push({
+                        col: botC,
+                        row: r + 1,
+                        wallX: botC * 55 + 27.5,
+                        wallY: (r + 1) * 50 + 25,
+                        dir: 'bottom',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'bottom').length === 0) {
+            for (let c = 20; c >= 4; c--) {
+                let found = false;
+                for (let r = 17; r >= 0; r--) {
+                    if (this.game.grid[r] && this.game.grid[r][c] === 0) {
+                        if (r < 17) {
+                            let wType = this.game.grid[r + 1] ? this.game.grid[r + 1][c] : 2;
+                            spots.push({
+                                col: c,
+                                row: r + 1,
+                                wallX: c * 55 + 27.5,
+                                wallY: (r + 1) * 50 + 25,
+                                dir: 'bottom',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 3) Left (좌측)
+        let leftR = 5;
+        for (let c = 0; c < 24; c++) {
+            if (this.game.grid[leftR] && this.game.grid[leftR][c] === 0) {
+                if (c > 0) {
+                    let wType = this.game.grid[leftR][c - 1] !== undefined ? this.game.grid[leftR][c - 1] : 2;
+                    spots.push({
+                        col: c - 1,
+                        row: leftR,
+                        wallX: (c - 1) * 55 + 27.5,
+                        wallY: leftR * 50 + 25,
+                        dir: 'left',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'left').length === 0) {
+            for (let r = 4; r < 14; r++) {
+                let found = false;
+                for (let c = 0; c < 24; c++) {
+                    if (this.game.grid[r] && this.game.grid[r][c] === 0) {
+                        if (c > 0) {
+                            let wType = this.game.grid[r][c - 1] !== undefined ? this.game.grid[r][c - 1] : 2;
+                            spots.push({
+                                col: c - 1,
+                                row: r,
+                                wallX: (c - 1) * 55 + 27.5,
+                                wallY: r * 50 + 25,
+                                dir: 'left',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        // 4) Right (우측)
+        let rightR = 12;
+        for (let c = 23; c >= 0; c--) {
+            if (this.game.grid[rightR] && this.game.grid[rightR][c] === 0) {
+                if (c < 23) {
+                    let wType = this.game.grid[rightR][c + 1] !== undefined ? this.game.grid[rightR][c + 1] : 2;
+                    spots.push({
+                        col: c + 1,
+                        row: rightR,
+                        wallX: (c + 1) * 55 + 27.5,
+                        wallY: rightR * 50 + 25,
+                        dir: 'right',
+                        type: wType
+                    });
+                }
+                break;
+            }
+        }
+        if (spots.filter(s => s.dir === 'right').length === 0) {
+            for (let r = 14; r >= 4; r--) {
+                let found = false;
+                for (let c = 23; c >= 0; c--) {
+                    if (this.game.grid[r] && this.game.grid[r][c] === 0) {
+                        if (c < 23) {
+                            let wType = this.game.grid[r][c + 1] !== undefined ? this.game.grid[r][c + 1] : 2;
+                            spots.push({
+                                col: c + 1,
+                                row: r,
+                                wallX: (c + 1) * 55 + 27.5,
+                                wallY: r * 50 + 25,
+                                dir: 'right',
+                                type: wType
+                            });
+                            found = true;
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        if (spots.length === 0) return;
+
+        // 후보 중 하나를 무작위 선택
+        let chosenSpot = spots[Math.floor(Math.random() * spots.length)];
+
+        // 겹치는 기존 격벽 장애물(NeonTileWall) 제거
+        this.game.obstacles = this.game.obstacles.filter(obs => !(obs.col === chosenSpot.col && obs.row === chosenSpot.row));
+
+        // 비밀 균열 외벽 생성 (새로운 생성자 스펙: col, row, dir, type)
+        this.game.secretWalls.push(new SecretWall(chosenSpot.col, chosenSpot.row, chosenSpot.dir, chosenSpot.type));
+    }
+
+    // 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
+    isTileWall(x, y) {
+        if (!this.game.grid) return false;
+        const c = Math.floor(x / 55); // 가로 타일 너비 55px 보정 (1320px / 24열 = 55px)
+        const r = Math.floor(y / 50); // (900px / 18행 = 50px)
+        if (c < 0 || c >= 24 || r < 0 || r >= 18) return true; // 맵 범위 밖은 벽으로 간주
+        const val = this.game.grid[r] ? this.game.grid[r][c] : undefined;
+        return val === 1 || val === 2;
+    }
+
+    // 그리드 맵의 빈 공간(0인 곳) 중에서 무작위 셀을 선택하여 픽셀 좌표를 반환하는 메서드
+    getSafeSpawnPosition(avoidPlayer = false, minDist = 200, maxAttempts = 100) {
+        let attempts = 0;
+        let safePositions = [];
+
+        // 1. 우선 빈 타일(0) 수집
+        for (let r = 0; r < 18; r++) {
+            for (let c = 0; c < 24; c++) {
+                if (this.game.grid && this.game.grid[r] && this.game.grid[r][c] === 0) {
+                    // 타일 중앙 픽셀 좌표 계산 (55px 가로 너비 보정)
+                    const x = c * 55 + 27.5;
+                    const y = r * 50 + 25;
+                    safePositions.push({ x, y, r, c });
+                }
+            }
+        }
+
+        if (safePositions.length === 0) {
+            // 빈 공간이 없다면 기본 맵 중앙 리턴
+            return { x: this.game.mapWidth / 2, y: this.game.mapHeight / 2 };
+        }
+
+        // 2. 플레이어를 피해야 하는 경우 필터링 시도
+        if (avoidPlayer && this.game.player) {
+            while (attempts < maxAttempts) {
+                const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
+                const dx = pos.x - this.game.player.x;
+                const dy = pos.y - this.game.player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist >= minDist) {
+                    return { x: pos.x, y: pos.y };
+                }
+                attempts++;
+            }
+        }
+
+        // 플레이어 피하기를 실패했거나 피할 필요가 없는 경우 랜덤 빈 타일 반환
+        const pos = safePositions[Math.floor(Math.random() * safePositions.length)];
+        return { x: pos.x, y: pos.y };
+    }
+
+    // 가변 맵 테마 정의 반환
+    getSectorTheme(roomNum, roomType) {
+        // 1. 101층 마젠타 에러 섹터 특별 연출
+        if (roomNum === 101) {
+            return {
+                bgColor: '#000000',
+                innerBgColor: '#050005',
+                outerBorder: `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`,
+                innerBorder: 'rgba(255, 0, 255, 0.5)',
+                gridColor: 'rgba(255, 0, 255, 0.015)'
+            };
+        }
+
+        // 2. 비밀방 (Void Market) 테마
+        if (roomType === 'secret_room') {
+            return SECTOR_THEMES.voidMarket;
+        }
+
+        // 3. 보스방 (10의 배수 층) 테마 - 붉은색 사이렌 경보 연출
+        if (roomNum > 0 && roomNum % 10 === 0) {
+            const blink = 0.3 + Math.sin(Date.now() * 0.008) * 0.2;
+            return {
+                bgColor: '#0a0303',
+                innerBgColor: '#140505',
+                outerBorder: `rgba(255, 0, 55, ${blink * 0.7})`,
+                innerBorder: `rgba(255, 0, 55, ${blink})`,
+                gridColor: 'rgba(255, 0, 55, 0.03)'
+            };
+        }
+
+        // 4. 일반 섹터 테마 분기
+        if (roomNum >= 1 && roomNum <= 9) {
+            return SECTOR_THEMES.cyberGrid;
+        } else if (roomNum >= 11 && roomNum <= 19) {
+            return SECTOR_THEMES.volcanicCore;
+        } else if (roomNum >= 21 && roomNum <= 29) {
+            return SECTOR_THEMES.frozenVoid;
+        } else if (roomNum >= 31 && roomNum <= 39) {
+            return SECTOR_THEMES.overgrownLab;
+        } else if (roomNum >= 41 && roomNum <= 49) {
+            return SECTOR_THEMES.abyssalRift;
+        } else {
+            // 50층 이상
+            return SECTOR_THEMES.singularityCore;
+        }
+    }
+}

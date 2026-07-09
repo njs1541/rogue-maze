@@ -636,10 +636,10 @@
                                 <button class="cheat-wpn-btn" data-wpn="void_destroyer" style="border-color: #b026ff; color: #b026ff;">🌌 보이드 디스트로이어</button>
                                 <button class="cheat-wpn-btn" data-wpn="tachyon_railgun" style="border-color: #00f0ff; color: #00f0ff;">⚡ 태키온 레일건</button>
                                 <button class="cheat-wpn-btn" data-wpn="dual">⚔️ 복합 (Dual)</button>
-                                <button class="cheat-wpn-btn" data-wpn="icefiredance" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 아앤파 댄스 (초월)</button>
+                                <button class="cheat-wpn-btn" data-wpn="supercritical_plasma_fusion" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 플라즈마 초융합 (초월)</button>
                             </div>
                             <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 아앤파 초월 조건 즉시 충전</button>
+                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 플라즈마 초융합 조건 즉시 충전</button>
                                 <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
                             </div>
 
@@ -1233,7 +1233,7 @@
                     <button id="crafting-close" class="cheat-close" aria-label="제작창 닫기">&times;</button>
                 </div>
                 <p style="color: #a0aec0; font-size: 0.85rem; margin-top: 5px; margin-bottom: 15px; text-align: center;">
-                    충전 스테이션 범위 내에서 몬스터를 물리치고 획득한 부품들을 조합하여 장비 및 무기들을 제작합니다.
+                    충전 스테이션 범위 내에서 획득한 부품들을 조합하여 조잡한 등급의 무기들을 제작합니다. (상위 하이테크 무기는 무기방의 상인을 통해 진화 가능합니다.)
                 </p>
 
                 <!-- 11종 부품 실시간 보유 현황판 -->
@@ -1243,8 +1243,8 @@
 
                 <!-- 제작법 선택 및 필터 탭 -->
                 <div class="ranking-filter-container" style="margin-bottom: 12px;">
-                    <button class="codex-filter-btn crafting-tab-btn active" data-tab="crude">🔨 조잡한 무기 (Crude)</button>
-                    <button class="codex-filter-btn crafting-tab-btn" data-tab="advanced">🧬 하이테크 무기 (Advanced)</button>
+                    <button class="codex-filter-btn crafting-tab-btn active" data-tab="crude" style="width: 100%;">🔨 조잡한 무기 (Crude)</button>
+                    <button class="codex-filter-btn crafting-tab-btn" data-tab="advanced" style="display: none;">🧬 하이테크 무기 (Advanced)</button>
                 </div>
 
                 <!-- 레시피 리스트 컨테이너 -->
@@ -1256,6 +1256,47 @@
 
                 <div style="text-align: center; margin-top: 15px;">
                     <button id="crafting-close-btn" class="neon-btn" style="border-color: #00f0ff; color: #00f0ff; font-size: 0.9rem; padding: 8px 30px; margin: 0;">닫기 (Return)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [신규] 무기 방 NPC 상인 거래 팝업창 -->
+        <div id="npc-overlay" class="overlay-panel hidden" style="z-index: 100;">
+            <div class="option-container" style="max-width: 720px; width: 95%; border-color: #39ff14; box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);">
+                <div class="ranking-modal-header" style="border-bottom: 1px solid rgba(57, 255, 20, 0.25); padding-bottom: 10px;">
+                    <h2 class="text-glow-green" style="font-size: 1.8rem; margin: 0; font-weight: 800; color: #39ff14;">🏪 CYBERNETIC NPC MERCHANT</h2>
+                    <button id="npc-close" class="cheat-close" aria-label="상점 닫기" style="color: #39ff14;">&times;</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 10px; padding: 0 5px;">
+                    <span style="color: #a0aec0; font-size: 0.85rem;">부품 거래 및 보유한 조잡한 무기를 하이테크 진화 무기로 업그레이드합니다.</span>
+                    <span id="npc-player-coins" style="font-weight: bold; color: #fff01f; font-size: 1rem; text-shadow: 0 0 6px rgba(255, 240, 31, 0.3);">📀 0</span>
+                </div>
+
+                <!-- 부품 실시간 보유 현황판 -->
+                <div id="npc-materials-display" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 15px; background: rgba(0, 0, 0, 0.4); padding: 8px; border-radius: 8px; border: 1px solid rgba(57, 255, 20, 0.15);">
+                    <!-- JS로 동적 렌더링 -->
+                </div>
+
+                <!-- 탭 메뉴 -->
+                <div class="ranking-filter-container" style="margin-bottom: 12px; display: flex; gap: 8px;">
+                    <button class="codex-filter-btn npc-tab-btn active" data-tab="trade" style="border-color: #39ff14; color: #39ff14; flex: 1;">🛒 부품 거래 (Trade)</button>
+                    <button class="codex-filter-btn npc-tab-btn" data-tab="evolve" style="border-color: #39ff14; color: #39ff14; flex: 1;">🧬 무기 진화 (Evolve)</button>
+                </div>
+
+                <!-- 콘텐츠 리스트 컨테이너 -->
+                <div class="ranking-list-container" style="min-height: 240px; max-height: 340px; overflow-y: auto; width: 100%; padding: 5px 10px;">
+                    <!-- 부품 거래 그리드 -->
+                    <div id="npc-trade-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+                        <!-- JS 동적 생성 -->
+                    </div>
+                    <!-- 무기 진화 그리드 -->
+                    <div id="npc-evolve-grid" class="hidden" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+                        <!-- JS 동적 생성 -->
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 15px;">
+                    <button id="npc-close-btn" class="neon-btn" style="border-color: #39ff14; color: #39ff14; font-size: 0.9rem; padding: 8px 30px; margin: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.15);">닫기 (Return)</button>
                 </div>
             </div>
         </div>
@@ -1303,6 +1344,7 @@
     <script src="js/pet.js"></script>
     <script src="js/player.js"></script>
     <script src="js/monster.js"></script>
+    <script src="js/map.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/walkCharacter.js"></script>
     <script src="js/main.js"></script>
