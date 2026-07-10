@@ -173,6 +173,8 @@ const CRAFTING_RECIPES = {
     }
 };
 
+window.CRAFTING_RECIPES = CRAFTING_RECIPES;
+
 const PASSIVE_ITEMS = {
     // 🟢 일반 등급 (Common) - 20종
     aluminum_gauntlets: {
@@ -601,6 +603,8 @@ const PASSIVE_ITEMS = {
     }
 };
 
+window.PASSIVE_ITEMS = PASSIVE_ITEMS;
+
 class Player {
     constructor(x, y) {
         this.x = x;
@@ -623,6 +627,21 @@ class Player {
         this.maxMp = 100;       // [수정] 결함 1 해결을 위한 최대 마력 선언 추가!
         this.magicType = 'explosion'; // [추가] 마법 기술 유형 ('explosion': 광역 폭발, 'timeWarp': 시간 왜곡)
         this.isStopped = false;       // [추가] 플레이어가 가만히 멈춰 서 있는지 감지하는 플래그
+        
+        // 기존 장비 11종 호환용 레벨 딕셔너리 (하위 호환성 및 특수 패시브 연동 유지)
+        this.equipLevels = {
+            armor: 0,
+            boots: 0,
+            gloves: 0,
+            helm: 0,
+            necklace: 0,
+            ring_mp: 0,
+            ring_hp: 0,
+            ring_speed: 0,
+            ring_aspd: 0,
+            ring_evd: 0,
+            goggles: 0
+        };
         
         // [신규 기획] 코인 재화 및 퍼펙트 클리어 판정 변수
         this.coins = 0;
@@ -857,6 +876,16 @@ class Player {
             else if (statKey === 'hpRegen') this.hpRegen = (this.hpRegen || 0) + val;
             else if (statKey === 'range') this.range += val;
         }
+
+        // [신규 기획] 특정 패시브 제작 시 기존 장비 시너지 효과 매핑 (하위 호환성 연동)
+        if (pId === 'dimension_goggles') this.equipLevels.goggles = 10;
+        else if (pId === 'speed_controller_coil') this.equipLevels.ring_speed = 10;
+        else if (pId === 'antigravity_thruster') this.equipLevels.boots = 10;
+        else if (pId === 'nanoregeneration_injector') this.equipLevels.ring_hp = 10;
+        else if (pId === 'evasion_accelerator') this.equipLevels.ring_evd = 10;
+        else if (pId === 'energy_recharger') this.equipLevels.ring_mp = 10;
+        else if (pId === 'overcharged_capacitor') this.equipLevels.helm = 10;
+        else if (pId === 'nano_shield_matrix') this.equipLevels.armor = 10;
     }
 
     loadBitesUpgrades() {

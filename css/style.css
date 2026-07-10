@@ -732,6 +732,9 @@ body {
     transform-style: preserve-3d;
     transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s ease;
     animation: cardReveal 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) both;
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .reward-card:nth-child(1) {
@@ -763,6 +766,8 @@ body {
     -webkit-backdrop-filter: blur(10px);
     z-index: 2;
     overflow: hidden;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
 }
 
 /* 카드 등급 딱지 */
