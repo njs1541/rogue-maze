@@ -76,6 +76,8 @@ class GameEngine {
         // [신규 기획] 포털 특화 보상 및 상점 관리 리스트
         this.currentRoomType = 'stat';
         this.rewardChests = [];
+        this.blueprintChests = [];
+        this.transmuteSelectedMats = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 연속 출현 제어를 위한 쿨다운 추적 변수 추가
@@ -611,6 +613,7 @@ class GameEngine {
         // [신규 기획] 보상 및 상점 리스트 리셋
         this.currentRoomType = 'stat';
         this.rewardChests = [];
+        this.blueprintChests = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 쿨다운 변수 리셋
@@ -1069,6 +1072,7 @@ class GameEngine {
         this.secretWalls = []; // [Phase 7 신규 구현] 방 이동 시 비밀 벽 청소
         this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 청소
         this.rewardChests = []; // [추가] 이전 방 상자들 삭제
+        this.blueprintChests = [];
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
         this.weaponMerchants = []; // [신규] 무기 상인 NPC 청소
@@ -3013,6 +3017,9 @@ class GameEngine {
                         bonusCoins = Math.floor(baseCoins * 0.3); // 30% 보너스
                     }
                     let totalGained = baseCoins + bonusCoins;
+                    if (this.player.craftedPassives && this.player.craftedPassives.includes('star_amplifier')) {
+                        totalGained = Math.ceil(totalGained * 1.2);
+                    }
                     // [수정] 방 클리어 코인은 안전한 바닥 타일에서 통통 떨어져 플레이어에게 우수수 자석 흡입되게 함
                     for (let k = 0; k < totalGained; k++) {
                         this.coinsList.push(new NeonCoin(spawnX, spawnY, 1));
@@ -3132,6 +3139,19 @@ class GameEngine {
                         }
                     }
 
+                    // [신규 기획] 설계도 상자(Blueprint Chest) 스폰 (35% 기본 확률 + 행운 비례 추가 확률)
+                    let bpChestChance = 0.35 + Math.min(0.25, (this.player.luk - 1.0) * 0.05);
+                    if (Math.random() < bpChestChance && this.roomNum > 1 && !this.inSecretRoom && this.roomNum !== 100 && this.roomNum !== 101) {
+                        let bpSpawnX = spawnX + (Math.random() * 80 - 40);
+                        let bpSpawnY = spawnY + 45;
+                        if (this.isTileWall(bpSpawnX, bpSpawnY)) {
+                            bpSpawnX = spawnX;
+                            bpSpawnY = spawnY;
+                        }
+                        this.blueprintChests.push(new BlueprintChest(bpSpawnX, bpSpawnY));
+                        this.showFloatingText("BLUEPRINT CHEST ARRIVED! 📦", bpSpawnX, bpSpawnY - 60, '#ffdf00');
+                    }
+
                     // [신규 기획] 상자/자판기 스폰 시 화려한 네온 글로우 파티클 분수 격발 (30개)
                     let spawnColor = this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : (this.currentRoomType === 'equipment' ? '#ff6c00' : '#ffdf00'));
                     for (let k = 0; k < 30; k++) {
@@ -3197,6 +3217,30 @@ class GameEngine {
 
                 // 상자 삭제
                 this.rewardChests.splice(i, 1);
+            }
+        }
+
+        // [신규 기획] 설계도 상자(Blueprint Chest) 물리 충돌 검사
+        for (let i = this.blueprintChests.length - 1; i >= 0; i--) {
+            let chest = this.blueprintChests[i];
+            if (!chest.active) continue;
+            let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
+            if (dist < this.player.radius + 18) {
+                chest.active = false;
+
+                // 금색 네온 파편 스파크 폭발 이펙트
+                for (let k = 0; k < 25; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 5 + 2;
+                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+                }
+                Sound.play('powerup');
+
+                // 설계도 선택창 활성화
+                this.triggerBlueprintRewardSelection();
+
+                // 상자 삭제
+                this.blueprintChests.splice(i, 1);
             }
         }
 
@@ -3429,6 +3473,10 @@ class GameEngine {
                 // [신규 기획] Health Ring 5레벨 돌파: 힐 포션 치유 효율 50% 버프 적용!
                 if (this.player.equipLevels.ring_hp >= 5) {
                     healAmount *= 1.5;
+                }
+
+                if (this.player.craftedPassives && this.player.craftedPassives.includes('nanobots_injector')) {
+                    healAmount *= 1.3;
                 }
 
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
@@ -4382,8 +4430,8 @@ class GameEngine {
             // [신규 추가] 회피 성공 시에도 피격처럼 무적 타이머 45프레임(약 0.75초) 가동
             this.player.invincibleTimer = 45;
 
-            // [신규 기획] Evasion Ring 5레벨 돌파: 회피 대성공 시 주변 적 1.5초간 기절 네온 섬광 작렬!
-            if (this.player.equipLevels.ring_evd >= 5) {
+            // [신규 기획] Evasion Ring 5레벨 돌파 혹은 evasion_thruster 패시브 보유 시: 회피 대성공 시 주변 적 1.5초간 기절 네온 섬광 작렬!
+            if (this.player.equipLevels.ring_evd >= 5 || (this.player.craftedPassives && this.player.craftedPassives.includes('evasion_thruster'))) {
                 this.showFloatingText("PHANTOM STUN FLASH!", this.player.x, this.player.y - 35, '#ff0055');
                 this.particles.push(new Particle(this.player.x, this.player.y, '#ff0055', 40, 0, 0, 20, 'explosionRing'));
                 for (let m of this.monsters) {
@@ -6003,6 +6051,91 @@ class GameEngine {
         }
     }
 
+    triggerBlueprintRewardSelection() {
+        let available = Object.keys(PASSIVE_ITEMS).filter(id => !this.player.acquiredBlueprints.includes(id));
+
+        if (available.length === 0) {
+            this.showFloatingText("모든 설계도를 이미 획득했습니다! 🎉", this.player.x, this.player.y - 30, '#ffdf00');
+            this.portals.forEach(p => p.active = true);
+            return;
+        }
+
+        // 일시 정지 활성화
+        this.isPaused = true;
+
+        const overlay = document.getElementById('blueprint-overlay');
+        const wrapper = document.getElementById('blueprint-cards-wrapper');
+        if (overlay && wrapper) {
+            overlay.classList.remove('hidden');
+            wrapper.innerHTML = '';
+
+            // LUK 비례 카드 선택지 수 계산: 기본 2개 + 행운 보정 (최대 4개)
+            let extraOptions = Math.floor(Math.min(2, (this.player.luk - 1.0) * 1.5));
+            let numOptions = Math.min(2 + extraOptions, available.length);
+
+            // 무작위 셔플 후 numOptions만큼 선택
+            let shuffled = [...available].sort(() => Math.random() - 0.5);
+            let selectedIds = shuffled.slice(0, numOptions);
+
+            const MATERIAL_NAMES = {
+                short_rod: '짧은 막대기',
+                long_rod: '긴 막대기',
+                metal_plate: '넓은 판',
+                blade: '칼날',
+                wire: '전선',
+                battery: '배터리',
+                broken_flamethrower: '고장난 화염방사기',
+                cryo_cooler: '과냉각기',
+                sensor_lens: '광학 렌즈',
+                nanite_jar: '나노머신 병',
+                hydraulic_cylinder: '유압 실린더'
+            };
+
+            selectedIds.forEach((id, idx) => {
+                const item = PASSIVE_ITEMS[id];
+                const card = document.createElement('div');
+                card.className = `reward-card card-${item.rarity.toLowerCase()}`;
+                
+                // 애니메이션 딜레이 설정
+                card.style.animationDelay = `${0.1 + idx * 0.15}s`;
+
+                card.innerHTML = `
+                    <div class="card-glow"></div>
+                    <div class="card-inner" style="background: rgba(18, 20, 36, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); padding: 20px 14px; box-shadow: 0 0 15px rgba(255, 223, 0, 0.05);">
+                        <span class="card-rarity ${item.rarity.toLowerCase()}">${item.rarity.toUpperCase()}</span>
+                        <div class="card-icon" style="font-size: 2.2rem; margin: 15px 0;">📦</div>
+                        <h3 class="card-title" style="font-size: 1.15rem; font-weight: 800; margin-bottom: 8px;">${item.name}</h3>
+                        <p class="card-desc" style="font-size: 0.82rem; line-height: 1.4; color: #cbd5e1; text-align: center; margin-bottom: 12px; height: 75px; overflow-y: auto;">${item.desc}</p>
+                        <div style="font-size: 0.72rem; color: #94a3b8; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 8px; width: 100%; text-align: center;">
+                            필요 재료:<br>
+                            ${Object.entries(item.materials).map(([mKey, mVal]) => `${MATERIAL_NAMES[mKey] || mKey} x${mVal}`).join(', ')}
+                        </div>
+                    </div>
+                `;
+
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    
+                    // 설계도 저장 및 로컬스토리지 동기화
+                    this.player.saveBlueprint(id);
+
+                    // 화면 종료 처리
+                    overlay.classList.add('hidden');
+                    this.isPaused = false;
+
+                    this.showFloatingText(`[${item.name}] 설계도 획득! 💾`, this.player.x, this.player.y - 30, '#ffdf00');
+                    Sound.play('powerup');
+
+                    // 문 개방
+                    this.portals.forEach(p => p.active = true);
+                    this.updateHUD();
+                };
+
+                wrapper.appendChild(card);
+            });
+        }
+    }
+
     // 몬스터 처치량 비례하여 등급 가중치 보정이 연동되는 랜덤 카드 데이터 3종 조각 생성
     generateRewardCardsData(monsterBonus, isFromHiddenChest = false) {
         // 기본 8대 캐릭터 스탯 보상 카드 풀
@@ -7391,6 +7524,7 @@ class GameEngine {
 
         // [신규 기획] 보상 상자 및 자판기 렌더링
         this.rewardChests.forEach(chest => chest.draw(this.ctx));
+        this.blueprintChests.forEach(chest => chest.draw(this.ctx));
         this.vendingMachines.forEach(vm => vm.draw(this.ctx));
 
         // [네온 암시장] 비밀 자판기 렌더링 (보라빛 차원 아우라)
@@ -9141,6 +9275,7 @@ class GameEngine {
             this.secretWalls = [];
             this.secretGlitchDevices = [];
             this.rewardChests = [];
+            this.blueprintChests = [];
             this.vendingMachines = [];
             this.secretVendingMachines = [];
             this.weaponMerchants = []; // [신규] 무기 상인 NPC 리셋
@@ -9535,11 +9670,12 @@ class GameEngine {
         if (craftingOverlay.classList.contains('hidden')) {
             // 열기
             craftingOverlay.classList.remove('hidden');
-            this.craftingActiveTab = 'crude';
+            this.craftingActiveTab = 'weapons';
+            this.transmuteSelectedMats = []; // 변환 대기 배열 초기화
 
             // 탭 선택 클래스 활성화 상태 연동
             document.querySelectorAll('.crafting-tab-btn').forEach(btn => {
-                if (btn.getAttribute('data-tab') === 'crude') btn.classList.add('active');
+                if (btn.getAttribute('data-tab') === 'weapons') btn.classList.add('active');
                 else btn.classList.remove('active');
             });
 
@@ -9585,78 +9721,221 @@ class GameEngine {
         }
         matDisplay.innerHTML = matsHtml;
 
-        // 2. 레시피 목록 렌더링
+        const currentTab = this.craftingActiveTab || 'weapons';
+
+        // 탭 가시성 처리
         const recipesGrid = document.getElementById('crafting-recipes-grid');
-        if (!recipesGrid) return;
+        const passivesGrid = document.getElementById('crafting-passives-grid');
+        const transmuteView = document.getElementById('crafting-transmute-view');
 
-        let recipesHtml = '';
-        const currentTab = this.craftingActiveTab || 'crude';
+        if (recipesGrid) recipesGrid.classList.add('hidden');
+        if (passivesGrid) passivesGrid.classList.add('hidden');
+        if (transmuteView) transmuteView.classList.add('hidden');
 
-        for (let wId in CRAFTING_RECIPES) {
-            const recipe = CRAFTING_RECIPES[wId];
-            if (recipe.type !== currentTab) continue;
+        // A. 무기 조합 탭 렌더링
+        if (currentTab === 'weapons') {
+            if (recipesGrid) {
+                recipesGrid.classList.remove('hidden');
+                let recipesHtml = '';
+                for (let wId in CRAFTING_RECIPES) {
+                    const recipe = CRAFTING_RECIPES[wId];
+                    if (recipe.type !== 'crude') continue; // 조잡한 무기만 제작소에서 직접 지원
 
-            const curLvl = this.player.weaponLevels[wId] || 0;
-            const isMax = curLvl >= 5;
+                    const curLvl = this.player.weaponLevels[wId] || 0;
+                    const isMax = curLvl >= 5;
 
-            // 선행 무기 조건 체크 (하이테크 무기 전용)
-            let isReqMet = true;
-            let reqText = '';
-            if (recipe.reqWeapon) {
-                const reqLvl = this.player.weaponLevels[recipe.reqWeapon] || 0;
-                const reqWpnName = CRAFTING_RECIPES[recipe.reqWeapon] ? CRAFTING_RECIPES[recipe.reqWeapon].name : recipe.reqWeapon;
-                if (reqLvl < 1) {
-                    isReqMet = false;
-                    reqText = `<div class="recipe-req-item unmet">⚠️ 필수 선행: ${reqWpnName} 보유 필요</div>`;
-                } else {
-                    reqText = `<div class="recipe-req-item met">✓ 필수 선행: ${reqWpnName} 보유 중</div>`;
+                    let isReqMet = true;
+                    let reqsHtml = '';
+
+                    for (let matKey in recipe.materials) {
+                        const reqCount = recipe.materials[matKey];
+                        const curCount = this.player.materials[matKey] || 0;
+                        const hasEnough = curCount >= reqCount;
+                        if (!hasEnough) {
+                            isReqMet = false;
+                        }
+                        const matName = materialNames[matKey] || matKey;
+                        reqsHtml += `
+                            <div class="recipe-req-item ${hasEnough ? 'met' : 'unmet'}">
+                                <span>${matName}</span>
+                                <span>${curCount} / ${reqCount}</span>
+                            </div>
+                        `;
+                    }
+
+                    // 최종 제작 가능 여부
+                    const canCraft = isReqMet && !isMax;
+                    const actionText = isMax ? 'MASTERED' : (curLvl > 0 ? `CRAFT (Lv.${curLvl} ➔ ${curLvl + 1})` : 'CRAFT (제작)');
+
+                    recipesHtml += `
+                        <div class="recipe-card" style="opacity: ${isMax ? 0.6 : 1.0};">
+                            <div>
+                                <div class="recipe-header">
+                                    <span class="recipe-title text-glow-blue">${recipe.name}</span>
+                                    <span class="recipe-level">${curLvl > 0 ? `Lv.${curLvl}` : '미보유'}</span>
+                                </div>
+                                <p class="recipe-desc">${recipe.desc}</p>
+                                <div class="recipe-reqs">
+                                    ${reqsHtml}
+                                </div>
+                            </div>
+                            <button class="craft-btn" ${canCraft ? '' : 'disabled'} onclick="window.gameEngine.craftWeapon('${wId}')">
+                                ${actionText}
+                            </button>
+                        </div>
+                    `;
                 }
+                recipesGrid.innerHTML = recipesHtml;
             }
+        }
+        // B. 패시브 제작 탭 렌더링
+        else if (currentTab === 'passives') {
+            if (passivesGrid) {
+                passivesGrid.classList.remove('hidden');
+                let passivesHtml = '';
+                
+                if (this.player.acquiredBlueprints.length === 0) {
+                    passivesHtml = `<div style="grid-column: span 2; text-align: center; color: #64748b; padding: 40px 0; font-size: 0.9rem;">획득한 패시브 설계도가 없습니다.<br><span style="font-size:0.75rem; color:#475569;">인게임 클리어 상자에서 설계도를 먼저 획득하십시오.</span></div>`;
+                } else {
+                    this.player.acquiredBlueprints.forEach(pId => {
+                        const item = PASSIVE_ITEMS[pId];
+                        if (!item) return;
 
-            // 부품 조건 매칭 검사
-            let isMatsMet = true;
-            let reqsHtml = reqText;
+                        const isCrafted = this.player.craftedPassives.includes(pId);
+                        let reqsHtml = '';
+                        let isMatsMet = true;
 
-            for (let matKey in recipe.materials) {
-                const reqCount = recipe.materials[matKey];
-                const curCount = this.player.materials[matKey] || 0;
-                const hasEnough = curCount >= reqCount;
-                if (!hasEnough) {
-                    isMatsMet = false;
+                        for (let matKey in item.materials) {
+                            const reqCount = item.materials[matKey];
+                            const curCount = this.player.materials[matKey] || 0;
+                            const hasEnough = curCount >= reqCount;
+                            if (!hasEnough) {
+                                isMatsMet = false;
+                            }
+                            const matName = materialNames[matKey] || matKey;
+                            reqsHtml += `
+                                <div class="recipe-req-item ${hasEnough ? 'met' : 'unmet'}" style="font-size: 0.72rem; padding: 2px 6px;">
+                                    <span>${matName}</span>
+                                    <span>${curCount} / ${reqCount}</span>
+                                </div>
+                            `;
+                        }
+
+                        const canCraft = isMatsMet && !isCrafted;
+                        const actionText = isCrafted ? 'EQUIPPED (장착 완료)' : 'CRAFT (제작)';
+                        const rarityColor = item.rarity === 'common' ? '#39ff14' : (item.rarity === 'rare' ? '#00f0ff' : '#ffdf00');
+
+                        passivesHtml += `
+                            <div class="recipe-card" style="opacity: ${isCrafted ? 0.65 : 1.0}; border-color: ${isCrafted ? rarityColor : 'rgba(255,255,255,0.08)'};">
+                                <div>
+                                    <div class="recipe-header">
+                                        <span class="recipe-title" style="color: ${rarityColor}; text-shadow: 0 0 8px ${rarityColor}55; font-size: 0.95rem; font-weight: 800;">${item.name}</span>
+                                        <span class="recipe-level" style="font-size: 0.7rem; color: ${rarityColor}; border-color: ${rarityColor}; padding: 1px 4px;">${item.rarity.toUpperCase()}</span>
+                                    </div>
+                                    <p class="recipe-desc" style="font-size: 0.78rem; margin: 4px 0 8px 0; min-height: 38px; color: #94a3b8; line-height: 1.35;">${item.desc}</p>
+                                    <div class="recipe-reqs" style="margin-top: 6px;">
+                                        ${reqsHtml}
+                                    </div>
+                                </div>
+                                <button class="craft-btn" ${canCraft ? '' : 'disabled'} style="${isCrafted ? `background: ${rarityColor}; color: #000; font-weight: bold; border: none;` : ''}" onclick="window.gameEngine.craftPassive('${pId}')">
+                                    ${actionText}
+                                </button>
+                            </div>
+                        `;
+                    });
                 }
-                const matName = materialNames[matKey] || matKey;
-                reqsHtml += `
-                    <div class="recipe-req-item ${hasEnough ? 'met' : 'unmet'}">
-                        <span>${matName}</span>
-                        <span>${curCount} / ${reqCount}</span>
+                passivesGrid.innerHTML = passivesHtml;
+            }
+        }
+        // C. 부품 변환기 탭 렌더링
+        else if (currentTab === 'transmute') {
+            if (transmuteView) {
+                transmuteView.classList.remove('hidden');
+                
+                // 투입 슬롯 3개 렌더링
+                let slotsHtml = '';
+                for (let i = 0; i < 3; i++) {
+                    const mat = this.transmuteSelectedMats[i];
+                    if (mat) {
+                        const displayName = materialNames[mat] || mat;
+                        slotsHtml += `
+                            <div class="transmute-slot filled" onclick="window.gameEngine.removeTransmuteMat(${i})" style="border: 2px solid #00f0ff; background: rgba(0,240,255,0.1); border-radius: 8px; width: 90px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; text-align: center; font-size: 0.75rem; color: #fff; box-shadow: 0 0 10px rgba(0,240,255,0.15); position:relative;">
+                                <span>${displayName}</span>
+                                <span style="font-size: 0.65rem; color: #ff5e00; margin-top: 4px;">[클릭해제]</span>
+                            </div>
+                        `;
+                    } else {
+                        slotsHtml += `
+                            <div class="transmute-slot empty" style="border: 2px dashed rgba(255,255,255,0.15); border-radius: 8px; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 1.8rem; font-weight: bold; user-select: none;">
+                                +
+                            </div>
+                        `;
+                    }
+                }
+
+                // 인벤토리 내 투입 가능한 부품 리스트 (보유량 > 0)
+                let inventoryHtml = '';
+                let hasAnyMat = false;
+                for (let key in this.player.materials) {
+                    let count = this.player.materials[key] || 0;
+                    // 대기실에 등록된 수량만큼 실시간 차감 반영하여 보여줌
+                    let insideCount = this.transmuteSelectedMats.filter(m => m === key).length;
+                    let availableCount = count - insideCount;
+
+                    if (availableCount > 0) {
+                        hasAnyMat = true;
+                        let displayName = materialNames[key] || key;
+                        inventoryHtml += `
+                            <button class="codex-filter-btn" style="font-size: 0.72rem; padding: 4px 8px; text-transform: none; border-color: rgba(255,255,255,0.1);" onclick="window.gameEngine.addTransmuteMat('${key}')">
+                                ${displayName} (${availableCount}) +
+                            </button>
+                        `;
+                    }
+                }
+                if (!hasAnyMat) {
+                    inventoryHtml = `<span style="font-size: 0.8rem; color: #475569;">투입할 수 있는 재료 부품이 없습니다.</span>`;
+                }
+
+                // 결과 부품 지정 셀렉트 박스 구축
+                let selectOptions = '';
+                for (let key in materialNames) {
+                    selectOptions += `<option value="${key}">${materialNames[key]}</option>`;
+                }
+
+                const canTransmute = this.transmuteSelectedMats.length === 3;
+
+                transmuteView.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <span style="color: #00f0ff; font-weight: bold; font-size: 0.95rem;">나노머신 입자 교환 변환기</span>
+                        <p style="font-size: 0.72rem; color: #94a3b8; margin: 4px 0 12px 0;">동일/상이한 재료 부품 3개를 투입하여 원하는 부품 1개로 합성 변환합니다 (3:1 교환).</p>
+                    </div>
+
+                    <!-- 투입 슬롯 그룹 -->
+                    <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 12px; width: 100%;">
+                        ${slotsHtml}
+                    </div>
+
+                    <!-- 투입 가능 인벤토리 목록 -->
+                    <div style="width: 100%; text-align: center; margin-bottom: 12px;">
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 6px;">[투입 가능한 인벤토리 부품 클릭]</span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-height: 85px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            ${inventoryHtml}
+                        </div>
+                    </div>
+
+                    <!-- 출력 부품 지정 및 변환 버튼 -->
+                    <div style="display: flex; align-items: center; gap: 12px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px; width: 100%; justify-content: center;">
+                        <span style="font-size: 0.8rem; color: #fff;">변환 결과 지정:</span>
+                        <select id="transmute-output-select" style="background: #0f172a; border: 1px solid #00f0ff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; outline: none; box-shadow: 0 0 8px rgba(0,240,255,0.15);">
+                            ${selectOptions}
+                        </select>
+                        <button class="craft-btn" ${canTransmute ? '' : 'disabled'} style="margin: 0; padding: 6px 20px; font-size: 0.82rem; height: auto;" onclick="window.gameEngine.executeTransmute()">
+                            변환 가동 (3 ➔ 1)
+                        </button>
                     </div>
                 `;
             }
-
-            // 최종 제작 가능 여부
-            const canCraft = isReqMet && isMatsMet && !isMax;
-            const actionText = isMax ? 'MASTERED' : (curLvl > 0 ? `CRAFT (Lv.${curLvl} ➔ ${curLvl + 1})` : 'CRAFT (제작)');
-
-            recipesHtml += `
-                <div class="recipe-card" style="opacity: ${isMax ? 0.6 : 1.0};">
-                    <div>
-                        <div class="recipe-header">
-                            <span class="recipe-title text-glow-blue">${recipe.name}</span>
-                            <span class="recipe-level">${curLvl > 0 ? `Lv.${curLvl}` : '미보유'}</span>
-                        </div>
-                        <p class="recipe-desc">${recipe.desc}</p>
-                        <div class="recipe-reqs">
-                            ${reqsHtml}
-                        </div>
-                    </div>
-                    <button class="craft-btn" ${canCraft ? '' : 'disabled'} onclick="window.gameEngine.craftWeapon('${wId}')">
-                        ${actionText}
-                    </button>
-                </div>
-            `;
         }
-
-        recipesGrid.innerHTML = recipesHtml;
     }
 
     // [신규 기획] 제작 실행
@@ -9712,6 +9991,107 @@ class GameEngine {
         // UI 갱신
         this.refreshCraftingUI();
         this.updateHUD();
+    }
+
+    craftPassive(pId) {
+        const item = PASSIVE_ITEMS[pId];
+        if (!item) return;
+
+        if (this.player.craftedPassives.includes(pId)) {
+            this.showFloatingText("ALREADY EQUIPPED!", this.player.x, this.player.y - 30, '#ffdf00');
+            return;
+        }
+
+        // 재료 잔액 체크
+        for (let matKey in item.materials) {
+            const reqCount = item.materials[matKey];
+            const curCount = this.player.materials[matKey] || 0;
+            if (curCount < reqCount) {
+                this.showFloatingText("NOT ENOUGH MATERIALS!", this.player.x, this.player.y - 30, '#ff5e00');
+                Sound.play('hit');
+                return;
+            }
+        }
+
+        // 재료 소모
+        for (let matKey in item.materials) {
+            this.player.materials[matKey] -= item.materials[matKey];
+        }
+
+        // 패시브 획득 등록 및 스탯 효과 실시간 반영
+        this.player.craftedPassives.push(pId);
+        if (typeof this.player.applyPassiveEffects === 'function') {
+            this.player.applyPassiveEffects(pId);
+        }
+
+        // 연출
+        const rarityColor = item.rarity === 'common' ? '#39ff14' : (item.rarity === 'rare' ? '#00f0ff' : '#ffdf00');
+        this.showFloatingText(`[CRAFTED] ${item.name} 🔮`, this.player.x, this.player.y - 45, rarityColor);
+        Sound.play('powerup');
+
+        // UI 갱신
+        this.refreshCraftingUI();
+        this.updateHUD();
+    }
+
+    addTransmuteMat(matKey) {
+        if (this.transmuteSelectedMats.length >= 3) {
+            this.showFloatingText("TRANSMUTER IS FULL! (MAX 3)", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+        
+        // 인벤토리 수량 검사
+        let count = this.player.materials[matKey] || 0;
+        let insideCount = this.transmuteSelectedMats.filter(m => m === matKey).length;
+        if (count - insideCount <= 0) {
+            this.showFloatingText("NO MORE OF THIS MATERIAL!", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+
+        this.transmuteSelectedMats.push(matKey);
+        Sound.play('coin');
+        this.refreshCraftingUI();
+    }
+
+    removeTransmuteMat(idx) {
+        if (idx >= 0 && idx < this.transmuteSelectedMats.length) {
+            this.transmuteSelectedMats.splice(idx, 1);
+            Sound.play('hit');
+            this.refreshCraftingUI();
+        }
+    }
+
+    executeTransmute() {
+        if (this.transmuteSelectedMats.length !== 3) {
+            this.showFloatingText("NEED EXACTLY 3 MATERIALS!", this.player.x, this.player.y - 30, '#ff5e00');
+            return;
+        }
+
+        const selectEl = document.getElementById('transmute-output-select');
+        const outputMat = selectEl ? selectEl.value : 'wire';
+
+        // 3개 재료 차감
+        this.transmuteSelectedMats.forEach(mat => {
+            this.player.materials[mat] = Math.max(0, (this.player.materials[mat] || 0) - 1);
+        });
+
+        // 1개 결과물 지급
+        this.player.materials[outputMat] = (this.player.materials[outputMat] || 0) + 1;
+
+        // 변환 완료 후 대기 배열 초기화
+        this.transmuteSelectedMats = [];
+
+        // 화려한 네온 변환 연출 (파티클 15개)
+        for (let k = 0; k < 15; k++) {
+            let pAngle = Math.random() * Math.PI * 2;
+            let pSpeed = Math.random() * 4 + 2;
+            this.particles.push(new Particle(this.player.x, this.player.y, '#00f0ff', 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+        }
+
+        this.showFloatingText("TRANSMUTATION SUCCESSFUL! 🧬", this.player.x, this.player.y - 45, '#00f0ff');
+        Sound.play('powerup');
+
+        this.refreshCraftingUI();
     }
 
     // [신규 기획] 무기 상인 NPC 메뉴 토글

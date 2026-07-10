@@ -40,64 +40,64 @@ const WEAPON_FUSIONS = [
 const CRAFTING_RECIPES = {
     // 1차 조잡한 무기군
     crude_sword: {
-        name: '조잡한 검',
+        name: '조잡한 진동검',
         type: 'crude',
-        desc: '짧은 막대기와 칼날을 결합한 급조 접근전용 검.',
-        materials: { short_rod: 1, blade: 1 }
+        desc: '짧은 막대기와 칼날, 배터리를 결합하여 진동 모듈을 활성화한 접근전용 검.',
+        materials: { short_rod: 1, blade: 1, battery: 1 }
     },
     crude_spear: {
-        name: '조잡한 창',
+        name: '조잡한 유압 랜스',
         type: 'crude',
-        desc: '긴 막대기에 칼날을 묶어 사거리를 늘린 창.',
-        materials: { long_rod: 1, blade: 1 }
-    },
-    crude_whip: {
-        name: '조잡한 채찍',
-        type: 'crude',
-        desc: '전선을 꼬아 채찍 형태로 만든 전술 타격 무기.',
-        materials: { wire: 2, short_rod: 1 }
-    },
-    crude_shock: {
-        name: '조잡한 전기 충격기',
-        type: 'crude',
-        desc: '배터리와 전선을 이은 초기 전기 방출기.',
-        materials: { battery: 1, wire: 1 }
-    },
-    crude_flamethrower: {
-        name: '조잡한 화염방사기',
-        type: 'crude',
-        desc: '고장난 화염방사기 부품에 배터리를 연결해 작동시킨 화기.',
-        materials: { broken_flamethrower: 1, battery: 1 }
-    },
-    crude_cryo: {
-        name: '조잡한 냉각총',
-        type: 'crude',
-        desc: '과냉각기를 배터리로 냉각 순환시키는 동결 유도총.',
-        materials: { cryo_cooler: 1, battery: 1 }
-    },
-    crude_thorns: {
-        name: '조잡한 가시갑옷',
-        type: 'crude',
-        desc: '넓은 판에 칼날을 촘촘히 꽂아 신체를 방어하는 가시 갑장.',
-        materials: { metal_plate: 2, blade: 1 }
+        desc: '긴 막대기와 칼날에 유압 실린더를 연결해 강력한 기계식 찌르기를 구사하는 창.',
+        materials: { long_rod: 1, blade: 1, hydraulic_cylinder: 1 }
     },
     crude_trap: {
-        name: '조잡한 덫',
+        name: '조잡한 홀로-디코이 지뢰',
         type: 'crude',
-        desc: '전선과 배터리를 엮어 지나가는 대상을 붙잡는 설치물.',
-        materials: { wire: 1, battery: 1, short_rod: 1 }
+        desc: '광학 렌즈와 전선, 배터리를 결합해 허상을 띄워 적을 기절시키는 지뢰.',
+        materials: { sensor_lens: 1, wire: 1, battery: 1 }
+    },
+    crude_thorns: {
+        name: '조잡한 나노 섀시',
+        type: 'crude',
+        desc: '나노머신 병과 넓은 판, 배터리를 장착해 신체를 보호하고 접촉한 적을 타격하는 나노 장벽.',
+        materials: { nanite_jar: 1, metal_plate: 2, battery: 1 }
+    },
+    crude_whip: {
+        name: '조잡한 플라즈마 채찍',
+        type: 'crude',
+        desc: '배터리, 전선, 유압 실린더를 엮어 채찍 끝단에 강한 전기 에너지를 흘리는 타격선.',
+        materials: { battery: 1, wire: 1, hydraulic_cylinder: 1 }
+    },
+    crude_shock: {
+        name: '조잡한 테슬라 코일',
+        type: 'crude',
+        desc: '이중 배터리와 전선 가닥을 엮어 방사형 전자기 원형 고리를 방출하는 전기 방출기.',
+        materials: { battery: 2, wire: 1 }
+    },
+    crude_flamethrower: {
+        name: '조잡한 버스터 캐논',
+        type: 'crude',
+        desc: '고장난 화염방사기 부품과 배터리, 나노머신 병을 개조해 주황빛 플라즈마 화염을 방출하는 지속 화기.',
+        materials: { broken_flamethrower: 1, battery: 1, nanite_jar: 1 }
+    },
+    crude_cryo: {
+        name: '조잡한 크라이오 건',
+        type: 'crude',
+        desc: '과냉각기와 배터리, 광학 렌즈를 결합해 관통하는 청록색 서리 결정을 사출하는 냉각총.',
+        materials: { cryo_cooler: 1, battery: 1, sensor_lens: 1 }
     },
     crude_scythe: {
-        name: '조잡한 낫',
+        name: '조잡한 중력 낫',
         type: 'crude',
-        desc: '긴 막대기와 칼날, 전선을 연결한 사이버네틱 낫.',
-        materials: { blade: 1, long_rod: 1, wire: 1 }
+        desc: '긴 막대기와 칼날, 광학 렌즈를 조립하여 휘두른 궤적에 소형 중력 흡인 잔상을 남기는 낫.',
+        materials: { long_rod: 1, blade: 1, sensor_lens: 1 }
     },
     crude_rail: {
-        name: '조잡한 레일건',
+        name: '조잡한 전자기 레일건',
         type: 'crude',
-        desc: '듀얼 배터리와 다중 전선 코일로 발사하는 조잡한 전자기 가속포.',
-        materials: { battery: 2, wire: 1 }
+        desc: '듀얼 배터리와 다중 전선 코일, 유압 실린더로 고속 관통 스파크 탄환을 발사하는 가속포.',
+        materials: { battery: 2, wire: 1, hydraulic_cylinder: 1 }
     },
 
     // 2차 진화형 하이테크 무기군
@@ -173,6 +173,434 @@ const CRAFTING_RECIPES = {
     }
 };
 
+const PASSIVE_ITEMS = {
+    // 🟢 일반 등급 (Common) - 20종
+    aluminum_gauntlets: {
+        id: 'aluminum_gauntlets',
+        name: '알루미늄 장갑',
+        desc: '공격력 +5, 방어력 -3 효과를 부여하는 기초 보조 장갑.',
+        rarity: 'common',
+        materials: { metal_plate: 2 }
+    },
+    elbow_spikes: {
+        id: 'elbow_spikes',
+        name: '팔꿈치 뿔',
+        desc: '공격속도 -10%, 근접 무기 공격력 +5 효과를 주는 기체 보정 뿔.',
+        rarity: 'common',
+        materials: { blade: 1, short_rod: 1 }
+    },
+    piston_thrusters: {
+        id: 'piston_thrusters',
+        name: '피스톤 부스터',
+        desc: '이동속도 +0.4, 최대 스태미나 -15 효과를 부여하는 고부하 추진기.',
+        rarity: 'common',
+        materials: { hydraulic_cylinder: 1, short_rod: 1 }
+    },
+    lead_capacitor: {
+        id: 'lead_capacitor',
+        name: '납 축전기',
+        desc: '최대 MP +20, 이동속도 -0.2 효과의 대용량 저효율 충전지.',
+        rarity: 'common',
+        materials: { battery: 1, metal_plate: 1 }
+    },
+    rusted_barb: {
+        id: 'rusted_barb',
+        name: '녹슨 가시',
+        desc: '회피율 -3%, 공격력 +3 효과를 입히는 뾰족한 가시 부착물.',
+        rarity: 'common',
+        materials: { blade: 1 }
+    },
+    hydraulic_assist: {
+        id: 'hydraulic_assist',
+        name: '유압 보조관',
+        desc: '최대 스태미나 +25, 방어력 -2 효과를 제공하는 동력 관절.',
+        rarity: 'common',
+        materials: { hydraulic_cylinder: 1, wire: 1 }
+    },
+    polishing_sandpaper: {
+        id: 'polishing_sandpaper',
+        name: '연마용 사포',
+        desc: '근접 무기 사거리 +15px, 공격력 -2 효과를 주는 절삭면 연마 장비.',
+        rarity: 'common',
+        materials: { short_rod: 1 }
+    },
+    light_glass_lens: {
+        id: 'light_glass_lens',
+        name: '경량 유리 렌즈',
+        desc: '투사체 속도 +15%, 최대 체력 -10 효과를 주는 시뮬레이션용 유리기.',
+        rarity: 'common',
+        materials: { sensor_lens: 1 }
+    },
+    calibration_resistor: {
+        id: 'calibration_resistor',
+        name: '보정용 저항기',
+        desc: '공격속도 +8%, 탄환 크기 -10% 효과의 흐름 제어 저항 부품.',
+        rarity: 'common',
+        materials: { wire: 2 }
+    },
+    backup_battery: {
+        id: 'backup_battery',
+        name: '백업 전지',
+        desc: '충전소 MP 충전 속도 +20%, 최대 MP -10 효과를 부여하는 보조 전지.',
+        rarity: 'common',
+        materials: { battery: 1, wire: 1 }
+    },
+    reinforced_fiber_plate: {
+        id: 'reinforced_fiber_plate',
+        name: '강화 섬유 플레이트',
+        desc: '방어력 +5, 이동속도 -0.3 효과의 고탄소 외장 합금판.',
+        rarity: 'common',
+        materials: { metal_plate: 2 }
+    },
+    stabilizing_counterweight: {
+        id: 'stabilizing_counterweight',
+        name: '안정화 무게추',
+        desc: '피격 넉백 저항 +30%, 회피율 -2% 효과의 밸런스 유지용 부착물.',
+        rarity: 'common',
+        materials: { metal_plate: 1, short_rod: 1 }
+    },
+    torque_converter: {
+        id: 'torque_converter',
+        name: '토크 컨버터',
+        desc: '대시 거리 +20%, 대시 쿨타임 +0.5초 효과의 유압식 토크 변환기.',
+        rarity: 'common',
+        materials: { hydraulic_cylinder: 1 }
+    },
+    corrosive_grease: {
+        id: 'corrosive_grease',
+        name: '부식성 그리스',
+        desc: '공격 시 몬스터 방어력 2 감소 (3초 유지), 내 공격력 -1 효과의 산성 기름.',
+        rarity: 'common',
+        materials: { battery: 1 }
+    },
+    unfocused_sensor: {
+        id: 'unfocused_sensor',
+        name: '비점 수신 센서',
+        desc: '시야 범위 +50px, 크리티컬 확률 -3% 효과의 광범위 흐림 감지기.',
+        rarity: 'common',
+        materials: { sensor_lens: 1, wire: 1 }
+    },
+    waste_heat_recycler: {
+        id: 'waste_heat_recycler',
+        name: '폐열 순환기',
+        desc: '마법 기술 쿨타임 -10%, 최대 체력 -5 효과의 방열 순환 파이프.',
+        rarity: 'common',
+        materials: { wire: 2 }
+    },
+    lead_glass_shield: {
+        id: 'lead_glass_shield',
+        name: '납유리 보호판',
+        desc: '원거리 투사체 피격 피해 -10%, 이동속도 -0.1 효과의 무거운 방호판.',
+        rarity: 'common',
+        materials: { metal_plate: 1, sensor_lens: 1 }
+    },
+    lucky_diode: {
+        id: 'lucky_diode',
+        name: '행운의 다이오드',
+        desc: '운(LUK) 스탯 +0.3, 공격속도 -5% 효과를 내는 양자 행운 칩.',
+        rarity: 'common',
+        materials: { wire: 1, battery: 1 }
+    },
+    overclocked_microchip: {
+        id: 'overclocked_microchip',
+        name: '오버클럭 칩',
+        desc: '공격력 +4, 공격속도 +5%, 피격 시 대미지 +10% 추가 효과의 한계 해제 칩.',
+        rarity: 'common',
+        materials: { battery: 1, wire: 2 }
+    },
+    copper_heatsink: {
+        id: 'copper_heatsink',
+        name: '구리 방열판',
+        desc: '화염 속성 공격 피격 대미지 -15%, MP 획득량 -5% 효과의 구리 핀.',
+        rarity: 'common',
+        materials: { metal_plate: 1, wire: 1 }
+    },
+
+    // 🔵 희귀 등급 (Rare) - 20종
+    shock_absorbent_pad: {
+        id: 'shock_absorbent_pad',
+        name: '충격 흡수 패드',
+        desc: '몬스터와의 직접 충돌 피해 -20% 효과를 내는 댐퍼 패드.',
+        rarity: 'rare',
+        materials: { metal_plate: 2, hydraulic_cylinder: 1 }
+    },
+    precision_trigger: {
+        id: 'precision_trigger',
+        name: '정밀 트리거',
+        desc: '플레이어가 멈춰 서 있는 동안 공격속도 +25% 효과를 부여합니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, wire: 2 }
+    },
+    phase_slip: {
+        id: 'phase_slip',
+        name: '위상 슬립',
+        desc: '대시 중 완전 무적 상태 부여 (대시 스태미나 소모량 +30%).',
+        rarity: 'rare',
+        materials: { battery: 1, wire: 2, sensor_lens: 1 }
+    },
+    static_charging_sole: {
+        id: 'static_charging_sole',
+        name: '정전기 충전 발판',
+        desc: '움직인 누적 거리에 비례하여 MP가 미세하게 수시 충전됩니다.',
+        rarity: 'rare',
+        materials: { wire: 3, battery: 1 }
+    },
+    fast_charge_adapter: {
+        id: 'fast_charge_adapter',
+        name: '급속 충전 어댑터',
+        desc: '충전소 충전 속도 +50% (충전소 활성화에 필요한 코인 비용 +25%).',
+        rarity: 'rare',
+        materials: { battery: 2, wire: 2 }
+    },
+    security_bypass_module: {
+        id: 'security_bypass_module',
+        name: '보안 락해제 모듈',
+        desc: '상자 개방 시 재화(코인)가 드롭될 확률이 +15% 증가합니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, wire: 2 }
+    },
+    arc_discharge_plug: {
+        id: 'arc_discharge_plug',
+        name: '연쇄 방전 플러그',
+        desc: '원거리 치명타 발생 시 인접한 적 1명에게 전기 스파크를 전이시킵니다.',
+        rarity: 'rare',
+        materials: { battery: 1, wire: 3 }
+    },
+    nanite_bandage: {
+        id: 'nanite_bandage',
+        name: '나노 붕대',
+        desc: '체력이 20% 이하일 때 초당 체력 회복 +1.0을 영구 활성화합니다.',
+        rarity: 'rare',
+        materials: { nanite_jar: 1, wire: 1 }
+    },
+    adrenaline_valve: {
+        id: 'adrenaline_valve',
+        name: '아드레날린 밸브',
+        desc: '적을 처치할 때마다 5초간 이동속도 +10% 효과 부여 (최대 3중첩).',
+        rarity: 'rare',
+        materials: { hydraulic_cylinder: 1, battery: 1 }
+    },
+    toxic_exhaust_valve: {
+        id: 'toxic_exhaust_valve',
+        name: '독성 배기 밸브',
+        desc: '피격 시 주변 넓은 영역에 독성 가스를 가시화하고 3초 도트 피해를 유발합니다.',
+        rarity: 'rare',
+        materials: { nanite_jar: 1, broken_flamethrower: 1 }
+    },
+    emergency_cell: {
+        id: 'emergency_cell',
+        name: '비상 에너지 셀',
+        desc: '사망 시 MP 100%를 즉시 차감하여 체력 1로 생존하고 무적 1초 부여 (회차당 1회).',
+        rarity: 'rare',
+        materials: { battery: 2, nanite_jar: 1 }
+    },
+    ballistic_calculator: {
+        id: 'ballistic_calculator',
+        name: '탄도 연산기',
+        desc: '벽에 튕겨 반사된 아군 투사체의 데미지가 +30% 추가 증가합니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, battery: 1, wire: 2 }
+    },
+    focused_bolt: {
+        id: 'focused_bolt',
+        name: '집속 볼트',
+        desc: '기본 탄환이 대상을 최대 1회까지 관통하게 됩니다.',
+        rarity: 'rare',
+        materials: { blade: 2, sensor_lens: 1 }
+    },
+    refractive_coating: {
+        id: 'refractive_coating',
+        name: '광학 굴절 코팅',
+        desc: '원거리 적이 아군을 조준하고 발포하는 반응 딜레이를 0.5초 늦춥니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 2 }
+    },
+    nanite_sediment: {
+        id: 'nanite_sediment',
+        name: '나노머신 침전액',
+        desc: '피격받지 않고 8초 경과 시 최대 체력의 15% 보호막을 서서히 복구합니다.',
+        rarity: 'rare',
+        materials: { nanite_jar: 1, metal_plate: 2 }
+    },
+    tactical_flashbulb: {
+        id: 'tactical_flashbulb',
+        name: '전술 섬광 장치',
+        desc: '대시 사용 시 시작 위치에 강한 섬광을 내뿜어 주변 적을 1초간 기절시킵니다 (쿨 8초).',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, battery: 1 }
+    },
+    harvester_firmware: {
+        id: 'harvester_firmware',
+        name: '수확기 펌웨어',
+        desc: '엘리트 몬스터를 박멸했을 때 무작위 일반 등급 부품 1개를 확정 드롭합니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, wire: 2 }
+    },
+    phase_shift_disk: {
+        id: 'phase_shift_disk',
+        name: '위상 변위 디스크',
+        desc: '완전 회피(EVD) 성공 시 3초 동안 공격 속도가 +30% 만큼 가속됩니다.',
+        rarity: 'rare',
+        materials: { battery: 1, sensor_lens: 1 }
+    },
+    auxiliary_drone: {
+        id: 'auxiliary_drone',
+        name: '보조 마이크로 드론',
+        desc: '15초마다 적의 투사체 하나를 대신 맞아 소멸시키는 방어 드론을 대동합니다.',
+        rarity: 'rare',
+        materials: { sensor_lens: 1, battery: 1, metal_plate: 1 }
+    },
+    smart_battery_pack: {
+        id: 'smart_battery_pack',
+        name: '스마트 배터리 팩',
+        desc: '마법 기술(MP 스킬) 격발 시 소모되는 MP 요구량 15% 감소.',
+        rarity: 'rare',
+        materials: { battery: 2, wire: 1 }
+    },
+
+    // 🔴 전설 등급 (Legendary) - 20종
+    ricochet_director: {
+        id: 'ricochet_director',
+        name: '리코셰 디렉터',
+        desc: '모든 투사체가 벽에 충돌 시 사라지지 않고 최대 2회 반사 튕김 처리됩니다.',
+        rarity: 'legendary',
+        materials: { sensor_lens: 2, hydraulic_cylinder: 1 }
+    },
+    splitter_chipset: {
+        id: 'splitter_chipset',
+        name: '스플리터 칩셋',
+        desc: '투사체가 몬스터 충돌 시 대미지와 탄속이 반감된 2개의 유도탄으로 분열합니다.',
+        rarity: 'legendary',
+        materials: { nanite_jar: 2, wire: 2 }
+    },
+    target_magnet: {
+        id: 'target_magnet',
+        name: '타겟 마그넷',
+        desc: '모든 투사체가 가장 가까운 적을 조준선 범위 방향으로 미세 유도 추적합니다.',
+        rarity: 'legendary',
+        materials: { sensor_lens: 2, battery: 1 }
+    },
+    gigawatt_coil: {
+        id: 'gigawatt_coil',
+        name: '기가와트 코일',
+        desc: '투사체 크기가 +60% 커지고 피해가 +40% 증가하지만 공격속도(ASPD)가 -15% 감소합니다.',
+        rarity: 'legendary',
+        materials: { battery: 2, hydraulic_cylinder: 1 }
+    },
+    magnetic_attractor: {
+        id: 'magnetic_attractor',
+        name: '자성 제어 장치',
+        desc: '주변 반경 200px 안의 코인과 부품 자원을 강하게 플레이어에게 흡입시킵니다.',
+        rarity: 'legendary',
+        materials: { battery: 2, wire: 2 }
+    },
+    quantum_phase_barrier: {
+        id: 'quantum_phase_barrier',
+        name: '양자 위상막',
+        desc: '25초마다 적의 데미지를 완전 무효화하고 적들을 밀치는 위상막을 활성화합니다.',
+        rarity: 'legendary',
+        materials: { nanite_jar: 2, metal_plate: 1 }
+    },
+    recycling_parser: {
+        id: 'recycling_parser',
+        name: '재활용 파서',
+        desc: '조합대에서 제작을 완료할 때마다 소모된 재료 중 무작위 1종을 30% 확률로 환급받습니다.',
+        rarity: 'legendary',
+        materials: { sensor_lens: 1, nanite_jar: 1 }
+    },
+    emergency_overdrive: {
+        id: 'emergency_overdrive',
+        name: '비상 오버드라이브',
+        desc: '체력이 30% 이하로 추락하면 대시 쿨타임이 초기화되며 이동 속도가 50% 폭증합니다.',
+        rarity: 'legendary',
+        materials: { hydraulic_cylinder: 2, battery: 1 }
+    },
+    overcharged_capacitor: {
+        id: 'overcharged_capacitor',
+        name: '과부하 축전기',
+        desc: 'MP가 완전히 충전되었을 때 기본 사격에 스파크 감전 전자기 탄환을 추가 발사합니다.',
+        rarity: 'legendary',
+        materials: { battery: 3, wire: 1 }
+    },
+    void_generator: {
+        id: 'void_generator',
+        name: '보이드 제너레이터',
+        desc: '적 사망 시 20% 확률로 적들을 중심부로 끌어당기는 소형 보이드 필드를 남깁니다.',
+        rarity: 'legendary',
+        materials: { nanite_jar: 2, wire: 1 }
+    },
+    thermal_backup_battery: {
+        id: 'thermal_backup_battery',
+        name: '써멀 배터리',
+        desc: 'MP 방전 시 10초간 공격 속도가 2배로 상승하지만 데미지가 30% 감량되는 과부하에 빠집니다.',
+        rarity: 'legendary',
+        materials: { battery: 2, cryo_cooler: 1 }
+    },
+    nanite_self_repair: {
+        id: 'nanite_self_repair',
+        name: '나노 리페어 프로토콜',
+        desc: '방 클리어 시마다 잃어버린 총 체력의 10%만큼을 서서히 지속 재생시킵니다.',
+        rarity: 'legendary',
+        materials: { nanite_jar: 2 }
+    },
+    decoy_hologram_generator: {
+        id: 'decoy_hologram_generator',
+        name: '위상 분신 제너레이터',
+        desc: '대시 시 대시 경로상에 적의 시선을 3초간 100% 뺏는 어그로 홀로그램을 투영합니다 (쿨 5초).',
+        rarity: 'legendary',
+        materials: { sensor_lens: 1, battery: 2 }
+    },
+    chaos_prism: {
+        id: 'chaos_prism',
+        name: '카오스 프리즘',
+        desc: '정면에 탄환 분산 프리즘 장벽 설치. 통과된 탄은 3갈래 분할되며 넉백 상실 및 발당 피해가 -30% 감소합니다.',
+        rarity: 'legendary',
+        materials: { sensor_lens: 2, metal_plate: 1 }
+    },
+    nebula_core_engine: {
+        id: 'nebula_core_engine',
+        name: '성운 엔진',
+        desc: '적 피격 시 5% 확률로 우주 성운 필드 스폰 (영역 내 아군 이속 +30%, 몬스터 공증 -30%).',
+        rarity: 'legendary',
+        materials: { cryo_cooler: 1, nanite_jar: 1, wire: 2 }
+    },
+    zero_absolute_loop: {
+        id: 'zero_absolute_loop',
+        name: '절대영도 동결 루프',
+        desc: '플레이어 보행 궤적에 적을 80% 감속시키고 5초 체류 시 빙결시키는 냉기 장판이 남습니다.',
+        rarity: 'legendary',
+        materials: { cryo_cooler: 2, hydraulic_cylinder: 1 }
+    },
+    nanite_swarm_shield: {
+        id: 'nanite_swarm_shield',
+        name: '나노머신 군집 쉴드',
+        desc: '최대 체력의 30% 보호막 획득. 배리어 활성 중 0.2초마다 주변 적에게 유도 칩 미사일을 사격합니다.',
+        rarity: 'legendary',
+        materials: { nanite_jar: 2, sensor_lens: 1 }
+    },
+    void_reaper: {
+        id: 'void_reaper',
+        name: '보이드 리퍼',
+        desc: '공격 시 1% 확률로 대상을 블랙홀 즉사시킵니다 (보스 제외. 즉사 시 대상 체력의 20% 광역 범위 충격파).',
+        rarity: 'legendary',
+        materials: { nanite_jar: 1, blade: 2, wire: 1 }
+    },
+    gravity_inversion_core: {
+        id: 'gravity_inversion_core',
+        name: '중력 반전 코어',
+        desc: '마법 기술 시전 시 방 전체의 적을 1.5초 에어본 무력화시키고 낙하 시 지진 피해를 입힙니다.',
+        rarity: 'legendary',
+        materials: { hydraulic_cylinder: 2, sensor_lens: 1 }
+    },
+    mobius_loop_coil: {
+        id: 'mobius_loop_coil',
+        name: '뫼비우스 루프 코일',
+        desc: '투사체가 최대 사거리에 도달 시 소멸하지 않고 돌아옵니다 (되돌아올 때도 관통 대미지 판정).',
+        rarity: 'legendary',
+        materials: { wire: 3, battery: 1, hydraulic_cylinder: 1 }
+    }
+};
+
 class Player {
     constructor(x, y) {
         this.x = x;
@@ -201,20 +629,10 @@ class Player {
         this.perfectClearFlag = true;
         this.lastHitTimer = 300; // 피격 무사고 프레임 트래킹 (기본 300프레임 = 5초 상태로 시작)
         
-        // [신규 기획] 장비 10종의 현재 레벨 저장 (기본 0레벨, 최대 10레벨 마스터)
-        this.equipLevels = {
-            armor: 0,
-            boots: 0,
-            gloves: 0,
-            helm: 0,
-            necklace: 0,
-            ring_mp: 0,
-            ring_hp: 0,
-            ring_speed: 0,
-            ring_aspd: 0,
-            ring_evd: 0,
-            goggles: 0
-        };
+        // [패시브 아이템 시스템] 영구 획득한 설계도 리스트 및 이번 회차 활성화된 패시브 리스트
+        this.acquiredBlueprints = [];
+        this.craftedPassives = [];
+        this.loadBlueprints();
 
         // [신규 기획] 부품 재료 11종 인벤토리 (기본 0개)
         this.materials = {
@@ -389,6 +807,56 @@ class Player {
         this.fusedController = false;
         this.armorShield = 0;
         this.loadBitesUpgrades();
+    }
+
+    loadBlueprints() {
+        try {
+            const raw = localStorage.getItem('rogue_maze_acquired_blueprints');
+            if (raw) {
+                this.acquiredBlueprints = JSON.parse(raw);
+                if (!Array.isArray(this.acquiredBlueprints)) {
+                    this.acquiredBlueprints = [];
+                }
+            } else {
+                this.acquiredBlueprints = [];
+            }
+        } catch (e) {
+            console.error('설계도 로드 실패:', e);
+            this.acquiredBlueprints = [];
+        }
+    }
+
+    saveBlueprint(id) {
+        if (!this.acquiredBlueprints.includes(id)) {
+            this.acquiredBlueprints.push(id);
+            try {
+                localStorage.setItem('rogue_maze_acquired_blueprints', JSON.stringify(this.acquiredBlueprints));
+            } catch (e) {
+                console.error('설계도 저장 실패:', e);
+            }
+        }
+    }
+
+    applyPassiveEffects(pId) {
+        const item = PASSIVE_ITEMS[pId];
+        if (!item || !item.stats) return;
+
+        for (let statKey in item.stats) {
+            const val = item.stats[statKey];
+            if (statKey === 'atk') this.atk += val;
+            else if (statKey === 'def') this.def += val;
+            else if (statKey === 'maxHp') {
+                this.maxHp += val;
+                this.hp += val;
+            }
+            else if (statKey === 'maxStamina') this.maxStamina += val;
+            else if (statKey === 'luk') this.luk += val;
+            else if (statKey === 'aspd') this.aspd += val;
+            else if (statKey === 'ms') this.ms += val;
+            else if (statKey === 'evd') this.evd += val;
+            else if (statKey === 'hpRegen') this.hpRegen = (this.hpRegen || 0) + val;
+            else if (statKey === 'range') this.range += val;
+        }
     }
 
     loadBitesUpgrades() {
@@ -1005,31 +1473,50 @@ class Player {
             ctx.save();
             ctx.translate(this.x, this.y);
             let angle = this.scytheAngle;
-            let radius = 110 + (this.range - 350) * 0.15; // 낫은 기본적으로 검보다 매우 김
+            
+            const wType = String(this.weaponType);
+            let isAdvanced = !wType.includes('crude') && wType !== 'energy_ball';
+            
+            let radius = (isAdvanced ? 180 : 110) + (this.range - 350) * 0.15;
 
             ctx.beginPath();
             let start = angle - 1.6;
             let end = angle + 1.6;
             ctx.arc(0, 0, radius, start, end);
             
-            ctx.strokeStyle = 'rgba(186, 85, 211, 0.8)'; // 자홍/연보라 네온
+            ctx.strokeStyle = isAdvanced ? 'rgba(139, 92, 246, 0.95)' : 'rgba(186, 85, 211, 0.7)'; // 진화: 보이드 딥퍼플, 조잡: 자홍/연보라 네온
             let scaleFactor = Math.sqrt(this.atk / 10);
-            ctx.lineWidth = 8 * (this.scytheTimer / 12) * scaleFactor;
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ba55d3';
+            ctx.lineWidth = (isAdvanced ? 12 : 6) * (this.scytheTimer / 12) * scaleFactor;
+            ctx.shadowBlur = isAdvanced ? 28 : 12;
+            ctx.shadowColor = isAdvanced ? '#8b5cf6' : '#ba55d3';
             ctx.stroke();
+
+            // 진화형 보이드 디스트로이어 전용 화이트 코어 아크 추가
+            if (isAdvanced) {
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, start, end);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3.0 * (this.scytheTimer / 12) * scaleFactor;
+                ctx.shadowBlur = 0;
+                ctx.stroke();
+            }
 
             // 낫 칼날 비주얼 데코
             ctx.save();
             ctx.rotate(angle + 1.2);
             ctx.beginPath();
+            
+            let bladeWidth = isAdvanced ? 25 : 15;
+            let bladeLength = isAdvanced ? 60 : 40;
+            let bladeBack = isAdvanced ? 15 : 10;
+            
             ctx.moveTo(radius, 0);
-            ctx.quadraticCurveTo(radius + 15, -25, radius - 10, -40);
-            ctx.quadraticCurveTo(radius + 5, -20, radius, 0);
+            ctx.quadraticCurveTo(radius + bladeWidth, -bladeLength / 2, radius - bladeBack, -bladeLength);
+            ctx.quadraticCurveTo(radius + 5, -bladeLength / 2, radius, 0);
             ctx.closePath();
             ctx.fillStyle = '#ffffff';
-            ctx.strokeStyle = '#ba55d3';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = isAdvanced ? '#8b5cf6' : '#ba55d3';
+            ctx.lineWidth = isAdvanced ? 3.0 : 1.5;
             ctx.fill();
             ctx.stroke();
             ctx.restore();
@@ -1043,30 +1530,95 @@ class Player {
             ctx.translate(this.x, this.y);
             ctx.rotate(this.railAngle);
 
+            const wType = String(this.weaponType);
+            let isAdvanced = !wType.includes('crude') && wType !== 'energy_ball';
+            let beamLength = this.range * 2;
+
             // 차징 중 (시간이 많이 남았을 때) vs 격발 순간 (타이머가 0 직전일 때)
             if (this.railChargeTimer > 3) {
-                // 차징 구체 시각화
-                let chargeRatio = (18 - this.railChargeTimer) / 18; // 18프레임 차징 기준
-                let size = 5 + chargeRatio * 12;
+                // 조준 가이드 선 출력 (기획 요구사항)
                 ctx.beginPath();
-                ctx.arc(this.radius + 10, 0, size, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
-                ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 1.5;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00f0ff';
+                ctx.moveTo(this.radius + 5, 0);
+                ctx.lineTo(beamLength, 0);
+                
+                if (isAdvanced) {
+                    // 진화형: 매우 선명한 적색/시안색 교차 점선
+                    ctx.setLineDash([8, 8]);
+                    ctx.strokeStyle = '#ff0055';
+                    ctx.lineWidth = 2.0;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#ff0055';
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(this.radius + 5, 0);
+                    ctx.lineTo(beamLength, 0);
+                    ctx.setLineDash([8, 8]);
+                    ctx.lineDashOffset = 8;
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                } else {
+                    // 조잡한 단계: 얇은 노란색 조준 가이드 선
+                    ctx.setLineDash([6, 6]);
+                    ctx.strokeStyle = 'rgba(255, 220, 0, 0.7)';
+                    ctx.lineWidth = 1.0;
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]); // 대시 리셋
+                ctx.shadowBlur = 0;
+
+                // 차징 에너지 구체 연출
+                let chargeRatio = (18 - this.railChargeTimer) / 18;
+                let size = isAdvanced ? (5 + chargeRatio * 16) : (3 + chargeRatio * 8);
+                ctx.beginPath();
+                ctx.arc(this.radius + 15, 0, size, 0, Math.PI * 2);
+                
+                if (isAdvanced) {
+                    ctx.fillStyle = 'rgba(0, 240, 255, 0.45)';
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.shadowColor = '#00f0ff';
+                    ctx.shadowBlur = 20;
+                } else {
+                    ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
+                    ctx.strokeStyle = '#ffc800';
+                    ctx.shadowColor = '#ffc800';
+                    ctx.shadowBlur = 8;
+                }
+                ctx.lineWidth = 2;
                 ctx.fill();
                 ctx.stroke();
             } else {
-                // 격발 순간 번개 스파크 라인 렌더링
+                // 격발 순간 번쩍임 번개/스파크 라인 렌더링
                 ctx.beginPath();
                 ctx.moveTo(this.radius, 0);
-                ctx.lineTo(this.radius + 30, 0);
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 6;
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = '#00f0ff';
-                ctx.stroke();
+                
+                if (isAdvanced) {
+                    // 태키온 레일건: 화면 전체를 종단하는 시안색 빔 격발 연출
+                    ctx.lineTo(beamLength, 0);
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 20;
+                    ctx.shadowBlur = 30;
+                    ctx.shadowColor = '#00f0ff';
+                    ctx.stroke();
+
+                    // 화이트 코어 빔 추가
+                    ctx.beginPath();
+                    ctx.moveTo(this.radius, 0);
+                    ctx.lineTo(beamLength, 0);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 4;
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                } else {
+                    // 조잡한 레일건: 얇은 파란색 스파크 광선 발사
+                    ctx.lineTo(beamLength, 0);
+                    ctx.strokeStyle = 'rgba(0, 100, 255, 0.9)';
+                    ctx.lineWidth = 3.5;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#0064ff';
+                    ctx.stroke();
+                }
             }
             ctx.restore();
         }

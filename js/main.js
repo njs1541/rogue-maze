@@ -82,19 +82,6 @@ const CODEX_DATA = {
         { name: "보이드 디스트로이어 (Void Destroyer)", icon: "🌌", rarity: "legendary", desc: "조잡한 낫에서 진화. 허공의 힘(보이드 차원)으로 시공간을 가르며 주변 모든 적을 소멸시킵니다." },
         { name: "태키온 레일건 (Tachyon Railgun)", icon: "⚡", rarity: "legendary", desc: "조잡한 레일건에서 진화. 타키온 가속 입자를 뿜어 사거리 무제한의 초음속 광선포를 연사합니다." }
     ],
-    equipment: [
-        { name: "방어 갑옷 (Armor)", icon: "🛡️", rarity: "common", desc: "최대 체력(HP)을 증가시킵니다. 5레벨 도발 필드, 10레벨 치명 피해 90% 면역 쉴드를 켭니다." },
-        { name: "신속의 부츠 (Boots)", icon: "🥾", rarity: "common", desc: "최대 스태미너를 증가시킵니다. 5레벨 달리기 시 무적 대시, 10레벨 대시 스택 추가 해금." },
-        { name: "공격의 장갑 (Gloves)", icon: "🧤", rarity: "common", desc: "공격 범위 및 사거리를 확장합니다. 5레벨 탄환 크기 확대, 10레벨 넉백 피해량 2배 적용." },
-        { name: "지혜의 투구 (Helm)", icon: "🪖", rarity: "common", desc: "최대 마력(MP)을 상승시킵니다. 5레벨 20% 마나 프리 시전, 10레벨 마나 완충 시 피해 25% 증폭." },
-        { name: "스폰서쉽 목걸이 (Necklace)", icon: "📿", rarity: "rare", desc: "매력(CHA) 스탯을 올려 스폰서 특별 보너스 획득률을 높이고, 10레벨 달성 시 방 소탕 완료 후 15% 확률로 📀 대박 보급이 낙하합니다." },
-        { name: "마력 반지 (Ring MP)", icon: "💍", rarity: "rare", desc: "초당 마력 자연 재생량을 올려줍니다. 5레벨 회피 시 마나 +5 획득, 10레벨 마나 자동 가속." },
-        { name: "생명 반지 (Ring HP)", icon: "💍", rarity: "rare", desc: "초당 체력 자연 재생량을 높여줍니다. 5레벨 피격 시 +10 보복 힐, 10레벨 무사고 5초 시 힐 3배." },
-        { name: "신속의 반지 (Ring Speed)", icon: "💍", rarity: "rare", desc: "캐릭터의 이동 속도를 올려줍니다. 5레벨 2초 질주 시 바람의 상처 아우라(+10% 힘)가 켜집니다." },
-        { name: "공속의 반지 (Ring ASPD)", icon: "💍", rarity: "rare", desc: "공격 속도를 상승시킵니다. 5레벨 치명타 시 이속 30% 증가, 10레벨 정지 시 극 공속 50% 가속." },
-        { name: "회피의 반지 (Ring EVD)", icon: "💍", rarity: "rare", desc: "회피율을 % 단위로 가산합니다. 5레벨 퍼펙트 회피 시 1초 무적, 10레벨 회피 한도 75% 돌파." },
-        { name: "차원 고글 (Goggles)", icon: "🥽", rarity: "epic", desc: "차원을 스캔하여 비밀 균열 벽의 위치를 감지합니다. 5레벨 시 비밀방 생성 확률 증가, 10레벨 시 1격 파괴가 가능해집니다." }
-    ],
     status: [
         { name: "공격 피해량 (ATK)", icon: "⚔️", rarity: "common", desc: "모든 일반 공격과 마법, 초월 기믹들의 기본 피해량 계수를 결정짓는 핵심 힘 스탯입니다." },
         { name: "공격 속도 (ASPD)", icon: "⚡", rarity: "common", desc: "탄환 사격 딜레이와 검 베기 속도를 끌어올려 단위 초당 누적 딜량을 극대화하는 지능 스탯입니다." },
@@ -411,24 +398,47 @@ function initNeonGameUISystem() {
         if (!grid) return;
         grid.innerHTML = ''; // 초기화
 
-        const list = CODEX_DATA[tabType] || [];
+        let list = [];
+        if (tabType === 'passives') {
+            list = Object.values(window.PASSIVE_ITEMS || {}).map(item => ({
+                name: item.name,
+                icon: "🔮",
+                rarity: item.rarity,
+                desc: item.desc
+            }));
+        } else {
+            list = CODEX_DATA[tabType] || [];
+        }
+
         list.forEach(card => {
             const cardEl = document.createElement('div');
-            cardEl.className = `reward-card ${card.rarity === 'legendary' ? 'card-legendary' : ''}`;
+            cardEl.className = `reward-card ${card.rarity === 'legendary' ? 'card-legendary' : (card.rarity === 'epic' ? 'card-epic' : (card.rarity === 'rare' ? 'card-rare' : ''))}`;
             
-            // 전설 등급인 경우 추가 글로우 텍스쳐 스타일 연출
             let glowStyle = '';
+            let borderStyle = '';
             if (card.rarity === 'legendary') {
                 glowStyle = 'background: radial-gradient(circle, rgba(176, 38, 255, 0.45) 0%, transparent 70%); border-color: #b026ff;';
+                borderStyle = 'border-color: #b026ff;';
+            } else if (card.rarity === 'epic') {
+                glowStyle = 'background: radial-gradient(circle, rgba(255, 108, 0, 0.35) 0%, transparent 70%); border-color: #ff6c00;';
+                borderStyle = 'border-color: #ff6c00;';
+            } else if (card.rarity === 'rare') {
+                glowStyle = 'background: radial-gradient(circle, rgba(0, 240, 255, 0.3) 0%, transparent 70%); border-color: #00f0ff;';
+                borderStyle = 'border-color: #00f0ff;';
+            } else {
+                glowStyle = 'background: radial-gradient(circle, rgba(57, 255, 20, 0.15) 0%, transparent 70%); border-color: #39ff14;';
+                borderStyle = 'border-color: #39ff14;';
             }
+
+            const rarityColor = card.rarity === 'common' ? '#39ff14' : (card.rarity === 'rare' ? '#00f0ff' : (card.rarity === 'epic' ? '#ff6c00' : '#b026ff'));
 
             cardEl.innerHTML = `
                 <div class="card-glow" style="${glowStyle}"></div>
-                <div class="card-inner" style="${card.rarity === 'legendary' ? 'border-color: #b026ff;' : ''}">
-                    <span class="card-rarity ${card.rarity}" style="${card.rarity === 'legendary' ? 'background: rgba(176, 38, 255, 0.2); border-color: #b026ff; color: #b026ff;' : ''}">${card.rarity.toUpperCase()}</span>
-                    <div class="card-icon" style="${card.rarity === 'legendary' ? 'color: #b026ff;' : ''}">${card.icon}</div>
-                    <h3 class="card-title">${card.name}</h3>
-                    <p class="card-desc" style="font-size: 0.85rem; line-height: 1.4; color: #a0aec0;">${card.desc}</p>
+                <div class="card-inner" style="${borderStyle}">
+                    <span class="card-rarity ${card.rarity}" style="background: rgba(255,255,255,0.05); border-color: ${rarityColor}; color: ${rarityColor};">${card.rarity.toUpperCase()}</span>
+                    <div class="card-icon" style="color: ${rarityColor};">${card.icon}</div>
+                    <h3 class="card-title" style="font-size: 1.0rem; font-weight: 800;">${card.name}</h3>
+                    <p class="card-desc" style="font-size: 0.76rem; line-height: 1.4; color: #a0aec0; height: 95px; overflow-y: auto;">${card.desc}</p>
                 </div>
             `;
             grid.appendChild(cardEl);

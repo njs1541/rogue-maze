@@ -1169,6 +1169,59 @@ class RewardChest {
     }
 }
 
+class BlueprintChest {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 30;
+        this.color = '#ffdf00'; // 영구 설계도 상자는 고귀한 네온 골드색
+        this.pulse = 0;
+        this.active = true;
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.pulse += 0.05;
+        let bounceY = Math.sin(this.pulse) * 5;
+        let scale = 1.0 + Math.sin(this.pulse) * 0.06;
+        ctx.translate(0, bounceY);
+        
+        // 외부 발광 글로우 사각형
+        ctx.beginPath();
+        ctx.rect(-this.width/2 * scale, -this.height/2 * scale, this.width * scale, this.height * scale);
+        ctx.fillStyle = 'rgba(255, 223, 0, 0.15)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3.0;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.stroke();
+
+        // 뚜껑선 드로잉
+        ctx.beginPath();
+        ctx.moveTo(-this.width/2 * scale, -this.height/8 * scale);
+        ctx.lineTo(this.width/2 * scale, -this.height/8 * scale);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // 중앙 설계도 문양 렌더링 (📜 모양을 상징하는 가로줄 데코)
+        ctx.beginPath();
+        ctx.moveTo(-6 * scale, 3 * scale);
+        ctx.lineTo(6 * scale, 3 * scale);
+        ctx.moveTo(-4 * scale, 7 * scale);
+        ctx.lineTo(4 * scale, 7 * scale);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
 // --------------------------------------------------------------------------
 // 6.7. 네온 코인 상점 자판기 클래스 (Vending Machine Shop)
 // --------------------------------------------------------------------------

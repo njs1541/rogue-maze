@@ -122,6 +122,17 @@
                 </div>
             </div>
 
+<!-- 설계도 상자 개방 시 나타나는 설계도 선택 카드 오버레이 (최대 4개 중 택 1) -->
+        <div id="blueprint-overlay" class="hidden">
+            <div class="reward-title-container">
+                <h2 id="blueprint-header" class="text-glow-yellow">📦 설계도 상자 개방 완료!</h2>
+                <p id="blueprint-hint" class="text-glow-blue">안드로이드 기체 개편 설계도 중 하나를 영구 획득하십시오. (최대 4개 중 1개 선택)</p>
+            </div>
+            <div class="card-container" id="blueprint-cards-wrapper">
+                <!-- 동적으로 카드 삽입 예정 -->
+            </div>
+        </div>
+
 <!-- 몬스터 소탕 후 나타나는 보상 카드 오버레이 (3택 1) -->
         <div id="reward-overlay" class="hidden">
             <div class="reward-title-container">
@@ -1001,7 +1012,7 @@
             <!-- 탭 필터 버튼 -->
             <div class="ranking-filter-container">
                 <button class="codex-filter-btn codex-tab-btn active" data-tab="weapon">⚔️ 무기 10종</button>
-                <button class="codex-filter-btn codex-tab-btn" data-tab="equipment">🛡️ 장비 10종</button>
+                <button class="codex-filter-btn codex-tab-btn" data-tab="passives">🛡️ 패시브 60종</button>
                 <button class="codex-filter-btn codex-tab-btn" data-tab="status">🔋 캐릭터 스탯</button>
             </div>
 
@@ -1242,15 +1253,25 @@
                 </div>
 
                 <!-- 제작법 선택 및 필터 탭 -->
-                <div class="ranking-filter-container" style="margin-bottom: 12px;">
-                    <button class="codex-filter-btn crafting-tab-btn active" data-tab="crude" style="width: 100%;">🔨 조잡한 무기 (Crude)</button>
-                    <button class="codex-filter-btn crafting-tab-btn" data-tab="advanced" style="display: none;">🧬 하이테크 무기 (Advanced)</button>
+                <div class="ranking-filter-container" style="margin-bottom: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                    <button class="codex-filter-btn crafting-tab-btn active" data-tab="weapons" id="crafting-tab-weapons" style="font-size: 0.8rem; padding: 6px 0;">🔨 무기 조합</button>
+                    <button class="codex-filter-btn crafting-tab-btn" data-tab="passives" id="crafting-tab-passives" style="font-size: 0.8rem; padding: 6px 0;">🔮 패시브 제작</button>
+                    <button class="codex-filter-btn crafting-tab-btn" data-tab="transmute" id="crafting-tab-transmute" style="font-size: 0.8rem; padding: 6px 0;">🧬 부품 변환</button>
                 </div>
 
                 <!-- 레시피 리스트 컨테이너 -->
                 <div class="ranking-list-container" style="min-height: 220px; max-height: 320px; overflow-y: auto; width: 100%; padding: 5px 10px;">
+                    <!-- 무기 조합 뷰 -->
                     <div id="crafting-recipes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
                         <!-- JS로 동적 레시피 렌더링 -->
+                    </div>
+                    <!-- 패시브 제작 뷰 (기본 숨김) -->
+                    <div id="crafting-passives-grid" class="hidden" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+                        <!-- JS로 동적 패시브 렌더링 -->
+                    </div>
+                    <!-- 부품 변환기 뷰 (기본 숨김) -->
+                    <div id="crafting-transmute-view" class="hidden" style="display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; padding: 10px 0;">
+                        <!-- JS로 동적 변환기 마크업 렌더링 -->
                     </div>
                 </div>
 

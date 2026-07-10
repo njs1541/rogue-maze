@@ -37,6 +37,34 @@ class Bullet {
         this.monsterBounceCount = 0; // 몬스터 튕긴 누적 횟수
         this.monsterBounceLimit = options.monsterBounceLimit || 0; // 최대 허용 몬스터 튕기기 횟수
         this.active = true; // [신규] 탄환 활성화 상태 (배열 훼손 방멸용 소멸 예약 플래그)
+
+        // [패시브 아이템 연동]
+        if (isPlayerBullet && window.gameEngine && window.gameEngine.player) {
+            const player = window.gameEngine.player;
+            const passives = player.craftedPassives || [];
+            
+            // 1. 도탄 관통 기어 (ricochet_director): 도탄 횟수 +1
+            if (passives.includes('ricochet_director')) {
+                this.bounceLimit += 1;
+            }
+            // 2. 유도 추적 기어 (homing_thruster): 모든 투사체 유도(homing)화
+            if (passives.includes('homing_thruster')) {
+                this.homing = true;
+            }
+            // 3. 자이언트 탄환 셸 (giant_bullet_shell): 투사체 크기 40% 증가
+            if (passives.includes('giant_bullet_shell')) {
+                this.radius *= 1.4;
+            }
+            // 4. 고압 충전 코일 (high_charge_coil): 관통 횟수 +1
+            if (passives.includes('high_charge_coil')) {
+                this.pierce += 1;
+            }
+            // 5. 나노 플라즈마 코팅 (plasma_coating): 30% 확률로 타격 시 스플래시 발생
+            if (passives.includes('plasma_coating') && !this.splash && Math.random() < 0.3) {
+                this.splash = 50; // 50px 반경 스플래시 부여
+            }
+        }
+
         this.hitMonsters = new Set(); // [최적화] 이미 타격한 몬스터 레퍼런스 저장 (중복 피격 방지)
         this.targetMonster = null;    // [최적화] 캐싱된 유도 대상 몬스터
 
