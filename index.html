@@ -205,10 +205,10 @@
                     <div class="res-row"><span>보유 중인 미사용 조각:</span><span id="res-unused-fragments" class="res-val text-glow-cyan">0</span></div>
                 </div>
 
-                <!-- 최종 획득 장비 현황 조회 영역 -->
+                <!-- 최종 획득 패시브 현황 조회 영역 -->
                 <h3 class="text-glow-purple"
                     style="font-size: 1.1rem; margin-top: 15px; margin-bottom: 8px; font-weight: 600; text-align: center;">
-                    🛡️ 최종 습득 장비 현황</h3>
+                    🔮 최종 습득 패시브 현황</h3>
                 <div id="result-equipments-grid" class="status-grid"
                     style="max-height: 140px; overflow-y: auto; margin-bottom: 20px; padding: 10px; background: rgba(0, 0, 0, 0.3); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
                     <!-- JS에서 동적 바인딩 -->
@@ -253,7 +253,7 @@
                 </div>
                 <p
                     style="color: #a0aec0; font-size: 0.85rem; margin-top: 2px; margin-bottom: 15px; text-align: center;">
-                    현재까지 습득한 무기, 보조 장비의 상세 레벨 및 현재 점수를 조회합니다. (일시정지 상태)
+                    현재까지 습득한 무기, 패시브 아이템의 상세 정보 및 현재 점수를 조회합니다. (일시정지 상태)
                 </p>
 
                 <!-- 현재 점수 표시 HUD 복사판 -->
@@ -279,7 +279,7 @@
 
                 <div class="ranking-list-container"
                     style="min-height: 260px; max-height: 360px; overflow-y: auto; width: 100%; padding: 10px;">
-                    <h3 class="text-glow-blue" style="font-size: 0.92rem; margin: 0 0 8px 0; text-align: left; font-weight: bold;">🛡️ 보유 무기 및 장비</h3>
+                    <h3 class="text-glow-blue" style="font-size: 0.92rem; margin: 0 0 8px 0; text-align: left; font-weight: bold;">🔮 보유 무기 및 패시브</h3>
                     <div id="status-equipments-grid" class="status-grid" style="margin-bottom: 20px;">
                         <!-- JS로 동적 생성 -->
                     </div>
@@ -539,7 +539,7 @@
                 <div class="cheat-tabs">
                     <button class="cheat-tab-btn active" data-tab="cheat-tab-stats">스탯 조절</button>
                     <button class="cheat-tab-btn" data-tab="cheat-tab-weapons">무기/투사체</button>
-                    <button class="cheat-tab-btn" data-tab="cheat-tab-equipments">장비 레벨</button>
+                    <button class="cheat-tab-btn" data-tab="cheat-tab-equipments">패시브 치트</button>
                     <button class="cheat-tab-btn" data-tab="cheat-tab-utils">치트 유틸</button>
                 </div>
 
@@ -725,75 +725,32 @@
                             style="margin-top: 15px; border-color: #b026ff; color: #b026ff;">투사체 스탯 적용</button>
                     </div>
 
-                    <!-- 탭 3: 장비 레벨 -->
+                    <!-- 탭 3: 패시브 치트 -->
                     <div id="cheat-tab-equipments" class="cheat-tab-content">
-                        <p class="cheat-tab-desc">각 장비의 레벨을 조절합니다. (5레벨 돌파 / 10레벨 초월 효과 즉시 연동)</p>
-                        <div class="cheat-equip-list">
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🛡️ 최대체력 갑옷 (Armor)</span> <span id="cheat-lbl-armor"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-armor" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
+                        <p class="cheat-tab-desc">패시브 설계도 및 인게임 부품 재료 관련 디버그 명령을 조작합니다.</p>
+                        <div class="cheat-equip-list" style="display: flex; flex-direction: column; gap: 15px; padding: 10px 0;">
+                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
+                                <span style="font-size: 0.85rem; color: #ffdf00; font-weight: bold;">🔮 설계도 해금 컨트롤</span>
+                                <div class="cheat-btn-pair" style="display: flex; gap: 10px;">
+                                    <button id="cheat-unlock-all-blueprints" class="cheat-action-btn" style="border-color: #ffdf00; color: #ffdf00; background: rgba(255,223,0,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">모든 설계도 잠금 해금</button>
+                                    <button id="cheat-reset-blueprints" class="cheat-action-btn" style="border-color: #ff0055; color: #ff0055; background: rgba(255,0,85,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">영구 설계도 전면 초기화</button>
+                                </div>
                             </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🥾 최대스테미너 신발 (Boots)</span> <span id="cheat-lbl-boots"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-boots" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
+                            
+                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
+                                <span style="font-size: 0.85rem; color: #39ff14; font-weight: bold;">🔧 조합대 재료 부품 조작</span>
+                                <div class="cheat-btn-pair" style="display: flex; gap: 10px;">
+                                    <button id="cheat-add-materials-20" class="cheat-action-btn" style="border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">모든 부품 20개씩 충전</button>
+                                    <button id="cheat-clear-materials" class="cheat-action-btn" style="border-color: #94a3b8; color: #94a3b8; background: rgba(255,255,255,0.04); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">인벤토리 부품 전량 삭제</button>
+                                </div>
                             </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🧤 공격범위 장갑 (Gloves)</span> <span id="cheat-lbl-gloves"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-gloves" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🪖 최대마력 투구 (Helm)</span> <span id="cheat-lbl-helm"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-helm" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>📿 행운 목걸이 (Necklace)</span> <span id="cheat-lbl-necklace"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-necklace" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 마력회복 반지 (Ring MP)</span> <span id="cheat-lbl-ring_mp"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_mp" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 체력회복 반지 (Ring HP)</span> <span id="cheat-lbl-ring_hp"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_hp" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 이동속도 반지 (Ring Speed)</span> <span
-                                        id="cheat-lbl-ring_speed" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_speed" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 공격속도 반지 (Ring ASPD)</span> <span
-                                        id="cheat-lbl-ring_aspd" class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_aspd" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>💍 회피증가 반지 (Ring EVD)</span> <span id="cheat-lbl-ring_evd"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-ring_evd" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
-                            </div>
-                            <div class="cheat-equip-item">
-                                <div class="equip-info"><span>🥽 차원 고글 (Goggles)</span> <span id="cheat-lbl-goggles"
-                                        class="equip-val">0</span></div>
-                                <input type="range" id="cheat-eq-goggles" class="cheat-range-slider" min="0" max="10"
-                                    step="1">
+
+                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
+                                <span style="font-size: 0.85rem; color: #00f0ff; font-weight: bold;">🧪 패시브 강제 장착 치트</span>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <select id="cheat-passive-select" style="background: #0f172a; border: 1px solid #00f0ff; color: #fff; padding: 6px; border-radius: 4px; font-size: 0.8rem; flex: 1.5; outline: none;"></select>
+                                    <button id="cheat-equip-passive-btn" class="cheat-action-btn" style="border-color: #00f0ff; color: #00f0ff; background: rgba(0,240,255,0.08); font-size: 0.8rem; padding: 6px; margin: 0; flex: 1; cursor: pointer;">장착 실행</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1273,6 +1230,17 @@
                     <div id="crafting-transmute-view" class="hidden" style="display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; padding: 10px 0;">
                         <!-- JS로 동적 변환기 마크업 렌더링 -->
                     </div>
+                </div>
+
+                <!-- [신규] 제작 시 슬롯 초과 분해 선택 패널 -->
+                <div id="crafting-replace-panel" class="hidden" style="margin-top: 15px; border-top: 1px dashed rgba(0, 240, 255, 0.25); padding-top: 15px; text-align: center;">
+                    <p style="color: #ff5e00; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px;">
+                        ⚠️ 무기 슬롯이 가득 찼습니다. 분해할 무기 하나를 선택해 주세요. (재료 30% 환급)
+                    </p>
+                    <div id="crafting-replace-slots" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
+                        <!-- JS로 분해할 무기 버튼들을 동적으로 생성 -->
+                    </div>
+                    <button class="neon-btn" onclick="document.getElementById('crafting-replace-panel').classList.add('hidden')" style="border-color: #ff0055; color: #ff0055; font-size: 0.75rem; padding: 4px 15px; margin: 0;">취소</button>
                 </div>
 
                 <div style="text-align: center; margin-top: 15px;">

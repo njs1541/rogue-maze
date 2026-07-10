@@ -104,6 +104,17 @@ class Particle {
             ctx.shadowBlur = 10;
             ctx.shadowColor = this.color;
             ctx.fill();
+        } else if (this.type === 'text') {
+            // [신규] 텍스트 파편 렌더링 (그림자 및 테두리 효과 가미)
+            ctx.font = "bold 13px 'Orbit', 'Inter', sans-serif";
+            ctx.fillStyle = this.color;
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = '#000000';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(this.text, this.x, this.y);
+            ctx.fillText(this.text, this.x, this.y);
         }
 
         ctx.restore();

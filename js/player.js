@@ -623,7 +623,7 @@ class Player {
         this.evd = 0.05;        // 민첩 (회피율 5%)
         this.def = 0;           // 방어력 (비율 대미지 감소)
         this.luk = 1.0;         // 운 (보상 가중 확률)
-        this.mp = 0;            // 마력 (특수기 충전율)
+        this.mp = 100;          // 마력 (특수기 충전율)
         this.maxMp = 100;       // [수정] 결함 1 해결을 위한 최대 마력 선언 추가!
         this.magicType = 'explosion'; // [추가] 마법 기술 유형 ('explosion': 광역 폭발, 'timeWarp': 시간 왜곡)
         this.isStopped = false;       // [추가] 플레이어가 가만히 멈춰 서 있는지 감지하는 플래그
@@ -781,6 +781,13 @@ class Player {
         
         // 무기 진화 해금 속성들 (기본적으로 비활성화 후 무기 중복 획득 시 테크트리에 따라 단계별 해금)
         this.weaponUnlocks = {
+            // 하위 호환성 및 기본 무기 연산용 키
+            sword: { wave: false },
+            whip: { range: false, haste: false, break: false, shock: false, multi: false },
+            spear: { range: false, tip: false, knockback: false, wall: false, multi: false },
+            ice: { shatter: false },
+
+            // 신규 기획 개별 무기군용 키
             crude_sword: { wave: false },
             plasma_saber: { wave: false },
             crude_whip: { range: false, haste: false, break: false, shock: false, multi: false },
@@ -974,7 +981,13 @@ class Player {
             });
             this.weaponType = activeRanged[0] || 'energy_ball';
         } else {
-            this.weaponType = 'energy_ball';
+            // [수정] 에너지볼이 실제로 장착되어 있을 때만 energy_ball 타입으로 설정
+            // 에너지볼이 장착 해제된 상태(근접 무기만 있는 경우)에서는 'none'으로 설정하여
+            // shootWeapon() 호출을 방지함
+            let hasEnergyBallEquipped = this.equippedWeapons.some(w => {
+                return w === 'gun' || w === 'energy_ball';
+            });
+            this.weaponType = hasEnergyBallEquipped ? 'energy_ball' : 'none';
         }
     }
 
