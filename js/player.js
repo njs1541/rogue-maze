@@ -1,4 +1,4 @@
-// --------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------
 // 4. 플레이어 클래스 (이등변 삼각형 조종 및 스탯)
 // --------------------------------------------------------------------------
 // 무기 시스템 데이터 선언 (새로운 무기나 융합 무기 추가 시 여기에 등록)
@@ -1247,17 +1247,101 @@ class Player {
             ctx.restore();
         }
 
-        // [W-01 가시 장막 필드 오라 비주얼 렌더링]
-        if (this.thornsFieldTimer > 0) {
+
+        // [W-07 議곗옟???섎끂 ????곸떆 怨듭쟾 3媛??↔컖 ?λ꼍 ?ㅻ씪 ?뚮뜑留?
+        let hasThorns = (this.equippedWeapons[0] === 'crude_thorns');
+        if (hasThorns) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            this.thornsOrbitAngle = (this.thornsOrbitAngle || 0) + 0.035;
+            let orbitRadius = 40;
+
+            for (let i = 0; i < 3; i++) {
+                let angle = this.thornsOrbitAngle + i * (Math.PI * 2 / 3);
+                let ox = Math.cos(angle) * orbitRadius;
+                let oy = Math.sin(angle) * orbitRadius;
+
+                ctx.save();
+                ctx.translate(ox, oy);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                let hexSize = 5;
+                for (let k = 0; k < 6; k++) {
+                    let ha = k * Math.PI / 3;
+                    ctx.lineTo(Math.cos(ha) * hexSize, Math.sin(ha) * hexSize);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(57, 255, 20, 0.25)';
+                ctx.strokeStyle = '#39ff14';
+                ctx.lineWidth = 1.2;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#39ff14';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        // [W-07 媛???λ쭑 ?꾨뱶 ?ㅻ씪 鍮꾩＜??- 以묐젰 ?쒓끝 ??옣]
+        if (this.thornsFieldTimer > 0 && this.equippedWeapons[0] === 'gravity_singularity_field') {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            let fieldRadius = 100;
+            let pulseScale = 1.0 + Math.sin(Date.now() * 0.007) * 0.08;
+            let currentRadius = fieldRadius * pulseScale;
+
+            // 寃⑹옄 臾대뒳 諛곌꼍
             ctx.save();
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 120, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(255, 0, 170, ${0.12 + Math.sin(Date.now() * 0.009) * 0.06})`;
-            ctx.fillStyle = 'rgba(255, 0, 170, 0.03)';
-            ctx.lineWidth = 2.0;
+            ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+            ctx.clip();
+            
+            ctx.strokeStyle = 'rgba(255, 0, 170, 0.1)';
+            ctx.lineWidth = 1.0;
+            let gridSize = 15 * pulseScale;
+            for (let gx = -currentRadius; gx <= currentRadius; gx += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(gx, -currentRadius);
+                ctx.lineTo(gx, currentRadius);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(-currentRadius, gx);
+                ctx.lineTo(currentRadius, gx);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // ?뚯슜?뚯씠 ?뚮몢由?沅ㅼ쟻??            ctx.strokeStyle = 'rgba(255, 0, 170, 0.45)';
             ctx.shadowBlur = 12;
             ctx.shadowColor = '#ff00aa';
+            ctx.lineWidth = 2.0;
+            this.vortexAngle = (this.vortexAngle || 0) + 0.05;
+            ctx.save();
+            ctx.rotate(this.vortexAngle);
+            ctx.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += 0.1) {
+                let spiralR = currentRadius * (1.0 - (a / (Math.PI * 12)));
+                ctx.lineTo(Math.cos(a) * spiralR, Math.sin(a) * spiralR);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // ?대? ?붿옄??湲濡쒖슦
+            ctx.beginPath();
+            ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(139, 92, 246, 0.06)';
             ctx.fill();
+
+            ctx.restore();
+        } else if (this.thornsFieldTimer > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 80, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 0, 170, 0.15)';
+            ctx.lineWidth = 1.0;
             ctx.stroke();
             ctx.restore();
         }
@@ -1401,29 +1485,44 @@ class Player {
                         ctx.stroke();
                     }
                 } else {
-                    // 검 베기 아크 드로잉
-                    ctx.beginPath();
-                    let start = angle - 1.2;
-                    let end = angle + 1.2;
-                    ctx.arc(0, 0, radius, start, end);
-                    
-                    ctx.strokeStyle = color;
+                    // [W-03 寃 踰좉린 沅ㅼ쟻 ?쒕줈??- 議곗옟??vs 吏꾪솕??
+                    let start = angle - 0.9;
+                    let end = angle + 0.9;
                     let scaleFactor = Math.sqrt(this.atk / 10);
-                    ctx.lineWidth = (isAdvanced ? 8 : 3.5) * (this.slashTimer / 10) * scaleFactor;
-                    ctx.shadowBlur = isAdvanced ? 22 : 5;
-                    ctx.shadowColor = shadowColor;
-                    ctx.stroke();
-
-                    // 진화형 플라즈마 세이버 전용 내부 화이트 코어 궤적 추가
+                    
                     if (isAdvanced) {
+                        // plasma_saber: 蹂대씪/?쒖븞 洹몃씪?곗씠???꾪겕
+                        let grad = ctx.createRadialGradient(0, 0, radius - 15, 0, 0, radius + 15);
+                        grad.addColorStop(0, 'rgba(139, 92, 246, 0.05)'); 
+                        grad.addColorStop(0.5, 'rgba(0, 240, 255, 0.85)'); 
+                        grad.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+                        
                         ctx.beginPath();
                         ctx.arc(0, 0, radius, start, end);
+                        ctx.strokeStyle = grad;
+                        ctx.lineWidth = 8.0 * (this.slashTimer / 12) * scaleFactor;
+                        ctx.shadowBlur = 18;
+                        ctx.shadowColor = '#00f0ff';
+                        ctx.stroke();
+
+                        // ?덈????곗깋 ?대? 肄붿뼱??                        ctx.beginPath();
+                        ctx.arc(0, 0, radius, start, end);
                         ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 2.0 * (this.slashTimer / 10) * scaleFactor;
+                        ctx.lineWidth = 2.0 * (this.slashTimer / 12) * scaleFactor;
                         ctx.shadowBlur = 0;
                         ctx.stroke();
                     } else {
-                        // 조잡한 검은 외곽에 살짝 엉성한 잔상 톱니라인 오버레이
+                        // crude_sword: 沅ㅼ쟻??吏꾨룞?섎뒗 ?몃????꾪겕
+                        let jitter = (Math.random() - 0.5) * 2.5;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, radius + jitter, start, end);
+                        ctx.strokeStyle = 'rgba(255, 223, 0, 0.8)';
+                        ctx.lineWidth = 3.5 * (this.slashTimer / 12) * scaleFactor;
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#ffdf00';
+                        ctx.stroke();
+
+                        // ?멸낸???됱꽦??二쇳솴/?몃옉 ?ㅻ쾭?덉씠 沅ㅼ쟻
                         ctx.beginPath();
                         ctx.arc(0, 0, radius + 3, start + 0.1, end - 0.1);
                         ctx.strokeStyle = 'rgba(235, 120, 20, 0.4)';
@@ -1572,8 +1671,7 @@ class Player {
             ctx.translate(this.x, this.y);
             ctx.rotate(this.railAngle);
 
-            const wType = String(this.weaponType);
-            let isAdvanced = !wType.includes('crude') && wType !== 'energy_ball';
+            let isAdvanced = (this.equippedWeapons[0] === 'tachyon_railgun');
             let beamLength = this.range * 2;
 
             // 차징 중 (시간이 많이 남았을 때) vs 격발 순간 (타이머가 0 직전일 때)
@@ -1621,15 +1719,30 @@ class Player {
                     ctx.strokeStyle = '#00f0ff';
                     ctx.shadowColor = '#00f0ff';
                     ctx.shadowBlur = 20;
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // 회전하는 서브 에너지 링 고리 데코
+                    ctx.save();
+                    ctx.translate(this.radius + 15, 0);
+                    ctx.rotate(Date.now() * 0.025);
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 1.0;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, size + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
                 } else {
                     ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
                     ctx.strokeStyle = '#ffc800';
                     ctx.shadowColor = '#ffc800';
                     ctx.shadowBlur = 8;
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
                 }
-                ctx.lineWidth = 2;
-                ctx.fill();
-                ctx.stroke();
             } else {
                 // 격발 순간 번쩍임 번개/스파크 라인 렌더링
                 ctx.beginPath();
@@ -1662,6 +1775,44 @@ class Player {
                     ctx.stroke();
                 }
             }
+            ctx.restore();
+        }
+
+        // [?좉퇋] 議곗옟???щ씪?댁삤 嫄?諛?議곗옟???덉씪嫄?李⑥? ??李⑥쭠 ?먰삎 寃뚯씠吏 ?곗텧
+        if ((this.equippedWeapons[0] === 'crude_cryo' || this.equippedWeapons[0] === 'crude_rail') && this.shootCooldown > 0 && this.cryoMaxCooldown) {
+            ctx.save();
+            ctx.beginPath();
+            let ratio = 1.0 - (this.shootCooldown / this.cryoMaxCooldown);
+            ctx.arc(this.x, this.y - 25, 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#00f0ff';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // [?좉퇋] ????숆껐 鍮??됯컖 ?덉씠? 鍮??먭퍡 10px 湲고쉷 異⑹”) ?곗텧
+        if (this.equippedWeapons[0] === 'cryo_freezer' && this.shootCooldown > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            let tx = this.x + Math.cos(this.angle) * 160;
+            let ty = this.y + Math.sin(this.angle) * 160;
+            ctx.lineTo(tx, ty);
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.75)';
+            ctx.lineWidth = 10.0;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00f0ff';
+            ctx.stroke();
+
+            // 諛깆깋 肄붿뼱 鍮?異붽?
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(tx, ty);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.2;
+            ctx.stroke();
             ctx.restore();
         }
 

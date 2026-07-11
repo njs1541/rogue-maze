@@ -1,4 +1,4 @@
-// --------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------
 // 2.5. 격자 기반 맵 타일 벽 클래스 (NeonTileWall)
 // --------------------------------------------------------------------------
 class NeonTileWall {
@@ -1486,12 +1486,19 @@ class NeonTrap {
     constructor(x, y, type, player) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'mine', 'laser_h' (가로 레이저), 'laser_v' (세로 레이저)
+        this.type = type; // 'mine', 'decoy', 'laser_h', 'laser_v'
         this.player = player;
-        this.radius = type === 'mine' ? 12 : 3;
+        this.radius = type === 'mine' ? 12 : (type === 'decoy' ? 6 : 3); // 디코이 크기 억제
         this.active = true;
         this.pulse = 0;
         
+        let wpnType = (player && player.equippedWeapons[0]) || '';
+        this.isAdvanced = (wpnType === 'proximity_cyber_mine');
+
+        // 근접 감응 폭발 타이머
+        this.proximityTriggered = false;
+        this.proximityTimer = 0;
+
         let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 800;
         let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 600;
 
@@ -1513,10 +1520,41 @@ class NeonTrap {
         this.pulse += 0.05;
 
         if (this.type === 'mine') {
-            // 몬스터 충돌 감지
+            if (this.isAdvanced) {
+                // 진화형: 근접 감응식 사이버 지뢰 (감지 범위 60px 억제)
+                if (!this.proximityTriggered) {
+                    for (let m of monsters) {
+                        if (m.hp > 0 && !m.dead) {
+                            let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                            if (dist < 60 + m.radius) { // 감지 범위 60px
+                                this.proximityTriggered = true;
+                                this.proximityTimer = 0;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    this.proximityTimer++;
+                    if (this.proximityTimer >= 12) { // 0.2초 지연 폭발
+                        this.triggerMine(game);
+                    }
+                }
+            } else {
+                // 조잡 지뢰 (실제로는 사용하지 않고 디코이만 사용하지만 예외 처리 방어 구현)
+                for (let m of monsters) {
+                    let dist = Math.hypot(m.x - this.x, m.y - this.y);
+                    if (dist < m.radius + this.radius) {
+                        this.triggerMine(game);
+                        break;
+                    }
+                }
+            }
+        } else if (this.type === 'decoy') {
+            // 조잡형: 홀로그램 허상 (어그로 도발은 몬스터 이동 시 적용)
+            // 몬스터가 디코이를 밟으면 폭발
             for (let m of monsters) {
                 let dist = Math.hypot(m.x - this.x, m.y - this.y);
-                if (dist < m.radius + this.radius) {
+                if (dist < m.radius + this.radius + 2) {
                     this.triggerMine(game);
                     break;
                 }
@@ -1542,41 +1580,57 @@ class NeonTrap {
     triggerMine(game) {
         this.active = false;
         let trapLvl = this.player.weaponLevels.trap || 1;
-        let splashRadius = 50 + trapLvl * 10; // 1레벨: 60px ~ 5레벨: 100px
-        let damage = this.player.atk * 1.5 * (1 + (trapLvl - 1) * 0.15); // 레벨당 15% 대미지 증가
-        let shockDuration = 48 + trapLvl * 12; // 1레벨: 60프레임 (1.0초) ~ 5레벨: 108프레임 (1.8초)
+        let isDecoy = (this.type === 'decoy');
+
+        // 범위 억제: 디코이 60px, 진화지뢰 60px
+        let splashRadius = isDecoy ? 60 : 60;
+        let baseDmg = this.player.atk * (isDecoy ? 0.8 : 1.2);
+        let damage = baseDmg * (1 + (trapLvl - 1) * 0.15); // 레벨 스케일링
+        // 기절 시간: 디코이 1.0초(60프레임), 진화지뢰 1.5초(90프레임)
+        let shockDuration = isDecoy ? 60 : 90;
         
-        game.showFloatingText("MINE DETONATED! 💥", this.x, this.y - 25, '#ffdf00');
-        game.shakeScreen(15, 5);
+        let trapName = isDecoy ? "DECOY DETONATED! 🤖" : "CYBER-MINE DETONATED! 💥";
+        let glowColor = isDecoy ? '#ffdf00' : '#00f0ff';
+        game.showFloatingText(trapName, this.x, this.y - 25, glowColor);
+        game.shakeScreen(12, isDecoy ? 3 : 5);
         Sound.play('explosion');
         
-        // 폭발 파티클
-        game.particles.push(new Particle(this.x, this.y, '#ffdf00', splashRadius, 0, 0, 30, 'explosionRing'));
-        for (let k = 0; k < 15; k++) {
-            let angle = Math.random() * Math.PI * 2;
-            let speed = Math.random() * 4 + 2;
-            game.particles.push(new Particle(this.x, this.y, '#ffdf00', 3, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
+        // 폭발 파티클 (디코이는 노란색, 지뢰는 청색)
+                // [鍮꾩＜??怨좊룄?? ?꾩옄湲???컻 湲濡쒖슦 諛??ㅽ뙆??寃⑸컻
+        game.particles.push(new Particle(this.x, this.y, glowColor, splashRadius, 0, 0, 20, 'explosionRing'));
+        if (!isDecoy) {
+            game.particles.push(new Particle(this.x, this.y, '#ffffff', splashRadius * 0.75, 0, 0, 15, 'explosionRing'));
+            for (let k = 0; k < 20; k++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 5 + 3;
+                game.particles.push(new Particle(this.x, this.y, glowColor, 1.8, Math.cos(angle) * speed, Math.sin(angle) * speed, 25, 'spark'));
+            }
+        } else {
+            for (let k = 0; k < 12; k++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 4 + 2;
+                game.particles.push(new Particle(this.x, this.y, glowColor, 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 20, 'spark'));
+            }
         }
 
         // 범위 내의 모든 적 기절 대폭발
         for (let m of game.monsters) {
             let dist = Math.hypot(m.x - this.x, m.y - this.y);
             if (dist < splashRadius + m.radius) {
-                m.statusEffects.shock = shockDuration; // [수정] 레벨별 기절 시간
+                m.statusEffects.shock = Math.max(m.statusEffects.shock || 0, shockDuration);
                 let finalDmg = damage;
                 if (m.statusEffects.vulnerability > 0) finalDmg *= 1.25;
                 m.hp -= finalDmg;
                 m.flashTimer = 8;
                 
-                // [버그 수정] 지뢰 폭발 피해로 사망 시 사망 처리 정산 진행
                 if (m.hp <= 0) {
                     game.killMonster(m);
                 }
                 
-                // 강력 넉백
+                // 넉백
                 let pushAngle = Math.atan2(m.y - this.y, m.x - this.x);
-                m.knockbackX += Math.cos(pushAngle) * 5;
-                m.knockbackY += Math.sin(pushAngle) * 5;
+                m.knockbackX += Math.cos(pushAngle) * 4;
+                m.knockbackY += Math.sin(pushAngle) * 4;
             }
         }
     }
@@ -1608,22 +1662,72 @@ class NeonTrap {
             ctx.translate(this.x, this.y);
             let scale = 1.0 + Math.sin(this.pulse) * 0.1;
             
-            // 노란색 테두리 서클
+            if (this.isAdvanced) {
+                // 진화형: 세련된 청색 네온 지뢰
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 1.8;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#00f0ff';
+                ctx.fill();
+                ctx.stroke();
+
+                // 빨간색/청색 뇌관 점멸 (감지 시 빨간색 격렬 점멸)
+                ctx.beginPath();
+                ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                if (this.proximityTriggered) {
+                    ctx.fillStyle = (Math.floor(Date.now() / 40) % 2 === 0) ? '#ff0055' : 'rgba(255, 0, 85, 0.1)';
+                } else {
+                    ctx.fillStyle = '#00f0ff';
+                }
+                ctx.fill();
+            } else {
+                // 조잡 지뢰 (노란색)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 223, 0, 0.2)';
+                ctx.strokeStyle = '#ffdf00';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#ffdf00';
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff0055';
+                ctx.fill();
+            }
+        } else if (this.type === 'decoy') {
+            // 조잡형: 플레이어 30% 크기 반투명 노란색 홀로그램 허상
+            ctx.translate(this.x, this.y);
+            
+            // 약간 지글거리는 노이즈 연출
+            let scaleX = 0.3 * (1.0 + (Math.random() - 0.5) * 0.08);
+            let scaleY = 0.3;
+            ctx.scale(scaleX, scaleY);
+            if (this.player) {
+                ctx.rotate(this.player.angle || 0);
+            }
+            
             ctx.beginPath();
-            ctx.arc(0, 0, this.radius * scale, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 223, 0, 0.2)';
+            let r = 15; // 플레이어 radius 가정
+            ctx.moveTo(r, 0);
+            ctx.lineTo(-r * 0.8, -r * 0.7);
+            ctx.lineTo(-r * 0.5, 0);
+            ctx.lineTo(-r * 0.8, r * 0.7);
+            ctx.closePath();
+
+            ctx.fillStyle = 'rgba(255, 223, 0, 0.18)'; // 반투명 노란색
             ctx.strokeStyle = '#ffdf00';
-            ctx.lineWidth = 1.8;
-            ctx.shadowBlur = 12;
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 10;
             ctx.shadowColor = '#ffdf00';
+            ctx.setLineDash([3, 5]); // 점선 효과 홀로그램 묘사
             ctx.fill();
             ctx.stroke();
-
-            // 지뢰의 빨간 뇌관 점
-            ctx.beginPath();
-            ctx.arc(0, 0, 3, 0, Math.PI * 2);
-            ctx.fillStyle = '#ff0055';
-            ctx.fill();
         } else {
             // 레이저 트립와이어
             ctx.beginPath();
@@ -1637,7 +1741,6 @@ class NeonTrap {
             ctx.shadowColor = '#00f0ff';
             ctx.stroke();
             
-            // 레이저 시작 및 끝 양쪽 벽면 네온 노드
             ctx.fillStyle = '#00f0ff';
             ctx.beginPath();
             ctx.arc(this.x1, this.y1, 4, 0, Math.PI * 2);

@@ -499,6 +499,59 @@ class Bullet {
             ctx.strokeStyle = 'rgba(0, 208, 255, 0.4)';
             ctx.lineWidth = 2;
             ctx.stroke();
+        } else if (this.isFire && this.isAdvanced) {
+            // [진화형] 융합 플라즈마포 탄환: 밝은 주황색 오라 + 백색 코어
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 94, 0, 0.35)'; // 외부 주황 오라
+            ctx.strokeStyle = '#ff5e00';
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 24;
+            ctx.shadowColor = '#ff5e00';
+            ctx.fill();
+            ctx.stroke();
+
+            // 흰색 고밀도 플라즈마 핵 코어
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 0;
+            ctx.fill();
+        } else if (this.isIce && !this.isAdvanced) {
+            // [조잡형] 크라이오 건 서리 눈결정 탄환
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 1.2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00f0ff';
+            ctx.fill();
+            ctx.stroke();
+
+            // 내부에 정교한 6각 눈결정(❄️) 수동 드로잉
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(Date.now() * 0.003); // 서서히 회전하며 비행
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.0;
+            ctx.shadowBlur = 0;
+            for (let k = 0; k < 3; k++) {
+                ctx.beginPath();
+                ctx.rotate(Math.PI / 3);
+                ctx.moveTo(-this.radius * 0.8, 0);
+                ctx.lineTo(this.radius * 0.8, 0);
+                ctx.stroke();
+                
+                // 잔가지 드로잉
+                ctx.beginPath();
+                ctx.moveTo(this.radius * 0.4, 0);
+                ctx.lineTo(this.radius * 0.6, -this.radius * 0.25);
+                ctx.moveTo(this.radius * 0.4, 0);
+                ctx.lineTo(this.radius * 0.6, this.radius * 0.25);
+                ctx.stroke();
+            }
+            ctx.restore();
         } else {
             Renderer.drawSprite(
                 ctx,

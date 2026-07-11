@@ -162,6 +162,8 @@ class Monster {
             freeze: 0       // [신규] 빙결 게이지 축적율 (0 ~ 100)
         };
         this.dead = false; // [신규] 지연 삭제용 사망 플래그
+        this.frostDecalTimer = 0;
+        this.glitchTimer = 0;
     }
 
     // [추가] 외부 코드 수정 없이 무적 및 실드 작동을 가로채기 위한 getter/setter 구현
@@ -471,6 +473,8 @@ class Monster {
         if (this.statusEffects.vulnerability > 0) this.statusEffects.vulnerability -= timeScale;
         if (this.statusEffects.shock > 0) this.statusEffects.shock -= timeScale;
         if (this.statusEffects.freeze > 0) this.statusEffects.freeze -= timeScale * 0.5; // 빙결은 자연 상태에서 초당 30씩 서서히 감쇄
+        if (this.frostDecalTimer > 0) this.frostDecalTimer -= timeScale;
+        if (this.glitchTimer > 0) this.glitchTimer -= timeScale;
         
         // [신규] 화상(Burn) 도트 틱 연산 및 화염 스파크 연출
         if (this.statusEffects.burn > 0) {
@@ -547,9 +551,30 @@ class Monster {
             return;
         }
 
-        // 플레이어와의 거리 및 각도
-        let dx = player.x - this.x;
-        let dy = player.y - this.y;
+        // 디코이(도발 어그로) 타겟 탐색
+        let targetX = player.x;
+        let targetY = player.y;
+        if (window.gameEngine && window.gameEngine.traps) {
+            let nearestDecoy = null;
+            let minDecoyDist = 120; // 도발 범위 120px 억제
+            for (let trap of window.gameEngine.traps) {
+                if (trap.active && trap.type === 'decoy') {
+                    let d = Math.hypot(trap.x - this.x, trap.y - this.y);
+                    if (d < minDecoyDist) {
+                        minDecoyDist = d;
+                        nearestDecoy = trap;
+                    }
+                }
+            }
+            if (nearestDecoy) {
+                targetX = nearestDecoy.x;
+                targetY = nearestDecoy.y;
+            }
+        }
+
+        // 플레이어/디코이와의 거리 및 각도
+        let dx = targetX - this.x;
+        let dy = targetY - this.y;
         let dist = Math.hypot(dx, dy);
         let angle = Math.atan2(dy, dx);
         this.angle = angle; // [추가] 렌더링 방향 업데이트를 위해 각도 저장
@@ -2483,6 +2508,38 @@ class Monster {
     }
 
     draw(ctx) {
+        ctx.save();
+        if (this.glitchTimer > 0) {
+            let gx = (Math.random() - 0.5) * 8;
+            let scaleX = 1.0 + (Math.random() - 0.5) * 0.35;
+            ctx.translate(gx, 0);
+            ctx.scale(scaleX, 1.0);
+        }
+
+        // [빙결 눈송이 바닥 문양 데칼 렌더링]
+        if (this.isFrozenActive > 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00f0ff';
+            ctx.beginPath();
+            let r = this.radius * 1.2;
+            for (let k = 0; k < 6; k++) {
+                let a = k * Math.PI / 3;
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + Math.cos(a) * r, this.y + Math.sin(a) * r);
+                let subX = this.x + Math.cos(a) * r * 0.65;
+                let subY = this.y + Math.sin(a) * r * 0.65;
+                ctx.moveTo(subX, subY);
+                ctx.lineTo(subX + Math.cos(a + 0.5) * 6, subY + Math.sin(a + 0.5) * 6);
+                ctx.moveTo(subX, subY);
+                ctx.lineTo(subX + Math.cos(a - 0.5) * 6, subY + Math.sin(a - 0.5) * 6);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
         Renderer.drawSprite(
             ctx,
             `monster_${this.type}`,
@@ -2495,6 +2552,36 @@ class Monster {
                 this.drawNeon(ctx);
             }
         );
+
+        // [서리 디칼 렌더링]
+        if (this.frostDecalTimer > 0) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 1.05, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.28)'; // 은은한 청록 반투명 서리 오버레이
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f0ff';
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 몬스터 표면 서리 결정 스파이크 데코 드로잉
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle || 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 0.8;
+            for (let k = 0; k < 6; k++) {
+                let a = k * Math.PI / 3;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(a) * this.radius, Math.sin(a) * this.radius);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        ctx.restore();
     }
 
     drawNeon(ctx) {

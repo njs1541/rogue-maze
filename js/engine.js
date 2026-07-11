@@ -2007,8 +2007,11 @@ class GameEngine {
                 this.mineInstallTimer = (this.mineInstallTimer || 0) + 1;
                 if (this.mineInstallTimer >= mineCd) {
                     this.mineInstallTimer = 0;
-                    this.traps.push(new NeonTrap(this.player.x, this.player.y, 'mine', this.player));
-                    this.showFloatingText("MINE PLACED! 💣", this.player.x, this.player.y - 25, '#ffdf00');
+                    let trapType = (this.player.equippedWeapons[0] === 'crude_trap') ? 'decoy' : 'mine';
+                    this.traps.push(new NeonTrap(this.player.x, this.player.y, trapType, this.player));
+                    let trapText = (trapType === 'decoy') ? "DECOY PLACED! 🤖" : "MINE PLACED! 💣";
+                    let trapColor = (trapType === 'decoy') ? "#ffdf00" : "#00f0ff";
+                    this.showFloatingText(trapText, this.player.x, this.player.y - 25, trapColor);
                 }
             } else {
                 this.mineInstallTimer = 0;
@@ -2769,7 +2772,8 @@ class GameEngine {
 
                         // 스플래시 범위 폭발 카드 속성 연산 (스플래시 대미지 강화 업그레이드 배율 연동)
                         if (b.splash > 0) {
-                            this.triggerBulletSplash(b.x, b.y, b.splash, b.damage * this.player.splashDmgUpgrade);
+                            let splashColor = b.isAdvanced ? '#b026ff' : '#ff5e00';
+                            this.triggerBulletSplash(b.x, b.y, b.splash, b.damage * this.player.splashDmgUpgrade, splashColor);
                         }
 
                         // [최적화] 다단히트 렉 완화를 위해 피격 스파크 파티클을 2개로 경량화하고 프레임당 생성 최대 개수 제한
@@ -2893,6 +2897,21 @@ class GameEngine {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             let p = this.particles[i];
             p.update();
+
+            if (p.type === 'blackhole') {
+                // [W-09 조잡한 중력 낫] 블랙홀 잔상이 주위 적들을 미세하게 흡인 (반경 90px 내, 힘 0.35px)
+                for (let m of this.monsters) {
+                    if (m.hp > 0 && !m.dead) {
+                        let dist = Math.hypot(m.x - p.x, m.y - p.y);
+                        if (dist < 90 + m.radius) {
+                            let pullAngle = Math.atan2(p.y - m.y, p.x - m.x);
+                            let pullSpeed = 0.35 * timeScale;
+                            m.x += Math.cos(pullAngle) * pullSpeed;
+                            m.y += Math.sin(pullAngle) * pullSpeed;
+                        }
+                    }
+                }
+            }
 
             // [신규] 20층 보스 하이퍼 체이서의 화상 불장판 충돌 검사
             if (p.type === 'chaser_fire_trail') {
@@ -3778,8 +3797,34 @@ class GameEngine {
 
     // [신규 기획] 사이버 낫 휘두르기 타격 판정
     triggerScytheAttack(angle, damage) {
-        let scytheRadius = 110 + (this.player.range - 350) * 0.15;
+        let isAdvanced = (this.player.equippedWeapons[0] === 'void_destroyer');
+        let scytheRadius = isAdvanced ? 130 : 90; // 사거리 억제
         let scytheArc = 1.6; // 넓은 부채꼴 휩쓸기 궤적
+        let particleColor = isAdvanced ? '#8b5cf6' : '#ba55d3';
+
+        // 궤적을 따라 이펙트 잔상 생성
+        if (isAdvanced) {
+            // [진화형] 보이드 디스트로이어: 은하수 같은 자색/시안 보이드 성운 입자 (1초간 부유)
+            for (let offset = -1.2; offset <= 1.2; offset += 0.2) {
+                let wAngle = angle + offset;
+                let sx = this.player.x + Math.cos(wAngle) * scytheRadius * 0.75;
+                let sy = this.player.y + Math.sin(wAngle) * scytheRadius * 0.75;
+                
+                // 보랏빛 및 시안빛 솜털 성운
+                let color = Math.random() < 0.6 ? '#8b5cf6' : '#00f0ff';
+                let vx = (Math.random() - 0.5) * 0.6;
+                let vy = (Math.random() - 0.5) * 0.6;
+                this.particles.push(new Particle(sx, sy, color, Math.random() * 12 + 6, vx, vy, 60, 'nebula'));
+            }
+        } else {
+            // [조잡형] 중력 낫: 휘둘러진 자리에 검은색 원형 중력 잔상(Blackhole) 생성
+            for (let offset of [-0.8, 0, 0.8]) {
+                let wAngle = angle + offset;
+                let sx = this.player.x + Math.cos(wAngle) * scytheRadius * 0.8;
+                let sy = this.player.y + Math.sin(wAngle) * scytheRadius * 0.8;
+                this.particles.push(new Particle(sx, sy, '#8b5cf6', 35, 0, 0, 30, 'blackhole'));
+            }
+        }
 
         // 명중한 몬스터 검사
         for (let i = this.monsters.length - 1; i >= 0; i--) {
@@ -3798,6 +3843,9 @@ class GameEngine {
 
                     // 부식/표식 디버프 부여 (3초지속 = 180프레임)
                     m.scytheDebuffTimer = 180;
+                    if (isAdvanced) {
+                        m.glitchTimer = 180; // 진화형 수확 낫 명중 시 3초간 디지털 글리치 지직거림
+                    }
 
                     m.hp -= finalDmg;
                     m.flashTimer = 2;
@@ -3808,7 +3856,7 @@ class GameEngine {
                     m.vy += Math.sin(kbAngle) * 2.5;
 
                     for (let k = 0; k < 3; k++) {
-                        this.particles.push(new Particle(m.x, m.y, '#ba55d3', 1.5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 15, 'spark'));
+                        this.particles.push(new Particle(m.x, m.y, particleColor, 1.5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 15, 'spark'));
                     }
 
                     if (m.hp <= 0) {
@@ -3842,9 +3890,10 @@ class GameEngine {
     }
 
     // [신규 기획] 레일 캐논 일직선 관통 레이저 발사
-    triggerRailCannonBeam(angle, damage) {
+    triggerRailCannonBeam(angle, damage, isAdvanced = true) {
         let beamLength = this.player.range * 2; // 기본 사거리의 2배 적용
-        let beamWidth = 25;
+        let beamWidth = isAdvanced ? 10 : 3.5; // 디튠: 광선 폭 억제
+        let beamColor = isAdvanced ? '#00f0ff' : '#0064ff';
 
         // 레이저 비주얼 파티클 빔 생성
         let stepCount = Math.floor(beamLength / 20);
@@ -3854,7 +3903,7 @@ class GameEngine {
             this.particles.push(new Particle(
                 px + (Math.random() - 0.5) * 8,
                 py + (Math.random() - 0.5) * 8,
-                '#00f0ff', 2.0,
+                beamColor, isAdvanced ? 2.0 : 1.2,
                 (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5,
                 20, 'spark'
             ));
@@ -3883,7 +3932,7 @@ class GameEngine {
                     m.vy += Math.sin(angle) * 5.0;
 
                     for (let k = 0; k < 4; k++) {
-                        this.particles.push(new Particle(m.x, m.y, '#00f0ff', 1.8, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 15, 'spark'));
+                        this.particles.push(new Particle(m.x, m.y, beamColor, 1.8, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 15, 'spark'));
                     }
 
                     // 융합 효과: 주(레일) + 부(총) -> 명중 지점에서 뒤로 유도탄 3발 튕겨 나감
@@ -4675,7 +4724,7 @@ class GameEngine {
     }
 
     // 원거리 스플래시 탄환 범위 데미지 연산
-    triggerBulletSplash(x, y, radius, damage) {
+    triggerBulletSplash(x, y, radius, damage, customColor = '#00f0ff') {
         if (this.frameSplashCount === undefined) this.frameSplashCount = 0;
         // [최적화] 1프레임당 과도한 스플래시 연산 차단 (최대 6회 가동)
         if (this.frameSplashCount >= 6) {
@@ -4684,7 +4733,13 @@ class GameEngine {
 
         if (this.frameSplashCount < 3) {
             Sound.play('explosion');
-            this.particles.push(new Particle(x, y, '#00f0ff', radius, 0, 0, 30, 'explosionRing'));
+            if (this.player.equippedWeapons[0] === 'fusion_plasma_cannon') {
+                // 보라/주황빛 충격파 링 이중 팽창
+                this.particles.push(new Particle(x, y, '#b026ff', radius, 0, 0, 24, 'explosionRing'));
+                this.particles.push(new Particle(x, y, '#ff5e00', radius * 0.8, 0, 0, 18, 'explosionRing'));
+            } else {
+                this.particles.push(new Particle(x, y, customColor, radius, 0, 0, 30, 'explosionRing'));
+            }
         }
         this.frameSplashCount++;
 
@@ -4733,11 +4788,14 @@ class GameEngine {
         }
         this.frameChainCount++;
 
+        let isEmp = (this.player.weaponType === 'chain_emp_shock' || this.player.equippedWeapons.includes('chain_emp_shock') || this.player.thirdSlotWeapon === 'chain_emp_shock');
+        let electricColor = isEmp ? '#00f0ff' : '#ffdf00';
+
         // [최적화] 연쇄 번개 전이 타격 노랑 낙뢰 이펙트 파티클을 3개로 간소화
         for (let k = 0; k < 3; k++) {
             let angle = Math.random() * Math.PI * 2;
             let speed = Math.random() * 3 + 1;
-            this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, '#ffdf00', 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
+            this.particles.push(new Particle(currentEnemy.x, currentEnemy.y, electricColor, 2, Math.cos(angle) * speed, Math.sin(angle) * speed, 18, 'spark'));
         }
 
         // 주변 몬스터 중 가장 가까운 다른 몬스터 탐색 (번개 전이 거리 180px 제한)
@@ -4758,22 +4816,33 @@ class GameEngine {
         }
 
         if (nextTarget) {
-            // [최적화] 연쇄 번개 전류 와이어 시각 파티클을 3개로 줄여 렉 경감 (징검다리 렌더링)
+            // [비주얼 고도화] 지그재그 번개 아크 스파크 선 생성
             let dx = nextTarget.x - currentEnemy.x;
             let dy = nextTarget.y - currentEnemy.y;
-            for (let i = 0; i <= 2; i++) {
-                let step = i / 2;
-                let px = currentEnemy.x + dx * step;
-                let py = currentEnemy.y + dy * step;
-                this.particles.push(new Particle(px, py, '#ffdf00', 1.8, 0, 0, 15, 'spark'));
+            let totalDist = Math.hypot(dx, dy);
+            let steps = Math.floor(totalDist / 12);
+
+            for (let i = 1; i <= steps; i++) {
+                let ratio = i / steps;
+                let tx = currentEnemy.x + dx * ratio;
+                let ty = currentEnemy.y + dy * ratio;
+
+                let perpX = -dy / totalDist;
+                let perpY = dx / totalDist;
+                let offset = (Math.random() - 0.5) * 12; // 지그재그 흔들림 편차
+                
+                let curX = tx + perpX * offset;
+                let curY = ty + perpY * offset;
+
+                this.particles.push(new Particle(curX, curY, electricColor, 1.5, 0, 0, 10, 'spark'));
             }
 
-            // 다음 타겟에게 감전 피해 및 0.75초 기절(Stun) 부여
+            // 다음 타겟에게 감전 피해 및 0.5초 기절(Stun) 부여
             let finalDmg = damage;
             if (nextTarget.statusEffects.vulnerability > 0) finalDmg *= 1.25;
             nextTarget.hp -= finalDmg;
             nextTarget.flashTimer = 5;
-            nextTarget.statusEffects.shock = Math.max(nextTarget.statusEffects.shock || 0, 45); // 감전 마비
+            nextTarget.statusEffects.shock = Math.max(nextTarget.statusEffects.shock || 0, isEmp ? 30 : 45); // 감전 마비
 
             Sound.play('hit');
 
@@ -4797,21 +4866,345 @@ class GameEngine {
     // 주무기 탄환 및 마법 격발 메커니즘
     shootWeapon() {
         let mainWeapon = this.player.equippedWeapons[0] || 'gun';
-        if (mainWeapon === 'railcannon') {
+
+        if (mainWeapon === 'crude_shock' || mainWeapon === 'chain_emp_shock') {
+            let isAdvanced = (mainWeapon === 'chain_emp_shock');
+
+            // MP 소모 체크
+            let isFreeMana = false;
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                isFreeMana = true;
+                this.showFloatingText("FREE MANA CAST! 🔮", this.player.x, this.player.y - 30, '#00f0ff');
+            }
+            if (this.player.mp < 3.0 && !isFreeMana) {
+                this.player.shootCooldown = 25;
+                this.showFloatingText("NEED MP! 🔮", this.player.x, this.player.y - 25, '#ffdf00');
+                Sound.play('hit');
+                return;
+            }
+            if (!isFreeMana) {
+                this.player.mp = Math.max(0, this.player.mp - 3.0);
+            }
+
+            // 공속 쿨타임 (디튠: 조잡 55프레임, 진화 40프레임)
+            let activeAspd = this.player.getEffectiveAspd();
+            let cooldownFrames = Math.max(isAdvanced ? 12 : 18, (isAdvanced ? 40 : 55) / activeAspd);
+            if (this.player.equipLevels.ring_aspd >= 5) cooldownFrames *= 0.85;
+            this.player.shootCooldown = cooldownFrames;
+
+            let synergyMult = this.checkBuildSynergy('gun');
+            let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+            let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+
+            let wLvl = this.player.weaponLevels.lightning || 1;
+            let levelMult = 1 + (wLvl - 1) * 0.15;
+            
+            // 대미지 계수 억제: 조잡 0.3x, 진화 0.7x
+            let baseDmg = this.player.atk * (isAdvanced ? 0.7 : 0.3);
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * hybridDmgFactor;
+
+            if (isAdvanced) {
+                // 진화형: 가장 가까운 적에게 즉발 EMP 체인 아크 발사 (최대 3명 전이 억제)
+                let nearest = null;
+                let minDist = 300; // 최대 색적 범위 300px
+                for (let m of this.monsters) {
+                    if (m.hp > 0 && !m.dead) {
+                        let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearest = m;
+                        }
+                    }
+                }
+                
+                if (nearest) {
+                    // 첫 마디 번개 이펙트 파티클 지그재그 생성
+                    let dx = nearest.x - this.player.x;
+                    let dy = nearest.y - this.player.y;
+                    let totalDist = Math.hypot(dx, dy);
+                    let steps = Math.floor(totalDist / 12);
+                    for (let i = 1; i <= steps; i++) {
+                        let ratio = i / steps;
+                        let tx = this.player.x + dx * ratio;
+                        let ty = this.player.y + dy * ratio;
+                        let perpX = -dy / totalDist;
+                        let perpY = dx / totalDist;
+                        let offset = (Math.random() - 0.5) * 12;
+                        let curX = tx + perpX * offset;
+                        let curY = ty + perpY * offset;
+                        this.particles.push(new Particle(curX, curY, '#00f0ff', 1.5, 0, 0, 10, 'spark'));
+                    }
+
+                    nearest.hp -= finalDamage;
+                    nearest.flashTimer = 5;
+                    nearest.statusEffects.shock = Math.max(nearest.statusEffects.shock || 0, 30); // 감전
+
+                    // 전이 시작 (최대 3명)
+                    this.triggerChainLightning(this.player.x, this.player.y, nearest, 2, finalDamage * 0.85);
+                    Sound.play('shoot');
+                    this.shakeScreen(5, 1.8);
+                } else {
+                    // 허공 격발 이펙트
+                    let angle = this.player.angle;
+                    let tx = this.player.x + Math.cos(angle) * 100;
+                    let ty = this.player.y + Math.sin(angle) * 100;
+                    for (let i = 0; i <= 3; i++) {
+                        let step = i / 3;
+                        this.particles.push(new Particle(this.player.x + (tx - this.player.x) * step, this.player.y + (ty - this.player.y) * step, '#00f0ff', 1.2, 0, 0, 10, 'spark'));
+                    }
+                }
+            } else {
+                // 조잡형: 플레이어 주변 노란색 방전 전기 원형 고리 (3겹 팽창)
+                let maxRadius = 90;
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ffdf00', maxRadius, 0, 0, 20, 'explosionRing'));
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ffea00', maxRadius * 0.75, 0, 0, 16, 'explosionRing'));
+                this.particles.push(new Particle(this.player.x, this.player.y, '#ffff00', maxRadius * 0.5, 0, 0, 12, 'explosionRing'));
+                
+                for (let i = this.monsters.length - 1; i >= 0; i--) {
+                    let m = this.monsters[i];
+                    let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                    if (dist < maxRadius + m.radius) {
+                        m.hp -= finalDamage;
+                        m.flashTimer = 5;
+                        m.statusEffects.shock = Math.max(m.statusEffects.shock || 0, 30); // 기절 0.5초 억제
+                        if (m.hp <= 0) {
+                            this.killMonster(m, i);
+                        }
+                    }
+                }
+                Sound.play('shoot');
+                this.shakeScreen(4, 1.2);
+            }
+
+            this.triggerThirdSlotWeapon();
+            return;
+        }
+
+        if (mainWeapon === 'crude_flamethrower' || mainWeapon === 'fusion_plasma_cannon') {
+            let isAdvanced = (mainWeapon === 'fusion_plasma_cannon');
+
+            // MP 소모 체크
+            let isFreeMana = false;
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                isFreeMana = true;
+                this.showFloatingText("FREE MANA CAST! 🔮", this.player.x, this.player.y - 30, '#00f0ff');
+            }
+            if (this.player.mp < 3.0 && !isFreeMana) {
+                this.player.shootCooldown = 25;
+                this.showFloatingText("NEED MP! 🔮", this.player.x, this.player.y - 25, '#ffdf00');
+                Sound.play('hit');
+                return;
+            }
+            if (!isFreeMana) {
+                this.player.mp = Math.max(0, this.player.mp - 3.0);
+            }
+
+            // 공속 쿨타임 (디튠: 조잡 지속 화기이므로 쿨타임 10프레임, 진화 단발이므로 쿨타임 45프레임)
+            let activeAspd = this.player.getEffectiveAspd();
+            let cooldownFrames = Math.max(isAdvanced ? 15 : 6, (isAdvanced ? 45 : 10) / activeAspd);
+            if (this.player.equipLevels.ring_aspd >= 5) cooldownFrames *= 0.85;
+            this.player.shootCooldown = cooldownFrames;
+
+            let synergyMult = this.checkBuildSynergy('gun');
+            let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+            let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+
+            let wLvl = this.player.weaponLevels.fire || 1;
+            let levelMult = 1 + (wLvl - 1) * 0.15;
+            
+            // 대미지 계수 억제: 조잡 0.4x (연사 감안), 진화 0.9x
+            let baseDmg = this.player.atk * (isAdvanced ? 0.9 : 0.4);
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * hybridDmgFactor;
+
+            let startAngle = this.player.angle;
+
+            if (isAdvanced) {
+                // 진화형: 융합 플라즈마 에너지 구체 발사 (반경 12px 억제)
+                let speed = 6.2;
+                let vx = Math.cos(startAngle) * speed;
+                let vy = Math.sin(startAngle) * speed;
+                let bulletLife = this.player.range / speed;
+
+                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                    color: '#ff5e00',
+                    radius: 12, // 크기 억제
+                    life: bulletLife,
+                    isFire: true,
+                    isAdvanced: true,
+                    splash: 45, // 충격파 반경 45px 억제
+                    pierce: this.player.pierceCount
+                }));
+                Sound.play('shoot');
+                this.shakeScreen(5, 1.8);
+            } else {
+                // 조잡형: 지속 주황빛 콘 화방 사출 (사거리 100px 억제, 각도 ±10도 억제)
+                Sound.play('slash');
+                this.shakeScreen(2, 0.8);
+
+                // 화염 입자 보강 생성 (콘 모양 화방 연출)
+                for (let k = 0; k < 8; k++) {
+                    let randAngle = startAngle + (Math.random() - 0.5) * 0.35; // 약 ±10도
+                    let speed = Math.random() * 4 + 4;
+                    let vx = Math.cos(randAngle) * speed;
+                    let vy = Math.sin(randAngle) * speed;
+                    let color = Math.random() < 0.65 ? '#ff5e00' : '#ffdf00';
+                    this.particles.push(new Particle(this.player.x, this.player.y, color, Math.random() * 6 + 4, vx, vy, 15 + Math.random() * 8, 'dust'));
+                }
+
+                // 부채꼴 범위 내의 적 즉발 화염 틱 대미지
+                let burnRange = 100;
+                for (let i = this.monsters.length - 1; i >= 0; i--) {
+                    let m = this.monsters[i];
+                    let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                    if (dist < burnRange + m.radius) {
+                        let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                        let angleDiff = Math.abs(targetAngle - startAngle);
+                        angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+                        if (Math.abs(angleDiff) < 0.25) { // 약 ±15도 판정 허용
+                            m.hp -= finalDamage * 0.25; // 틱당 대미지 분할
+                            m.flashTimer = 2;
+                            if (m.hp <= 0) {
+                                this.killMonster(m, i);
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.triggerThirdSlotWeapon();
+            return;
+        }
+
+        if (mainWeapon === 'crude_cryo' || mainWeapon === 'cryo_freezer') {
+            let isAdvanced = (mainWeapon === 'cryo_freezer');
+
+            // MP 소모 체크
+            let isFreeMana = false;
+            if (this.player.equipLevels.helm >= 5 && Math.random() < 0.2) {
+                isFreeMana = true;
+                this.showFloatingText("FREE MANA CAST! 🔮", this.player.x, this.player.y - 30, '#00f0ff');
+            }
+            if (this.player.mp < 3.0 && !isFreeMana) {
+                this.player.shootCooldown = 25;
+                this.showFloatingText("NEED MP! 🔮", this.player.x, this.player.y - 25, '#ffdf00');
+                Sound.play('hit');
+                return;
+            }
+            if (!isFreeMana) {
+                this.player.mp = Math.max(0, this.player.mp - 3.0);
+            }
+
+            // 공속 쿨타임 (디튠: 조잡 차지 샷이므로 90프레임 = 1.5초, 진화 지속 빔이므로 6프레임)
+            let activeAspd = this.player.getEffectiveAspd();
+            let cooldownFrames = Math.max(isAdvanced ? 4 : 30, (isAdvanced ? 6 : 90) / activeAspd);
+            if (this.player.equipLevels.ring_aspd >= 5) cooldownFrames *= 0.85;
+            this.player.shootCooldown = cooldownFrames;
+            if (!isAdvanced) {
+                this.player.cryoMaxCooldown = cooldownFrames; // 차지 샷용 게이지 분모 기록
+            }
+
+            let synergyMult = this.checkBuildSynergy('gun');
+            let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+            let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+
+            let wLvl = this.player.weaponLevels.ice || 1;
+            let levelMult = 1 + (wLvl - 1) * 0.15;
+            
+            // 대미지 계수 억제: 조잡 0.6x (단발 차지), 진화 0.2x (매 6프레임당 틱 피해)
+            let baseDmg = this.player.atk * (isAdvanced ? 0.2 : 0.6);
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * hybridDmgFactor;
+
+            let startAngle = this.player.angle;
+
+            if (isAdvanced) {
+                // 진화형: 지속 빔 물리 충돌 판정 및 서리 데칼 부여 (사거리 160px 제한)
+                Sound.play('laser');
+                this.shakeScreen(1, 0.4);
+
+                let beamRange = 160;
+                for (let i = this.monsters.length - 1; i >= 0; i--) {
+                    let m = this.monsters[i];
+                    let dist = Math.hypot(m.x - this.player.x, m.y - this.player.y);
+                    if (dist < beamRange + m.radius) {
+                        let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
+                        let angleDiff = Math.abs(targetAngle - startAngle);
+                        angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+
+                        if (Math.abs(angleDiff) < 0.18) { // 빔 폭 범위 (약 ±10도)
+                            m.hp -= finalDamage;
+                            m.flashTimer = 2;
+                            m.frostDecalTimer = 30; // 0.5초 서리 덮씌움
+                            m.statusEffects.freeze = Math.min(100, (m.statusEffects.freeze || 0) + 12); // 빙결 게이지 축적
+
+                            // 빙결 한도 도달 시 Stun/Freeze 효과
+                            if (m.statusEffects.freeze >= 100 && !m.isFrozenActive) {
+                                m.isFrozenActive = 120; // 2초 정지
+                                m.statusEffects.shock = 120;
+                            }
+
+                            if (m.hp <= 0) {
+                                this.killMonster(m, i);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 조잡형: 차지 게이지 완료 후 관통 눈결정 탄환 사출 (반경 6px 억제)
+                Sound.play('shoot');
+                this.shakeScreen(3, 1.2);
+                let speed = 7.5;
+                let vx = Math.cos(startAngle) * speed;
+                let vy = Math.sin(startAngle) * speed;
+                let bulletLife = this.player.range / speed;
+
+                this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, finalDamage, true, {
+                    color: '#00f0ff',
+                    radius: 6, // 크기 억제
+                    life: bulletLife,
+                    isIce: true,
+                    isAdvanced: false,
+                    pierce: this.player.pierceCount + 2 // 차지 관통 보정
+                }));
+            }
+
+            this.triggerThirdSlotWeapon();
+            return;
+        }
+
+        if (mainWeapon === 'tachyon_railgun' || mainWeapon === 'crude_rail') {
+            let isAdvanced = (mainWeapon === 'tachyon_railgun');
             this.player.isRailActive = true;
             this.player.railChargeTimer = 18;
             this.player.railAngle = this.player.angle;
 
             let activeAspd = this.player.getEffectiveAspd();
-            let cooldownFrames = Math.max(20, 90 / activeAspd);
-
-            // E-09 Haste Ring 5레벨 돌파: 시전 딜레이 15% 영구 단축
+            let cooldownFrames = Math.max(isAdvanced ? 30 : 45, 90 / activeAspd); // 디튠: 90프레임 = 1.5초
             if (this.player.equipLevels.ring_aspd >= 5) {
                 cooldownFrames *= 0.85;
             }
             this.player.shootCooldown = cooldownFrames;
+            if (!isAdvanced) {
+                this.player.cryoMaxCooldown = cooldownFrames; // 차지 게이지 UI 연동
+            }
 
             Sound.play('laser');
+
+            let synergyMult = this.checkBuildSynergy('gun');
+            let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
+            let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
+            let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
+
+            let wLvl = this.player.weaponLevels.railcannon || 1;
+            let levelMult = 1 + (wLvl - 1) * 0.15;
+            let baseDmg = this.player.atk * (isAdvanced ? 1.5 : 0.7); // 대미지 계수 억제: 조잡 0.7x, 진화 1.5x
+            let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * hybridDmgFactor;
+
+            this.triggerRailCannonBeam(this.player.angle, finalDamage, isAdvanced);
+
             this.triggerThirdSlotWeapon();
             return;
         }
@@ -5106,7 +5499,9 @@ class GameEngine {
 
     // [신규 기획] 채찍 즉발 베기 및 견인/기절 물리 충돌 판정
     triggerWhipInstantAttack(anglesToLaunch) {
-        let whipRadius = this.player.weaponUnlocks.whip.range ? 220 : 150;
+        let mainW = this.player.equippedWeapons[0] || 'crude_whip';
+        let isLaserWire = (mainW === 'nano_laser_wire');
+        let whipRadius = isLaserWire ? 220 : 150;
 
         let synergyMult = this.checkBuildSynergy('gun'); // 채찍은 총기 카드의 시너지를 받음
         let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
@@ -5134,23 +5529,27 @@ class GameEngine {
                 let targetAngle = Math.atan2(m.y - this.player.y, m.x - this.player.x);
                 let inWhipArc = false;
 
-                // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 기본 0.2 라디안에서 카드 성장에 따라 미세 확장
-                let whipArcLimit = 0.2 + (this.player.multishot - 1) * 0.05 + (this.player.weaponUnlocks.whip.multi ? 0.15 : 0);
+                if (isLaserWire) {
+                    inWhipArc = true;
+                } else {
+                    // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 기본 0.2 라디안에서 카드 성장에 따라 미세 확장
+                    let whipArcLimit = 0.2 + (this.player.multishot - 1) * 0.05 + (this.player.weaponUnlocks.whip.multi ? 0.15 : 0);
 
-                // 그어진 모든 채찍 호 각도 검사
-                for (let angle of anglesToLaunch) {
-                    let angleDiff = Math.abs(targetAngle - angle);
-                    angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
-                    if (Math.abs(angleDiff) < whipArcLimit) {
-                        inWhipArc = true;
-                        break;
+                    // 그어진 모든 채찍 호 각도 검사
+                    for (let angle of anglesToLaunch) {
+                        let angleDiff = Math.abs(targetAngle - angle);
+                        angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+                        if (Math.abs(angleDiff) < whipArcLimit) {
+                            inWhipArc = true;
+                            break;
+                        }
                     }
                 }
 
                 if (inWhipArc) {
                     let isPulled = false;
-                    // 동시 견인 수량 제한 범위 내에서만 플레이어 70px 앞 안전 거리로 견인
-                    if (pulledCount < maxPullCount) {
+                    // 동시 견인 수량 제한 범위 내에서만 플레이어 70px 앞 안전 거리로 견인 (나노 레이저 와이어는 견인 배제)
+                    if (!isLaserWire && pulledCount < maxPullCount) {
                         let pullAngle = this.player.angle;
                         let pullX = this.player.x + Math.cos(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
                         let pullY = this.player.y + Math.sin(pullAngle) * 70; // 플레이어와 겹침 방지를 위해 70px로 연장 (기존 35px)
@@ -5167,7 +5566,17 @@ class GameEngine {
                         isPulled = true;
                     }
 
-                    if (isPulled) {
+                    if (isLaserWire) {
+                        m.statusEffects.shock = Math.max(m.statusEffects.shock || 0, 90); // 1.5초 감전
+                        // 핑크 스파크 비산 연출
+                        for (let k = 0; k < 3; k++) {
+                            let speed = Math.random() * 3 + 1;
+                            let pAngle = Math.random() * Math.PI * 2;
+                            this.particles.push(new Particle(
+                                m.x, m.y, '#ff00aa', 1.5, Math.cos(pAngle) * speed, Math.sin(pAngle) * speed, 12, 'spark'
+                            ));
+                        }
+                    } else if (isPulled) {
                         let shockDuration = 90 + (whipLvl - 1) * 15; // 1레벨: 90프레임 (1.5초) ~ 5레벨: 150프레임 (2.5초)
                         m.statusEffects.shock = shockDuration; // [수정] 기절 프레임 부여 (견인된 적만 스턴)
                     }
@@ -5380,13 +5789,17 @@ class GameEngine {
 
     slashWeapon() {
         let mainWeapon = this.player.equippedWeapons[0] || 'sword';
-        if (mainWeapon === 'scythe') {
+        if (mainWeapon === 'scythe' || mainWeapon === 'crude_scythe' || mainWeapon === 'void_destroyer') {
+            let isAdvanced = (mainWeapon === 'void_destroyer' || mainWeapon === 'scythe');
             let activeAspd = this.player.getEffectiveAspd();
-            let cooldownFrames = Math.max(15, 55 / activeAspd);
+            // 디튠: 쿨타임 75 (조잡) / 50 (진화), 최소 한도 18프레임
+            let cooldownFrames = Math.max(18, (isAdvanced ? 50 : 75) / activeAspd);
             this.player.slashCooldown = cooldownFrames;
 
             let scytheLvl = this.player.weaponLevels.scythe || 1;
-            let finalDamage = this.player.atk * 0.9 * (1 + (scytheLvl - 1) * 0.15);
+            // 대미지 억제: 조잡 0.7x, 진화 1.2x
+            let baseDmg = isAdvanced ? 1.2 : 0.7;
+            let finalDamage = this.player.atk * baseDmg * (1 + (scytheLvl - 1) * 0.15);
 
             this.player.isScytheActive = true;
             this.player.scytheTimer = 12;

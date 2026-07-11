@@ -24,6 +24,12 @@ class Particle {
         if (this.type === 'trail') {
             this.vx *= 0.98;
             this.vy *= 0.98;
+        } else if (this.type === 'blackhole') {
+            this.vx = 0;
+            this.vy = 0;
+        } else if (this.type === 'nebula') {
+            this.vx *= 0.93;
+            this.vy *= 0.93;
         } else if (this.type === 'text') {
             // [신규 물리] 데미지 텍스트 튕김 물리 시뮬레이션
             this.vy += 0.15; // 중력 가속
@@ -115,6 +121,45 @@ class Particle {
             ctx.lineWidth = 3;
             ctx.strokeText(this.text, this.x, this.y);
             ctx.fillText(this.text, this.x, this.y);
+        } else if (this.type === 'blackhole') {
+            // [W-09 조잡한 낫] 낫 베기 잔상 블랙홀 데칼
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * (1.2 - this.alpha * 0.2), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(10, 5, 20, ${0.85 * this.alpha})`; // 검은 보랏빛 진한 중앙
+            ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+            ctx.lineWidth = 2.0;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#8b5cf6'; // 외곽 보라색 네온 글로우
+            ctx.fill();
+            ctx.stroke();
+
+            // 중심 소용돌이선 데코
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.life * 0.08);
+            ctx.strokeStyle = 'rgba(186, 85, 211, 0.3)';
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += 0.2) {
+                let r = this.size * 0.8 * (1.0 - (a / (Math.PI * 8)));
+                ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.stroke();
+            ctx.restore();
+        } else if (this.type === 'nebula') {
+            // [W-09 진화형] 보이드 디스트로이어 성운 입자
+            ctx.beginPath();
+            let rad = this.size * (0.8 + Math.sin(this.life * 0.05) * 0.2);
+            ctx.arc(this.x, this.y, Math.max(0.5, rad), 0, Math.PI * 2);
+            
+            // 시안과 자홍 솜털 글로우 그라데이션
+            let grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, Math.max(1, rad));
+            grad.addColorStop(0, this.color);
+            grad.addColorStop(1, 'rgba(139, 92, 246, 0)');
+            ctx.fillStyle = grad;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = this.color;
+            ctx.fill();
         }
 
         ctx.restore();
