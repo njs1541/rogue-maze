@@ -198,8 +198,8 @@ const Sound = {
             guardTime = 45; // 0.045초 초단기 가드 (공속 10레벨 속사 완벽 대응)
         } else if (type === 'hit') {
             guardTime = 80; // [최적화] 피격음은 다단히트 시 버퍼 오버헤드를 막기 위해 80ms 간격 제한
-        } else if (type === 'coin' || type === 'dodge' || type === 'slash') {
-            guardTime = 80; // 코인 습득, 검풍, 회피 쿨타임 80ms
+        } else if (type === 'coin' || type === 'dodge' || type === 'slash' || type === 'crude_sword_vibe' || type === 'plasma_saber_vibe') {
+            guardTime = 80; // 코인 습득, 검풍, 회피, 진동검 쿨타임 80ms
         }
 
         const nowTime = Date.now();
@@ -244,6 +244,61 @@ const Sound = {
                 gain.connect(this.ctx.destination);
                 osc.start(now);
                 osc.stop(now + 0.2);
+                break;
+            }
+            case 'crude_sword_vibe': { // 조잡한 진동검: 고속 진동 마찰 바람소리 (노이즈 밴드패스 스윕)
+                const bufferSize = this.ctx.sampleRate * 0.15;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(400, now);
+                filter.frequency.exponentialRampToValueAtTime(1800, now + 0.15);
+                filter.Q.setValueAtTime(3.0, now);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.005 * this.sfxVolume), now + 0.15);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+                break;
+            }
+            case 'plasma_saber_vibe': { // 플라즈마 세이버: 윙윙거리는 고주파 에너지 슬래시 효과음
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(850, now);
+                osc1.frequency.linearRampToValueAtTime(750, now + 0.06);
+                osc1.frequency.linearRampToValueAtTime(820, now + 0.12);
+                osc1.frequency.linearRampToValueAtTime(650, now + 0.18);
+
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(160, now);
+                osc2.frequency.linearRampToValueAtTime(220, now + 0.09);
+                osc2.frequency.linearRampToValueAtTime(140, now + 0.18);
+
+                gain.gain.setValueAtTime(0.08 * this.sfxVolume, now);
+                gain.gain.linearRampToValueAtTime(Math.max(0.0001, 0.01 * this.sfxVolume), now + 0.18);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.18);
+                osc2.stop(now + 0.18);
                 break;
             }
             case 'hit': { // 적 피격음 (짧은 노이즈 버스트)

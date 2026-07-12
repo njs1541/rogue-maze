@@ -1,4 +1,4 @@
-// --------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 
@@ -1512,14 +1512,14 @@ class GameEngine {
             // 3. [질풍의 마력 네온 검사 (Neon Tempest)]
             // 조건: 검 또는 듀얼 소유, 공격속도(지능) 1.6 이상, 힘(공격력) 20 이상
             let hasSword = (p.weaponType === 'crude_sword' || p.weaponType === 'plasma_saber');
-            if ((hasSword || p.weaponType === 'dual') && p.aspd >= 1.6 && p.atk >= 20) {
+            if ((hasSword) && p.aspd >= 1.6 && p.atk >= 20) {
                 synergyMultiplier = 1.12; // 3차 밸런싱 패치 (증가분 50% 하향: 1.25 -> 1.12)
                 synergyName = "🪓 NEON TEMPEST!";
                 synergyColor = '#b026ff'; // 퍼플
             }
             // 4. [차원 유도 환영검 (Spectral Blade)]
             // 조건: 검 또는 듀얼 소유, 유도 추적 보유
-            else if ((hasSword || p.weaponType === 'dual') && p.homing) {
+            else if ((hasSword) && p.homing) {
                 synergyMultiplier = 1.07; // 3차 밸런싱 패치 (증가분 50% 하향: 1.15 -> 1.07)
                 synergyName = "🔮 SPECTRAL BLADE!";
                 synergyColor = '#ff0055'; // 마젠타
@@ -1771,7 +1771,7 @@ class GameEngine {
                     let isLightning = (this.player.weaponType === 'crude_shock' || this.player.weaponType === 'chain_emp_shock');
                     let isFire = (this.player.weaponType === 'crude_flamethrower' || this.player.weaponType === 'fusion_plasma_cannon');
                     let isIce = (this.player.weaponType === 'crude_cryo' || this.player.weaponType === 'cryo_freezer');
-                    let isDual = this.player.weaponType === 'dual';
+                    let isDual = false;
 
                     let synergyMult = this.checkBuildSynergy('gun');
                     let helmDmgBonus = (this.player.equipLevels.helm === 10 && this.player.mp >= this.player.maxMp) ? 1.25 : 1.0;
@@ -1944,12 +1944,14 @@ class GameEngine {
                         this.triggerWhipInstantAttack(whipAngles);
                     }
 
-                    // 3. 검 이펙트 및 검기 투사체 융합
+                                        // 3. 검 이펙트 및 검기 투사체 융합
                     if (hasSword) {
+                        let isAdvanced = (String(this.player.weaponType) === 'plasma_saber');
+                        this.player.swordAttackType = isAdvanced ? 'slash' : 'thrust';
                         this.player.isSlashActive = true;
                         this.player.slashTimer = 12;
                         this.player.slashAngle = startAngle;
-                        this.player.slashAngles = [...swordAngles];
+                        this.player.slashAngles = isAdvanced ? [...swordAngles] : [startAngle];
 
                         for (let angle of swordAngles) {
                             for (let i = -5; i <= 5; i++) {
@@ -1962,13 +1964,14 @@ class GameEngine {
                             }
                         }
 
-                        let synergyMult = this.checkBuildSynergy('sword');
+                                                let synergyMult = this.checkBuildSynergy('sword');
                         let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                         let baseMult = 0.8;
-                        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
-                        let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
+                        let swordDmg = this.player.atk * baseMult * synergyMult * speedRingDmgBonus * this.player.swordDmgUpgrade;
 
-                        if (this.player.weaponUnlocks.sword.wave) {
+                        // [추가] 조잡한 무기 즉발 물리 타격 적용\r\n                        this.triggerSwordInstantAttack(isAdvanced ? swordAngles : [startAngle], swordDmg);
+
+                        if (isAdvanced) {
                             for (let angle of swordAngles) {
                                 let speed = 6.0;
                                 let vx = Math.cos(angle) * speed;
@@ -1982,10 +1985,10 @@ class GameEngine {
                                     radius: 5
                                 }));
                             }
-                        }
-                    }
+                                            }
+                }
 
-                    Sound.play('slash');
+                Sound.play('slash');
                     if (hasSword) {
                         this.shakeScreen(5, 2.5);
                     } else if (hasSpear) {
@@ -2049,7 +2052,7 @@ class GameEngine {
         }
 
         // [E-09 공속 반지 10레벨 속사 초월 트래킹]
-        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'supercritical_plasma_fusion') || (this.player.weaponType === 'dual');
+        let hasRangedWeapon = (this.player.weaponLevels.fire > 0) || (this.player.weaponLevels.ice > 0) || (this.player.weaponLevels.lightning > 0) || (this.player.weaponType === 'energy_ball') || (this.player.weaponType === 'supercritical_plasma_fusion');
         let canShoot = hasRangedWeapon;
         if (this.mouse.isDown && canShoot && !isOverlayOpen) {
             this.player.continuousShootTimer = (this.player.continuousShootTimer || 0) + 1;
@@ -4111,8 +4114,6 @@ class GameEngine {
     playerHasMeleeWeapon() {
         const p = this.player;
         const wt = p.weaponType;
-        if (wt === 'dual') return true;
-
         // weaponType이 WEAPON_CATEGORIES에서 melee로 분류되면 근접 보유
         if (WEAPON_CATEGORIES[wt] === 'melee') return true;
 
@@ -4174,18 +4175,18 @@ class GameEngine {
         let equippedGroups = p.equippedWeapons.map(w => this.getLegacyWeaponGroup(w));
         let thirdGroup = this.getLegacyWeaponGroup(p.thirdSlotWeapon);
 
-        if (equippedGroups.includes(groupKey) || thirdGroup === groupKey) {
+        if (equippedGroups.includes(groupKey) || (thirdGroup && thirdGroup === groupKey)) {
             return;
         }
 
         // 첫 번째 무기를 제작/획득할 경우 기존의 에너지볼(gun)은 사용하지 않도록 교체
         if (p.equippedWeapons.length === 1 && this.getLegacyWeaponGroup(p.equippedWeapons[0]) === 'gun') {
-            p.equippedWeapons = [groupKey];
+            p.equippedWeapons = [wpnId]; // groupKey 대신 실제 wpnId 적재
         } else {
             if (p.equippedWeapons.length < 2) {
-                p.equippedWeapons.push(groupKey);
+                p.equippedWeapons.push(wpnId); // groupKey 대신 실제 wpnId 적재
             } else if (p.maxWeaponSlots === 3 && p.thirdSlotWeapon === null) {
-                p.thirdSlotWeapon = groupKey;
+                p.thirdSlotWeapon = wpnId; // groupKey 대신 실제 wpnId 적재
             }
         }
     }
@@ -4229,13 +4230,35 @@ class GameEngine {
                 }));
                 Sound.play('shoot');
                 break;
-            case 'sword':
-                p.isSlashActive = true;
-                p.slashTimer = 10;
-                p.slashAngle = angle;
-                p.slashAngles = [angle];
-                this.triggerSwordInstantAttack([angle], finalDamage);
-                Sound.play('slash');
+                        case 'sword':
+                {
+                    let isAdvanced = (String(p.weaponType) === 'plasma_saber');
+                    p.swordAttackType = isAdvanced ? 'slash' : 'thrust';
+                    p.isSlashActive = true;
+                    p.slashTimer = 10;
+                    p.slashAngle = angle;
+                    p.slashAngles = [angle];
+                    this.triggerSwordInstantAttack([angle], finalDamage);
+
+                    // 플라즈마 세이버일 때만 화면 밖으로 날아가는 검기 투사체 발사
+                    if (isAdvanced) {
+                        for (let a of [angle]) {
+                            let speed = 6.0;
+                            let vx = Math.cos(a) * speed;
+                            let vy = Math.sin(a) * speed;
+                            this.bullets.push(new Bullet(p.x, p.y, vx, vy, finalDamage, true, {
+                                pierce: Math.min(5, p.pierceCount + 1),
+                                homing: p.homing,
+                                homingSpeed: p.homingAngleSpeed,
+                                splash: p.splashRadius,
+                                color: '#b026ff',
+                                radius: 5
+                            }));
+                        }
+                    }
+
+                    Sound.play(isAdvanced ? 'plasma_saber_vibe' : 'crude_sword_vibe');
+                }
                 break;
             case 'spear':
                 p.isSpearActive = true;
@@ -4444,7 +4467,7 @@ class GameEngine {
 
         // [W-04 검 흡혈 베기 기믹]
         let hasMeleeLifesteal = (this.player.weaponType === 'crude_sword' || this.player.weaponType === 'plasma_saber' || this.player.weaponType === 'crude_spear' || this.player.weaponType === 'energy_pilebunker' || this.player.weaponType === 'crude_whip' || this.player.weaponType === 'nano_laser_wire' || this.player.weaponType === 'crude_scythe' || this.player.weaponType === 'void_destroyer');
-        if (hasMeleeLifesteal || this.player.weaponType === 'dual') {
+        if (hasMeleeLifesteal ) {
             if (this.player.hp < this.player.maxHp) {
                 let healAmount = Math.max(1, (this.player.maxHp - this.player.hp) * 0.01);
                 this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount);
@@ -5221,7 +5244,7 @@ class GameEngine {
         let isFire = activeMagics.includes('fire') || (this.player.weaponType === 'crude_flamethrower' || this.player.weaponType === 'fusion_plasma_cannon');
         let isIce = activeMagics.includes('ice') || (this.player.weaponType === 'crude_cryo' || this.player.weaponType === 'cryo_freezer');
         let isWhip = (this.player.weaponType === 'crude_whip' || this.player.weaponType === 'nano_laser_wire');
-        let isDual = this.player.weaponType === 'dual' || (activeMagics.length > 1);
+        let isDual =  (activeMagics.length > 1);
 
         // 번개/불/얼음 마법 격발 시 마력(MP) 소모 및 잔량 차단 체크
         if (isLightning || isFire || isIce) {
@@ -5639,6 +5662,92 @@ class GameEngine {
         }
     }
 
+        // [신규] 검 즉발 물리 타격 판정 (베기 아크 vs 찌르기 선분 다형성)
+    triggerSwordInstantAttack(anglesToLaunch, finalDamage) {
+        let isAdvanced = (String(this.player.weaponType) === 'plasma_saber');
+        let sRadius = isAdvanced ? 130 : 110;
+        let px = this.player.x;
+        let py = this.player.y;
+
+        for (let angle of anglesToLaunch) {
+            let cosA = Math.cos(angle);
+            let sinA = Math.sin(angle);
+
+            if (!isAdvanced) {
+                // 1) [조잡한 진동검] 찌르기(Thrust) 선분-원 물리 충돌 판정
+                let hits = [];
+                for (let i = this.monsters.length - 1; i >= 0; i--) {
+                    let m = this.monsters[i];
+                    if (m.hp <= 0 || m.dead) continue;
+
+                    let dx = m.x - px;
+                    let dy = m.y - py;
+
+                    // 찌르기 직선 정사영 비율 t
+                    let t = (dx * cosA * sRadius + dy * sinA * sRadius) / (sRadius * sRadius);
+                    t = Math.max(0, Math.min(1, t));
+
+                    let tx = px + t * cosA * sRadius;
+                    let ty = py + t * sinA * sRadius;
+
+                    let distToLine = Math.hypot(m.x - tx, m.y - ty);
+
+                    // 판정 반지름 마진 8px 부여
+                    if (distToLine < m.radius + 8) {
+                        let distToPlayer = Math.hypot(m.x - px, m.y - py);
+                        hits.push({ index: i, monster: m, distance: distToPlayer });
+                    }
+                }
+
+                // 관통 처리 (정렬 후 관통력 제한 제공)
+                hits.sort((a, b) => a.distance - b.distance);
+                let maxPierce = Math.min(5, this.player.pierceCount + 1);
+                let allowedHits = hits.slice(0, maxPierce + 1);
+
+                for (let hit of allowedHits) {
+                    let m = hit.monster;
+                    
+                    // 데미지 및 넉백 처리
+                    m.hp -= finalDamage;
+                    m.flashTimer = 2;
+                    m.knockbackX = cosA * 2.5;
+                    m.knockbackY = sinA * 2.5;
+                    m.isPlayerKnockback = true;
+
+                    this.showFloatingText(Math.round(finalDamage), m.x, m.y - 20, '#ffdf00');
+                    if (m.hp <= 0) this.killMonster(hit.index);
+                }
+            } else {
+                // 2) [플라즈마 세이버] 베기(Slash) 부채꼴 범위 판정
+                for (let i = this.monsters.length - 1; i >= 0; i--) {
+                    let m = this.monsters[i];
+                    if (m.hp <= 0 || m.dead) continue;
+
+                    let dx = m.x - px;
+                    let dy = m.y - py;
+                    let dist = Math.hypot(dx, dy);
+
+                    if (dist < sRadius + m.radius) {
+                        let mAngle = Math.atan2(dy, dx);
+                        let angleDiff = Math.abs(this.getAngleDifference(angle, mAngle));
+
+                        // 아크 범위 0.95 라디안 이내인 경우 타격
+                        if (angleDiff < 0.95) {
+                            m.hp -= finalDamage;
+                            m.flashTimer = 2;
+                            m.knockbackX = Math.cos(mAngle) * 3.5;
+                            m.knockbackY = Math.sin(mAngle) * 3.5;
+                            m.isPlayerKnockback = true;
+
+                            this.showFloatingText(Math.round(finalDamage), m.x, m.y - 20, '#b026ff');
+                            if (m.hp <= 0) this.killMonster(i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // [신규 기획] 창 즉발 찌르기 및 사거리 끝 80%~100% 치명타(Critical) 및 벽꽝 물리 판정
     triggerSpearInstantAttack(anglesToLaunch) {
         // [S-01 창 사거리 축소 밸런스 공식] 기본 80px, 성장 시 최대 180px 제한 수식
@@ -5953,13 +6062,16 @@ class GameEngine {
             }
 
             // [검 베기 파편 및 검기 파동 융합 격발]
-            if (hasSword) {
+                        if (hasSword) {
+                let isAdvanced = (String(this.player.weaponType) === 'plasma_saber');
+                this.player.swordAttackType = isAdvanced ? 'slash' : 'thrust';
                 this.player.isSlashActive = true;
                 this.player.slashTimer = 12;
                 this.player.slashAngle = startAngle;
-                this.player.slashAngles = [...sAngles];
+                this.player.slashAngles = isAdvanced ? [...sAngles] : [startAngle];
 
-                for (let angle of sAngles) {
+                let anglesToUse = isAdvanced ? sAngles : [startAngle];
+                for (let angle of anglesToUse) {
                     for (let i = -5; i <= 5; i++) {
                         let offset = angle + (i * 0.15);
                         let px = this.player.x + Math.cos(offset) * 25;
@@ -5973,11 +6085,13 @@ class GameEngine {
                 let synergyMult = this.checkBuildSynergy('sword');
                 let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
                 let baseMult = 0.8;
-                let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
-                let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
+                let swordDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus;
 
-                // 검기 파동 발사 (오직 검의 wave 진화 해금 시에만 발격)
-                if (this.player.weaponUnlocks.sword.wave) {
+                // [추가] 조잡한 무기 즉발 물리 타격 적용 (조잡한 진동검은 단일 각도로만 판정)
+                this.triggerSwordInstantAttack(anglesToUse, swordDmg);
+
+                // 검기 파동 발사 (오직 플라즈마 세이버 및 wave 진화 해금 시에만 발격)
+                if (isAdvanced && this.player.weaponUnlocks.sword.wave) {
                     for (let angle of sAngles) {
                         let speed = 6.0;
                         let vx = Math.cos(angle) * speed;
@@ -6072,7 +6186,7 @@ class GameEngine {
         const getWeaponName = (id) => {
             const names = {
                 energy_ball: '에너지 볼', gun: '에너지 볼',
-                sword: '플라즈마 세이버', crude_sword: '조잡한 검', plasma_saber: '플라즈마 세이버',
+                sword: '플라즈마 세이버', crude_sword: '조잡한 진동검', plasma_saber: '플라즈마 세이버',
                 spear: '에너지 파일벙커', crude_spear: '조잡한 창', energy_pilebunker: '에너지 파일벙커',
                 whip: '나노 레이저 와이어', crude_whip: '조잡한 채찍', nano_laser_wire: '나노 레이저 와이어',
                 lightning: '체인 EMP 쇼크', crude_shock: '조잡한 전격기', chain_emp_shock: '체인 EMP 쇼크',
@@ -7605,7 +7719,7 @@ class GameEngine {
         let wpnStr = "맨몸 (안드로이드)";
         const wNames = {
             energy_ball: "에너지 볼 (Energy Ball)",
-            crude_sword: "조잡한 검 (Crude)", plasma_saber: "플라즈마 세이버 (Advanced)",
+            crude_sword: "조잡한 진동검 (Crude)", plasma_saber: "플라즈마 세이버 (Advanced)",
             crude_spear: "조잡한 창 (Crude)", energy_pilebunker: "에너지 파일벙커 (Advanced)",
             crude_whip: "조잡한 채찍 (Crude)", nano_laser_wire: "나노 레이저 와이어 (Advanced)",
             crude_shock: "조잡한 전기 충격기 (Crude)", chain_emp_shock: "체인 EMP 쇼크 (Advanced)",
@@ -7618,9 +7732,7 @@ class GameEngine {
         };
         if (wNames[this.player.weaponType]) {
             wpnStr = wNames[this.player.weaponType];
-        } else if (this.player.weaponType === 'dual') {
-            wpnStr = "검 + 총 + 창 + 원소 (Hybrid)";
-        }
+        } 
         document.getElementById('res-wpn').innerText = wpnStr;
 
         // [신규] 랭킹 등록 영역 상태 초기화
@@ -8540,7 +8652,7 @@ class GameEngine {
 
             if (wpn === 'energy_ball') {
                 btn.innerText = `${baseLabel} [Lv.1]`;
-            } else if (wpn === 'dual' || wpn === 'supercritical_plasma_fusion') {
+            } else if ( wpn === 'supercritical_plasma_fusion') {
                 btn.innerText = `${baseLabel}`;
             } else if (wpn === 'time') {
                 btn.innerText = `${baseLabel} [${p.hasTimeWarp ? '해금' : '잠금'}]`;
@@ -9467,7 +9579,7 @@ class GameEngine {
 
                 // 무기 20종
                 const wpns = [
-                    { key: 'crude_sword', name: '조잡한 검', icon: '🪓' },
+                    { key: 'crude_sword', name: '조잡한 진동검', icon: '🪓' },
                     { key: 'plasma_saber', name: '플라즈마 세이버', icon: '🗡️' },
                     { key: 'crude_spear', name: '조잡한 창', icon: '🔱' },
                     { key: 'energy_pilebunker', name: '에너지 파일벙커', icon: '⚡' },
@@ -10024,12 +10136,7 @@ class GameEngine {
     applyWeaponCheat(wpnType) {
         const p = this.player;
 
-        if (wpnType === 'dual') {
-            // 복합(Dual) 획득 시 조잡한 검과 기본 에너지볼 획득
-            p.weaponLevels.crude_sword = Math.min(5, (p.weaponLevels.crude_sword || 0) + 1);
-            this.acquireWeapon('crude_sword');
-            this.acquireWeapon('energy_ball');
-        } else if (wpnType === 'supercritical_plasma_fusion') {
+        if (wpnType === 'supercritical_plasma_fusion') {
             p.weaponLevels.fusion_plasma_cannon = Math.min(5, (p.weaponLevels.fusion_plasma_cannon || 0) + 1);
             p.weaponLevels.cryo_freezer = Math.min(5, (p.weaponLevels.cryo_freezer || 0) + 1);
             this.acquireWeapon('fusion_plasma_cannon');
