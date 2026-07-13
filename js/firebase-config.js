@@ -75,10 +75,16 @@ class NeonRankSystem {
         if (!this.isOnline || !this.db) return;
 
         try {
-            // 이번 시즌 랭킹을 점수 높은 순으로 전체 조회
-            const snapshot = await this.db.collection(collectionName)
+            // 이번 시즌 랭킹을 점수 높은 순으로 전체 조회 (최대 8초 타임아웃 적용하여 무한 대기 방지)
+            const queryPromise = this.db.collection(collectionName)
                 .orderBy('score', 'desc')
                 .get();
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Firebase rankings query timeout (8s limit exceeded)")), 8000)
+            );
+
+            const snapshot = await Promise.race([queryPromise, timeoutPromise]);
 
             // 만약 100개 초과라면, 100위 밖(index 100부터)의 모든 문서 삭제
             if (snapshot.size > maxCount) {

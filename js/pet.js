@@ -68,7 +68,7 @@ class Pet {
 
             if (closest) {
                 // 펫의 발사 공격력: 플레이어 힘(ATK) 스탯의 25% 비례 보정 (드론 강화 연계 배율 연동)
-                let petAtk = Math.max(2.0, player.atk * 0.25) * player.petDmgUpgrade;
+                let petAtk = Math.max(2.0, player.atk * 0.25) * (player.petDmgUpgrade || 1.0);
                 let targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
                 let fireSpeed = 5.0;
                 let vx = Math.cos(targetAngle) * fireSpeed;

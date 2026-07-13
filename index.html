@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -1318,6 +1318,28 @@
                         <button id="dialogue-next-btn">계속 (Space/Click)</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [신규] 전역 디버그 에러 오버레이 모달 -->
+    <div id="error-overlay" class="overlay-panel hidden" style="z-index: 9999; background: rgba(5, 3, 5, 0.95);">
+        <div class="ranking-modal-container" style="max-width: 700px; width: 95%; border-color: #ff0055; box-shadow: 0 0 25px rgba(255, 0, 85, 0.3);">
+            <div class="ranking-modal-header" style="border-bottom: 1px solid rgba(255, 0, 85, 0.3); padding-bottom: 10px;">
+                <h2 class="text-glow-red" style="font-size: 1.8rem; margin: 0; font-weight: 800; color: #ff0055; display: flex; align-items: center; gap: 8px;">🚨 SYSTEM FATAL EXCEPTION</h2>
+            </div>
+            <p style="color: #cbd5e0; font-size: 0.9rem; margin-top: 10px; margin-bottom: 15px; text-align: left; line-height: 1.5;">
+                게임 실행 중 예상치 못한 치명적인 오류가 감지되었습니다. 아래의 오류 정보를 참고하여 개발자 도구(F12)를 확인하거나 개발자에게 리포트해 주세요.
+            </p>
+            <div style="background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 0, 85, 0.2); border-radius: 6px; padding: 15px; margin-bottom: 20px; text-align: left;">
+                <div style="font-family: monospace; font-size: 0.85rem; color: #ff3366; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 250px; overflow-y: auto;" id="error-details-text">
+                    Loading exception status...
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="error-copy-btn" class="neon-btn" style="border-color: #00f0ff; color: #00f0ff; font-size: 0.9rem; padding: 8px 25px; margin: 0;">📋 오류 복사</button>
+                <button id="error-refresh-btn" class="neon-btn" style="border-color: #ff0055; color: #ff0055; font-size: 0.9rem; padding: 8px 25px; margin: 0;">🔄 강제 새로고침</button>
+                <button id="error-close-btn" class="neon-btn" style="border-color: #a0aec0; color: #a0aec0; font-size: 0.9rem; padding: 8px 25px; margin: 0;">닫기 (계속 시도)</button>
             </div>
         </div>
     </div>

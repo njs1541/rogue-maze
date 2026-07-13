@@ -3472,3 +3472,26 @@ textarea:focus-visible {
     color: #000000;
     box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
 }
+
+/* ==========================================================================
+   [신규] 치명적 예외 오류(SYSTEM FATAL EXCEPTION) 전용 디버그 스타일
+   ========================================================================== */
+.text-glow-red {
+    color: #ff0055;
+    text-shadow: 0 0 10px rgba(255, 0, 85, 0.65), 0 0 20px rgba(255, 0, 85, 0.3);
+}
+
+@keyframes pulse-error-glow {
+    0% {
+        box-shadow: 0 0 15px rgba(255, 0, 85, 0.3);
+        border-color: rgba(255, 0, 85, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 30px rgba(255, 0, 85, 0.7);
+        border-color: rgba(255, 0, 85, 1);
+    }
+}
+
+#error-overlay .ranking-modal-container {
+    animation: pulse-error-glow 2s infinite alternate;
+}

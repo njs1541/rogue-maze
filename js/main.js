@@ -1,6 +1,83 @@
-// --------------------------------------------------------------------------
-// 12. 웹 브라우저 실행 스크립트 연결 및 UI/UX 바인딩 통합
-// --------------------------------------------------------------------------
+// [신규] 치명적 런타임 오류 및 비동기 거부(Promise Rejection) 감지 디버그 핸들러
+(function registerFatalErrorHandler() {
+    function showGlobalErrorOverlay(title, message, stack) {
+        const overlay = document.getElementById('error-overlay');
+        const detailsText = document.getElementById('error-details-text');
+        const copyBtn = document.getElementById('error-copy-btn');
+        const refreshBtn = document.getElementById('error-refresh-btn');
+        const closeBtn = document.getElementById('error-close-btn');
+
+        if (!overlay || !detailsText) {
+            console.error("FATAL ERROR (Overlay UI Missing):", title, message, stack);
+            return;
+        }
+
+        const formattedError = `[ERROR TYPE]: ${title}\n[MESSAGE]: ${message}\n\n[STACK TRACE]:\n${stack || 'No stack trace available.'}`;
+        detailsText.innerText = formattedError;
+        overlay.classList.remove('hidden');
+
+        // 복사 버튼 기능 바인딩
+        copyBtn.onclick = (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(formattedError).then(() => {
+                copyBtn.innerText = "📋 복사 완료!";
+                copyBtn.style.borderColor = "#39ff14";
+                copyBtn.style.color = "#39ff14";
+                setTimeout(() => {
+                    copyBtn.innerText = "📋 오류 복사";
+                    copyBtn.style.borderColor = "#00f0ff";
+                    copyBtn.style.color = "#00f0ff";
+                }, 2000);
+            }).catch(err => {
+                console.error("클립보드 복사 실패:", err);
+            });
+        };
+
+        // 새로고침 버튼 기능 바인딩
+        refreshBtn.onclick = (e) => {
+            e.stopPropagation();
+            window.location.reload();
+        };
+
+        // 닫기 버튼 기능 바인딩
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.classList.add('hidden');
+        };
+    }
+
+    // 일반 런타임 에러 감시
+    window.addEventListener('error', function (event) {
+        const error = event.error || {};
+        const title = error.name || "Runtime Exception";
+        const message = event.message || error.message || "Unknown execution error";
+        const filename = event.filename ? event.filename.split('/').pop() : 'inline';
+        const line = event.lineno || 0;
+        const col = event.colno || 0;
+        const stack = error.stack || `at ${event.filename || 'unknown'}:${line}:${col}`;
+
+        showGlobalErrorOverlay(title, `${message} (${filename}:${line}행)`, stack);
+    });
+
+    // 비동기 Promise 에러 감시
+    window.addEventListener('unhandledrejection', function (event) {
+        const reason = event.reason || {};
+        const title = reason.name || "Unhandled Promise Rejection";
+        const message = reason.message || String(reason) || "Asynchronous promise rejected without catch";
+        const stack = reason.stack || "No async stack trace available.";
+
+        showGlobalErrorOverlay(title, message, stack);
+    });
+
+    // 디버그 수동 트리거용 Shift + F8 단축키 (콘솔 및 수동 에러 연출)
+    window.addEventListener('keydown', function(e) {
+        if (e.shiftKey && e.key === 'F8') {
+            console.warn("[디버그] Shift+F8 입력: 가상 테스트 오류를 발생시킵니다.");
+            throw new Error("[TEST] 사용자에 의해 트리거된 디버그용 가상 시스템 예외입니다!");
+        }
+    });
+})();
+
 window.onload = async () => {
     console.log("게임 초기화 시작...");
     
