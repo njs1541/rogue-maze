@@ -3,22 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <script>
-        // 원격 런타임 에러 추적용 디버거
-        window.onerror = function (message, source, lineno, colno, error) {
-            alert("🚨 네온 엔진 런타임 에러 감지!\n\n에러 메시지: " + message + "\n발생 위치: " + source + " (Line " + lineno + ", Col " + colno + ")\n\n이 에러 메시지를 복사해서 개발자에게 알려주세요!");
-            return false;
-        };
-    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Rogue-Maze: 100 Rooms</title>
     <!-- 고급 현대적인 타이포그래피 Google Font 적용 -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Firebase Compat v10 Core & Firestore CDN 추가 (최신화 완료) -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Compat v10 Core & Firestore CDN 추가 (최신화 완료, CORS 에러 마스킹 예방 속성 적용) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js" crossorigin="anonymous"></script>
 </head>
 
 <body>

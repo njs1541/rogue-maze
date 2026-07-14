@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // 7. 게임 전체를 지휘하는 핵심 컨트롤러 (GameEngine)
 // --------------------------------------------------------------------------
 
@@ -43,6 +43,7 @@ class GameEngine {
         this.rewardSelectorIsFromHiddenChest = false;
         this.roomRewardSpawned = false; // [신규] 방 클리어 보상 스폰 유일성 플래그
         this.extraDrawCount = 0; // [신규] 운 비례 카드 추가 획득 횟수 추적 카운터
+        this.rewardQueue = []; // [신규] 동시 획득 보상 팝업 순차 대기 큐 시스템
 
         // 엔티티 관리 리스트
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
@@ -1607,6 +1608,7 @@ class GameEngine {
         // [신규 추가] 1. 통합 오버레이 일시정지(Freeze) 체크 및 동결 엔진
         let isOverlayOpen = false;
         const rewardOverlay = document.getElementById('reward-overlay');
+        const blueprintOverlay = document.getElementById('blueprint-overlay'); // [신규] 설계도 오버레이 추가
         const detailOverlay = document.getElementById('card-detail-overlay');
         const shopOverlay = document.getElementById('shop-confirm-overlay');
         const resultOverlay = document.getElementById('result-overlay');
@@ -1618,6 +1620,7 @@ class GameEngine {
         const storyOverlay = document.getElementById('story-dialogue-overlay'); // [신규] 스토리 대화 오버레이
 
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
+            (blueprintOverlay && !blueprintOverlay.classList.contains('hidden')) || // [신규] 설계도 오버레이 조건 추가
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
             (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
             (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
@@ -1658,7 +1661,7 @@ class GameEngine {
             this.rewardSelectorDelayTimer--;
             if (this.rewardSelectorDelayTimer === 0) {
                 this.rewardSelectorDelayTimer = -1;
-                this.triggerRewardSelector(this.rewardSelectorIsFromHiddenChest);
+                this.enqueueReward({ type: 'reward', isFromHiddenChest: this.rewardSelectorIsFromHiddenChest });
             }
         }
 
@@ -3259,8 +3262,8 @@ class GameEngine {
                 }
                 Sound.play('powerup');
 
-                // 설계도 선택창 활성화
-                this.triggerBlueprintRewardSelection();
+                // 설계도 선택창 큐에 추가
+                this.enqueueReward({ type: 'blueprint' });
 
                 // 상자 삭제
                 this.blueprintChests.splice(i, 1);
@@ -5571,6 +5574,9 @@ class GameEngine {
 
                 if (inWhipArc) {
                     let isPulled = false;
+                    let prevX = m.x;
+                    let prevY = m.y;
+
                     // 동시 견인 수량 제한 범위 내에서만 플레이어 70px 앞 안전 거리로 견인 (나노 레이저 와이어는 견인 배제)
                     if (!isLaserWire && pulledCount < maxPullCount) {
                         let pullAngle = this.player.angle;
@@ -5599,9 +5605,70 @@ class GameEngine {
                                 m.x, m.y, '#ff00aa', 1.5, Math.cos(pAngle) * speed, Math.sin(pAngle) * speed, 12, 'spark'
                             ));
                         }
+
+                        // [Option 2: 나노 레이저 와이어 감전 체인 연출]
+                        let grabColor = '#ff00aa';
+                        let chainCount = 10;
+                        for (let k = 0; k <= chainCount; k++) {
+                            let t = k / chainCount;
+                            let baseX = this.player.x + (m.x - this.player.x) * t;
+                            let baseY = this.player.y + (m.y - this.player.y) * t;
+
+                            let dx = m.x - this.player.x;
+                            let dy = m.y - this.player.y;
+                            let len = Math.hypot(dx, dy);
+                            let nx = -dy / (len || 1);
+                            let ny = dx / (len || 1);
+                            let offset = Math.sin(t * Math.PI * 3) * (Math.random() * 6 + 3); // 지그재그 편차
+
+                            let px = baseX + nx * offset;
+                            let py = baseY + ny * offset;
+
+                            this.particles.push(new Particle(
+                                px, py, grabColor, 1.8, 0, 0, 8, 'spark'
+                            ));
+                        }
                     } else if (isPulled) {
                         let shockDuration = 90 + (whipLvl - 1) * 15; // 1레벨: 90프레임 (1.5초) ~ 5레벨: 150프레임 (2.5초)
                         m.statusEffects.shock = shockDuration; // [수정] 기절 프레임 부여 (견인된 적만 스턴)
+
+                        // [Option 2: 조잡한 채찍 견인 궤적 잔상 & 전자기 견인선 연출]
+                        let grabColor = '#eb7814'; // 주황색 플라즈마 전류 색상
+
+                        // 1) 몬스터 이동 궤적 먼지 파티클 잔상
+                        let steps = 8;
+                        for (let k = 0; k <= steps; k++) {
+                            let t = k / steps;
+                            let px = prevX + (m.x - prevX) * t;
+                            let py = prevY + (m.y - prevY) * t;
+                            
+                            // 이동 방향에 약간의 무작위 흔들림 적용
+                            this.particles.push(new Particle(
+                                px, py, grabColor, 2.0, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, 12, 'dust'
+                            ));
+                        }
+
+                        // 2) 플레이어와 끌려온 몬스터 사이 번개 견인선
+                        let chainCount = 10;
+                        for (let k = 0; k <= chainCount; k++) {
+                            let t = k / chainCount;
+                            let baseX = this.player.x + (m.x - this.player.x) * t;
+                            let baseY = this.player.y + (m.y - this.player.y) * t;
+
+                            let dx = m.x - this.player.x;
+                            let dy = m.y - this.player.y;
+                            let len = Math.hypot(dx, dy);
+                            let nx = -dy / (len || 1);
+                            let ny = dx / (len || 1);
+                            let offset = Math.sin(t * Math.PI * 3) * (Math.random() * 8 + 4);
+
+                            let px = baseX + nx * offset;
+                            let py = baseY + ny * offset;
+
+                            this.particles.push(new Particle(
+                                px, py, grabColor, 2.2, 0, 0, 10, 'spark'
+                            ));
+                        }
                     }
                     m.flashTimer = 8;
 
@@ -6337,6 +6404,50 @@ class GameEngine {
         }
     }
 
+    // [신규 기믹] 보상 대기 큐 및 순차 처리 시스템
+    enqueueReward(reward) {
+        this.rewardQueue.push(reward);
+        this.processRewardQueue();
+    }
+
+    processRewardQueue() {
+        // 이미 보상 오버레이가 화면에 열려 있으면 프로세스를 중단하고 대기합니다.
+        if (this.isRewardOverlayOpen()) {
+            return;
+        }
+
+        if (this.rewardQueue.length === 0) {
+            return;
+        }
+
+        const nextReward = this.rewardQueue.shift();
+        if (nextReward.type === 'reward') {
+            this.triggerRewardSelector(nextReward.isFromHiddenChest);
+        } else if (nextReward.type === 'blueprint') {
+            this.triggerBlueprintRewardSelection();
+        }
+    }
+
+    isRewardOverlayOpen() {
+        const rewardOverlay = document.getElementById('reward-overlay');
+        const blueprintOverlay = document.getElementById('blueprint-overlay');
+        
+        const isRewardVisible = rewardOverlay && !rewardOverlay.classList.contains('hidden');
+        const isBlueprintVisible = blueprintOverlay && !blueprintOverlay.classList.contains('hidden');
+        
+        return isRewardVisible || isBlueprintVisible;
+    }
+
+    completeRewardProgress() {
+        this.processRewardQueue();
+        
+        // 대기 큐가 비어 있고, 열려 있는 보상 오버레이도 없을 때 비로소 포털을 활성화합니다.
+        if (this.rewardQueue.length === 0 && !this.isRewardOverlayOpen()) {
+            this.portals.forEach(p => p.active = true);
+            this.updateHUD();
+        }
+    }
+
     // --------------------------------------------------------------------------
     // 9. 카드 보상 선택 레이아웃 트리거
     // --------------------------------------------------------------------------
@@ -6470,7 +6581,7 @@ class GameEngine {
                             this.player.updateWeaponType();
                             this.updateHUD();
                             this.triggerPowerUpVisuals(data);
-                            this.portals.forEach(p => p.active = true);
+                            this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
                             Sound.play('powerup');
                             return;
                         }
@@ -6502,7 +6613,7 @@ class GameEngine {
                             this.player.updateWeaponType();
                             this.updateHUD();
                             this.triggerPowerUpVisuals(data);
-                            this.portals.forEach(p => p.active = true);
+                            this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
                             Sound.play('powerup');
                             return;
                         }
@@ -6581,7 +6692,7 @@ class GameEngine {
                                     this.updateHUD();
 
                                     this.triggerPowerUpVisuals(data);
-                                    this.portals.forEach(p => p.active = true);
+                                    this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
                                     Sound.play('powerup');
                                 };
                                 slotsContainer.appendChild(btn);
@@ -6645,7 +6756,7 @@ class GameEngine {
                         }, 800);
                     } else {
                         // 추가 획득 종료 시 포털 활성화
-                        this.portals.forEach(p => p.active = true);
+                        this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
                     }
                 };
             });
@@ -6686,7 +6797,7 @@ class GameEngine {
 
         if (available.length === 0) {
             this.showFloatingText("모든 설계도를 이미 획득했습니다! 🎉", this.player.x, this.player.y - 30, '#ffdf00');
-            this.portals.forEach(p => p.active = true);
+            this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
             return;
         }
 
@@ -6757,8 +6868,7 @@ class GameEngine {
                     Sound.play('powerup');
 
                     // 문 개방
-                    this.portals.forEach(p => p.active = true);
-                    this.updateHUD();
+                    this.completeRewardProgress(); // [신규] 큐 완료 후 포털 활성화 제어
                 };
 
                 wrapper.appendChild(card);
@@ -9101,7 +9211,7 @@ class GameEngine {
         const spawnRewardBtn = document.getElementById('cheat-spawn-reward');
         if (spawnRewardBtn) {
             spawnRewardBtn.addEventListener('click', () => {
-                this.triggerRewardSelector(true);
+                this.enqueueReward({ type: 'reward', isFromHiddenChest: true });
                 this.toggleCheatMenu(); // 치트 메뉴 닫기
                 this.showFloatingText("보상 선택 오버레이 즉시 호출 🎁", this.player.x, this.player.y - 40, '#00f0ff');
             });

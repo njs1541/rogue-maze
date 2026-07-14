@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // 4. 플레이어 클래스 (이등변 삼각형 조종 및 스탯)
 // --------------------------------------------------------------------------
 // 무기 시스템 데이터 선언 (새로운 무기나 융합 무기 추가 시 여기에 등록)
@@ -950,10 +950,28 @@ class Player {
         // 2. 카테고리별 활성화 여부 계산
         let activeMelee = [];
         let activeRanged = [];
-        for (let key in this.weaponLevels) {
-            if (this.weaponLevels[key] > 0) {
-                if (WEAPON_CATEGORIES[key] === 'melee') activeMelee.push(key);
-                if (WEAPON_CATEGORIES[key] === 'ranged') activeRanged.push(key);
+        
+        let equippedPool = [...this.equippedWeapons];
+        if (this.thirdSlotWeapon) {
+            equippedPool.push(this.thirdSlotWeapon);
+        }
+
+        for (let key of equippedPool) {
+            let lvl = this.weaponLevels[key] || 0;
+            if (lvl > 0) {
+                let cat = WEAPON_CATEGORIES[key];
+                if (!cat) {
+                    // 레거시 무기 ID 매핑 예외 처리
+                    if (key === 'sword' || key === 'spear' || key === 'whip' || key === 'scythe') {
+                        cat = 'melee';
+                    } else if (key === 'gun' || key === 'energy_ball' || key === 'lightning' || key === 'fire' || key === 'ice' || key === 'railcannon') {
+                        cat = 'ranged';
+                    } else if (key === 'thorns' || key === 'trap') {
+                        cat = 'utility';
+                    }
+                }
+                if (cat === 'melee') activeMelee.push(key);
+                if (cat === 'ranged') activeRanged.push(key);
             }
         }
 
@@ -1522,23 +1540,21 @@ class Player {
                         if (!this._thrustRenderedThisFrame) {
                             this._thrustRenderedThisFrame = true;
                             
-                            let sRadius = 110;
+                            let L = 100 + (this.range - 350);
                             let maxTimer = 12;
                             let progress = Math.max(0, Math.min(1, (maxTimer - this.slashTimer) / maxTimer));
                             
-                            let startDist = 0;
-                            let endDist = 0;
+                            let startDist = 10;
+                            let endDist = 10;
                             
                             if (progress < 0.3) {
-                                startDist = 0;
                                 let ratio = progress / 0.3;
                                 let t = 1 - Math.pow(1 - ratio, 2); // EaseOut 적용
-                                endDist = sRadius * t;
+                                endDist = 10 + L * t;
                             } else {
                                 let ratio = (progress - 0.3) / 0.7;
                                 let t = Math.pow(ratio, 2); // EaseIn 적용
-                                startDist = sRadius * t;
-                                endDist = sRadius;
+                                endDist = 10 + L * (1 - t);
                             }
 
                             if (startDist < endDist) {

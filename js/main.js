@@ -48,32 +48,78 @@
 
     // 일반 런타임 에러 감시
     window.addEventListener('error', function (event) {
-        const error = event.error || {};
-        const title = error.name || "Runtime Exception";
-        const message = event.message || error.message || "Unknown execution error";
+        let title = "Runtime Exception";
+        let message = "Unknown execution error";
+        let stack = "";
+
         const filename = event.filename ? event.filename.split('/').pop() : 'inline';
         const line = event.lineno || 0;
         const col = event.colno || 0;
-        const stack = error.stack || `at ${event.filename || 'unknown'}:${line}:${col}`;
+
+        // CORS/외부 스크립트 보안 제약으로 인한 에러 메시지 은닉 감지 (Script error.)
+        if (event.message === "Script error." || (!event.filename && event.lineno === 0)) {
+            title = "CORS Script Error (보안 정책)";
+            message = "외부 CDN 스크립트 또는 로컬 파일(file://) 보안 제한으로 인해 상세 에러 메시지가 차단되었습니다.\n\n" +
+                      "👉 해결 방법:\n" +
+                      "1. HTML에서 외부 스크립트 로드 시 crossorigin=\"anonymous\" 속성이 필요합니다.\n" +
+                      "2. 로컬 파일(file://)로 직접 여는 대신 로컬 웹서버(start_server.ps1)를 구동하여 접속해 주세요.";
+            stack = `at ${event.filename || 'external-script'}:${line}:${col}`;
+        } else {
+            const error = event.error;
+            if (error instanceof Error) {
+                title = error.name || "Runtime Exception";
+                message = error.message || event.message || "Unknown execution error";
+                stack = error.stack || `at ${event.filename || 'unknown'}:${line}:${col}`;
+            } else if (typeof error === 'string') {
+                message = error;
+                stack = `at ${event.filename || 'unknown'}:${line}:${col}`;
+            } else if (error && typeof error === 'object') {
+                title = error.name || "Runtime Exception Object";
+                message = error.message || JSON.stringify(error);
+                stack = error.stack || `at ${event.filename || 'unknown'}:${line}:${col}`;
+            } else {
+                message = event.message || "Unknown execution error";
+                stack = `at ${event.filename || 'external-script'}:${line}:${col}`;
+            }
+        }
 
         showGlobalErrorOverlay(title, `${message} (${filename}:${line}행)`, stack);
     });
 
     // 비동기 Promise 에러 감시
     window.addEventListener('unhandledrejection', function (event) {
-        const reason = event.reason || {};
-        const title = reason.name || "Unhandled Promise Rejection";
-        const message = reason.message || String(reason) || "Asynchronous promise rejected without catch";
-        const stack = reason.stack || "No async stack trace available.";
+        let title = "Unhandled Promise Rejection";
+        let message = "Asynchronous promise rejected without catch";
+        let stack = "No async stack trace available.";
+
+        const reason = event.reason;
+        if (reason instanceof Error) {
+            title = reason.name || "Unhandled Promise Rejection";
+            message = reason.message || "Asynchronous promise rejected without catch";
+            stack = reason.stack || "No async stack trace available.";
+        } else if (typeof reason === 'string') {
+            message = reason;
+        } else if (reason && typeof reason === 'object') {
+            // Firebase Error 등 커스텀 에러 객체 완벽 캡처
+            title = reason.code || reason.name || "Promise Rejection Object";
+            message = reason.message || JSON.stringify(reason);
+            stack = reason.stack || "No async stack trace available.";
+        } else if (reason !== undefined && reason !== null) {
+            message = String(reason);
+        }
 
         showGlobalErrorOverlay(title, message, stack);
     });
 
-    // 디버그 수동 트리거용 Shift + F8 단축키 (콘솔 및 수동 에러 연출)
+    // 디버그 수동 트리거용 Shift 키 단축키 (콘솔 및 수동 에러 연출)
     window.addEventListener('keydown', function(e) {
         if (e.shiftKey && e.key === 'F8') {
-            console.warn("[디버그] Shift+F8 입력: 가상 테스트 오류를 발생시킵니다.");
+            console.warn("[디버그] Shift+F8 입력: 가상 테스트 동기식 런타임 오류를 발생시킵니다.");
             throw new Error("[TEST] 사용자에 의해 트리거된 디버그용 가상 시스템 예외입니다!");
+        }
+        if (e.shiftKey && e.key === 'F9') {
+            console.warn("[디버그] Shift+F9 입력: 가상 테스트 비동기 Promise 예외를 발생시킵니다.");
+            Promise.reject(new Error("[TEST] 비동기 프로미스 거부 테스트 예외입니다!"));
         }
     });
 })();
