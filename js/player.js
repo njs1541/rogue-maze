@@ -1463,25 +1463,62 @@ class Player {
             // 프레임당 단 1번만 찌르기를 그리도록 가드 플래그 초기화
             this._thrustRenderedThisFrame = false;
             let drawAngles = this.slashAngles && this.slashAngles.length > 0 ? this.slashAngles : [this.slashAngle];
+            
+            // 채찍(Whip) 비주얼 가닥 수가 너무 많아 지저분해지는 것을 방지하기 위해 최대 3개 각도로 렌더링 제한 (물리 판정은 정상 유지)
+            if (isWhip && drawAngles.length > 3) {
+                let step = (drawAngles.length - 1) / 2;
+                drawAngles = [
+                    drawAngles[0],
+                    drawAngles[Math.floor(step)],
+                    drawAngles[drawAngles.length - 1]
+                ];
+            }
             for (let angle of drawAngles) {
                 if (isWhip) {
-                    // [W-03 채찍 S자 파형 궤적 실시간 렌더링]
+                    // [W-03 채찍 S자 파형 궤적 실시간 렌더링 - 물리 보간 & 위상 전파 & 에너지 팁 적용]
+                    let progress = (12 - this.slashTimer) / 12;
+                    let L = 0;
+                    if (progress < 0.35) {
+                        L = Math.sin((progress / 0.35) * Math.PI / 2);
+                    } else if (progress < 0.6) {
+                        L = 1.0;
+                    } else {
+                        L = 1.0 - (progress - 0.6) / 0.4;
+                    }
+
+                    let scaleFactor = Math.sqrt(this.atk / 10);
+                    let waveAmp = isAdvanced ? 12 : 24;
+                    let waveFactor = Math.sin(progress * Math.PI);
+                    let phase = progress * Math.PI * 3.5;
+
                     ctx.beginPath();
                     ctx.moveTo(0, 0);
                     let segments = 20;
                     for (let s = 1; s <= segments; s++) {
                         let t = s / segments;
-                        let currentDist = radius * t;
-                        // 조잡한 무기는 S자 왜곡 폭을 키워 엉성하게 흔들림 연출
-                        let waveAmp = isAdvanced ? 12 : 24;
-                        let wave = Math.sin(t * Math.PI * 2) * waveAmp * (this.slashTimer / 12);
+                        let currentDist = radius * t * L;
+                        let startAmp = Math.min(1.0, t * 4.0);
+                        let wave = Math.sin(t * Math.PI * 2.5 - phase) * waveAmp * waveFactor * startAmp;
                         
                         let sx = Math.cos(angle) * currentDist - Math.sin(angle) * wave;
                         let sy = Math.sin(angle) * currentDist + Math.cos(angle) * wave;
                         ctx.lineTo(sx, sy);
+
+                        // 채찍을 따라 지글거리는 전류 스파크 그리기
+                        if (Math.random() < 0.25 && progress > 0.1 && progress < 0.9) {
+                            let sparkAngle = angle + (Math.random() - 0.5) * 1.8;
+                            let sparkLen = (Math.random() * 10 + 5) * scaleFactor;
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.moveTo(sx, sy);
+                            ctx.lineTo(sx + Math.cos(sparkAngle) * sparkLen, sy + Math.sin(sparkAngle) * sparkLen);
+                            ctx.strokeStyle = isAdvanced ? 'rgba(255, 100, 220, 0.8)' : 'rgba(255, 200, 50, 0.8)';
+                            ctx.lineWidth = 1.0 * scaleFactor;
+                            ctx.stroke();
+                            ctx.restore();
+                        }
                     }
                     ctx.strokeStyle = color;
-                    let scaleFactor = Math.sqrt(this.atk / 10);
                     ctx.lineWidth = (isAdvanced ? 4.5 : 2.0) * (this.slashTimer / 12) * scaleFactor;
                     ctx.shadowBlur = isAdvanced ? 20 : 6;
                     ctx.shadowColor = shadowColor;
@@ -1493,8 +1530,9 @@ class Player {
                         ctx.moveTo(0, 0);
                         for (let s = 1; s <= segments; s++) {
                             let t = s / segments;
-                            let currentDist = radius * t;
-                            let wave = Math.sin(t * Math.PI * 2) * 12 * (this.slashTimer / 12);
+                            let currentDist = radius * t * L;
+                            let startAmp = Math.min(1.0, t * 4.0);
+                            let wave = Math.sin(t * Math.PI * 2.5 - phase) * 12 * waveFactor * startAmp;
                             let sx = Math.cos(angle) * currentDist - Math.sin(angle) * wave;
                             let sy = Math.sin(angle) * currentDist + Math.cos(angle) * wave;
                             ctx.lineTo(sx, sy);
@@ -1503,6 +1541,36 @@ class Player {
                         ctx.lineWidth = 1.2 * (this.slashTimer / 12) * scaleFactor;
                         ctx.shadowBlur = 0;
                         ctx.stroke();
+                    }
+
+                    // 끝단 플라즈마 에너지 구체 (Plasma Tip) 렌더링
+                    let tipRadius = (isAdvanced ? 16 : 10) * waveFactor * scaleFactor;
+                    if (tipRadius > 1) {
+                        let tipDist = radius * L;
+                        let endWave = Math.sin(1.0 * Math.PI * 2.5 - phase) * waveAmp * waveFactor * Math.min(1.0, 4.0);
+                        let tipX = Math.cos(angle) * tipDist - Math.sin(angle) * endWave;
+                        let tipY = Math.sin(angle) * tipDist + Math.cos(angle) * endWave;
+
+                        ctx.save();
+                        ctx.beginPath();
+                        let grad = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, tipRadius);
+                        if (isAdvanced) {
+                            grad.addColorStop(0, '#ffffff');
+                            grad.addColorStop(0.3, '#ff00aa');
+                            grad.addColorStop(1, 'rgba(255, 0, 170, 0)');
+                            ctx.shadowColor = '#ff00aa';
+                            ctx.shadowBlur = 15;
+                        } else {
+                            grad.addColorStop(0, '#ffffff');
+                            grad.addColorStop(0.3, '#ffcc00');
+                            grad.addColorStop(1, 'rgba(235, 120, 20, 0)');
+                            ctx.shadowColor = '#eb7814';
+                            ctx.shadowBlur = 10;
+                        }
+                        ctx.fillStyle = grad;
+                        ctx.arc(tipX, tipY, tipRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
                     }
                 } else {
                     // [W-03 寃 踰좉린 沅ㅼ쟻 ?쒕줈??- 議곗옟??vs 吏꾪솕??
