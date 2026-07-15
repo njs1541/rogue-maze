@@ -5542,8 +5542,10 @@ class GameEngine {
         let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
         let finalDamage = baseDmg * whipLevelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * multishotDmgFactor * burstDmgFactor * hybridDmgFactor;
 
-        // [W-06 채찍 동시 견인 제한 공식] 기본 1마리, 다발 및 진화에 비례해 증가
-        let maxPullCount = 1 + (this.player.multishot - 1) + (this.player.weaponUnlocks.whip.multi ? 1 : 0);
+        let isWhipMultiEnabled = (whipLvl >= 5 || this.player.weaponUnlocks.whip.multi);
+
+        // [W-06 채찍 동시 견인 제한 공식] 다중 채찍일 때 최대 3마리, 그 외에는 1마리
+        let maxPullCount = isWhipMultiEnabled ? 3 : 1;
         let pulledCount = 0;
 
         for (let i = this.monsters.length - 1; i >= 0; i--) {
@@ -5558,8 +5560,8 @@ class GameEngine {
                 if (isLaserWire) {
                     inWhipArc = true;
                 } else {
-                    // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 기본 0.2 라디안에서 카드 성장에 따라 미세 확장
-                    let whipArcLimit = 0.2 + (this.player.multishot - 1) * 0.05 + (this.player.weaponUnlocks.whip.multi ? 0.15 : 0);
+                    // [W-04 채찍 좌우 유효 피격각도 동적 성장 공식] 
+                    let whipArcLimit = isWhipMultiEnabled ? 0.35 : 0.2;
 
                     // 그어진 모든 채찍 호 각도 검사
                     for (let angle of anglesToLaunch) {
@@ -6036,13 +6038,17 @@ class GameEngine {
             }
         }
 
-        // 2. 채찍 다발 각도
-        let whipMultiArc = 0.15 + (this.player.multishot - 1) * 0.03 + (this.player.weaponUnlocks.whip.multi ? 0.10 : 0);
-        if (this.player.multishot === 1) {
+        // 2. 채찍 다발 각도 (최초 습득 시 1개, 5레벨 달성 혹은 장비/카드 해금 시 다발 증가)
+        let whipLvl = this.player.weaponLevels.whip || 1;
+        let isWhipMultiEnabled = (whipLvl >= 5 || this.player.weaponUnlocks.whip.multi);
+        
+        if (!isWhipMultiEnabled) {
             whipAngles.push(startAngle);
         } else {
-            let step = whipMultiArc / (this.player.multishot - 1);
-            for (let i = 0; i < this.player.multishot; i++) {
+            let whipCount = 3;
+            let whipMultiArc = 0.20; // 다중 채찍의 부채꼴 각도 범위
+            let step = whipMultiArc / (whipCount - 1);
+            for (let i = 0; i < whipCount; i++) {
                 whipAngles.push(startAngle - (whipMultiArc / 2) + (step * i));
             }
         }
