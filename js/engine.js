@@ -12,16 +12,16 @@ class GameEngine {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
 
-        // 디자인 해상도 비율 1320 * 900 고정 스케일링 설정
-        this.mapWidth = 1320;
-        this.mapHeight = 900;
+        // 디자인 해상도 비율 2200 * 1500 (40x30 그리드)
+        this.mapWidth = 2200;
+        this.mapHeight = 1500;
         this.canvas.width = this.mapWidth;
         this.canvas.height = this.mapHeight;
         this.currentRoomMonsterPool = [];
 
         // 키보드 마우스 입력 상태 변수
         this.keys = {};
-        this.mouse = { x: 0, y: 0, isDown: false };
+        this.mouse = { x: 0, y: 0, screenX: 0, screenY: 0, isDown: false };
         this.visualsSuspended = false;
         this.suspendedFloatingTexts = [];
         this.onCardDetailClose = null;
@@ -151,11 +151,13 @@ class GameEngine {
             window.shadowBlurOverridden = true;
         }
 
+        this.camera = { x: 0, y: 0 };
         this.initInputEvents();
         this.setupInitialRoom();
         this.initCheatSystemEvents();
         this.initOptionEvents(); // [신규 추가] 시스템 옵션 모달 이벤트 등록
         this.initUpgradeShopEvents(); // [신규 추가] 바이츠 상점 이벤트 등록
+        this.initStatsDashboardEvents(); // [신규 추가] 스탯 대시보드 플로팅 이벤트 등록
 
         // 이어하기 버튼 가시성 업데이트
         this.updateContinueButtonVisibility();
@@ -165,28 +167,15 @@ class GameEngine {
         window.addEventListener('resize', () => this.adjustLayoutScale());
     }
 
-    // [신규] 브라우저 화면 크기에 비례하여 레이아웃을 비율대로 scale 조절
+    // [신규] 브라우저 화면 크기에 비례하여 레이아웃 리사이즈 및 캔버스 픽셀 해상도 1:1 맞춤
     adjustLayoutScale() {
-        const container = document.getElementById('game-container');
-        if (!container) return;
-
-        const baseWidth = 2830;
-        const baseHeight = 1222;
-        const winWidth = window.innerWidth;
-        const winHeight = window.innerHeight;
-
-        let scaleX = winWidth / baseWidth;
-        let scaleY = winHeight / baseHeight;
-        let minScale = Math.min(scaleX, scaleY);
-
-        // 창 크기가 기준 해상도보다 클 때는 확대하지 않고 1배율로 유지
-        if (minScale > 1) {
-            minScale = 1;
+        // 전체화면 레이아웃으로 변경됨에 따라 고정 스케일 처리는 비활성화합니다.
+        document.documentElement.style.setProperty('--game-scale', 1);
+        
+        if (this.canvas) {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
         }
-
-        container.style.transform = `translate(-50%, -50%) scale(${minScale})`;
-        // [신규] CSS 변수로 현재 스케일 비율 전달 (외부 이관된 대화 오버레이 스케일링 연동용)
-        document.documentElement.style.setProperty('--game-scale', minScale);
     }
 
     // 입력 장치 이벤트 바인딩
@@ -236,21 +225,14 @@ class GameEngine {
                 this.toggleOptionMenu();
             }
 
-            // [신규 추가] Tab 키: 인게임 획득 장비 상태창 모달 토글
+            // [신규 추가] Tab 키: 인게임 스탯 대시보드 플로팅 토글
             if (e.key === 'Tab') {
                 const activeEl = document.activeElement;
                 if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
                     return;
                 }
                 e.preventDefault();
-
-                // 상태 조회 창을 열 수 있는지 조건 검사
-                const statusOverlay = document.getElementById('in-game-status-overlay');
-                const isAlreadyOpen = statusOverlay && !statusOverlay.classList.contains('hidden');
-                if (!isAlreadyOpen) {
-                    if (this.checkAnyOverlayOpenExcept('in-game-status-overlay')) return;
-                }
-                this.toggleStatusMenu();
+                this.toggleStatsDashboard();
             }
 
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
@@ -300,10 +282,13 @@ class GameEngine {
 
         // [수정] 마우스가 캔버스 바깥 영역으로 나가도 조준이 끊김 없이 부드럽게 갱신되도록 window 전체에 바인딩
         window.addEventListener('mousemove', (e) => {
+            if (!this.canvas) return;
             const rect = this.canvas.getBoundingClientRect();
             // 화면 스케일에 상관없이 정확한 캔버스 기준 상대 조준점 확보 (바깥 영역 투영 가능)
-            this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-            this.mouse.y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+            this.mouse.screenX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+            this.mouse.screenY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+            this.mouse.x = this.mouse.screenX + (this.camera ? this.camera.x : 0);
+            this.mouse.y = this.mouse.screenY + (this.camera ? this.camera.y : 0);
             this.keyboardAimActive = false; // 마우스 이동 시 키보드 조준 모드 해제
         });
 
@@ -313,7 +298,9 @@ class GameEngine {
             if (e.target) {
                 const targetTagName = e.target.tagName;
                 if (targetTagName === 'INPUT' || targetTagName === 'BUTTON' || targetTagName === 'SELECT' ||
-                    e.target.closest('.overlay-panel') || e.target.closest('#hud-header') || e.target.closest('#hud-footer')) {
+                    e.target.closest('.overlay-panel') || e.target.closest('#hud-header') || e.target.closest('#hud-footer') ||
+                    e.target.closest('#weapon-slots-panel') || e.target.closest('#stats-dashboard') || 
+                    e.target.closest('#stats-toggle-btn') || e.target.closest('.stats-toggle-btn')) {
                     return;
                 }
             }
@@ -402,6 +389,16 @@ class GameEngine {
                 const hudFooter = document.getElementById('hud-footer');
                 if (hudHeader) hudHeader.classList.add('hidden');
                 if (hudFooter) hudFooter.classList.add('hidden');
+
+                const weaponPanel = document.getElementById('weapon-slots-panel');
+                const statsBtn = document.getElementById('stats-toggle-btn');
+                const statsDashboard = document.getElementById('stats-dashboard');
+                if (weaponPanel) weaponPanel.classList.add('hidden');
+                if (statsBtn) statsBtn.classList.add('hidden');
+                if (statsDashboard) {
+                    statsDashboard.classList.remove('active');
+                    statsDashboard.classList.add('hidden');
+                }
 
                 // 이어하기 버튼 상태 업데이트
                 this.updateContinueButtonVisibility();
@@ -575,6 +572,12 @@ class GameEngine {
         if (hudHeader) hudHeader.classList.remove('hidden');
         if (hudFooter) hudFooter.classList.remove('hidden');
 
+        // [신규] 무기 슬롯 패널 및 스탯 버튼 보이기
+        const weaponPanel = document.getElementById('weapon-slots-panel');
+        const statsBtn = document.getElementById('stats-toggle-btn');
+        if (weaponPanel) weaponPanel.classList.remove('hidden');
+        if (statsBtn) statsBtn.classList.remove('hidden');
+
         // [신규 기획] Manual 화면 테두리 노이즈 필터 초기화
         const filter = document.getElementById('manual-noise-filter');
         if (filter) {
@@ -586,6 +589,10 @@ class GameEngine {
         this.roomNum = 1;
         this.score = 0;
         this.kills = 0;
+
+        // 맵 기본 크기 셋업 선행 (Player 스폰 중심 좌표 보정)
+        this.mapWidth = 2200;
+        this.mapHeight = 1500;
 
         this.player = new Player(this.mapWidth / 2, this.mapHeight / 2);
         this.monsters = [];
@@ -622,11 +629,29 @@ class GameEngine {
         this.weaponMerchants = []; // [신규] 무기 상인 NPC 초기화
         this.hitStopFrames = 0; // [신규 추가] 게임 시작/재시작 시 Hit Stop 프레임 리셋
 
-        this.mapWidth = 1320;
-        this.mapHeight = 900;
-        this.canvas.width = this.mapWidth;
-        this.canvas.height = this.mapHeight;
+        this.adjustLayoutScale();
         this.ctx = this.canvas.getContext('2d'); // [보안] 캔버스 초기화 시 2D 컨텍스트 다시 바인딩하여 드로잉 안전 보장
+        
+        // 카메라를 플레이어 위치로 즉시 텔레포트 (초기 Lerp 지연 방지, -150px 여백 가산)
+        if (this.player) {
+            let initCamX = this.player.x - this.canvas.width / 2;
+            let initCamY = this.player.y - this.canvas.height / 2;
+
+            if (this.canvas.width >= this.mapWidth + 300) {
+                initCamX = (this.mapWidth - this.canvas.width) / 2;
+            } else {
+                initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
+            }
+
+            if (this.canvas.height >= this.mapHeight + 300) {
+                initCamY = (this.mapHeight - this.canvas.height) / 2;
+            } else {
+                initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
+            }
+
+            this.camera.x = initCamX;
+            this.camera.y = initCamY;
+        }
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
             gameContainer.style.maxWidth = '';
@@ -919,12 +944,11 @@ class GameEngine {
         }
 
         // --- [신규 기믹] 2차원 그리드 기반 맵 결정 및 크기 고정 ---
-        this.mapWidth = 1320;
-        this.mapHeight = 900;
+        this.mapWidth = 2200;
+        this.mapHeight = 1500;
 
         // 캔버스 크기 적용
-        this.canvas.width = this.mapWidth;
-        this.canvas.height = this.mapHeight;
+        this.adjustLayoutScale();
 
         // HTML 컨테이너 가로폭 비례 조절
         const gameContainer = document.getElementById('game-container');
@@ -1122,6 +1146,27 @@ class GameEngine {
         this.updateHUD();
         Sound.play('powerup');
         this.saveGame(scoreBonus);
+
+        // [신규] 카메라 위치 플레이어에 맞추어 즉시 순간이동 (방 이동 시 Lerp 지연 방지)
+        if (this.player && this.canvas) {
+            let initCamX = this.player.x - this.canvas.width / 2;
+            let initCamY = this.player.y - this.canvas.height / 2;
+
+            if (this.canvas.width >= this.mapWidth + 300) {
+                initCamX = (this.mapWidth - this.canvas.width) / 2;
+            } else {
+                initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
+            }
+
+            if (this.canvas.height >= this.mapHeight + 300) {
+                initCamY = (this.mapHeight - this.canvas.height) / 2;
+            } else {
+                initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
+            }
+
+            this.camera.x = initCamX;
+            this.camera.y = initCamY;
+        }
     }
 
     // 보스 소환 설정
@@ -1605,6 +1650,12 @@ class GameEngine {
 
     // 데이터 갱신 및 물리/충돌 검사 총괄
     update() {
+        // 매 프레임 마우스 월드 좌표 최신화 (플레이어 이동 시 총구 흔들림 보정)
+        if (this.camera) {
+            this.mouse.x = this.mouse.screenX + this.camera.x;
+            this.mouse.y = this.mouse.screenY + this.camera.y;
+        }
+
         // [신규 추가] 1. 통합 오버레이 일시정지(Freeze) 체크 및 동결 엔진
         let isOverlayOpen = false;
         const rewardOverlay = document.getElementById('reward-overlay');
@@ -3575,6 +3626,33 @@ class GameEngine {
 
         // 게이지 바 텍스트 실시간 출력 동기화
         this.updateHUD();
+
+        // [신규] 카메라 위치 업데이트 (부드러운 Lerp + 맵 경계 150px 마진 Clamp 적용)
+        if (this.player && this.canvas) {
+            // 카메라 목표 좌표 (플레이어 중심)
+            let targetCamX = this.player.x - this.canvas.width / 2;
+            let targetCamY = this.player.y - this.canvas.height / 2;
+
+            // -150px의 외곽 마진 여백을 가산하여 맵 바깥까지 카메라가 스크롤되도록 보정
+            if (this.canvas.width >= this.mapWidth + 300) {
+                targetCamX = (this.mapWidth - this.canvas.width) / 2;
+            } else {
+                targetCamX = Math.max(-150, Math.min(targetCamX, this.mapWidth + 150 - this.canvas.width));
+            }
+
+            if (this.canvas.height >= this.mapHeight + 300) {
+                targetCamY = (this.mapHeight - this.canvas.height) / 2;
+            } else {
+                targetCamY = Math.max(-150, Math.min(targetCamY, this.mapHeight + 150 - this.canvas.height));
+            }
+
+            // 카메라 선형 보간 스무딩 (Lerp)
+            this.camera.x += (targetCamX - this.camera.x) * 0.08;
+            this.camera.y += (targetCamY - this.camera.y) * 0.08;
+        }
+
+        // [신규] 스마트 투명도 (Smart Transparency) 체크
+        this.updateSmartTransparency();
     }
 
     // [W-07 신규 구현] 체인 라이트닝(연쇄 벼락) 전이 트리거
@@ -6212,6 +6290,49 @@ class GameEngine {
         this.triggerThirdSlotWeapon();
     }
 
+    // [신규] 플레이어 캐릭터가 HUD 패널 영역 아래에 위치할 때 투명화 처리 (스마트 투명도)
+    updateSmartTransparency() {
+        if (!this.player || !this.canvas) return;
+
+        // 플레이어의 화면 기준 상대 좌표
+        const screenX = this.player.x - this.camera.x;
+        const screenY = this.player.y - this.camera.y;
+
+        // 1. 좌상단 플레이어 스태이터스 바 카드 (#hud-footer)
+        const hudFooter = document.getElementById('hud-footer');
+        if (hudFooter) {
+            const isOverlap = (screenX < 360 && screenY < 230);
+            if (isOverlap) {
+                hudFooter.classList.add('hover-transparent');
+            } else {
+                hudFooter.classList.remove('hover-transparent');
+            }
+        }
+
+        // 2. 하단 중앙 무기 퀵슬롯 패널 (#weapon-slots-panel)
+        const weaponPanel = document.getElementById('weapon-slots-panel');
+        if (weaponPanel) {
+            const centerX = this.canvas.width / 2;
+            const isOverlap = (screenY > this.canvas.height - 180 && Math.abs(screenX - centerX) < 270);
+            if (isOverlap) {
+                weaponPanel.classList.add('hover-transparent');
+            } else {
+                weaponPanel.classList.remove('hover-transparent');
+            }
+        }
+
+        // 3. 우하단 스탯 패널 토글 단추 (#stats-toggle-btn)
+        const statsBtn = document.getElementById('stats-toggle-btn');
+        if (statsBtn) {
+            const isOverlap = (screenX > this.canvas.width - 100 && screenY > this.canvas.height - 100);
+            if (isOverlap) {
+                statsBtn.classList.add('hover-transparent');
+            } else {
+                statsBtn.classList.remove('hover-transparent');
+            }
+        }
+    }
+
     // HUD 데이터 동기화 및 바 게이지 드로잉
     updateHUD() {
         // 플레이어 레벨 동적 계산 (무기 레벨 총합 + 장비 레벨 총합 + 1)
@@ -8151,7 +8272,15 @@ class GameEngine {
     // 11. HTML5 Canvas 커스텀 네온 렌더러
     // --------------------------------------------------------------------------
     render() {
+        // 캔버스 전체 영역 클리어 (여백 찌꺼기 방지)
+        if (this.canvas) {
+            this.ctx.fillStyle = '#05060b';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         this.ctx.save();
+
+        // [신규] 카메라 오프셋 translate 적용
+        this.ctx.translate(-this.camera.x, -this.camera.y);
 
         // 화면 진동(Screen Shake) 효과 번역
         if (this.shakeTimer > 0) {
@@ -8412,6 +8541,8 @@ class GameEngine {
         let activeBosses = this.monsters.filter(m => (m.isBoss || m.type.startsWith('boss_')) && m.hp > 0 && !m.dead);
         if (activeBosses.length > 0) {
             this.ctx.save();
+            // [신규] 카메라 오프셋을 더해 화면 절대 좌표계(HUD)로 복원
+            this.ctx.translate(this.camera.x, this.camera.y);
 
             let currentHpSum = activeBosses.reduce((sum, b) => sum + Math.max(0, b.hp), 0);
             let maxHpSum = activeBosses.reduce((sum, b) => sum + b.maxHp, 0);
@@ -8452,9 +8583,9 @@ class GameEngine {
                 bossNameStr = `웨이브 ${this.bossWave}/4 - ${bossNameStr}`;
             }
 
-            // HUD 바 위치: 너비 400, 높이 15, x좌표 동적 중앙 정렬
+            // HUD 바 위치: 너비 400, 높이 15, x좌표 동적 중앙 정렬 (캔버스 해상도 기준)
             const bw = 400, bh = 14;
-            const bx = (this.mapWidth - bw) / 2;
+            const bx = (this.canvas.width - bw) / 2;
             const by = 48;
 
             // 보스 체력바 뒷배경 어두운 네온 컨테이너
@@ -8492,7 +8623,7 @@ class GameEngine {
             this.ctx.font = '800 11px "Outfit"';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bossNameStr, this.mapWidth / 2, by - 6);
+            this.ctx.fillText(bossNameStr, this.canvas.width / 2, by - 6);
 
             // 보스 수치 정보 (HP / MAX HP)
             this.ctx.font = '600 10px "Outfit"';
@@ -8501,7 +8632,7 @@ class GameEngine {
             if (shieldHpSum > 0) {
                 hpText += ` (🛡️ ${Math.ceil(shieldHpSum)})`;
             }
-            this.ctx.fillText(hpText, this.mapWidth / 2, by + bh - 3);
+            this.ctx.fillText(hpText, this.canvas.width / 2, by + bh - 3);
 
             this.ctx.restore();
         }
@@ -9670,6 +9801,49 @@ class GameEngine {
         }) || this.isDialogueActive;
     }
 
+    // [신규 추가] 스탯 대시보드 플로팅 이벤트 등록
+    initStatsDashboardEvents() {
+        const statsToggleBtn = document.getElementById('stats-toggle-btn');
+        if (statsToggleBtn) {
+            statsToggleBtn.addEventListener('click', () => {
+                this.toggleStatsDashboard();
+            });
+        }
+
+        const statsCloseBtn = document.getElementById('stats-close-btn');
+        if (statsCloseBtn) {
+            statsCloseBtn.addEventListener('click', () => {
+                this.toggleStatsDashboard();
+            });
+        }
+    }
+
+    // [신규 추가] 스탯 대시보드 플로팅 토글
+    toggleStatsDashboard() {
+        const statsDashboard = document.getElementById('stats-dashboard');
+        if (!statsDashboard) return;
+
+        // 게임 중이 아닐 때는 토글 작동 차단
+        if (!this.isPlaying && statsDashboard.classList.contains('hidden')) {
+            return;
+        }
+
+        const isActive = statsDashboard.classList.contains('active');
+        if (isActive) {
+            statsDashboard.classList.remove('active');
+            setTimeout(() => {
+                if (!statsDashboard.classList.contains('active')) {
+                    statsDashboard.classList.add('hidden');
+                }
+            }, 400); // CSS 트랜지션 시간(0.4초)에 맞춰 hidden 처리
+        } else {
+            statsDashboard.classList.remove('hidden');
+            setTimeout(() => {
+                statsDashboard.classList.add('active');
+            }, 10);
+        }
+    }
+
     // [신규 추가] 인게임 습득 장비 상태창 모달 토글
     toggleStatusMenu() {
         const statusOverlay = document.getElementById('in-game-status-overlay');
@@ -10065,16 +10239,21 @@ class GameEngine {
             if (hudHeader) hudHeader.classList.remove('hidden');
             if (hudFooter) hudFooter.classList.remove('hidden');
 
+            // [신규] 무기 슬롯 패널 및 스탯 버튼 보이기
+            const weaponPanel = document.getElementById('weapon-slots-panel');
+            const statsBtn = document.getElementById('stats-toggle-btn');
+            if (weaponPanel) weaponPanel.classList.remove('hidden');
+            if (statsBtn) statsBtn.classList.remove('hidden');
+
             this.isPlaying = true;
             this.roomNum = savedData.roomNum;
             this.score = savedData.score;
             this.kills = savedData.kills;
-            this.mapWidth = 1320;
-            this.mapHeight = 900;
+            this.mapWidth = 2200;
+            this.mapHeight = 1500;
 
             // 캔버스 크기 복구 및 가로폭 비례 조절
-            this.canvas.width = this.mapWidth;
-            this.canvas.height = this.mapHeight;
+            this.adjustLayoutScale();
             const gameContainer = document.getElementById('game-container');
             if (gameContainer) {
                 gameContainer.style.maxWidth = '';
@@ -10214,6 +10393,27 @@ class GameEngine {
 
             Sound.play('powerup');
             Sound.startBGM();
+
+            // [신규] 카메라 위치 플레이어 복원 지점에 맞춰 즉시 순간이동 (방 이동 시 Lerp 지연 방지)
+            if (this.player && this.canvas) {
+                let initCamX = this.player.x - this.canvas.width / 2;
+                let initCamY = this.player.y - this.canvas.height / 2;
+
+                if (this.canvas.width >= this.mapWidth + 300) {
+                    initCamX = (this.mapWidth - this.canvas.width) / 2;
+                } else {
+                    initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
+                }
+
+                if (this.canvas.height >= this.mapHeight + 300) {
+                    initCamY = (this.mapHeight - this.canvas.height) / 2;
+                } else {
+                    initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
+                }
+
+                this.camera.x = initCamX;
+                this.camera.y = initCamY;
+            }
         } catch (e) {
             console.error("이어하기 복구 중 오류 발생:", e);
         }

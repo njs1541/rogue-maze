@@ -152,7 +152,7 @@ window.onload = async () => {
             'card-detail-overlay', 'shop-confirm-overlay',
             'secret-shop-overlay', 'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
             'tutorial-overlay', 'monster-bestiary-overlay', 'card-codex-overlay', 'ranking-modal-overlay',
-            'crafting-overlay', 'story-dialogue-overlay'
+            'crafting-overlay', 'story-dialogue-overlay', 'stats-dashboard'
         ];
         overlays.forEach(id => {
             const el = document.getElementById(id);

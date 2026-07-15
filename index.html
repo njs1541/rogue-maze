@@ -18,8 +18,6 @@
     <div id="game-container">
         <!-- 상단 정보 HUD -->
         <header id="hud-header" class="hidden">
-            <!-- 좌측 패널 상단 캐릭터 초상화 영역 -->
-            <div class="hud-portrait">👾</div>
             <div class="hud-item">
                 <span class="label">ROOM</span>
                 <span id="room-counter" class="value text-glow-blue">1 / 100</span>
@@ -1048,8 +1046,11 @@
 
         <!-- 하단 플레이어 상태 및 스탯 패널 -->
         <footer id="hud-footer" class="hidden">
-            <!-- 우측 패널 상단 캐릭터 닉네임 & 레벨 표시 영역 -->
-            <div class="hud-status-title">NEON RUNNER <span id="runner-lv" class="text-glow-yellow" style="margin-left: 8px;">LV.1</span></div>
+            <!-- 우측 패널 상단 캐릭터 닉네임 & 레벨 표시 영역 (초상화 통합) -->
+            <div class="hud-status-title">
+                <div class="hud-portrait" style="margin-right: 12px; flex-shrink: 0;">👾</div>
+                <div>NEON RUNNER <span id="runner-lv" class="text-glow-yellow" style="margin-left: 8px;">LV.1</span></div>
+            </div>
             <!-- 플레이어 생명력, 스태미너, 마력 게이지 (아이콘 강화) -->
             <div id="player-bars">
                 <!-- HP Bar -->
@@ -1083,42 +1084,48 @@
                     </div>
                 </div>
             </div>
+        </footer>
 
-            <!-- [신규] 현재 장착 무기 슬롯 UI -->
-            <div id="weapon-slots-panel">
-                <div class="weapon-slots-header">
-                    <span class="weapon-slots-label">⚔️ EQUIPPED WEAPONS</span>
+        <!-- [신규] 현재 장착 무기 슬롯 UI (footer 밖으로 이동) -->
+        <div id="weapon-slots-panel" class="hidden">
+            <div class="weapon-slots-header">
+                <span class="weapon-slots-label">⚔️ EQUIPPED WEAPONS</span>
+            </div>
+            <div id="weapon-slots-container">
+                <!-- 주무기 슬롯 1 -->
+                <div class="weapon-slot" id="wpn-slot-0">
+                    <div class="weapon-slot-icon">🔫</div>
+                    <div class="weapon-slot-info">
+                        <span class="weapon-slot-name" id="wpn-slot-name-0">총 (Gun)</span>
+                        <span class="weapon-slot-level" id="wpn-slot-lv-0">Lv.1</span>
+                    </div>
                 </div>
-                <div id="weapon-slots-container">
-                    <!-- 주무기 슬롯 1 -->
-                    <div class="weapon-slot" id="wpn-slot-0">
-                        <div class="weapon-slot-icon">🔫</div>
-                        <div class="weapon-slot-info">
-                            <span class="weapon-slot-name" id="wpn-slot-name-0">총 (Gun)</span>
-                            <span class="weapon-slot-level" id="wpn-slot-lv-0">Lv.1</span>
-                        </div>
+                <!-- 주무기 슬롯 2 -->
+                <div class="weapon-slot empty" id="wpn-slot-1">
+                    <div class="weapon-slot-icon">➕</div>
+                    <div class="weapon-slot-info">
+                        <span class="weapon-slot-name" id="wpn-slot-name-1">비어있음</span>
+                        <span class="weapon-slot-level" id="wpn-slot-lv-1">—</span>
                     </div>
-                    <!-- 주무기 슬롯 2 -->
-                    <div class="weapon-slot empty" id="wpn-slot-1">
-                        <div class="weapon-slot-icon">➕</div>
-                        <div class="weapon-slot-info">
-                            <span class="weapon-slot-name" id="wpn-slot-name-1">비어있음</span>
-                            <span class="weapon-slot-level" id="wpn-slot-lv-1">—</span>
-                        </div>
-                    </div>
-                    <!-- 보조 무기 슬롯 -->
-                    <div class="weapon-slot sub locked" id="wpn-slot-sub">
-                        <div class="weapon-slot-icon">🔒</div>
-                        <div class="weapon-slot-info">
-                            <span class="weapon-slot-name" id="wpn-slot-name-sub">잠금</span>
-                            <span class="weapon-slot-level" id="wpn-slot-lv-sub">—</span>
-                        </div>
+                </div>
+                <!-- 보조 무기 슬롯 -->
+                <div class="weapon-slot sub locked" id="wpn-slot-sub">
+                    <div class="weapon-slot-icon">🔒</div>
+                    <div class="weapon-slot-info">
+                        <span class="weapon-slot-name" id="wpn-slot-name-sub">잠금</span>
+                        <span class="weapon-slot-level" id="wpn-slot-lv-sub">—</span>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 세부 능력치 정보 대시보드 (3×4 아이콘 그리드 카드) -->
-            <div id="stats-dashboard">
+        <!-- [신규] 세부 능력치 정보 대시보드 (footer 밖으로 독립 및 우측 슬라이드 패널화) -->
+        <div id="stats-dashboard" class="hidden">
+            <div class="stats-title-row">
+                <h3>📊 RUNNER STATS</h3>
+                <button class="stats-close-btn" id="stats-close-btn" aria-label="스탯 창 닫기">&times;</button>
+            </div>
+            <div class="stats-items-grid">
                 <!-- 전투 스탯 (COMBAT) — 행 1 -->
                 <div class="stat-card" title="공격 피해량">
                     <span class="stat-card-icon">⚔️</span>
@@ -1184,7 +1191,10 @@
                     <span id="stat-security" class="stat-card-value text-glow-green">안전</span>
                 </div>
             </div>
-        </footer>
+        </div>
+
+        <!-- [신규] 우하단 스탯 패널 토글 플로팅 버튼 -->
+        <button class="stats-toggle-btn hidden" id="stats-toggle-btn" title="스탯 정보 (Tab)">📊</button>
         
         <!-- [신규] 충전소 전용 제작(조합) 팝업창 -->
         <div id="crafting-overlay" class="overlay-panel hidden" style="z-index: 100;">
