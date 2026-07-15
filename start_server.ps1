@@ -1,4 +1,8 @@
-# start_server.ps1
+﻿# start_server.ps1
+# 콘솔 입출력 인코딩을 UTF-8로 설정하여 한글 깨짐 방지
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
 # Node.js가 없는 환경에서 .NET HttpListener를 이용하여 8000 포트에 정적 파일 웹 서버를 구동합니다.
 
 $port = 8000
@@ -58,7 +62,8 @@ try {
             $response.ContentType = $contentType
             $response.ContentLength64 = $bytes.Length
             $response.OutputStream.Write($bytes, 0, $bytes.Length)
-        } else {
+        }
+        else {
             $response.StatusCode = 404
             $errBytes = [System.Text.Encoding]::UTF8.GetBytes("404 Not Found: $urlPath")
             $response.ContentType = "text/plain; charset=utf-8"
@@ -67,9 +72,11 @@ try {
         
         $response.Close()
     }
-} catch {
+}
+catch {
     Write-Error $_
-} finally {
+}
+finally {
     $listener.Stop()
     Write-Host "서버가 종료되었습니다."
 }
