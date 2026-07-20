@@ -232,16 +232,16 @@ const MAP_PRESETS = {
 
 const PORTAL_SPAWN_INFOS = {
     PRESET_SIZE_NORMAL: {
-        top: { x: 2200 / 2, y: 3.5 * 50, gridX: 19, gridY: 3 },
-        bottom: { x: 2200 / 2, y: 26.5 * 50, gridX: 19, gridY: 26 },
-        left: { x: 4.5 * 55, y: 1500 / 2, gridX: 4, gridY: 14 },
-        right: { x: 35.5 * 55, y: 1500 / 2, gridX: 35, gridY: 14 }
+        top: { x: 2200 / 2, y: 0.5 * 50, gridX: 19, gridY: 0 },
+        bottom: { x: 2200 / 2, y: 29.5 * 50, gridX: 19, gridY: 29 },
+        left: { x: 0.5 * 55, y: 1500 / 2, gridX: 0, gridY: 14 },
+        right: { x: 39.5 * 55, y: 1500 / 2, gridX: 39, gridY: 14 }
     },
     PRESET_SIZE_MIDDLE: {
-        top: { x: 2200 / 2, y: 1.5 * 50, gridX: 19, gridY: 1 },
-        bottom: { x: 2200 / 2, y: 28.5 * 50, gridX: 19, gridY: 28 },
-        left: { x: 2.5 * 55, y: 1500 / 2, gridX: 2, gridY: 14 },
-        right: { x: 37.5 * 55, y: 1500 / 2, gridX: 37, gridY: 14 }
+        top: { x: 2200 / 2, y: 0.5 * 50, gridX: 19, gridY: 0 },
+        bottom: { x: 2200 / 2, y: 29.5 * 50, gridX: 19, gridY: 29 },
+        left: { x: 0.5 * 55, y: 1500 / 2, gridX: 0, gridY: 14 },
+        right: { x: 39.5 * 55, y: 1500 / 2, gridX: 39, gridY: 14 }
     },
     PRESET_SIZE_BOSS: {
         top: { x: 2200 / 2, y: 0.5 * 50, gridX: 19, gridY: 0 },
@@ -262,7 +262,8 @@ const PORTAL_SPAWN_INFOS = {
     PRESET_U_SHAPE: {
         top: { x: 2200 / 2, y: 0.5 * 50, gridX: 19, gridY: 0 },
         bottom: { x: 2200 / 2, y: 29.5 * 50, gridX: 19, gridY: 29 },
-        left: { x: 0.5 * 55, y: 1500 / 2, gridX: 0, gridY: 14 }
+        left: { x: 0.5 * 55, y: 1500 / 2, gridX: 0, gridY: 14 },
+        right: { x: 39.5 * 55, y: 1500 / 2, gridX: 39, gridY: 14 }
     },
     PRESET_CROSS: {
         top: { x: 2200 / 2, y: 0.5 * 50, gridX: 19, gridY: 0 },
@@ -330,19 +331,40 @@ const SECTOR_THEMES = {
 class MapEngine {
     constructor(gameEngine) {
         this.game = gameEngine; // GameEngine 코어 참조 바인딩
+        this.cols = 40;
+        this.rows = 30;
     }
 
     // 2차원 그리드 기반 맵 구조 생성 메서드
-    generateGridMap(presetType) {
+    generateGridMap(presetInput) {
         this.game.obstacles = [];
-        this.game.currentMapPreset = presetType;
-        const preset = MAP_PRESETS[presetType] || MAP_PRESETS.PRESET_SIZE_BOSS;
+        let presetData = null;
+        let presetKey = typeof presetInput === 'string' ? presetInput : (presetInput ? presetInput.presetKey : 'PRESET_SIZE_BOSS');
+
+        if (typeof presetInput === 'string') {
+            presetData = MAP_PRESETS[presetInput] || MAP_PRESETS.PRESET_SIZE_BOSS;
+        } else if (presetInput && presetInput.grid) {
+            presetData = presetInput.grid;
+        } else {
+            presetData = MAP_PRESETS.PRESET_SIZE_BOSS;
+        }
+
+        this.game.currentMapPreset = presetKey;
+
+        // 문자열 배열 또는 2차원 배열 추출
+        const gridLines = Array.isArray(presetData) ? presetData : (presetData.grid || []);
+        this.rows = gridLines.length || 30;
+        this.cols = gridLines[0] ? gridLines[0].length : 40;
+
+        // 게임 엔진의 mapWidth, mapHeight 동적 업데이트 (타일당 가로 55px, 세로 50px)
+        this.game.mapWidth = this.cols * 55;
+        this.game.mapHeight = this.rows * 50;
 
         this.game.grid = [];
-        for (let r = 0; r < 30; r++) {
+        for (let r = 0; r < this.rows; r++) {
             this.game.grid[r] = [];
-            for (let c = 0; c < 40; c++) {
-                const tileVal = parseInt(preset[r][c]);
+            for (let c = 0; c < this.cols; c++) {
+                const tileVal = gridLines[r] && gridLines[r][c] !== undefined ? parseInt(gridLines[r][c]) : 0;
                 this.game.grid[r][c] = tileVal;
 
                 // 1(일반 격벽) 또는 2(외벽)인 경우 NeonTileWall 벽 오브젝트 배치
@@ -351,14 +373,50 @@ class MapEngine {
                 }
             }
         }
+
+        // [포탈 입구 진입 보장 가드] 문 크기(정확히 2칸 타일)에 맞게 통로 바닥(0) 처리 및 겹치는 장애물 벽 제거
+        let portalInfos = (presetInput && presetInput.portalSpawnInfo) ? presetInput.portalSpawnInfo : (PORTAL_SPAWN_INFOS[presetKey] || null);
+        if (portalInfos) {
+            for (let [dir, info] of Object.entries(portalInfos)) {
+                if (info && info.gridX !== undefined && info.gridY !== undefined) {
+                    const gx = info.gridX;
+                    const gy = info.gridY;
+
+                    if (dir === 'top' || dir === 'bottom') {
+                        // 가로 문: 정확히 2칸 (gridX, gridX + 1)
+                        for (let c = gx; c <= gx + 1; c++) {
+                            if (c >= 0 && c < this.cols && gy >= 0 && gy < this.rows) {
+                                this.game.grid[gy][c] = 0;
+                            }
+                        }
+                        this.game.obstacles = this.game.obstacles.filter(obs => {
+                            return !(obs.row === gy && (obs.col === gx || obs.col === gx + 1));
+                        });
+                    } else if (dir === 'left' || dir === 'right') {
+                        // 세로 문: 정확히 2칸 (gridY, gridY + 1)
+                        for (let r = gy; r <= gy + 1; r++) {
+                            if (gx >= 0 && gx < this.cols && r >= 0 && r < this.rows) {
+                                this.game.grid[r][gx] = 0;
+                            }
+                        }
+                        this.game.obstacles = this.game.obstacles.filter(obs => {
+                            return !(obs.col === gx && (obs.row === gy || obs.row === gy + 1));
+                        });
+                    }
+                }
+            }
+        }
     }
 
     // 커스텀 맵 프리셋 런타임 적용 및 즉시 방 재생성 테스트 기능
-    loadCustomMapPreset(presetName) {
-        if (!MAP_PRESETS[presetName]) return;
+    loadCustomMapPreset(presetInput) {
+        let presetName = typeof presetInput === 'string' ? presetInput : (presetInput ? presetInput.presetKey : null);
+        let customObj = typeof presetInput === 'object' ? presetInput : null;
+
+        if (presetName && !MAP_PRESETS[presetName] && !customObj) return;
 
         // 1. 격자 맵 데이터 파싱 및 장애물 재생성
-        this.generateGridMap(presetName);
+        this.generateGridMap(customObj || presetName);
 
         // 2. 플레이어 안전 위치 워프
         this.game.player.x = this.game.mapWidth / 2;
@@ -379,7 +437,8 @@ class MapEngine {
         this.game.traps = [];
 
         // 4. 프리셋 내에 정의된 포털 위치에만 문 생성
-        const validDirections = PORTAL_SPAWN_INFOS[presetName] ? Object.keys(PORTAL_SPAWN_INFOS[presetName]) : ['top', 'bottom', 'left', 'right'];
+        let portalInfo = customObj && customObj.portalSpawnInfo ? customObj.portalSpawnInfo : (presetName && PORTAL_SPAWN_INFOS[presetName] ? PORTAL_SPAWN_INFOS[presetName] : null);
+        const validDirections = portalInfo ? Object.keys(portalInfo) : ['top', 'bottom', 'left', 'right'];
         this.game.portals = [];
         validDirections.forEach(dir => {
             this.game.portals.push(new RoomPortal(dir, this.game.getRandomScoreValue()));
@@ -404,10 +463,12 @@ class MapEngine {
     // 2차원 그리드 정보를 분석하여 바닥 타일과 접하는 안전한 벽면에 비밀방 균열 벽을 스폰하는 메서드
     spawnSecretWall() {
         let spots = [];
+        const rows = this.rows || (this.game.grid ? this.game.grid.length : 30);
+        const cols = this.cols || (this.game.grid && this.game.grid[0] ? this.game.grid[0].length : 40);
 
         // 1) Top (상단)
-        let topC = 7;
-        for (let r = 0; r < 30; r++) {
+        let topC = Math.floor(cols * 0.25);
+        for (let r = 0; r < rows; r++) {
             if (this.game.grid[r] && this.game.grid[r][topC] === 0) {
                 if (r > 0) {
                     let wType = this.game.grid[r - 1] ? this.game.grid[r - 1][topC] : 2;
@@ -424,9 +485,9 @@ class MapEngine {
             }
         }
         if (spots.filter(s => s.dir === 'top').length === 0) {
-            for (let c = 4; c < 36; c++) {
+            for (let c = 2; c < cols - 2; c++) {
                 let found = false;
-                for (let r = 0; r < 30; r++) {
+                for (let r = 0; r < rows; r++) {
                     if (this.game.grid[r] && this.game.grid[r][c] === 0) {
                         if (r > 0) {
                             let wType = this.game.grid[r - 1] ? this.game.grid[r - 1][c] : 2;
@@ -448,10 +509,10 @@ class MapEngine {
         }
 
         // 2) Bottom (하단)
-        let botC = 24;
-        for (let r = 29; r >= 0; r--) {
+        let botC = Math.floor(cols * 0.6);
+        for (let r = rows - 1; r >= 0; r--) {
             if (this.game.grid[r] && this.game.grid[r][botC] === 0) {
-                if (r < 29) {
+                if (r < rows - 1) {
                     let wType = this.game.grid[r + 1] ? this.game.grid[r + 1][botC] : 2;
                     spots.push({
                         col: botC,
@@ -466,11 +527,11 @@ class MapEngine {
             }
         }
         if (spots.filter(s => s.dir === 'bottom').length === 0) {
-            for (let c = 36; c >= 4; c--) {
+            for (let c = cols - 3; c >= 2; c--) {
                 let found = false;
-                for (let r = 29; r >= 0; r--) {
+                for (let r = rows - 1; r >= 0; r--) {
                     if (this.game.grid[r] && this.game.grid[r][c] === 0) {
-                        if (r < 29) {
+                        if (r < rows - 1) {
                             let wType = this.game.grid[r + 1] ? this.game.grid[r + 1][c] : 2;
                             spots.push({
                                 col: c,
@@ -490,8 +551,8 @@ class MapEngine {
         }
 
         // 3) Left (좌측)
-        let leftR = 8;
-        for (let c = 0; c < 40; c++) {
+        let leftR = Math.floor(rows * 0.3);
+        for (let c = 0; c < cols; c++) {
             if (this.game.grid[leftR] && this.game.grid[leftR][c] === 0) {
                 if (c > 0) {
                     let wType = this.game.grid[leftR][c - 1] !== undefined ? this.game.grid[leftR][c - 1] : 2;
@@ -508,9 +569,9 @@ class MapEngine {
             }
         }
         if (spots.filter(s => s.dir === 'left').length === 0) {
-            for (let r = 4; r < 26; r++) {
+            for (let r = 2; r < rows - 2; r++) {
                 let found = false;
-                for (let c = 0; c < 40; c++) {
+                for (let c = 0; c < cols; c++) {
                     if (this.game.grid[r] && this.game.grid[r][c] === 0) {
                         if (c > 0) {
                             let wType = this.game.grid[r][c - 1] !== undefined ? this.game.grid[r][c - 1] : 2;
@@ -532,10 +593,10 @@ class MapEngine {
         }
 
         // 4) Right (우측)
-        let rightR = 20;
-        for (let c = 39; c >= 0; c--) {
+        let rightR = Math.floor(rows * 0.7);
+        for (let c = cols - 1; c >= 0; c--) {
             if (this.game.grid[rightR] && this.game.grid[rightR][c] === 0) {
-                if (c < 39) {
+                if (c < cols - 1) {
                     let wType = this.game.grid[rightR][c + 1] !== undefined ? this.game.grid[rightR][c + 1] : 2;
                     spots.push({
                         col: c + 1,
@@ -550,11 +611,11 @@ class MapEngine {
             }
         }
         if (spots.filter(s => s.dir === 'right').length === 0) {
-            for (let r = 26; r >= 4; r--) {
+            for (let r = rows - 3; r >= 2; r--) {
                 let found = false;
-                for (let c = 39; c >= 0; c--) {
+                for (let c = cols - 1; c >= 0; c--) {
                     if (this.game.grid[r] && this.game.grid[r][c] === 0) {
-                        if (c < 39) {
+                        if (c < cols - 1) {
                             let wType = this.game.grid[r][c + 1] !== undefined ? this.game.grid[r][c + 1] : 2;
                             spots.push({
                                 col: c + 1,
@@ -590,7 +651,9 @@ class MapEngine {
         if (!this.game.grid) return false;
         const c = Math.floor(x / 55); // 가로 타일 너비 55px
         const r = Math.floor(y / 50); // 세로 타일 높이 50px
-        if (c < 0 || c >= 40 || r < 0 || r >= 30) return true; // 맵 범위 밖은 벽으로 간주
+        const cols = this.cols || (this.game.grid && this.game.grid[0] ? this.game.grid[0].length : 40);
+        const rows = this.rows || (this.game.grid ? this.game.grid.length : 30);
+        if (c < 0 || c >= cols || r < 0 || r >= rows) return true; // 맵 범위 밖은 벽으로 간주
         const val = this.game.grid[r] ? this.game.grid[r][c] : undefined;
         return val === 1 || val === 2;
     }
@@ -599,10 +662,12 @@ class MapEngine {
     getSafeSpawnPosition(avoidPlayer = false, minDist = 200, maxAttempts = 100) {
         let attempts = 0;
         let safePositions = [];
+        const rows = this.rows || (this.game.grid ? this.game.grid.length : 30);
+        const cols = this.cols || (this.game.grid && this.game.grid[0] ? this.game.grid[0].length : 40);
 
         // 1. 우선 빈 타일(0) 수집
-        for (let r = 0; r < 30; r++) {
-            for (let c = 0; c < 40; c++) {
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
                 if (this.game.grid && this.game.grid[r] && this.game.grid[r][c] === 0) {
                     // 타일 중앙 픽셀 좌표 계산 (55px 가로 너비 보정)
                     const x = c * 55 + 27.5;

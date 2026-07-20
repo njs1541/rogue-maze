@@ -72,6 +72,7 @@
             font-weight: 800;
             background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
         }
@@ -640,7 +641,9 @@
             <div class="util-buttons">
                 <button id="btn-load-template" class="util-btn">📦 보스룸 기본 템플릿 로드</button>
                 <button id="btn-load-normal-template" class="util-btn">📦 일반형 기본 템플릿 로드</button>
+                <button id="btn-load-json-file" class="util-btn">📂 JSON 불러오기</button>
                 <button id="btn-clear-map" class="util-btn danger">🧹 빈 맵으로 리셋 (Clear All)</button>
+                <input type="file" id="input-load-file" accept=".json" style="display: none;">
             </div>
         </div>
 
@@ -1163,6 +1166,28 @@
                 }
             });
 
+            // JSON 불러오기 이벤트
+            const loadFileBtn = document.getElementById('btn-load-json-file');
+            const loadFileInput = document.getElementById('input-load-file');
+            if (loadFileBtn && loadFileInput) {
+                loadFileBtn.addEventListener('click', () => loadFileInput.click());
+                loadFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const parsed = JSON.parse(evt.target.result);
+                            loadJSONData(parsed);
+                        } catch (err) {
+                            alert('유효하지 않은 JSON 파일입니다.');
+                        }
+                        loadFileInput.value = '';
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
             // 프리셋 키 실시간 변경
             presetKeyInput.addEventListener('input', updateJSON);
 
@@ -1221,6 +1246,47 @@
             currentSpawnPickMode = null;
             document.querySelectorAll('.spawn-pick-btn').forEach(btn => btn.classList.remove('active'));
             gridBoard.style.cursor = 'default';
+        }
+
+        // 외부 JSON 데이터 로드 파서
+        function loadJSONData(obj) {
+            try {
+                if (obj.presetKey) {
+                    presetKeyInput.value = obj.presetKey;
+                }
+                if (Array.isArray(obj.grid)) {
+                    mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+                    for (let r = 0; r < Math.min(ROWS, obj.grid.length); r++) {
+                        const rowStr = obj.grid[r];
+                        for (let c = 0; c < Math.min(COLS, rowStr.length); c++) {
+                            mapData[r][c] = parseInt(rowStr[c]) || 0;
+                        }
+                    }
+                }
+                portals = { top: null, bottom: null, left: null, right: null };
+                if (obj.portalSpawnInfo) {
+                    const directions = ['top', 'bottom', 'left', 'right'];
+                    directions.forEach(dir => {
+                        if (obj.portalSpawnInfo[dir]) {
+                            const src = obj.portalSpawnInfo[dir];
+                            portals[dir] = {
+                                gridX: src.gridX,
+                                gridY: src.gridY,
+                                monsterSpawnX: src.monsterSpawnX,
+                                monsterSpawnY: src.monsterSpawnY,
+                                playerSpawnX: src.playerSpawnX,
+                                playerSpawnY: src.playerSpawnY
+                            };
+                        }
+                    });
+                }
+                refreshGridUI();
+                updateJSON();
+                showToast('📂 JSON 프리셋이 성공적으로 로드되었습니다!');
+            } catch (err) {
+                console.error(err);
+                alert('JSON 올바른 프리셋 데이터 형식이 아닙니다.');
+            }
         }
 
         // 셀 클릭/드래그 액션 처리
@@ -1381,6 +1447,12 @@
 
             const exportObj = {
                 presetKey: key,
+                cols: COLS,
+                rows: ROWS,
+                tileWidth: 55,
+                tileHeight: 50,
+                mapWidth: COLS * 55,
+                mapHeight: ROWS * 50,
                 grid: gridStringList,
                 portalSpawnInfo: portalSpawnInfo
             };

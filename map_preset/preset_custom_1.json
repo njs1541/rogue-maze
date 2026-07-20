@@ -1,5 +1,11 @@
 {
     "presetKey": "PRESET_CUSTOM_1",
+    "cols": 24,
+    "rows": 18,
+    "tileWidth": 55,
+    "tileHeight": 50,
+    "mapWidth": 1320,
+    "mapHeight": 900,
     "grid": [
         "222222222220222222222222",
         "200000000000000000000002",

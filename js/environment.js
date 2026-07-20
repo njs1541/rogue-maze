@@ -1,4 +1,4 @@
-﻿// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
 // 2.5. 격자 기반 맵 타일 벽 클래스 (NeonTileWall)
 // --------------------------------------------------------------------------
 class NeonTileWall {
@@ -134,17 +134,19 @@ class RoomPortal {
                 this.gridX = spawnInfo.gridX;
                 this.gridY = spawnInfo.gridY;
 
-                // [수정] 포탈이 외벽 가장자리(gridX === 0, gridX === 23, gridY === 0, gridY === 17)인 경우에만
-                // wallMargin = 50 경계선에 포탈의 외형이 정확히 걸쳐져서 노출되도록 보정 연산 적용
+                // [수정] 포탈이 외벽 가장자리 부근인 경우 외형 보정 연산 적용 (가변 cols, rows 동적 연산)
                 let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
                 let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
-                if (direction === 'left' && this.gridX === 0) {
+                let cols = (window.gameEngine && window.gameEngine.mapEngine && window.gameEngine.mapEngine.cols) || 40;
+                let rows = (window.gameEngine && window.gameEngine.mapEngine && window.gameEngine.mapEngine.rows) || 30;
+
+                if (direction === 'left' && this.gridX <= 1) {
                     this.x = 50 - this.width / 2;
-                } else if (direction === 'right' && this.gridX === 23) {
+                } else if (direction === 'right' && this.gridX >= cols - 2) {
                     this.x = mapW - 50 - this.width / 2;
-                } else if (direction === 'top' && this.gridY === 0) {
+                } else if (direction === 'top' && this.gridY <= 1) {
                     this.y = 50 - this.height / 2;
-                } else if (direction === 'bottom' && this.gridY === 17) {
+                } else if (direction === 'bottom' && this.gridY >= rows - 2) {
                     this.y = mapH - 50 - this.height / 2;
                 }
                 return;
@@ -629,40 +631,43 @@ class RoomPortal {
             return Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius;
         }
         
-        // [수정] 포탈이 외곽 경계선에 정확히 걸쳐져 있는 경우에만 기존 wallMargin = 50 경계선 제한을 극복하는 특수 충돌 판정 적용.
-        // 그 외 맵 내부에 포탈이 있는 경우는 AABB 박스 충돌로 유연하게 처리.
+        // [수정] 포탈이 외곽 경계선에 걸쳐 있는 경우 및 가변 그리드 상에서의 문 진입 충돌 판단
         const pLeft = player.x - player.radius;
         const pRight = player.x + player.radius;
         const pTop = player.y - player.radius;
         const pBottom = player.y + player.radius;
         
-        const triggerMargin = 52; // 50px 경계선에 딱 붙었을 때(또는 살짝 안쪽) 충돌 인식
+        let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
+        let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
+        let cols = (window.gameEngine && window.gameEngine.mapEngine && window.gameEngine.mapEngine.cols) || 40;
+        let rows = (window.gameEngine && window.gameEngine.mapEngine && window.gameEngine.mapEngine.rows) || 30;
+
+        const triggerMargin = 55; // 50px 경계선에 접근했을 때 문 진입 트리거 인식
+        const expandMargin = 15; // 오프셋 영역 여유분
 
         if (this.direction === 'left') {
-            if (this.gridX === 0) {
-                return pLeft <= triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            if (this.gridX === undefined || this.gridX <= 2) {
+                if (pLeft <= triggerMargin && player.y > this.y - expandMargin && player.y < this.y + this.height + expandMargin) return true;
             }
         } else if (this.direction === 'right') {
-            if (this.gridX === 23) {
-                let mapW = (window.gameEngine && window.gameEngine.mapWidth) || 1200;
-                return pRight >= mapW - triggerMargin && player.y > this.y - 10 && player.y < this.y + this.height + 10;
+            if (this.gridX === undefined || this.gridX >= cols - 3) {
+                if (pRight >= mapW - triggerMargin && player.y > this.y - expandMargin && player.y < this.y + this.height + expandMargin) return true;
             }
         } else if (this.direction === 'top') {
-            if (this.gridY === 0) {
-                return pTop <= triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            if (this.gridY === undefined || this.gridY <= 3) {
+                if (pTop <= triggerMargin && player.x > this.x - expandMargin && player.x < this.x + this.width + expandMargin) return true;
             }
         } else if (this.direction === 'bottom') {
-            if (this.gridY === 17) {
-                let mapH = (window.gameEngine && window.gameEngine.mapHeight) || 900;
-                return pBottom >= mapH - triggerMargin && player.x > this.x - 10 && player.x < this.x + this.width + 10;
+            if (this.gridY === undefined || this.gridY >= rows - 4) {
+                if (pBottom >= mapH - triggerMargin && player.x > this.x - expandMargin && player.x < this.x + this.width + expandMargin) return true;
             }
         }
         
-        // 내부에 위치한 포탈의 AABB 충돌 검사
-        return player.x + player.radius > this.x &&
-               player.x - player.radius < this.x + this.width &&
-               player.y + player.radius > this.y &&
-               player.y - player.radius < this.y + this.height;
+        // 내부에 위치한 포탈의 유연한 AABB 충돌 검사
+        return player.x + player.radius > this.x - expandMargin &&
+               player.x - player.radius < this.x + this.width + expandMargin &&
+               player.y + player.radius > this.y - expandMargin &&
+               player.y - player.radius < this.y + this.height + expandMargin;
     }
 }
 
