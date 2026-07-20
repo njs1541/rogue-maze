@@ -638,11 +638,24 @@
             </div>
 
             <!-- 유틸리티 버튼 -->
-            <div class="util-buttons">
-                <button id="btn-load-template" class="util-btn">📦 보스룸 기본 템플릿 로드</button>
-                <button id="btn-load-normal-template" class="util-btn">📦 일반형 기본 템플릿 로드</button>
+            <div class="util-buttons" style="flex-wrap: wrap;">
+                <div style="display: flex; gap: 8px; width: 100%; align-items: center; margin-bottom: 5px;">
+                    <select id="select-game-preset" class="util-btn" style="flex: 2; background: #0f172a; border-color: var(--neon-blue); color: var(--neon-blue); font-weight: bold; outline: none;">
+                        <option value="">🎮 인게임 프리셋 불러오기 선택...</option>
+                        <option value="PRESET_SIZE_NORMAL">🏛️ PRESET_SIZE_NORMAL (일반 룸)</option>
+                        <option value="PRESET_SIZE_MIDDLE">🏟️ PRESET_SIZE_MIDDLE (중형 룸)</option>
+                        <option value="PRESET_SIZE_BOSS">👑 PRESET_SIZE_BOSS (보스 룸)</option>
+                        <option value="PRESET_LINE">🛤️ PRESET_LINE (일자 통로)</option>
+                        <option value="PRESET_WINDOW">🪟 PRESET_WINDOW (창문형 룸)</option>
+                        <option value="PRESET_U_SHAPE">🧲 PRESET_U_SHAPE (U자형 룸)</option>
+                        <option value="PRESET_CROSS">➕ PRESET_CROSS (십자형 룸)</option>
+                    </select>
+                    <button id="btn-load-ingame-preset" class="util-btn" style="flex: 1; border-color: var(--neon-blue); color: var(--neon-blue); background: rgba(0,240,255,0.1); white-space: nowrap;">📥 프리셋 로드</button>
+                </div>
+                <button id="btn-load-template" class="util-btn">📦 보스룸 기본 템플릿</button>
+                <button id="btn-load-normal-template" class="util-btn">📦 일반형 기본 템플릿</button>
                 <button id="btn-load-json-file" class="util-btn">📂 JSON 불러오기</button>
-                <button id="btn-clear-map" class="util-btn danger">🧹 빈 맵으로 리셋 (Clear All)</button>
+                <button id="btn-clear-map" class="util-btn danger">🧹 빈 맵으로 리셋</button>
                 <input type="file" id="input-load-file" accept=".json" style="display: none;">
             </div>
         </div>
@@ -826,6 +839,7 @@
     <!-- 플로팅 토스트 알림 -->
     <div id="toast-notification" class="toast">성공적으로 복사되었습니다.</div>
 
+    <script src="js/map.js"></script>
     <script>
         const COLS = 24;
         const ROWS = 18;
@@ -1065,6 +1079,102 @@
             updateJSON();
         }
 
+        // 인게임 적용 맵 프리셋(MAP_PRESETS & PORTAL_SPAWN_INFOS) 불러오기 연동
+        function loadInGamePreset(presetKey) {
+            if (!presetKey || typeof MAP_PRESETS === 'undefined' || !MAP_PRESETS[presetKey]) {
+                showToast("불러올 올바른 게임 프리셋을 선택해주세요.");
+                return;
+            }
+
+            const origLines = MAP_PRESETS[presetKey];
+            const origRows = origLines.length; // 30
+            const origCols = origLines[0] ? origLines[0].length : 40; // 40
+
+            mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const mappedR = Math.round(r * (origRows - 1) / (ROWS - 1));
+                    const mappedC = Math.round(c * (origCols - 1) / (COLS - 1));
+                    const val = parseInt(origLines[mappedR][mappedC]) || 0;
+                    mapData[r][c] = val;
+                }
+            }
+
+            // 포탈 스폰 정보 변환
+            const spawnInfo = typeof PORTAL_SPAWN_INFOS !== 'undefined' ? PORTAL_SPAWN_INFOS[presetKey] : null;
+            portals = {};
+
+            if (spawnInfo) {
+                if (spawnInfo.top) {
+                    const gx = Math.round(spawnInfo.top.gridX * (COLS - 1) / (origCols - 1));
+                    portals.top = {
+                        gridX: Math.min(Math.max(gx, 0), COLS - 2),
+                        gridY: 0,
+                        monsterSpawnX: ((gx + 0.5) * 55),
+                        monsterSpawnY: (0.5 * 50 + 60),
+                        playerSpawnX: ((gx + 0.5) * 55),
+                        playerSpawnY: (0.5 * 50 + 60)
+                    };
+                }
+                if (spawnInfo.bottom) {
+                    const gx = Math.round(spawnInfo.bottom.gridX * (COLS - 1) / (origCols - 1));
+                    portals.bottom = {
+                        gridX: Math.min(Math.max(gx, 0), COLS - 2),
+                        gridY: ROWS - 1,
+                        monsterSpawnX: ((gx + 0.5) * 55),
+                        monsterSpawnY: ((ROWS - 1.5) * 50),
+                        playerSpawnX: ((gx + 0.5) * 55),
+                        playerSpawnY: ((ROWS - 1.5) * 50)
+                    };
+                }
+                if (spawnInfo.left) {
+                    const gy = Math.round(spawnInfo.left.gridY * (ROWS - 1) / (origRows - 1));
+                    portals.left = {
+                        gridX: 0,
+                        gridY: Math.min(Math.max(gy, 0), ROWS - 2),
+                        monsterSpawnX: (0.5 * 55 + 60),
+                        monsterSpawnY: ((gy + 0.5) * 50),
+                        playerSpawnX: (0.5 * 55 + 60),
+                        playerSpawnY: ((gy + 0.5) * 50)
+                    };
+                }
+                if (spawnInfo.right) {
+                    const gy = Math.round(spawnInfo.right.gridY * (ROWS - 1) / (origRows - 1));
+                    portals.right = {
+                        gridX: COLS - 1,
+                        gridY: Math.min(Math.max(gy, 0), ROWS - 2),
+                        monsterSpawnX: ((COLS - 1.5) * 55),
+                        monsterSpawnY: ((gy + 0.5) * 50),
+                        playerSpawnX: ((COLS - 1.5) * 55),
+                        playerSpawnY: ((gy + 0.5) * 50)
+                    };
+                }
+            }
+
+            // 문 입구 외벽 비움 (2칸)
+            for (let dir in portals) {
+                const info = portals[dir];
+                if (!info) continue;
+                if (dir === 'top' || dir === 'bottom') {
+                    if (mapData[info.gridY] && info.gridX < COLS) {
+                        mapData[info.gridY][info.gridX] = 0;
+                        if (info.gridX + 1 < COLS) mapData[info.gridY][info.gridX + 1] = 0;
+                    }
+                } else if (dir === 'left' || dir === 'right') {
+                    if (info.gridY < ROWS) {
+                        mapData[info.gridY][info.gridX] = 0;
+                        if (info.gridY + 1 < ROWS) mapData[info.gridY + 1][info.gridX] = 0;
+                    }
+                }
+            }
+
+            presetKeyInput.value = presetKey;
+            refreshGridUI();
+            updateJSON();
+            showToast(`[${presetKey}] 인게임 프리셋 템플릿이 로드되었습니다.`);
+        }
+
         // 맵 완전 리셋
         function clearMap() {
             mapData = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
@@ -1158,6 +1268,19 @@
             });
 
             // 템플릿 로드 & 리셋 이벤트
+            const loadInGameBtn = document.getElementById('btn-load-ingame-preset');
+            const selectGamePreset = document.getElementById('select-game-preset');
+            if (loadInGameBtn && selectGamePreset) {
+                loadInGameBtn.addEventListener('click', () => {
+                    const selected = selectGamePreset.value;
+                    if (selected) {
+                        loadInGamePreset(selected);
+                    } else {
+                        showToast("불러올 게임 프리셋을 셀렉트 박스에서 먼저 선택해주세요.");
+                    }
+                });
+            }
+
             document.getElementById('btn-load-template').addEventListener('click', loadBossTemplate);
             document.getElementById('btn-load-normal-template').addEventListener('click', loadNormalTemplate);
             document.getElementById('btn-clear-map').addEventListener('click', () => {
