@@ -1,4 +1,236 @@
 // --------------------------------------------------------------------------
+// 2.5. 맵 오프스크린 캐싱 & 통합 네온 렌더러 (MapOffscreenRenderer)
+// --------------------------------------------------------------------------
+class MapOffscreenRenderer {
+    constructor() {
+        this.canvas = document.createElement('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.width = 0;
+        this.height = 0;
+        this.cols = 0;
+        this.rows = 0;
+        this.tileW = 55;
+        this.tileH = 50;
+        this.grid = null;
+        this.theme = null;
+        this.innerWallTiles = []; // 오버레이 Pulse 효과용 (1번 타일 위치 목록)
+        this.pulseTime = 0;
+    }
+
+    /**
+     * 2차원 타일 그리드와 방 테마를 받아 오프스크린 캔버스에 벽면 전체를 프리렌더링(Bake)
+     */
+    bakeMap(grid, theme) {
+        if (!grid || !grid.length) return;
+        this.grid = grid;
+        this.rows = grid.length;
+        this.cols = grid[0].length;
+        this.width = this.cols * this.tileW;
+        this.height = this.rows * this.tileH;
+        this.theme = theme || {
+            bgColor: '#05070c',
+            innerBgColor: '#090d16',
+            outerBorder: 'rgba(0, 240, 255, 0.35)',
+            innerBorder: 'rgba(0, 240, 255, 0.7)',
+            gridColor: 'rgba(0, 240, 255, 0.05)'
+        };
+
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        this.innerWallTiles = [];
+
+        // 1. 스프라이트 타일셋 체크 (AssetManager 타일셋 이미지 존재 여부)
+        const outerSprite = window.AssetManager ? window.AssetManager.get('wall_outer_tile') : null;
+        const innerSprite = window.AssetManager ? window.AssetManager.get('wall_inner_tile') : null;
+
+        const hasOuterSprite = outerSprite && outerSprite.complete && outerSprite.naturalWidth > 0;
+        const hasInnerSprite = innerSprite && innerSprite.complete && innerSprite.naturalWidth > 0;
+
+        // 2. 외벽 (Type 2) 통합 그리드 렌더링
+        this._drawOuterWalls(ctx, hasOuterSprite ? outerSprite : null);
+
+        // 3. 격벽 (Type 1) 모듈형 네온 렌더링
+        this._drawInnerWalls(ctx, hasInnerSprite ? innerSprite : null);
+    }
+
+    _drawOuterWalls(ctx, sprite) {
+        const grid = this.grid;
+        const theme = this.theme;
+        const tileW = this.tileW;
+        const tileH = this.tileH;
+
+        ctx.save();
+
+        // 1) 외벽 영역 전체 베이스 채우기 & 빗금 파이프/해치 패턴
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (grid[r][c] === 2) {
+                    const x = c * tileW;
+                    const y = r * tileH;
+
+                    if (sprite) {
+                        ctx.drawImage(sprite, x, y, tileW, tileH);
+                    } else {
+                        // 베이스 배경 채우기 (어두운 사이버 섀도우)
+                        ctx.fillStyle = '#05060d';
+                        ctx.fillRect(x, y, tileW, tileH);
+
+                        // 빗금 사이버 파이프 / 해치 패턴
+                        ctx.beginPath();
+                        ctx.strokeStyle = theme.outerBorder || 'rgba(255, 0, 85, 0.15)';
+                        ctx.lineWidth = 1.0;
+
+                        ctx.moveTo(x, y + 15);
+                        ctx.lineTo(x + 35, y + tileH);
+
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + tileW, y + tileH);
+
+                        ctx.moveTo(x + 20, y);
+                        ctx.lineTo(x + tileW, y + 35);
+
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // 2) 바닥(0) 또는 격벽(1)과 접하는 외벽 경계선(Outer Edge) 렌더링
+        ctx.strokeStyle = theme.outerBorder || 'rgba(255, 0, 85, 0.4)';
+        ctx.lineWidth = 2.5;
+        ctx.fillStyle = theme.outerBorder || 'rgba(255, 0, 85, 0.4)';
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (grid[r][c] === 2) {
+                    const x = c * tileW;
+                    const y = r * tileH;
+
+                    // 상/하/좌/우 중 바닥(0)이나 격벽(1)과 접하는지 체크
+                    const topOther = r === 0 || grid[r - 1][c] !== 2;
+                    const botOther = r === this.rows - 1 || grid[r + 1][c] !== 2;
+                    const leftOther = c === 0 || grid[r][c - 1] !== 2;
+                    const rightOther = c === this.cols - 1 || grid[r][c + 1] !== 2;
+
+                    ctx.beginPath();
+                    if (topOther) { ctx.moveTo(x, y); ctx.lineTo(x + tileW, y); }
+                    if (botOther) { ctx.moveTo(x, y + tileH); ctx.lineTo(x + tileW, y + tileH); }
+                    if (leftOther) { ctx.moveTo(x, y); ctx.lineTo(x, y + tileH); }
+                    if (rightOther) { ctx.moveTo(x + tileW, y); ctx.lineTo(x + tileW, y + tileH); }
+                    ctx.stroke();
+
+                    // 모서리 접속 노드 (Corner Connector Point)
+                    if ((topOther && leftOther) || (topOther && rightOther) || (botOther && leftOther) || (botOther && rightOther)) {
+                        ctx.fillRect(x + tileW / 2 - 2.5, y + tileH / 2 - 2.5, 5, 5);
+                    }
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+
+    _drawInnerWalls(ctx, sprite) {
+        const grid = this.grid;
+        const theme = this.theme;
+        const tileW = this.tileW;
+        const tileH = this.tileH;
+
+        ctx.save();
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (grid[r][c] === 1) {
+                    const x = c * tileW;
+                    const y = r * tileH;
+
+                    this.innerWallTiles.push({ x, y, col: c, row: r });
+
+                    if (sprite) {
+                        ctx.drawImage(sprite, x, y, tileW, tileH);
+                    } else {
+                        // 모듈형 자홍/네온 격벽 패널 채우기
+                        ctx.fillStyle = theme.innerBgColor || '#14081c';
+                        ctx.fillRect(x, y, tileW, tileH);
+
+                        // 패널 내측 테두리
+                        ctx.strokeStyle = theme.innerBorder || 'rgba(255, 0, 170, 0.4)';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(x + 2, y + 2, tileW - 4, tileH - 4);
+
+                        // 모듈 코너 앰블럼 (4개 모서리 회로 노드)
+                        const cornerSize = 4;
+                        ctx.fillStyle = theme.innerBorder || '#ff00aa';
+                        ctx.fillRect(x + 4, y + 4, cornerSize, cornerSize);
+                        ctx.fillRect(x + tileW - 4 - cornerSize, y + 4, cornerSize, cornerSize);
+                        ctx.fillRect(x + 4, y + tileH - 4 - cornerSize, cornerSize, cornerSize);
+                        ctx.fillRect(x + tileW - 4 - cornerSize, y + tileH - 4 - cornerSize, cornerSize, cornerSize);
+
+                        // 중앙 하이테크 십자선 (Crossline)
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(255, 0, 170, 0.25)';
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(x + tileW / 2, y + 6);
+                        ctx.lineTo(x + tileW / 2, y + tileH - 6);
+                        ctx.moveTo(x + 6, y + tileH / 2);
+                        ctx.lineTo(x + tileW - 6, y + tileH / 2);
+                        ctx.stroke();
+
+                        // 코어 노드 포인트
+                        ctx.fillRect(x + tileW / 2 - 1.5, y + tileH / 2 - 1.5, 3, 3);
+                    }
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * 메인 프레임 렌더링 (단 1회의 drawImage 호출!)
+     */
+    draw(ctx) {
+        if (!this.canvas || !this.width) return;
+        ctx.drawImage(this.canvas, 0, 0);
+
+        // 은은한 동적 네온 맥동 오버레이
+        this._drawPulseOverlay(ctx);
+    }
+
+    _drawPulseOverlay(ctx) {
+        if (!this.innerWallTiles.length) return;
+        const lowSpec = window.gameEngine && window.gameEngine.lowSpecMode;
+        if (lowSpec) return; // 저사양 모드시 오버레이 생략
+
+        this.pulseTime += 0.04;
+        const pulse = (Math.sin(this.pulseTime) + 1) * 0.5; // 0.0 ~ 1.0
+
+        ctx.save();
+        ctx.beginPath();
+
+        const theme = this.theme;
+        const borderColor = theme.innerBorder || 'rgba(255, 0, 170, 0.6)';
+
+        // 격벽 타일들의 외곽 테두리를 단 하나의 Path로 묶어 stroke 1회 수행!
+        for (let i = 0; i < this.innerWallTiles.length; i++) {
+            const tile = this.innerWallTiles[i];
+            ctx.rect(tile.x + 2, tile.y + 2, this.tileW - 4, this.tileH - 4);
+        }
+
+        ctx.strokeStyle = borderColor;
+        ctx.globalAlpha = 0.2 + pulse * 0.35; // 0.2 ~ 0.55 미세 맥동
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+// --------------------------------------------------------------------------
 // 2.5. 격자 기반 맵 타일 벽 클래스 (NeonTileWall)
 // --------------------------------------------------------------------------
 class NeonTileWall {

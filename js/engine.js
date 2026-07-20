@@ -5862,7 +5862,7 @@ class GameEngine {
                     m.isPlayerKnockback = true;
 
                     this.showFloatingText(Math.round(finalDamage), m.x, m.y - 20, '#ffdf00');
-                    if (m.hp <= 0) this.killMonster(hit.index);
+                    if (m.hp <= 0) this.killMonster(m, hit.index);
                 }
             } else {
                 // 2) [플라즈마 세이버] 베기(Slash) 부채꼴 범위 판정
@@ -5887,7 +5887,7 @@ class GameEngine {
                             m.isPlayerKnockback = true;
 
                             this.showFloatingText(Math.round(finalDamage), m.x, m.y - 20, '#b026ff');
-                            if (m.hp <= 0) this.killMonster(i);
+                            if (m.hp <= 0) this.killMonster(m, i);
                         }
                     }
                 }
@@ -8382,8 +8382,10 @@ class GameEngine {
             console.warn("충전소 그리기 중 에러가 발생했으나 다른 요소를 계속 렌더링합니다:", e);
         }
 
-        // [복구] 유실되었던 격자 장애물(NeonTileWall) 렌더링
-        if (this.obstacles && Array.isArray(this.obstacles)) {
+        // [최적화] 통합 네온 맵 오프스크린 렌더러 (드로우콜 1회로 극적 단축 및 디자인 개편)
+        if (this.mapEngine && this.mapEngine.mapRenderer) {
+            this.mapEngine.mapRenderer.draw(this.ctx);
+        } else if (this.obstacles && Array.isArray(this.obstacles)) {
             this.obstacles.forEach(obs => {
                 if (obs && typeof obs.draw === 'function') obs.draw(this.ctx);
             });

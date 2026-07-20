@@ -333,6 +333,14 @@ class MapEngine {
         this.game = gameEngine; // GameEngine 코어 참조 바인딩
         this.cols = 40;
         this.rows = 30;
+        this.mapRenderer = new MapOffscreenRenderer();
+    }
+
+    // 현재 맵 그리드 및 섹터 테마 기반으로 오프스크린 캔버스 재생성(Bake)
+    bakeCurrentMap() {
+        if (!this.game.grid) return;
+        const theme = this.getSectorTheme(this.game.currentRoomNumber || 1, this.game.currentRoomType);
+        this.mapRenderer.bakeMap(this.game.grid, theme);
     }
 
     // 2차원 그리드 기반 맵 구조 생성 메서드
@@ -406,6 +414,9 @@ class MapEngine {
                 }
             }
         }
+
+        // [최적화] 맵 그리드 생성 완료 후 오프스크린 캔버스 1회 프리렌더링(Bake)
+        this.bakeCurrentMap();
     }
 
     // 커스텀 맵 프리셋 런타임 적용 및 즉시 방 재생성 테스트 기능
@@ -458,6 +469,9 @@ class MapEngine {
 
         this.game.updateHUD();
         this.game.showFloatingText("CUSTOM MAP APPLIED! 🛠️", this.game.player.x, this.game.player.y - 40, '#39ff14');
+
+        // [최적화] 커스텀 맵 적용 후 오프스크린 캔버스 1회 Re-bake
+        this.bakeCurrentMap();
     }
 
     // 2차원 그리드 정보를 분석하여 바닥 타일과 접하는 안전한 벽면에 비밀방 균열 벽을 스폰하는 메서드
@@ -644,6 +658,9 @@ class MapEngine {
 
         // 비밀 균열 외벽 생성 (새로운 생성자 스펙: col, row, dir, type)
         this.game.secretWalls.push(new SecretWall(chosenSpot.col, chosenSpot.row, chosenSpot.dir, chosenSpot.type));
+
+        // [최적화] 비밀 벽 스폰으로 인한 격벽 제거 후 오프스크린 캔버스 1회 Re-bake
+        this.bakeCurrentMap();
     }
 
     // 특정 픽셀 좌표가 타일 격벽(1) 또는 외벽(2)에 속해 있는지 판단하는 메서드
