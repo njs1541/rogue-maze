@@ -664,9 +664,28 @@
                     몬스터 생태계 및 지능형 AI 개편 프로젝트
                 </div>
                 <div class="hero-desc">
-                    본 작업서는 기존 <strong style="color:var(--primary);">단순 직진 추적 중심의 11종 일반 몬스터 및 9종 보스 패턴</strong>을 분석하고, 
-                    플레이어에게 다채로운 전술적 긴장감과 몰입감을 제공하기 위한 <strong style="color:var(--secondary);">6대 개별 행동 AI 원칙</strong>, 
-                    <strong style="color:var(--success);">신규 몬스터 8종 디자인</strong> 및 <strong style="color:var(--warning);">FSM/전략 패턴 기반 구조 리팩토링 설계안</strong>을 다룹니다.
+                    본 작업서는 기존 <strong style="color:var(--primary);">11종 일반 몬스터 및 9종 고유 보스 메커니즘</strong>을 분석하고, 
+                    <strong style="color:var(--success);">총 46종 일반/특수 몬스터 대확장 (하위 23종 + 상위 23종)</strong>, 
+                    <strong style="color:var(--warning);">5대 다채로운 몬스터 스폰 시스템 (5-Spawn System)</strong>, 
+                    <strong style="color:var(--secondary);">보스 4단계 페이즈 & 무적 탄환소멸 Telegraph 개편안</strong> 및 
+                    <strong style="color:var(--amber);">몬스터 군집 연쇄 폭발 & 보스 브레이크 QTE 2대 전략 시스템</strong>을 다룹니다.
+                </div>
+
+                <!-- 🚨 2대 최우선 절대 개발 원칙 하이라이트 박스 -->
+                <div style="margin: 20px 0; padding: 16px 20px; background: rgba(255, 0, 85, 0.12); border: 2px solid var(--danger); border-radius: 12px;">
+                    <div style="color: var(--danger); font-weight: 800; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 18px;"></i> 🚨 최우선 절대 개발 원칙 (Absolute Core Principles)
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; line-height: 1.6;">
+                        <div style="background: rgba(18, 22, 41, 0.7); padding: 12px; border-radius: 8px; border-left: 3px solid var(--danger);">
+                            <strong style="color: var(--primary);">⚡ 1. Zero-Lag 60FPS 극강의 자체 최적화</strong><br>
+                            옵션의 성능 최적화 켜짐 유무와 상관없이, <strong>기본 수동 코드 레벨에서 GC 렉을 100% 차단</strong>하고 경량 캔버스 렌더링으로 항시 60FPS를 보장합니다.
+                        </div>
+                        <div style="background: rgba(18, 22, 41, 0.7); padding: 12px; border-radius: 8px; border-left: 3px solid var(--warning);">
+                            <strong style="color: var(--warning);">🛡️ 2. 점진적 순차 개발 & 소스코드 검증</strong><br>
+                            한꺼번에 개발하지 않고 <strong>작은 기능 단위(Sub-Phase)별 순차 진행</strong>하며, `개발 ➔ 시연/테스트 ➔ 소스코드 검수 ➔ 이행` 4단계를 의무 준수합니다.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="metrics-grid">
@@ -675,35 +694,35 @@
                             <i class="fa-solid fa-ghost"></i>
                         </div>
                         <div>
-                            <div class="metric-value">20 종</div>
-                            <div class="metric-label">현재 분석된 몬스터/보스 유형</div>
+                            <div class="metric-value">46 종</div>
+                            <div class="metric-label">목표 일반/특수 몬스터 라인업</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="background: rgba(255,0,127,0.15); color: var(--secondary);">
-                            <i class="fa-solid fa-chess-knight"></i>
+                        <div class="metric-icon" style="background: rgba(255,0,127,0.15); color: var(--danger);">
+                            <i class="fa-solid fa-gauge-high"></i>
                         </div>
                         <div>
-                            <div class="metric-value">6 가지</div>
-                            <div class="metric-label">새로 신설될 행동 AI 원칙</div>
+                            <div class="metric-value">60 FPS</div>
+                            <div class="metric-label">Zero-Lag 자체 코드 최적화</div>
                         </div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-icon" style="background: rgba(0,245,212,0.15); color: var(--success);">
-                            <i class="fa-solid fa-biohazard"></i>
+                            <i class="fa-solid fa-burst"></i>
                         </div>
                         <div>
-                            <div class="metric-value">+8 종</div>
-                            <div class="metric-label">신규 제안 일반/특수 몬스터</div>
+                            <div class="metric-value">연쇄 폭발</div>
+                            <div class="metric-label">군집 대군 타겟 저격 콤보</div>
                         </div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-icon" style="background: rgba(121,40,202,0.15); color: #a78bfa;">
-                            <i class="fa-solid fa-cubes"></i>
+                        <div class="metric-icon" style="background: rgba(255,183,3,0.15); color: var(--warning);">
+                            <i class="fa-solid fa-list-check"></i>
                         </div>
                         <div>
-                            <div class="metric-value">FSM 패턴</div>
-                            <div class="metric-label">모놀리식 코드 리팩토링 목표</div>
+                            <div class="metric-value">순차 검증</div>
+                            <div class="metric-label">4단계 점진적 개발 공정</div>
                         </div>
                     </div>
                 </div>
@@ -719,7 +738,7 @@
                 <i class="fa-solid fa-compass-drafting"></i> 2. 6대 행동 AI 원칙 (Principles)
             </button>
             <button class="tab-btn" onclick="switchTab('tab-newmonsters')">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> 3. 신규 몬스터 기획 (New Types)
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 3. 46종 몬스터 기획 (New Types)
             </button>
             <button class="tab-btn" onclick="switchTab('tab-architecture')">
                 <i class="fa-solid fa-diagram-project"></i> 4. 코드 구조 개선안 (Architecture)
@@ -736,26 +755,228 @@
                     <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i>
                     현재 몬스터 현황 및 한계점 진단
                 </div>
-                <div class="section-subtitle">js/monster.js 에 구현되어 있는 11종의 일반/특수 몬스터와 9종 보스 생태계 현황</div>
+                <div class="section-subtitle">js/monster.js 내 11종 일반 몬스터 및 9종 고유 보스 현황과 46종 대확장 스폰 맵풀(Map Pool) 구조</div>
             </div>
 
             <!-- 현계점 경고 박스 -->
-            <div class="limit-box">
-                <div class="limit-title">
-                    <i class="fa-solid fa-triangle-exclamation"></i> 기존 몬스터 시스템의 주요 문제점
+            <div class="limit-box" style="border-left: 4px solid var(--danger);">
+                <div class="limit-title" style="color: var(--danger);">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 기존 시스템 진단 & 2대 최우선 개발 원칙 규정
                 </div>
                 <ul class="limit-list">
-                    <li><strong>이동 경로의 단조로움</strong>: 대부분 <code>Math.atan2(dy, dx)</code> 직선 플레이어 추적 기반으로, 미로 벽 모서리에 잘 갇히고 단조로운 유인 플레이에 취약함.</li>
-                    <li><strong>몬스터 간 협응(Cooperation) 부재</strong>: 각 몬스터가 서로 인식하지 않고 독립적으로 움직이며, 플레이어를 포위하거나 탱커 뒤에서 원거리 사격을 하는 전술이 없음.</li>
-                    <li><strong>환경(미로) 활용 능력 결여</strong>: 미로라는 훌륭한 지형 요소가 있음에도 불구하고 벽을 엄폐물로 삼거나 기습하는 AI가 부재함.</li>
-                    <li><strong>3,800줄 모놀리식 단일 switch 구조</strong>: <code>Monster.prototype.update</code> 내에 모든 몬스터 및 보스 로직이 뒤섞여 유지보수 및 신규 패턴 추가 난이도가 높음.</li>
+                    <li><strong style="color:var(--danger);">[최우선 원칙 1] Zero-Lag 60FPS 극강 최적화</strong>: 성능 최적화 옵션과 별개로, 기본 코드 레벨에서 메모리/객체 할당 0(GC 차단) 및 경량 `stroke()` 캔버스 연산으로 항시 60FPS 유지.</li>
+                    <li><strong style="color:var(--warning);">[최우선 원칙 2] 점진적 순차 개발 & 코드 검증</strong>: 전체를 한꺼번에 개발하지 않고 단위별 순차 진행 (`개발 ➔ 사용자 시연/테스트 ➔ 소스코드 검수 ➔ 이행` 4단계 준수).</li>
+                    <li><strong>충돌 및 이동 패턴</strong>: <code>isPositionInWall</code> 8방향 픽셀 충돌 및 보스/탱커 넉백 면제 기능이 있으나, 지형 우회 스마트 AI 부재.</li>
+                    <li><strong>1~100층 스폰 & 맵 풀</strong>: 하위 23종 순차 해금 ➔ 51층+ 상위 23종 믹스 스폰 및 방 무작위 5~7종 맵 풀(Map Pool) 추첨.</li>
                 </ul>
+            </div>
+
+            <!-- 5대 몬스터 스폰 시스템 (5-Spawn System) 구역 -->
+            <h3 style="color:#fff; font-size:16px; margin:24px 0 16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-bolt" style="color:var(--secondary);"></i> 5대 다채로운 몬스터 스폰 시스템 (5-Spawn System)
+            </h3>
+
+            <div class="grid-3" style="margin-bottom:28px;">
+                <!-- Spawn Mode 1 -->
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(0,240,255,0.2); color:var(--primary);">1</div>
+                            <div>
+                                <div class="card-title">입구 문 팩 스폰</div>
+                                <div class="card-subtitle">Portal Pac Spawn</div>
+                            </div>
+                        </div>
+                        <span class="tag cyan">기본 포털</span>
+                    </div>
+                    <div class="card-body">
+                        플레이어가 들어온 진입 입구를 제외한 나머지 3개 문 포털에서 1~5마리 소규모 팩(Pac) 단위로 0.5초 간격 순차 소환.
+                    </div>
+                </div>
+
+                <!-- Spawn Mode 2 -->
+                <div class="card" style="border-left: 4px solid var(--secondary);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(255,0,127,0.2); color:var(--secondary);">2</div>
+                            <div>
+                                <div class="card-title">바닥 네온 소환진 기습</div>
+                                <div class="card-subtitle">Rift Zone Spawn</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">지형 기습</span>
+                    </div>
+                    <div class="card-body">
+                        맵 내부 빈 바닥에 1.5초간 경량 네온 룬 예고 원이 점멸한 후, 암살자·스나이퍼·결빙형 특수 몬스터가 불쑥 기습 스폰.
+                    </div>
+                </div>
+
+                <!-- Spawn Mode 3 -->
+                <div class="card" style="border-left: 4px solid var(--success);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(0,245,212,0.2); color:var(--success);">3</div>
+                            <div>
+                                <div class="card-title">필드 미리 배치 스폰</div>
+                                <div class="card-subtitle">Pre-Spawned Field</div>
+                            </div>
+                        </div>
+                        <span class="tag green">선배치 휴면</span>
+                    </div>
+                    <div class="card-body">
+                        방 진입 순간부터 벽이 없는 맵 중앙/복도 빈 공간에 휴면 오라를 두른 몬스터들이 이미 배치되어 배회 스폰.
+                    </div>
+                </div>
+
+                <!-- Spawn Mode 4 -->
+                <div class="card" style="border-left: 4px solid var(--warning);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(255,183,3,0.2); color:var(--warning);">4</div>
+                            <div>
+                                <div class="card-title">3문 릴레이 쇄도 스폰</div>
+                                <div class="card-subtitle">3-Door Relay Rush</div>
+                            </div>
+                        </div>
+                        <span class="tag amber">연속 쇄도</span>
+                    </div>
+                    <div class="card-body">
+                        3개의 문 포털에서 1마리씩 번갈아가며 빠른 릴레이 템포로 끊임없이 몬스터가 출현하여 플레이어를 포위 압박.
+                    </div>
+                </div>
+
+                <!-- Spawn Mode 5 -->
+                <div class="card" style="border-left: 4px solid var(--danger);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(255,0,85,0.2); color:var(--danger);">5</div>
+                            <div>
+                                <div class="card-title">트리거 기습 4문 일제 소환</div>
+                                <div class="card-subtitle">Triggered 4-Door Ambush</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">트리거 앰부시</span>
+                    </div>
+                    <div class="card-body">
+                        방 진입 시 정적 유지 ➔ 충전소(Charging Station) 또는 맵 중앙 도달 시 <strong>4개 문 전체에서 한 번에 쏟아져 나오는 일제 앰부시</strong>!
+                    </div>
+                </div>
+
+                <!-- Spawn Mix Rules -->
+                <div class="card" style="border-left: 4px solid #a78bfa; background: rgba(121,40,202,0.15);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(167,139,250,0.2); color:#a78bfa;"><i class="fa-solid fa-shuffle"></i></div>
+                            <div>
+                                <div class="card-title">방 무작위 믹스 규칙</div>
+                                <div class="card-subtitle">Random Spawn Mix Rule</div>
+                            </div>
+                        </div>
+                        <span class="tag purple">스폰 믹스</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.6;">
+                        • <strong>일반 방</strong>: 미리 배치 + 3문 릴레이 / 입구 팩 무작위 믹스<br>
+                        • <strong>무기/스탯 방</strong>: 바닥 네온 소환진 기습 + 미리 배치 믹스<br>
+                        • <strong>엘리트/충전소 방</strong>: 충전소 도달 시 4문 일제 소환 + 바닥 소환진 동시 앰부시!
+                    </div>
+                </div>
+            </div>
+
+            <!-- 보스 4단계 페이즈 & 무적 탄환소멸 시스템 구역 -->
+            <h3 style="color:#fff; font-size:16px; margin:28px 0 16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-dragon" style="color:var(--secondary);"></i> 보스 4단계 페이즈(Phase) & 무적 탄환소멸 메커니즘
+            </h3>
+
+            <div class="grid-2" style="margin-bottom:28px;">
+                <!-- Boss Phase Rule Card -->
+                <div class="card" style="border-left: 4px solid var(--secondary); background: rgba(255, 0, 127, 0.08);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: var(--secondary); color:#fff;"><i class="fa-solid fa-layer-group"></i></div>
+                            <div>
+                                <div class="card-title">4단계 페이즈(Phase) & 무적 전환</div>
+                                <div class="card-subtitle">HP Threshold & Bullet Clear Rules</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">체력 조건</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.7;">
+                        • <strong>Phase 1 (HP 100% ~ 61%)</strong>: 기본 공격 및 컨셉별 1차 패턴 진행.<br>
+                        • <strong>Phase 2 (HP 60% 이하)</strong>: <span style="color:var(--primary); font-weight:bold;">[무적 전환 + 탄환 전면 소멸]</span> ➔ 1차 패턴 + 보스 컨셉별 **신규 추가 공격 패턴 및 기믹 융합 발동**.<br>
+                        • <strong>Phase 3 (HP 40% 이하)</strong>: <span style="color:var(--warning); font-weight:bold;">[광폭화 오라(Frenzy Aura) 발동]</span> ➔ 불꽃/자색 네온 오라가 휘감기며 모든 기술 쿨타임 대폭 감소 연속 난사.<br>
+                        • <strong>Phase 4 (HP 30% 이하)</strong>: <span style="color:var(--danger); font-weight:bold;">[궁극기 무적 전환 + 2차 탄환 소멸]</span> ➔ 1, 2차 공격 패턴이 **강화된 2차 궁극 패턴(Enhanced Ultimate Version)**으로 승화 연쇄 발동!
+                    </div>
+                </div>
+
+                <!-- Telegraph Indicator Card -->
+                <div class="card" style="border-left: 4px solid var(--primary); background: rgba(0, 240, 255, 0.08);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: var(--primary); color:#000;"><i class="fa-solid fa-eye"></i></div>
+                            <div>
+                                <div class="card-title">4가지 경량 시각적 예고 (Telegraph)</div>
+                                <div class="card-subtitle">60FPS Performance-Optimized VFX</div>
+                            </div>
+                        </div>
+                        <span class="tag cyan">전조 연출</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.7;">
+                        • <strong>1. 선형 조준 예고</strong>: 붉은 레이저 조준선 (`ctx.lineTo()`).<br>
+                        • <strong>2. 범위/장판 예고</strong>: 바닥 1초 네온 펄스 원형 링 (`ctx.arc()`).<br>
+                        • <strong>3. 캐스팅 기술 예고</strong>: 보스 머리 위 경량 UI 게이지 Bar 텍스트.<br>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 플레이어 UX 향상 2대 전략 시스템 구역 -->
+            <h3 style="color:#fff; font-size:16px; margin:28px 0 16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-gamepad" style="color:var(--success);"></i> 플레이어 타격감 & UX 향상 2대 전략 시스템 (Fun Factor)
+            </h3>
+
+            <div class="grid-2" style="margin-bottom:28px;">
+                <!-- Chain Reaction Card -->
+                <div class="card" style="border-left: 4px solid var(--success); background: rgba(0, 245, 212, 0.08);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: var(--success); color:#000;"><i class="fa-solid fa-burst"></i></div>
+                            <div>
+                                <div class="card-title">1. 몬스터 군집 연쇄 폭파 카운터</div>
+                                <div class="card-subtitle">Chain Reaction Combo System</div>
+                            </div>
+                        </div>
+                        <span class="tag green">타겟 저격</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.7;">
+                        • <strong>우선 저격 콤보</strong>: 4문 일제 앰부시 소환 시 <code>Cluster Exploder</code>, <code>Soul Absorber</code>, <code>Alpha Leader</code> 등 지휘관/자폭 몬스터를 먼저 처치 성공 시 발동.<br>
+                        • <strong>연쇄 연계 효과</strong>: 처치된 중심점 반경 120px 내의 주변 일반 몬스터들에게 **2차 연쇄 네온 폭발 대미지 + 1.5초 스턴(Stagger)** 유발.<br>
+                        • <strong>전략적 쾌감</strong>: 몰려드는 대군 위기 상황을 우선순위 타겟 저격만으로 순식간에 통쾌하게 쓸어버리는 위기 탈출 재미 제공.
+                    </div>
+                </div>
+
+                <!-- Boss Break System Card -->
+                <div class="card" style="border-left: 4px solid var(--warning); background: rgba(255, 183, 3, 0.08);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: var(--warning); color:#000;"><i class="fa-solid fa-crosshair"></i></div>
+                            <div>
+                                <div class="card-title">2. 보스 페이즈 '스페셜 브레이크 QTE'</div>
+                                <div class="card-subtitle">Boss Break Counter System</div>
+                            </div>
+                        </div>
+                        <span class="tag amber">인터랙티브 QTE</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.7;">
+                        • <strong>QTE 조준 타임</strong>: 보스가 HP 60%, 30% 조건 도달 시 1.5초간 무적 페이즈 전환을 할 때 보스 주위에 <strong>3개의 붉은 브레이크 노드(Break Nodes)</strong> 출현.<br>
+                        • <strong>브레이크 성공 보상</strong>: 플레이어가 1.5초 내에 3개 노드를 사격해 전멸시키면 <span style="color:var(--primary); font-weight:bold;">"BOSS BREAK!"</span> 카운터 성공!<br>
+                        • <strong>그로기 스턴</strong>: 보스가 3초간 그로기 무력화 스턴에 빠지며, 다음 페이즈 패턴 발동을 3초 지연시키는 전술적 보상 부여.
+                    </div>
+                </div>
             </div>
 
             <div class="filter-bar">
                 <span class="filter-chip active" onclick="filterCurrent('all')">전체 보기</span>
-                <span class="filter-chip" onclick="filterCurrent('normal')">일반 몬스터 (11종)</span>
-                <span class="filter-chip" onclick="filterCurrent('boss')">보스 몬스터 (9종)</span>
+                <span class="filter-chip" onclick="filterCurrent('normal')">일반/특수 몬스터 (46종 생태계)</span>
+                <span class="filter-chip" onclick="filterCurrent('boss')">보스 몬스터 (9종 + 50/90F 시련)</span>
             </div>
 
             <div class="grid-3" id="current-monsters-grid">
@@ -941,7 +1162,8 @@
                 </div>
 
                 <!-- Boss Monster Items -->
-                <div class="card current-item" data-category="boss">
+                <!-- Boss Items with 4-Phase System -->
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ff3300;">
                     <div class="card-header">
                         <div class="card-title-group">
                             <div class="monster-avatar" style="background: #ff3300;">10</div>
@@ -950,14 +1172,64 @@
                                 <div class="card-subtitle">type: 'boss' (10F)</div>
                             </div>
                         </div>
-                        <span class="tag pink">보스</span>
+                        <span class="tag pink">4단계 페이즈 보스</span>
                     </div>
                     <div class="card-body">
-                        체력 감소 시 위상 굴절 보호막을 켜 대미지 70%를 경감하고 탄환 폭격을 가합니다.
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 기본 네온 사격 & 카이팅</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 위상 굴절 실드 (70% 대미지 경감) + 신규 3Way 네온 산탄</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 대시 쿨타임 50% 차감 고속 돌진</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 화면 전체 붉은 조준 궤적 교차 레이저 폭격 연쇄</li>
+                        </ul>
                     </div>
                 </div>
 
-                <div class="card current-item" data-category="boss">
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ffaa00;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ffaa00;">20</div>
+                            <div>
+                                <div class="card-title">하이퍼 체이서</div>
+                                <div class="card-subtitle">type: 'boss_chaser' (20F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">4단계 페이즈 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 직선 네온 돌진 사격</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 2연속 잔상 꺾기 돌진 + 화염/전기 바닥 장판 생성</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 오버히트 2배속 돌진 & 이동속도 스택 중첩</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 4방향 환영 분신 돌진 연쇄 난무</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #00f0ff;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #00f0ff; color:#000;">30</div>
+                            <div>
+                                <div class="card-title">마더 슬라임</div>
+                                <div class="card-subtitle">type: 'boss_slime' (30F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">4단계 페이즈 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 점성 둔화 장판 + 8방향 탄막</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 조준 4방향 십자 탄막 사격 + 슬라임 잡몹 소환</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 점성 둔화 장판 틱 피해 추가 & 탄막 2배 가속</li>
+                            <li><strong>P4 (30% 사망 시)</strong>: <span style="color:var(--danger);">[궁극 무적+분열]</span> 2마리의 미니 슬라임 보스(<code>boss_slime_mini</code>)로 분열 재진격</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ff00aa;">
                     <div class="card-header">
                         <div class="card-title-group">
                             <div class="monster-avatar" style="background: #ff00aa;">40</div>
@@ -966,14 +1238,40 @@
                                 <div class="card-subtitle">type: 'boss_speaker' (40F)</div>
                             </div>
                         </div>
-                        <span class="tag pink">보스</span>
+                        <span class="tag pink">4단계 페이즈 보스</span>
                     </div>
                     <div class="card-body">
-                        음파 레이저 빔을 차징 후 방 전체에 소닉 파동을 방사하여 이동을 제약합니다.
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 중앙 고정 회전 6방향 탄막 사격</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 음파 소닉 레이저 차징 후 미로 83px 격자 레이저망 형성</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 격자 레이저 유지시간 2배 확장 & 8방향 회전 가속</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 미로 전체 360도 소닉 파동 도트 폭격 사격</li>
+                        </ul>
                     </div>
                 </div>
 
-                <div class="card current-item" data-category="boss">
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ffb703;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: linear-gradient(135deg, #ffb703, #ff0055); color:#000;">50</div>
+                            <div>
+                                <div class="card-title">50층 다중 보스 시련</div>
+                                <div class="card-subtitle">Special Event (50F)</div>
+                            </div>
+                        </div>
+                        <span class="tag amber">3대1 시련방</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[3대1 다중 보스 시련 메커니즘]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li>10~40층 보스 중 3마리가 약화 상태(`isWeakened`)로 동시 출현</li>
+                            <li>각 보스 격파 시마다 잔여 보스 무적 1초 및 전체 탄환 소멸 연출로 패턴 재정비</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #00ffcc;">
                     <div class="card-header">
                         <div class="card-title-group">
                             <div class="monster-avatar" style="background: #00ffcc; color:#000;">60</div>
@@ -982,10 +1280,104 @@
                                 <div class="card-subtitle">type: 'boss_warper' (60F)</div>
                             </div>
                         </div>
-                        <span class="tag pink">보스</span>
+                        <span class="tag pink">4단계 페이즈 보스</span>
                     </div>
                     <div class="card-body">
-                        블랙홀 흡수 구역을 생성하여 플레이어와 탄환을 중앙으로 끌어당깁니다.
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 텔레포트 도약 & 3Way 보이드 탄환 사격</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 텔레포트 위치에 감속 공간 균열 장판 설치 & 보이드 실드</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 블랙홀 흡수 인력 오라 가동 (플레이어 끌어당김)</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 연속 3회 텔레포트 도약 360도 보이드 불꽃 노바 산탄</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #8b5cf6;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #8b5cf6;">70</div>
+                            <div>
+                                <div class="card-title">차원 차단기</div>
+                                <div class="card-subtitle">type: 'boss_portal' (70F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">4단계 페이즈 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 포털 발전기 부하 2개 소환 & 발전기 보호막</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 차원 문에서 일반/특수 몬스터 기습 연속 소환</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 발전기 부하 재재생 쿨다운 50% 차감</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 맵 4개 포털에서 유도 차원 빔 4중 연쇄 폭격</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #e2e8f0;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #e2e8f0; color:#000;">80</div>
+                            <div>
+                                <div class="card-title">나노 하이브</div>
+                                <div class="card-subtitle">type: 'boss_hive' (80F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">4단계 페이즈 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 재생 실드(Max Shield 50%) 탑재 & 치유 나노 힐러 소환</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 나노 자폭 드론 패밀리 추가 연속 생성</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 실드 재생 속도 2배 및 힐러 소환 주간 1초 단축</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 하이브 나노 펄스 전체 폭발로 플레이어 탄환 강제 반사</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ff3300;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ff3300;">90</div>
+                            <div>
+                                <div class="card-title">카오스 코어 & 웨이브 시련</div>
+                                <div class="card-subtitle">type: 'boss_chaos' (90F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">4단계 페이즈 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 10초마다 3대 원소 (화염/번개/빙결) 속성 교체 방사</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 2대 속성 동시 합성 콤보 사격 (화염+번개 등)</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 속성 교체 주기 5초로 가속 & 결빙 장판 크기 2배 확장</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[궁극 무적+소멸]</span> 3대 원소 속성 동시 360도 카오스 노바 전방위 대폭발</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card current-item" data-category="boss" style="border-top: 3px solid #ff0055;">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ff0055;">100</div>
+                            <div>
+                                <div class="card-title">마더보드 크로노스</div>
+                                <div class="card-subtitle">type: 'boss_final' (100F/101F)</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">최종 보스</span>
+                    </div>
+                    <div class="card-body">
+                        <strong>[4단계 페이즈 & 패턴 명세]</strong>
+                        <ul style="font-size:12px; padding-left:16px; margin-top:6px; line-height:1.6; color:var(--text-muted);">
+                            <li><strong>P1 (100%~61%)</strong>: 4개 실드 터렛 무적 & 궤도 레이저 조준 폭격</li>
+                            <li><strong>P2 (60% 이하)</strong>: <span style="color:var(--primary);">[무적+탄환소멸]</span> 본체 페이즈 진입 ➔ 시간 정지 시한 지대 생성</li>
+                            <li><strong>P3 (40% 이하)</strong>: <span style="color:var(--warning);">[광폭화 오라]</span> 궤도 레이저 폭격 쿨타임 50% 차감 연속 조준</li>
+                            <li><strong>P4 (30% 이하)</strong>: <span style="color:var(--danger);">[101F 진보스 승급]</span> 101F 진 보스(`boss_real_master`) 변신 융합 360도 궤도 탄막</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -1029,6 +1421,16 @@
                                 - Distance &le; 120px & 시선(Raycast) 노출 시: Ambush Strike (이동속도 3.0x, 잔상 유발, 무조건 타격)
                             </div>
                         </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>Raycast 연산 최적화</strong>: 매 프레임 검사 시 렉 유발 방지를 위해 10~15프레임 분산 틱(Staggered Tick) 검사 적용.</li>
+                                <li><strong>오토 타겟팅 차단</strong>: <code>isStealth</code> 플래그를 두어 플레이어 유도 탄환의 타겟 탐색 루프에서 타겟팅 제외 처리.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -1059,6 +1461,16 @@
                                 - MinRange &le; Distance &le; MaxRange: 제자리 정지 후 정밀 조준 사격<br>
                                 - Wall Collision 시: Tangential Vector(측면 미끄러짐)로 수평 이동 전환
                             </div>
+                        </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>미로 코너 갇힘(Corner Lock) 방지</strong>: 단순 후퇴 시 구석에 갇혀 떠는 버그 예외 처리.</li>
+                                <li><strong>지그재그 회피 & 탈출 보정</strong>: 벽면 충돌 시 90도 좌우 교대 반사 벡터를 부여하는 <code>escapeCorner()</code> 안전 로직 탑재.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -1091,6 +1503,16 @@
                                 - Phase Ghost: 3초 간격으로 1.5초간 벽 통과(Noclip) 상태 전환
                             </div>
                         </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>벽 내부 갇힘(Stuck) 해제</strong>: Noclip 종료 시 좌표가 벽 속인 경우 가장 가까운 빈 공간으로 밀어내는 <code>pushOutFromWall()</code> 필수.</li>
+                                <li><strong>시각적 예고 잔상</strong>: 불합리한 기습 피해 방지를 위한 벽 속 네온 파동 잔상 렌더링 유지.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -1120,6 +1542,16 @@
                                 - Flocking Steering Behavior (Boids 알고리즘: 응집, 분리, 정렬 적용)<br>
                                 - Leader-Follower Logic: 탱커/엘리트 몬스터 좌표를 보스/지휘관으로 삼아 호위 대형 유지
                             </div>
+                        </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>미로 복도 병목(Traffic Jam) 방지</strong>: 좁은 통로에서 몬스터끼리 밀쳐 입구를 막는 현상 예외 튜닝.</li>
+                                <li><strong>연산 최적화</strong>: $O(N^2)$ 이웃 탐색 알고리즘을 몬스터 배열 그리드 체이닝 방식으로 경량화.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -1151,6 +1583,16 @@
                                 - Area Persistence: 5~10초간 지속되는 틱 데미지/감속 필드 인스턴스 생성
                             </div>
                         </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>덫 객체 배열 분리</strong>: 플레이어용 `traps` 배열과 혼선 방지를 위해 <code>gameEngine.enemyHazards</code> 전용 배열 신설.</li>
+                                <li><strong>최대 갯수 제한(Capping)</strong>: 맵 당 최대 활성 덫 개수(예: 4~6개) 제한으로 성능 렉 차단.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -1181,6 +1623,16 @@
                                 - Bullet Reflect: 플레이어 탄환의 vx, vy 벡터를 반대로 역전시켜 역공
                             </div>
                         </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.3);">
+                            <div class="limit-title" style="color: var(--warning); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>bullet.js 탄환 연동</strong>: 반사 시 <code>bullet.isEnemy = true</code> 변경 및 반사 벡터 적용으로 플레이어 피격 연계.</li>
+                                <li><strong>관통/레이저 예외 처리</strong>: 관통 및 범위 폭발탄 연속 충돌로 인한 무한 반사 렉 및 스틱 현상 예외 가드.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1191,10 +1643,14 @@
             <div class="section-header">
                 <div class="section-title">
                     <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--success);"></i>
-                    신규 몬스터 및 보스 기획 카탈로그 (New Roster Draft)
+                    46종 몬스터 생태계 & 신규 12종 카탈로그
                 </div>
-                <div class="section-subtitle">새로운 6대 행동 AI 원칙이 적용될 신규 몬스터 8종 디자인 제안</div>
+                <div class="section-subtitle">하위 23종 (기존 11종 + 신규 12종) 및 51층+ 상위 강화형 23종 2차 패턴 명세 설계안</div>
             </div>
+
+            <h3 style="color:#fff; font-size:16px; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-spaghetti" style="color:var(--success);"></i> 1~50층 신규 일반 몬스터 12종 카탈로그
+            </h3>
 
             <div class="grid-2">
                 <!-- New Monster 1 -->
@@ -1328,6 +1784,183 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- New Monster 7 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #8b5cf6;">7</div>
+                            <div>
+                                <div class="card-title">그래비톤 풀러 (Graviton Puller)</div>
+                                <div class="card-subtitle">제어형: 중력 오라</div>
+                            </div>
+                        </div>
+                        <span class="tag purple">신규 제어형</span>
+                    </div>
+                    <div class="card-body">
+                        주기적으로 보랏빛 중력 소용돌이를 방출하여 일정 거리 내의 플레이어와 펫을 자신 쪽으로 지속적으로 끌어당깁니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>중력 끌어당김 / 이동 제약 / 탱킹 지원</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 1.8x | Speed 0.7x | Atk 0.9x</td></tr>
+                            <tr><th>특수 기믹</th><td>중력장 안에서 플레이어 탄환 궤적 약간 굴절</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New Monster 8 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ff007f;">8</div>
+                            <div>
+                                <div class="card-title">로테이팅 레이저 (Rotating Laser)</div>
+                                <div class="card-subtitle">구역형: 360도 레이저</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">신규 설치형</span>
+                    </div>
+                    <div class="card-body">
+                        바닥에 고정되거나 천천히 이동하며 2줄기 붉은 네온 레이저를 360도 회전시켜 미로 통로 전체에 회전 톱날 장애물을 형성합니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>360도 레이저 회전 / 동선 방해 / 지속 위험</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 1.4x | Speed 0.3x | Atk 1.6x</td></tr>
+                            <tr><th>특수 기믹</th><td>레이저 타격 시 강력한 넉백 발생</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New Monster 9 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #00f0ff; color:#000;">9</div>
+                            <div>
+                                <div class="card-title">리플렉터 드론 (Reflector Drone)</div>
+                                <div class="card-subtitle">서포터: 호위 실드</div>
+                            </div>
+                        </div>
+                        <span class="tag cyan">신규 호위형</span>
+                    </div>
+                    <div class="card-body">
+                        주변 탱커나 보스, 일반 몬스터의 궤도를 회전하며 회전 방패 역할을 수행해 아군에게 날아오는 탄환 5발을 대신 막아내고 장렬히 자폭합니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>아군 에스코트 / 탄환 흡수 / 소형 비행</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 0.5x | Speed 1.6x | Atk 0.5x</td></tr>
+                            <tr><th>특수 기믹</th><td>자폭 시 푸른 네온 펄스로 주변 탄환 상쇄</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New Monster 10 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #00e1ff; color:#000;">10</div>
+                            <div>
+                                <div class="card-title">프로스트 바인더 (Frost Binder)</div>
+                                <div class="card-subtitle">디버퍼: 결빙 필드</div>
+                            </div>
+                        </div>
+                        <span class="tag cyan">신규 감속형</span>
+                    </div>
+                    <div class="card-body">
+                        플레이어 발밑에 푸른 결정체 결빙 지대를 생성하여 이동속도를 즉시 80% 감소시키고 무기 쿨다운을 지연시킵니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>광역 둔화 / 얼음 오라 / 디버퍼</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 1.2x | Speed 0.8x | Atk 0.7x</td></tr>
+                            <tr><th>특수 기믹</th><td>필드 안에서 3초 이상 체류 시 1.5초간 완전 결빙(Frozen)</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New Monster 11 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ffaa00; color:#000;">11</div>
+                            <div>
+                                <div class="card-title">소울 흡수체 (Soul Absorber)</div>
+                                <div class="card-subtitle">성장형: 동료 정수 흡수</div>
+                            </div>
+                        </div>
+                        <span class="tag amber">신규 가변형</span>
+                    </div>
+                    <div class="card-body">
+                        주변 동료 몬스터가 처치될 때마다 그 정수를 흡수하여 크기가 1.2배씩 커지며 체력 20% 회복 및 이동/공격속도 15% 중첩 스택 버프를 얻습니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>정수 흡수 / 거대화 / 스탯 중첩</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 1.3x | Speed 1.0x | Atk 1.0x (최대 5중첩)</td></tr>
+                            <tr><th>특수 기믹</th><td>5중첩 도달 시 미니 엘리트(Elite)로 승급</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- New Monster 12 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: #ff0055;">12</div>
+                            <div>
+                                <div class="card-title">차지 스트라이커 (Charge Striker)</div>
+                                <div class="card-subtitle">강타형: 궤도 예고 일격</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">신규 파괴형</span>
+                    </div>
+                    <div class="card-body">
+                        플레이어 위치에 1초간 붉은 타격 점을 예고 표시한 후 하늘에서 에너지를 낙하 시켜 폭발적인 광역 대미지를 입힙니다.
+                        <table class="custom-table">
+                            <tr><th>특성</th><td>예고 타격 / 광역 강타 / 궤도 폭격</td></tr>
+                            <tr><th>스탯 보정</th><td>HP 1.6x | Speed 0.6x | Atk 2.2x</td></tr>
+                            <tr><th>특수 기믹</th><td>타격 지점에 2초간 화염 도트 잔상 유지</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 51층+ 상위 23종 강화 몬스터 독자적 2차 패턴 표 -->
+            <h3 style="color:#fff; font-size:16px; margin:32px 0 16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-skull" style="color:var(--secondary);"></i> 51~100층 상위 강화 몬스터 23종 (Void/Elite Phase) 2차 특수 패턴 명세
+            </h3>
+
+            <div class="card" style="background: rgba(18, 22, 41, 0.85);">
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>원형 몬스터</th>
+                                <th>상위 강화형 명칭</th>
+                                <th>51층+ 2차 독자적 특수 기믹 (Upgraded Pattern)</th>
+                                <th>파열 VFX 연출</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1. Normal</td><td>Void Normal</td><td>피격 시 2마리의 소형 미니 개체로 즉시 분열 진격</td><td>보라색 네온 파동 잔상</td></tr>
+                            <tr><td>2. Chaser</td><td>Void Chaser</td><td>1차 돌진 후 플레이어 위치로 2연속 초고속 잔상 꺾기 돌진</td><td>붉은 잔상 궤적 line</td></tr>
+                            <tr><td>3. Shooter</td><td>Tri-Plasma Shooter</td><td>단발 사격이 전방 3Way 흩사격 플라즈마 관통탄으로 강화</td><td>자홍색 네온 번개 스파크</td></tr>
+                            <tr><td>4. Exploder</td><td>Cluster Exploder</td><td>자폭 시 주변으로 4개의 미니 자폭 수류탄 탄환 추가 폭발 비산</td><td>황금색 폭발 파열광</td></tr>
+                            <tr><td>5. Splitter</td><td>Phase Splitter</td><td>분열 시 생성되는 Mini 몬스터들이 은신(Stealth) 상태로 기습</td><td>청록색 차원 굴절 파티클</td></tr>
+                            <tr><td>6. Mini</td><td>Swarm Mini</td><td>3마리 이상 뭉치면 이동속도 2배 버프 및 넉백 무시 슈퍼아머 상태</td><td>cyan 소형 네온 오라</td></tr>
+                            <tr><td>7. Scatterer</td><td>Nova Scatterer</td><td>전방위 360도 16방향 네온 불꽃 링 방사 탄격 발사</td><td>분홍색 노바 파동</td></tr>
+                            <tr><td>8. Teleporter</td><td>Decoy Teleporter</td><td>순간이동 시 잔상 환영(Decoy) 몬스터 1마리를 분신 생성</td><td>민트색 네온 분신 잔상</td></tr>
+                            <tr><td>9. Tanker</td><td>Aegis Tanker</td><td>체력 50% 이하 시 전면에 탄환 흡수 보호막을 생성하며 넉백 완전 반사</td><td>백색 강철 네온 오라</td></tr>
+                            <tr><td>10. Summoner</td><td>Overlord Summoner</td><td>하수인 소환 쿨다운 50% 감소 & 소환 시 엘리트 속성 하수인 소환 확률 30%</td><td>보랏빛 아우라 룬 문자</td></tr>
+                            <tr><td>11. Healer</td><td>Sanctuary Healer</td><td>치유 영역 안의 동료들에게 치유 외에도 공격속도+50% 성역 버프 방사</td><td>초록색 치유 네온 링</td></tr>
+                            <tr><td>12. Shadow Assassin</td><td>Phase Assassin</td><td>은신 도중 공격을 받아도 은신이 깨지지 않으며 3회 베기 연속 난무</td><td>검붉은 섀도우 잔상 궤적</td></tr>
+                            <tr><td>13. Plasma Sniper</td><td>Hyper Plasma Sniper</td><td>조준선 레이저 표시 시간이 0.5초로 줄어들고 관통 탄환이 벽에 2회 반사</td><td>주황색 초고속 레이저 궤적</td></tr>
+                            <tr><td>14. Phase Crawler</td><td>Void Crawler</td><td>벽 내부 이동 도중에도 주변 복도로 전자기 탄환을 360도 연사 발사</td><td>자색 차원 굴절 스파크</td></tr>
+                            <tr><td>15. Alpha Leader</td><td>War Alpha Leader</td><td>포효 버프 시 아군 몬스터들의 체력을 30% 즉시 회복시키며 넉백 면제 부여</td><td>황금색 군집 포효 펄스</td></tr>
+                            <tr><td>16. Trap Weaver</td><td>Venom Weaver</td><td>설치한 독 거미줄 덫이 닿는 플레이어의 마력/스테미나를 지속 흡수 차감</td><td>독성 짙은 보라 오라</td></tr>
+                            <tr><td>17. Aegis Guardian</td><td>Mirror Guardian</td><td>탄환 반사 성공 시 플레이어 탄환 대미지의 2배로 역반사 역공</td><td>네온 붉은 미러 반사 파열</td></tr>
+                            <tr><td>18. Graviton Puller</td><td>Singularity Puller</td><td>중력장이 플레이어뿐만 아니라 플레이어의 탄환까지 중앙으로 당겨 유도 곡선 폭발</td><td>딥 퍼플 블랙홀 링</td></tr>
+                            <tr><td>19. Rotating Laser</td><td>Cross Laser Turret</td><td>레이저 빔이 4줄기(십자가)로 확장되며 회정 속도가 1.5배 가속</td><td>진홍색 네온 회전 레이저</td></tr>
+                            <tr><td>20. Reflector Drone</td><td>Pulse Drone</td><td>호위 대상이 피격될 경우 플레이어를 향해 성가신 3연사 펄스 역공 사격</td><td>하늘색 네온 펄스 잔상</td></tr>
+                            <tr><td>21. Frost Binder</td><td>Glacial Binder</td><td>결빙 필드 생성 시 바닥에 송곳 얼음 가시가 솟아오르며 즉시 틱 피해 부여</td><td>빙결 푸른 결정 파열 파티클</td></tr>
+                            <tr><td>22. Soul Absorber</td><td>Archon Absorber</td><td>동료 정수 3중첩 시 즉시 광역 에너지 폭발 충격파를 발사하여 플레이어 넉백</td><td>황금빛 아콘 라이트 링</td></tr>
+                            <tr><td>23. Charge Striker</td><td>Doom Striker</td><td>궤도 타격 지점이 3곳으로 동시 예고 표시되어 전장 전체 폭격</td><td>붉은 메테오 폭발 파티클</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1355,50 +1988,89 @@
                         </ul>
                     </div>
 
+                    <div class="limit-box" style="margin-top: 14px; padding: 14px; background: rgba(0, 240, 255, 0.08); border-color: rgba(0, 240, 255, 0.3);">
+                        <div class="limit-title" style="color: var(--primary); font-size: 13px;">
+                            <i class="fa-solid fa-memory"></i> 💡 메모리 최적화: 플라이웨이트 패턴 (Flyweight)
+                        </div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                            몬스터 스폰 시마다 매번 <code>new Strategy()</code> 객체를 할당하면 메모리 파편화 및 Garbage Collection 렉이 유발됩니다.<br>
+                            전략 객체를 <strong>전역 싱글톤(Flyweight)</strong>으로 1회만 공유 생성하고 몬스터는 해당 인스턴스 함수만 참조하도록 설계합니다.
+                        </p>
+                    </div>
+
+                    <div class="limit-box" style="margin-top: 12px; padding: 14px; background: rgba(255, 183, 3, 0.08); border-color: rgba(255, 183, 3, 0.4);">
+                        <div class="limit-title" style="color: var(--warning); font-size: 13px;">
+                            <i class="fa-solid fa-list-check"></i> 🛡️ 의무 공정: 4단계 점진적 개발 & 소스 검수 워크플로우
+                        </div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                            절대 한꺼번에 통으로 개발하지 않고 <strong>단위별 서브 페이즈 순차 개발</strong>을 진행합니다.<br>
+                            <code>[1. 단위 모듈 개발] ➔ [2. 사용자 직접 시연/테스트] ➔ [3. 소스코드 & 콘솔 검수] ➔ [4. 다음 단계 진행]</code>
+                        </p>
+                    </div>
+
                     <h3 style="color:#fff; font-size:16px; margin:24px 0 12px;">📊 클래스 관계 구조</h3>
                     <div class="code-block">
 Monster (Class)
   ├── fsm: MonsterFSM
   │    ├── currentState: State (IdleState, ChaseState, KitingState...)
   │    └── transitionTo(newState)
-  ├── moveStrategy: IMovementStrategy
-  │    ├── StealthMoveStrategy
-  │    ├── KitingMoveStrategy
-  │    └── WallPhaseMoveStrategy
-  └── attackStrategy: IAttackStrategy
-       ├── ReflectAttackStrategy
-       └── TrapDeployStrategy
+  ├── moveStrategy: IMovementStrategy (Flyweight Shared)
+  │    ├── StealthMoveStrategy.instance
+  │    ├── KitingMoveStrategy.instance
+  │    └── WallPhaseMoveStrategy.instance
+  └── attackStrategy: IAttackStrategy (Flyweight Shared)
+       ├── ReflectAttackStrategy.instance
+       └── TrapDeployStrategy.instance
                     </div>
                 </div>
 
                 <div>
-                    <h3 style="color:#fff; font-size:16px; margin-bottom:12px;">💻 Proposed Code Pattern (예시 설계)</h3>
+                    <h3 style="color:#fff; font-size:16px; margin-bottom:12px;">💻 Proposed Code Pattern (하이브리드 보스 모듈 & 4페이즈 예시)</h3>
                     <div class="code-block">
-<span class="code-comment">// 1. AI 행동 전략 인터페이스 패턴 예시</span>
-<span class="code-keyword">class</span> <span class="code-class">KitingMoveStrategy</span> {
-    <span class="code-func">updatePosition</span>(monster, player, mapEngine) {
-        <span class="code-keyword">let</span> dist = Math.hypot(player.x - monster.x, player.y - monster.y);
-        <span class="code-keyword">let</span> targetDist = monster.preferredRange || 250;
-        
-        <span class="code-keyword">if</span> (dist < targetDist - 30) {
-            <span class="code-comment">// 카이팅: 플레이어 반대 방향 후퇴</span>
-            <span class="code-keyword">let</span> angle = Math.atan2(monster.y - player.y, monster.x - player.x);
-            monster.x += Math.cos(angle) * monster.speed;
-            monster.y += Math.sin(angle) * monster.speed;
-        } <span class="code-keyword">else if</span> (dist > targetDist + 30) {
-            <span class="code-comment">// 사거리 내 접근</span>
-            <span class="code-keyword">let</span> angle = Math.atan2(player.y - monster.y, player.x - monster.x);
-            monster.x += Math.cos(angle) * monster.speed;
-            monster.y += Math.sin(angle) * monster.speed;
+<span class="code-comment">// 1. 하이브리드 보스 모듈 엔진 (js/bossEngine.js)</span>
+<span class="code-keyword">const</span> BOSS_MODULES = {
+    <span class="code-string">'boss'</span>: {
+        updatePhase(boss, hpRatio) {
+            <span class="code-keyword">if</span> (hpRatio &le; 0.60 && boss.phase === 1) {
+                boss.triggerPhaseTransition(2, <span class="code-comment">/*무적 1.5초*/</span>);
+                clearBossBullets(); <span class="code-comment">// 기존 보스 탄환/장판 전면 소멸!</span>
+            } <span class="code-keyword">else if</span> (hpRatio &le; 0.40 && boss.phase === 2) {
+                boss.triggerPhaseTransition(3); <span class="code-comment">// P3: 광폭화 오라(Frenzy)</span>
+                boss.isFrenzyAura = <span class="code-keyword">true</span>;
+            } <span class="code-keyword">else if</span> (hpRatio &le; 0.30 && boss.phase === 3) {
+                boss.triggerPhaseTransition(4, <span class="code-comment">/*무적 1.5초*/</span>);
+                clearBossBullets(); <span class="code-comment">// P4: 궁극기 2차 무적 탄환 소멸!</span>
+            }
         }
+    }
+};
+
+<span class="code-comment">// 2. 화면 잔여 보스 탄환/장판 전면 즉시 소멸 메서드</span>
+<span class="code-keyword">function</span> <span class="code-func">clearBossBullets</span>() {
+    gameEngine.bullets = gameEngine.bullets.filter(b => !b.isEnemy);
+    gameEngine.showFloatingText(<span class="code-string">"✨ BULLETS CLEARED! PHASE TRANSITION!"</span>, boss.x, boss.y - 40, <span class="code-string">'#00f0ff'</span>);
+}
+
+<span class="code-comment">// 3. 몬스터 군집 연쇄 폭발 콤보 (Chain Reaction)</span>
+<span class="code-keyword">function</span> <span class="code-func">triggerChainReaction</span>(deadMonster) {
+    <span class="code-keyword">if</span> ([<span class="code-string">'exploder'</span>, <span class="code-string">'alpha_leader'</span>, <span class="code-string">'soul_absorber'</span>].includes(deadMonster.type)) {
+        <span class="code-keyword">let</span> nearbyEnemies = gameEngine.getMonstersInRadius(deadMonster.x, deadMonster.y, 120);
+        nearbyEnemies.forEach(m => {
+            m.takeDamage(deadMonster.atk * 1.5);
+            m.applyStun(90); <span class="code-comment">// 1.5초 연쇄 스턴</span>
+        });
+        gameEngine.showFloatingText(<span class="code-string">"💥 CHAIN COMBO!"</span>, deadMonster.x, deadMonster.y, <span class="code-string">'#00f5d4'</span>);
     }
 }
 
-<span class="code-comment">// 2. Monster 클래스 등록 방식</span>
-monster.setStrategies({
-    move: <span class="code-keyword">new</span> <span class="code-class">KitingMoveStrategy</span>(),
-    attack: <span class="code-keyword">new</span> <span class="code-class">PlasmaSniperAttackStrategy</span>()
-});
+<span class="code-comment">// 4. 보스 무적 페이즈 '스페셜 브레이크 QTE' 검사</span>
+<span class="code-keyword">function</span> <span class="code-func">checkBossBreakQTE</span>(boss) {
+    <span class="code-keyword">if</span> (boss.breakNodes.length === 0 && boss.isTransitioning) {
+        boss.isStunned = <span class="code-keyword">true</span>;
+        boss.stunTimer = 180; <span class="code-comment">// 3초 그로기 무력화 스턴!</span>
+        gameEngine.showFloatingText(<span class="code-string">"🎯 BOSS BREAK SUCCESS! 3s STUN!"</span>, boss.x, boss.y - 45, <span class="code-string">'#ffb703'</span>);
+    }
+}
                     </div>
                 </div>
             </div>
@@ -1420,13 +2092,14 @@ monster.setStrategies({
                     <div class="step-node"><i class="fa-solid fa-check"></i></div>
                     <div class="step-content">
                         <div class="step-title">
-                            <span>PHASE 1: 현황 분석 및 몬스터 개별 행동 AI 기획서 작성</span>
+                            <span>PHASE 1: 현황 분석, 46종 생태계, 5대 스폰 & 보스 4페이즈 개편 기획서 완성</span>
                             <span class="step-period">완료 (Current)</span>
                         </div>
                         <ul class="step-checklist">
-                            <li><i class="fa-solid fa-square-check"></i> monster.js 내 11종 일반/특수 몬스터 및 9종 보스 분석</li>
-                            <li><i class="fa-solid fa-square-check"></i> 6대 행동 AI 원칙 및 신규 몬스터 8종 기획안 명세화</li>
-                            <li><i class="fa-solid fa-square-check"></i> HTML 기반 인터랙티브 작업서 작성</li>
+                            <li><i class="fa-solid fa-square-check"></i> 11종 일반 몬스터 & 9종 고유 보스 메커니즘 전면 분석 및 46종 생태계 구축 완료</li>
+                            <li><i class="fa-solid fa-square-check"></i> 5대 다채로운 스폰 시스템(입구 팩, 소환진, 선배치, 릴레이, 4문 일제 소환) 기획 완료</li>
+                            <li><i class="fa-solid fa-square-check"></i> 보스 4단계 페이즈, 무적 탄환소멸(`clearBullets()`), Telegraph 4대 예고, 연쇄폭발 & 브레이크 QTE 수록</li>
+                            <li><i class="fa-solid fa-square-check"></i> <strong>2대 최우선 개발 원칙 (Zero-Lag 60FPS 자체 최적화 & 4단계 점진적 검수 워크플로우)</strong> 확립</li>
                         </ul>
                     </div>
                 </div>
@@ -1436,13 +2109,13 @@ monster.setStrategies({
                     <div class="step-node">2</div>
                     <div class="step-content">
                         <div class="step-title">
-                            <span>PHASE 2: AI 모듈화 기반(FSM / Strategy Pattern) 구조 리팩토링</span>
+                            <span>PHASE 2: 5대 스폰 엔진, 하이브리드 보스 모듈(js/bossEngine.js) 구조 리팩토링</span>
                             <span class="step-period">예상: Phase 2</span>
                         </div>
                         <ul class="step-checklist">
-                            <li><i class="fa-regular fa-square"></i> <code>js/monsterAI.js</code> 신규 모듈 작성 (전략 패턴 인프라 분리)</li>
-                            <li><i class="fa-regular fa-square"></i> 기존 <code>Monster.prototype.update</code>의 단순 이동 로직을 AI 모듈로 연동</li>
-                            <li><i class="fa-regular fa-square"></i> 벽 미끄러짐(Sliding) 및 Raycast 지형 탐지 기능 고도화</li>
+                            <li><i class="fa-regular fa-square"></i> <code>js/monsterAI.js</code>, <code>SpawnManager</code> 및 <code>js/bossEngine.js</code> 점진적 순차 모듈 작성</li>
+                            <li><i class="fa-regular fa-square"></i> 보스 4단계 페이즈 전환(HP 60%, 30% 무적 & <code>clearBullets()</code> 탄환 소멸 및 P3 광폭화 오라) 구현</li>
+                            <li><i class="fa-regular fa-square"></i> <strong>[검수 공정]</strong> `개발 ➔ 사용자 직접 시연/테스트 ➔ 소스코드/콘솔 정밀 검수 ➔ 다음 진행` 4단계 의무 적용</li>
                         </ul>
                     </div>
                 </div>
@@ -1452,13 +2125,14 @@ monster.setStrategies({
                     <div class="step-node">3</div>
                     <div class="step-content">
                         <div class="step-title">
-                            <span>PHASE 3: 6대 행동 AI 원칙 기반 신규 몬스터 8종 구현</span>
+                            <span>PHASE 3: 하위 23종 및 상위 23종 몬스터 구현 및 스폰 테이블 연동</span>
                             <span class="step-period">예상: Phase 3</span>
                         </div>
                         <ul class="step-checklist">
-                            <li><i class="fa-regular fa-square"></i> 섀도우 암살자, 플라즈마 스나이퍼, 페이즈 크롤러 등 1차 4종 추가</li>
-                            <li><i class="fa-regular fa-square"></i> 알파 워울프, 트랩 위버, 방패 가디언 등 2차 4종 추가 및 충돌/반사 처리</li>
-                            <li><i class="fa-regular fa-square"></i> 방 별 몬스터 스폰 테이블(Monster Pool) 업데이트 및 해금 층수 적용</li>
+                            <li><i class="fa-regular fa-square"></i> 신규 일반 몬스터 12종 추가 (은신, 스나이퍼, 벽통과, 중력장, 360도 레이저 등 순차 개별 개발)</li>
+                            <li><i class="fa-regular fa-square"></i> 51층+ 상위 23종 강화형 (Void/Elite Phase) 독자적 2차 특수 패턴 및 파열 VFX 구현</li>
+                            <li><i class="fa-regular fa-square"></i> 지휘관/자폭 몬스터 우선 처치 시 주변 반경 120px 2차 연쇄 폭발 & 1.5초 스턴 연계</li>
+                            <li><i class="fa-regular fa-square"></i> <strong>[Zero-Lag 최적화]</strong> GC 렉 100% 차단 (객체 0 할당) 및 경량 `stroke()` 캔버스 60FPS 검증</li>
                         </ul>
                     </div>
                 </div>
@@ -1468,13 +2142,13 @@ monster.setStrategies({
                     <div class="step-node">4</div>
                     <div class="step-content">
                         <div class="step-title">
-                            <span>PHASE 4: 보스 패턴 고도화, VFX 네온 연출 및 최종 밸런싱</span>
+                            <span>PHASE 4: 보스 페이즈별 궁극 패턴 고도화, 60FPS 연출 & 최종 밸런싱</span>
                             <span class="step-period">예상: Phase 4</span>
                         </div>
                         <ul class="step-checklist">
-                            <li><i class="fa-regular fa-square"></i> 10층~100층 보스 패턴에 신규 행동 AI 적용 (카이팅, 지형 장판 연계)</li>
-                            <li><i class="fa-regular fa-square"></i> 은신, 덫, 방패 반사 등 네온 파티클 시각 효과(VFX) 보강</li>
-                            <li><i class="fa-regular fa-square"></i> 층별 난이도 스케일링 및 수치 밸런싱 테스트 진행</li>
+                            <li><i class="fa-regular fa-square"></i> 10층~101층 9종 고유 보스 및 진 보스 4단계 페이즈별 2차/궁극 패턴 완성</li>
+                            <li><i class="fa-regular fa-square"></i> 충전소/중앙 4문 일제 앰부시 및 보스 페이즈 무적 브레이크 QTE 연출 파티클 보강</li>
+                            <li><i class="fa-regular fa-square"></i> 1~100층 난이도 스케일링 및 최적화 옵션 미사용 상태에서의 항시 60FPS 유지 최종 검증</li>
                         </ul>
                     </div>
                 </div>
