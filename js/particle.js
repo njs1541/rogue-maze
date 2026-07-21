@@ -160,6 +160,29 @@ class Particle {
             ctx.shadowBlur = 6;
             ctx.shadowColor = this.color;
             ctx.fill();
+        } else if (this.type === 'rift_warning_ring') {
+            // [신규] 바닥 네온 소환진 1.5초 예고 룬 렌더링
+            let progress = 1 - (this.life / this.maxLife);
+            if (window.TelegraphVFX) {
+                window.TelegraphVFX.drawPulseWarningRing(ctx, this.x, this.y, this.size, progress, this.color);
+            } else {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.stroke();
+
+                let currentR = this.size * (1 - progress);
+                if (currentR > 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, currentR, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.globalAlpha = 0.25 * progress;
+                    ctx.fill();
+                }
+            }
         }
 
         ctx.restore();

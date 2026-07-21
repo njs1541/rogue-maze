@@ -532,6 +532,7 @@
                     <button class="cheat-tab-btn" data-tab="cheat-tab-weapons">무기/투사체</button>
                     <button class="cheat-tab-btn" data-tab="cheat-tab-equipments">패시브 치트</button>
                     <button class="cheat-tab-btn" data-tab="cheat-tab-utils">치트 유틸</button>
+                    <button class="cheat-tab-btn" data-tab="cheat-tab-monster-spec">👾 Phase 2 몬스터/스폰/보스 검증</button>
                 </div>
 
                 <div class="cheat-content-container">
@@ -864,6 +865,56 @@
                                     <textarea id="cheat-map-json-input" placeholder='여기에 JSON 텍스트를 직접 입력(붙여넣기)할 수도 있습니다...' style="width: 100%; height: 70px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 6px; font-family: monospace; font-size: 0.75rem; resize: vertical; outline: none; transition: border-color 0.25s;"></textarea>
                                     <button id="cheat-map-load-btn" class="cheat-action-btn" style="width: 100%; border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.1); font-weight: bold; box-shadow: 0 0 10px rgba(57,255,20,0.15); margin: 0; padding: 8px;">📥 프리셋 등록 및 즉시 갱신</button>
                                     <p id="cheat-map-status-msg" style="font-size: 0.8rem; font-weight: bold; margin: 0; text-align: center;" class="hidden"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 5: Phase 2 몬스터/스폰/보스 검증 -->
+                    <div id="cheat-tab-monster-spec" class="cheat-tab-content">
+                        <div class="cheat-util-row">
+                            <!-- 1. 방 선택 & 이동 -->
+                            <div class="cheat-util-card">
+                                <span class="card-label">🚪 방 선택 워프 & 유형 지정 진입</span>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <label style="color: #cbd5e1; font-size: 0.8rem; width: 60px;">목표 층:</label>
+                                        <input type="number" id="cheat-warp-room-num" min="1" max="101" value="1" style="width: 70px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(0,240,255,0.4); border-radius: 4px; padding: 4px 8px;">
+                                        <button id="cheat-btn-warp-room" class="cheat-action-btn small" style="margin: 0; background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">이동 (Warp)</button>
+                                    </div>
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="normal" style="background: rgba(255,255,255,0.08); border-color: #cbd5e1; color: #fff;">일반방 (1F)</button>
+                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="weapon" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">무기방 (5F)</button>
+                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="elite" style="background: rgba(255,183,3,0.15); border-color: #ffb703; color: #ffb703;">엘리트방 (8F)</button>
+                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="boss" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">보스방 (10F)</button>
+                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="charging" style="background: rgba(0,245,212,0.15); border-color: #00f5d4; color: #00f5d4;">충전소방</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. 5대 스폰 모드 수동 트리거 -->
+                            <div class="cheat-util-card">
+                                <span class="card-label">⚡ 5대 스폰 시스템 (5-Spawn System) 테스트</span>
+                                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                                    <button id="cheat-btn-spawn-portal" class="cheat-action-btn small" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">1. 입구 문 팩 스폰 (3마리)</button>
+                                    <button id="cheat-btn-spawn-rift" class="cheat-action-btn small" style="background: rgba(255,0,127,0.15); border-color: #ff007f; color: #ff007f;">2. 바닥 네온 소환진 기습 (1.5초 예고)</button>
+                                    <button id="cheat-btn-spawn-preshow" class="cheat-action-btn small" style="background: rgba(0,245,212,0.15); border-color: #00f5d4; color: #00f5d4;">3. 필드 미리 배치 스폰 (4마리)</button>
+                                    <button id="cheat-btn-spawn-relay" class="cheat-action-btn small" style="background: rgba(255,183,3,0.15); border-color: #ffb703; color: #ffb703;">4. 3문 릴레이 쇄도 (5마리)</button>
+                                    <button id="cheat-btn-spawn-4door" class="cheat-action-btn small" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">5. 트리거 기습 4문 일제 소환</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. 보스 페이즈 & 무적/탄환소멸 테스트 -->
+                        <div class="cheat-util-row" style="margin-top: 10px;">
+                            <div class="cheat-util-card full-width">
+                                <span class="card-label">🐲 보스 4단계 페이즈 & 탄환소멸 / QTE 브레이크 검증</span>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                    <button id="cheat-btn-boss-hp60" class="cheat-action-btn small" style="background: rgba(255,0,127,0.2); border-color: #ff007f; color: #ff007f;">보스 HP 60% 차감 (P2 무적+탄환소멸)</button>
+                                    <button id="cheat-btn-boss-hp30" class="cheat-action-btn small" style="background: rgba(255,0,85,0.2); border-color: #ff0055; color: #ff0055;">보스 HP 30% 차감 (P4 궁극+탄환소멸)</button>
+                                    <button id="cheat-btn-clear-bullets" class="cheat-action-btn small" style="background: rgba(0,240,255,0.2); border-color: #00f0ff; color: #00f0ff;">✨ 적 탄환/장판 강제 전면 소멸</button>
+                                    <button id="cheat-btn-boss-qte" class="cheat-action-btn small" style="background: rgba(255,183,3,0.2); border-color: #ffb703; color: #ffb703;">🎯 보스 QTE 3초 스턴 카운터 발동</button>
+                                    <button id="cheat-btn-chain-combo" class="cheat-action-btn small" style="background: rgba(0,245,212,0.2); border-color: #00f5d4; color: #00f5d4;">💥 몬스터 연쇄 폭발 콤보 시연</button>
                                 </div>
                             </div>
                         </div>
@@ -1358,7 +1409,11 @@
     <script src="js/bullet.js"></script>
     <script src="js/pet.js"></script>
     <script src="js/player.js"></script>
+    <script src="js/telegraphVFX.js"></script>
+    <script src="js/monsterAI.js"></script>
     <script src="js/monster.js"></script>
+    <script src="js/bossEngine.js"></script>
+    <script src="js/spawnManager.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/walkCharacter.js"></script>
     <script src="js/main.js"></script>

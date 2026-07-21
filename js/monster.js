@@ -164,6 +164,11 @@ class Monster {
         this.dead = false; // [신규] 지연 삭제용 사망 플래그
         this.frostDecalTimer = 0;
         this.glitchTimer = 0;
+
+        // FSM & Strategy AI 모듈 연동
+        if (window.MonsterFSM) {
+            this.fsm = new window.MonsterFSM(this);
+        }
     }
 
     // [추가] 외부 코드 수정 없이 무적 및 실드 작동을 가로채기 위한 getter/setter 구현

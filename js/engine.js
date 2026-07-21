@@ -2949,6 +2949,21 @@ class GameEngine {
             }
         }
 
+        // [신규] Phase 2 SpawnManager 네온 소환진 및 예고 타이머 갱신
+        if (window.SpawnManager) {
+            window.SpawnManager.update(this);
+        }
+
+        // [신규] Phase 2 몬스터 FSM & BossEngine 업데이트 갱신
+        if (this.monsters && Array.isArray(this.monsters)) {
+            this.monsters.forEach(m => {
+                if (m.hp > 0 && !m.dead) {
+                    if (m.fsm) m.fsm.update(this.player, this);
+                    if (m.isBoss && window.BossEngine) window.BossEngine.updateBossPhase(m, this);
+                }
+            });
+        }
+
         // 7. 파티클 이펙트 업데이트
         let timeScale = this.timeDilationActive ? 0.1 : 1.0;
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -9455,6 +9470,176 @@ class GameEngine {
                 }
             });
         }
+
+        // Phase 2 몬스터/스폰/보스 검증 치트 이벤트 바인딩
+        this.initMonsterCheatEvents();
+    }
+
+    initMonsterCheatEvents() {
+        // 1. 방 선택 워프 (층 수 지정)
+        const btnWarp = document.getElementById('cheat-btn-warp-room');
+        if (btnWarp) {
+            btnWarp.addEventListener('click', () => {
+                const roomInput = document.getElementById('cheat-warp-room-num');
+                let targetRoom = roomInput ? parseInt(roomInput.value) : 1;
+                targetRoom = Math.max(1, Math.min(101, targetRoom));
+                this.warpToRoomWithType(targetRoom, null);
+            });
+        }
+
+        // 2. 방 유형 지정 진입
+        const roomTypeBtns = document.querySelectorAll('.cheat-btn-room-type');
+        roomTypeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                let rType = btn.getAttribute('data-type');
+                const roomInput = document.getElementById('cheat-warp-room-num');
+                let targetRoom = roomInput ? parseInt(roomInput.value) : 1;
+                if (!targetRoom || isNaN(targetRoom)) {
+                    if (rType === 'weapon') targetRoom = 5;
+                    else if (rType === 'elite') targetRoom = 8;
+                    else if (rType === 'boss') targetRoom = 10;
+                    else if (rType === 'charging') targetRoom = 15;
+                    else targetRoom = 1;
+                }
+                this.warpToRoomWithType(targetRoom, rType);
+            });
+        });
+
+        // 3. 5대 스폰 모드 수동 트리거
+        const btnSpawnPortal = document.getElementById('cheat-btn-spawn-portal');
+        if (btnSpawnPortal) {
+            btnSpawnPortal.addEventListener('click', () => {
+                if (window.SpawnManager) window.SpawnManager.triggerPortalPacSpawn(this, 3);
+            });
+        }
+        const btnSpawnRift = document.getElementById('cheat-btn-spawn-rift');
+        if (btnSpawnRift) {
+            btnSpawnRift.addEventListener('click', () => {
+                if (window.SpawnManager) window.SpawnManager.triggerRiftZoneSpawn(this, 2);
+            });
+        }
+        const btnSpawnPreshow = document.getElementById('cheat-btn-spawn-preshow');
+        if (btnSpawnPreshow) {
+            btnSpawnPreshow.addEventListener('click', () => {
+                if (window.SpawnManager) window.SpawnManager.triggerPreSpawnedField(this, 4);
+            });
+        }
+        const btnSpawnRelay = document.getElementById('cheat-btn-spawn-relay');
+        if (btnSpawnRelay) {
+            btnSpawnRelay.addEventListener('click', () => {
+                if (window.SpawnManager) window.SpawnManager.triggerRelayRushSpawn(this, 5);
+            });
+        }
+        const btnSpawn4Door = document.getElementById('cheat-btn-spawn-4door');
+        if (btnSpawn4Door) {
+            btnSpawn4Door.addEventListener('click', () => {
+                if (window.SpawnManager) {
+                    if (window.SpawnManager.isAmbushArmed) {
+                        window.SpawnManager.trigger4DoorAmbush(this);
+                    } else {
+                        window.SpawnManager.arm4DoorAmbush(this);
+                    }
+                }
+            });
+        }
+
+        // 4. 보스 페이즈 & 탄환소멸 테스트
+        const btnBoss60 = document.getElementById('cheat-btn-boss-hp60');
+        if (btnBoss60) {
+            btnBoss60.addEventListener('click', () => {
+                let boss = this.monsters.find(m => m.isBoss);
+                if (boss && window.BossEngine) {
+                    boss.hp = Math.floor(boss.maxHp * 0.60);
+                    window.BossEngine.updateBossPhase(boss, this);
+                } else {
+                    this.showFloatingText("⚠️ 보스가 방에 없습니다!", this.player.x, this.player.y - 40, '#ff0055');
+                }
+            });
+        }
+
+        const btnBoss30 = document.getElementById('cheat-btn-boss-hp30');
+        if (btnBoss30) {
+            btnBoss30.addEventListener('click', () => {
+                let boss = this.monsters.find(m => m.isBoss);
+                if (boss && window.BossEngine) {
+                    boss.hp = Math.floor(boss.maxHp * 0.30);
+                    window.BossEngine.updateBossPhase(boss, this);
+                } else {
+                    this.showFloatingText("⚠️ 보스가 방에 없습니다!", this.player.x, this.player.y - 40, '#ff0055');
+                }
+            });
+        }
+
+        const btnClearBullets = document.getElementById('cheat-btn-clear-bullets');
+        if (btnClearBullets) {
+            btnClearBullets.addEventListener('click', () => {
+                if (window.BossEngine) window.BossEngine.clearBossBullets(this);
+            });
+        }
+
+        const btnBossQTE = document.getElementById('cheat-btn-boss-qte');
+        if (btnBossQTE) {
+            btnBossQTE.addEventListener('click', () => {
+                let boss = this.monsters.find(m => m.isBoss);
+                if (boss && window.BossEngine) {
+                    if (!boss.breakNodes || boss.breakNodes.length === 0) {
+                        window.BossEngine.spawnBreakNodes(boss);
+                    }
+                    if (boss.breakNodes) {
+                        boss.breakNodes.forEach((_, idx) => window.BossEngine.hitBreakNode(boss, idx, this));
+                    }
+                } else {
+                    this.showFloatingText("⚠️ 보스가 방에 없습니다!", this.player.x, this.player.y - 40, '#ff0055');
+                }
+            });
+        }
+
+        const btnChainCombo = document.getElementById('cheat-btn-chain-combo');
+        if (btnChainCombo) {
+            btnChainCombo.addEventListener('click', () => {
+                this.monsters.forEach(m => {
+                    m.takeDamage ? m.takeDamage(999) : (m.hp = 0);
+                });
+                this.showFloatingText("💥 CHAIN REACTION SIMULATION!", this.player.x, this.player.y - 40, '#00f5d4');
+            });
+        }
+    }
+
+    // 실제 인게임 방 워프/이동 헬퍼 메서드
+    warpToRoomWithType(targetRoomNum, roomType = null) {
+        if (!this.player) return;
+
+        let roomVal = parseInt(targetRoomNum) || 1;
+        roomVal = Math.max(1, Math.min(101, roomVal));
+
+        // targetRoomNum 이전 층으로 임시 셋팅 후 transitionToNextRoom을 호출하여 targetRoomNum으로 이동
+        this.roomNum = Math.max(0, roomVal - 1);
+
+        let dummyPortal = {
+            direction: 'bottom',
+            scoreValue: 10,
+            portalType: roomType || 'stat',
+            difficultyClass: 'high'
+        };
+
+        if (roomType === 'boss' || roomVal % 10 === 0) {
+            dummyPortal.portalType = 'stat';
+        } else if (roomType === 'charging') {
+            dummyPortal.portalType = 'charging';
+        }
+
+        // 게임 메인 방 전환 엔진 즉시 구동!
+        this.transitionToNextRoom(dummyPortal);
+
+        // 강제 층수 및 방 유형 보정 동기화
+        this.roomNum = roomVal;
+        if (roomType) this.currentRoomType = roomType;
+
+        this.updateHUD();
+        this.showFloatingText(`CHEAT WARP ➔ ${roomVal}층 (${(roomType || 'NORMAL').toUpperCase()})`, this.player.x, this.player.y - 40, '#00f0ff');
+
+        const cheatOverlay = document.getElementById('cheat-overlay');
+        if (cheatOverlay) cheatOverlay.classList.add('hidden');
     }
 
     // [신규 추가] 바이츠의 영구 업그레이드 상점 이벤트 리스너 바인딩
