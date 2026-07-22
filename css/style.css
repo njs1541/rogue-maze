@@ -1565,6 +1565,7 @@ body {
 
 .cheat-range-slider {
     flex: 1;
+    appearance: none;
     -webkit-appearance: none;
     height: 6px;
     border-radius: 3px;
@@ -2993,8 +2994,6 @@ textarea:focus-visible {
     min-width: 0;
 }
 
-}
-
 /* [신규] Manual 화면 테두리 노이즈 필터 */
 #manual-noise-filter {
     position: absolute;
@@ -3566,4 +3565,60 @@ textarea:focus-visible {
 .stats-toggle-btn.hover-transparent {
     opacity: 0.15 !important;
     pointer-events: none !important; /* 전투 시야 및 타겟 클릭 방해 차단 */
+}
+
+/* ==========================================================================
+   [신규] 상단 네온 알림 배너 (Neon Alert Banner System - Zero-GC)
+   ========================================================================== */
+#neon-alert-banner {
+    position: absolute;
+    top: 95px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-25px);
+    z-index: 95;
+    pointer-events: none;
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+#neon-alert-banner.active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+#neon-alert-banner .banner-inner {
+    background: rgba(7, 9, 21, 0.92);
+    border: 2px solid var(--banner-color, #00f0ff);
+    box-shadow: 0 0 25px var(--banner-glow, rgba(0, 240, 255, 0.45)), inset 0 0 15px var(--banner-glow, rgba(0, 240, 255, 0.2));
+    border-radius: 12px;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    backdrop-filter: blur(8px);
+}
+
+#banner-icon {
+    font-size: 24px;
+    animation: bannerPulse 0.8s infinite alternate;
+}
+
+#banner-title {
+    font-family: 'Orbitron', 'Pretendard', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px var(--banner-color, #00f0ff);
+}
+
+#banner-subtitle {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin-top: 2px;
+}
+
+@keyframes bannerPulse {
+    from { transform: scale(1.0); }
+    to { transform: scale(1.2); }
 }

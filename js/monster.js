@@ -177,9 +177,22 @@ class Monster {
     }
 
     set hp(value) {
-        // 무적(isInvulnerable) 상태이고 대미지를 입는 상황이면 체력 차감 무효화
-        if (this.isInvulnerable && value < this._hp) {
+        // 무적(isInvulnerable 또는 invulnerableTimer > 0) 상태이고 대미지를 입는 상황이면 체력 차감 무효화
+        if ((this.isInvulnerable || (this.invulnerableTimer && this.invulnerableTimer > 0)) && value < this._hp) {
             return;
+        }
+
+        // [신규] 보스 페이즈 스킵 방지 체력 락(Phase Gating Cap)
+        if (this.isBoss && this.maxHp > 0) {
+            let currentPhase = this.phase || 1;
+            let minHpCap = 0;
+            if (currentPhase === 1) minHpCap = Math.floor(this.maxHp * 0.60);
+            else if (currentPhase === 2) minHpCap = Math.floor(this.maxHp * 0.40);
+            else if (currentPhase === 3) minHpCap = Math.floor(this.maxHp * 0.30);
+
+            if (value < minHpCap) {
+                value = minHpCap;
+            }
         }
 
         // 대미지를 입는 경우 (체력이 감소할 때)
@@ -278,8 +291,8 @@ class Monster {
         this.boss_castProgress = 0;
         this.boss_castMax = 0;
         
-        let roomFactor = 1.0 + (roomNum - 1) * 0.05;
-        let scaleHp = 1.0;
+        let roomFactor = 1.0 + (roomNum - 1) * 0.07;
+        let scaleHp = 2.0;
         let scaleAtk = 1.0;
         let scaleRadius = 1.0;
 
@@ -463,6 +476,24 @@ class Monster {
     }
 
     update(player, bullets) {
+        // [신규] 보스 페이즈 전환 무적 충전(invulnerableTimer) 동안 제자리 완전 정지!
+        if (this.isBoss && this.invulnerableTimer && this.invulnerableTimer > 0) {
+            let tScale = (window.gameEngine && window.gameEngine.timeDilationActive ? 0.1 : 1.0);
+            this.invulnerableTimer -= tScale;
+            this.boss_warningText = `⚡ PHASE ${this.phase || 2} CHARGING...`;
+            this.boss_timerText = (Math.max(0, this.invulnerableTimer) / 60).toFixed(1) + "s";
+            return; // 제자리 웅크림 정지! 이동 및 공격 금지!
+        }
+
+        // [신규] 보스 QTE 카운터 그로기 스턴(stunTimer) 무력화 처리
+        if (this.isStunned || (this.stunTimer && this.stunTimer > 0)) {
+            if (this.stunTimer > 0) this.stunTimer -= (window.gameEngine && window.gameEngine.timeDilationActive ? 0.1 : 1.0);
+            if (this.stunTimer <= 0) this.isStunned = false;
+            this.boss_warningText = "💥 GROGGY STUNNED!";
+            this.boss_timerText = (Math.max(0, this.stunTimer) / 60).toFixed(1) + "s";
+            return; // 그로기 스턴 시 4초간 이동 및 사격 완벽 무력화!
+        }
+
         // [신규] 벽 충돌 미끄러짐(Sliding Collision) 연산을 위해 프레임 시작점 좌표 백업
         let origX = this.x;
         let origY = this.y;
@@ -627,74 +658,111 @@ class Monster {
                         this.boss_timerText = "";
                     }
 
-                    // 2. 50% 이하 분노/돌진 사격 패턴 작동
+                    // 2. 50% 이하 또는 Phase 3+ 광폭화/돌진 사격 패턴 작동
                     {
-                        let isFrenzy = this.hp <= this.maxHp * 0.5;
-                        let speedMult = isFrenzy ? 1.25 : 1.0;
+                        let isFrenzy = (this.hp <= this.maxHp * 0.5) || (this.phase && this.phase >= 3) || this.isFrenzyAura;
+                        let speedMult = isFrenzy ? 1.45 : 1.0;
 
                         if (isFrenzy) {
-                            if (this.boss_chargeTimer === undefined || this.boss_chargeTimer <= 0) this.boss_chargeTimer = 90;
+                            if (this.boss_chargeTimer === undefined || this.boss_chargeTimer <= 0) {
+                                if (this.boss_dashFrames === undefined || this.boss_dashFrames <= 0) {
+                                    this.boss_chargeTimer = 300; // 전체 사이클 쿨타임 5초
+                                }
+                            }
                             this.boss_chargeTimer -= timeScale;
 
+                            // 돌진 실행 판정 (boss_dashFrames 카운터로 20프레임 동안 100% 완주)
                             if (this.boss_chargeTimer <= 0) {
-                                // 대시 돌진 상태 (30프레임 동안)
-                                let dashLeft = this.boss_chargeTimer;
-                                if (dashLeft > -30) {
+                                if (this.boss_dashFrames === undefined || this.boss_dashFrames <= 0) {
+                                    this.boss_dashFrames = 20; // 20프레임 동안 질주 지정!
+                                }
+
+                                if (this.boss_dashFrames > 0) {
+                                    this.boss_dashFrames -= timeScale;
                                     let dashAngle = this.boss_dashAngle !== undefined ? this.boss_dashAngle : angle;
-                                    this.x += Math.cos(dashAngle) * activeSpeed * 2.8;
-                                    this.y += Math.sin(dashAngle) * activeSpeed * 2.8;
-                                    this.boss_warningText = "DASHING! 🔥";
+                                    let dashSpeed = 20.0; // 프레임 당 20px -> 20프레임 * 20px = 400px 명확한 직접 질주!
+                                    
+                                    this.x += Math.cos(dashAngle) * dashSpeed;
+                                    this.y += Math.sin(dashAngle) * dashSpeed;
+                                    this.boss_warningText = "🚨 LIGHTNING DASH! 🔥";
                                     this.boss_timerText = "";
                                     
-                                    // 돌진 경로 궤적 파티클
-                                    if (window.gameEngine && Math.random() < 0.4) {
-                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff3300', 3, 0, 0, 15, 'spark'));
+                                    // 질주 경로 불꽃 파티클
+                                    if (window.gameEngine && window.gameEngine.particles) {
+                                        window.gameEngine.particles.push(new Particle(this.x, this.y, '#ff0055', 5.5, (Math.random()-0.5)*3, (Math.random()-0.5)*3, 22, 'spark'));
                                     }
+                                    return; // 20프레임 질주 동안은 AI 이동/사격 완전 우회 차단!
                                 } else {
-                                    // 돌진 완료 후 쿨타임 리셋
-                                    this.boss_chargeTimer = 90; // 1.5초 후 재돌진
+                                    // 20프레임 질주 완주 후 쿨타임 5초(300프레임) 리셋!
+                                    this.boss_chargeTimer = 300;
+                                    this.boss_dashFrames = 0;
                                     this.boss_warningText = "";
+                                    this.shootCooldown = 25; // 0.4초 후 사격 폭사 재개
                                 }
-                            } else if (this.boss_chargeTimer <= 30) {
-                                // 돌진 준비 충전 중 (30프레임, 0.5초)
-                                this.boss_dashAngle = angle; // 조준 고정
-                                this.boss_warningText = "DASH CHARGE";
+                            } else if (this.boss_chargeTimer <= 35) {
+                                // 돌진 준비 차징 충전 (35프레임, 약 0.6초간 전조 예고)
+                                this.boss_dashAngle = angle; // 목표 지점 위치 조준 고정!
+                                this.boss_warningText = "⚡ DASH CHARGE!";
                                 this.boss_timerText = (this.boss_chargeTimer / 60).toFixed(1) + "s";
-                                this.boss_castProgress = 30 - this.boss_chargeTimer;
-                                this.boss_castMax = 30;
+                                this.boss_castProgress = 35 - this.boss_chargeTimer;
+                                this.boss_castMax = 35;
+
+                                // 붉은 점선 조준 전조선 (390px 거리 방사)
+                                if (window.TelegraphVFX && window.gameEngine && window.gameEngine.ctx) {
+                                    let targetX = this.x + Math.cos(angle) * 390;
+                                    let targetY = this.y + Math.sin(angle) * 390;
+                                    window.TelegraphVFX.drawLaserAimLine(window.gameEngine.ctx, this.x, this.y, targetX, targetY, 0.85, '#ff0055');
+                                }
+                                return; // 차징 충전 중 원거리 사격 완전 정지!
                             } else {
                                 // 대기 상태 카이팅 이동
-                                if (dist > 100) {
-                                    this.x += Math.cos(angle) * activeSpeed;
-                                    this.y += Math.sin(angle) * activeSpeed;
+                                if (dist > 110) {
+                                    this.x += Math.cos(angle) * activeSpeed * speedMult;
+                                    this.y += Math.sin(angle) * activeSpeed * speedMult;
                                 }
                             }
                         } else {
-                            // 50% 이상 일반 카이팅 이동
-                            if (dist > 100) {
+                            // 일반 카이팅 이동
+                            if (dist > 110) {
                                 this.x += Math.cos(angle) * activeSpeed;
                                 this.y += Math.sin(angle) * activeSpeed;
                             }
                         }
 
-                        // 사격 패턴 (분노 시 쿨다운 가속)
+                        // 사격 패턴 (광폭화 시 8방향 360도 나선 탄막 방사!)
                         this.shootCooldown -= timeScale * speedMult;
                         if (this.shootCooldown <= 0) {
-                            this.shootCooldown = 90 - Math.min(40, this.tier * 3);
-                            let count = isFrenzy ? 4 : 3;
-                            let spread = isFrenzy ? 0.22 : 0.25;
-                            let startOffset = -(count - 1) / 2;
-                            
-                            for (let i = 0; i < count; i++) {
-                                let bAngle = angle + ((startOffset + i) * spread);
-                                let vx = Math.cos(bAngle) * 2.8;
-                                let vy = Math.sin(bAngle) * 2.8;
-                                bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.8, false, {
-                                    color: '#ff3300',
-                                    radius: 6
-                                }));
+                            if (isFrenzy) {
+                                // [광폭화 패턴] 8방향 360도 전방위 링 탄막 폭사
+                                this.shootCooldown = 55; // 0.9초마다 폭사
+                                for (let i = 0; i < 8; i++) {
+                                    let bAngle = angle + (i * Math.PI / 4);
+                                    let vx = Math.cos(bAngle) * 3.8;
+                                    let vy = Math.sin(bAngle) * 3.8;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.9, false, {
+                                        color: '#ff0055',
+                                        radius: 6.5
+                                    }));
+                                }
+                                Sound.play('shoot');
+                            } else {
+                                // [일반 패턴] 3연사 파부채꼴 사격
+                                this.shootCooldown = 75;
+                                let count = 3;
+                                let spread = 0.25;
+                                let startOffset = -(count - 1) / 2;
+                                
+                                for (let i = 0; i < count; i++) {
+                                    let bAngle = angle + ((startOffset + i) * spread);
+                                    let vx = Math.cos(bAngle) * 3.2;
+                                    let vy = Math.sin(bAngle) * 3.2;
+                                    bullets.push(new Bullet(this.x, this.y, vx, vy, this.atk * 0.8, false, {
+                                        color: '#ff3300',
+                                        radius: 6.0
+                                    }));
+                                }
+                                Sound.play('shoot');
                             }
-                            Sound.play('shoot');
                         }
                     }
                     break;
@@ -2627,6 +2695,14 @@ class Monster {
 
             switch (this.type) {
                 case 'boss': // 10층 네온 센티넬 (기존 보스)
+                    // [신규 연출] 대시 차지 붉은 조준 레이저선 (Telegraph Laser Aim Line)
+                    if (this.boss_chargeTimer !== undefined && this.boss_chargeTimer <= 35 && this.boss_chargeTimer > 0 && window.TelegraphVFX) {
+                        let aimAngle = this.boss_dashAngle !== undefined ? this.boss_dashAngle : 0;
+                        let targetX = Math.cos(aimAngle) * 450;
+                        let targetY = Math.sin(aimAngle) * 450;
+                        window.TelegraphVFX.drawLaserAimLine(ctx, 0, 0, targetX, targetY, 0.95, '#ff0055');
+                    }
+
                     // 1. 외부 역회전 링 1 (시계 방향 회전 점선 링)
                     let angle1 = (Date.now() * 0.0015);
                     ctx.save();
@@ -3337,39 +3413,81 @@ class Monster {
             if (this.boss_warningText) {
                 ctx.save();
                 ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
-                
-                // 1. 경고 텍스트 & 타이머
-                ctx.font = '800 11px "Outfit"';
-                ctx.fillStyle = '#ff3300';
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = '#ff3300';
-                
-                let textY = -this.radius - 16;
-                // 최종 보스 머리 위 오프셋 조정
-                if (this.type === 'boss_final' || this.type === 'boss_real_master') textY = -this.radius - 45;
+                ctx.textBaseline = 'middle';
+
+                let textY = -this.radius - 28;
+                if (this.type === 'boss_final' || this.type === 'boss_real_master') textY = -this.radius - 50;
 
                 let displayText = this.boss_warningText + (this.boss_timerText ? " (" + this.boss_timerText + ")" : "");
+                ctx.font = '800 13px "Outfit", "Orbitron", sans-serif';
+
+                // 텍스트 너비 계측 후 가시성 강화 다크 네온 패널 배경
+                let txtMetrics = ctx.measureText(displayText);
+                let boxW = Math.max(100, txtMetrics.width + 20);
+                let boxH = 22;
+                let boxX = -boxW / 2;
+                let boxY = textY - boxH / 2;
+
+                ctx.fillStyle = 'rgba(7, 9, 21, 0.88)';
+                ctx.strokeStyle = this.boss_warningText.includes("STUN") ? '#00f5d4' : (this.boss_warningText.includes("CHARGING") ? '#00f0ff' : '#ff0055');
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ctx.strokeStyle;
+
+                // 둥근 사각형 박스
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, boxW, boxH, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // 1. 검은색 굵은 외곽선 스트로크 후 전면 텍스트 작성
+                ctx.lineWidth = 3.5;
+                ctx.strokeStyle = '#000000';
+                ctx.strokeText(displayText, 0, textY);
+
+                ctx.fillStyle = this.boss_warningText.includes("STUN") ? '#00f5d4' : (this.boss_warningText.includes("CHARGING") ? '#00f0ff' : '#ffffff');
                 ctx.fillText(displayText, 0, textY);
 
-                // 2. 캐스팅 게이지 바
-                if (this.boss_castProgress !== undefined && this.boss_castMax !== undefined && this.boss_castMax > 0) {
-                    let progress = Math.max(0, Math.min(1.0, this.boss_castProgress / this.boss_castMax));
+                // 2. 캐스팅/충전/스턴 게이지 바
+                let activeProgress = 0;
+                let activeMax = 0;
 
-                    let barW = this.radius * 1.5;
-                    let barH = 4.5;
+                if (this.invulnerableTimer > 0) {
+                    activeProgress = this.invulnerableTimer;
+                    activeMax = 270; // 4.5초
+                } else if (this.stunTimer > 0) {
+                    activeProgress = this.stunTimer;
+                    activeMax = 240; // 4초
+                } else if (this.boss_castProgress !== undefined && this.boss_castMax !== undefined && this.boss_castMax > 0) {
+                    activeProgress = this.boss_castProgress;
+                    activeMax = this.boss_castMax;
+                }
+
+                if (activeMax > 0) {
+                    let progress = Math.max(0, Math.min(1.0, activeProgress / activeMax));
+                    let barW = boxW - 8;
+                    let barH = 4;
                     let bx = -barW / 2;
-                    let by = textY + 6;
+                    let by = boxY + boxH + 3;
 
-                    // 배경 바
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                    // 배경 슬롯
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                     ctx.fillRect(bx, by, barW, barH);
 
                     // 진행 바
-                    ctx.fillStyle = this.boss_warningText.includes("ACTIVE") || this.boss_warningText.includes("SHIELD") ? '#00f0ff' : '#ff3300';
+                    let barColor = this.stunTimer > 0 ? '#00f5d4' : (this.invulnerableTimer > 0 ? '#00f0ff' : '#ff3300');
+                    ctx.fillStyle = barColor;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = barColor;
                     ctx.fillRect(bx, by, barW * progress, barH);
                 }
+
                 ctx.restore();
+            }
+
+            // [신규] 보스 특수 VFX (무적 쉴드 링, 광폭화 오라, 브레이크 QTE 노드) 렌더링
+            if (this.isBoss && window.BossEngine) {
+                window.BossEngine.drawBossEffects(ctx, this);
             }
         } else if (this.type === 'normal') {
             // [일반 몬스터] 회전하는 3개의 삼각 파편과 중심 구체

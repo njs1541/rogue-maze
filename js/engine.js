@@ -2665,6 +2665,19 @@ class GameEngine {
                             }));
                         }
 
+                        // [신규] 검 베기 타격 시 보스 QTE 브레이크 노드 판정
+                        if (m.isBoss && m.breakNodes && m.breakNodes.length > 0 && window.BossEngine) {
+                            m.breakNodes.forEach((node, nIdx) => {
+                                if (!node.isHit) {
+                                    let nodeWorldX = m.x + node.offsetX;
+                                    let nodeWorldY = m.y + node.offsetY;
+                                    if (Math.hypot(nodeWorldX - this.player.x, nodeWorldY - this.player.y) < (this.player.slashRadius || 60) + 25) {
+                                        window.BossEngine.hitBreakNode(m, nIdx, this);
+                                    }
+                                }
+                            });
+                        }
+
                         // 검 타격 보라색 스파크 파티클
                         for (let k = 0; k < 4; k++) {
                             let speed = Math.random() * 4 + 2;
@@ -2688,6 +2701,26 @@ class GameEngine {
                     // [최적화] 이미 이 탄환에 맞은 몬스터라면 피격 판정 건너뜀 (중복 피격 렉 방멸)
                     if (b.hitMonsters && b.hitMonsters.has(m)) {
                         continue;
+                    }
+
+                    // [신규] 탄환 비행 타격 시 보스 QTE 브레이크 노드 판정 (반경 22px 보정)
+                    if (m.isBoss && m.breakNodes && m.breakNodes.length > 0 && window.BossEngine) {
+                        m.breakNodes.forEach((node, nIdx) => {
+                            if (!node.isHit) {
+                                let nodeWorldX = m.x + node.offsetX;
+                                let nodeWorldY = m.y + node.offsetY;
+                                if (Math.hypot(nodeWorldX - b.x, nodeWorldY - b.y) < b.radius + 22) {
+                                    window.BossEngine.hitBreakNode(m, nIdx, this);
+                                    if (this.particles) {
+                                        for (let k = 0; k < 6; k++) {
+                                            let angle = Math.random() * Math.PI * 2;
+                                            let spd = Math.random() * 3 + 1;
+                                            this.particles.push(new Particle(nodeWorldX, nodeWorldY, '#00f5d4', 2, Math.cos(angle) * spd, Math.sin(angle) * spd, 15, 'spark'));
+                                        }
+                                    }
+                                }
+                            }
+                        });
                     }
 
                     // [최적화] 1차 절댓값 필터링 (Math.hypot 연산 오버헤드 해소)
@@ -4412,10 +4445,85 @@ class GameEngine {
         }
     }
 
+    // [신규] 상단 네온 알림 배너 UI 시스템 (Neon Alert Banner System - Zero-GC)
+    triggerNeonAlertBanner(title, subtitle = "", icon = "⚡", color = "#00f0ff", durationMs = 3000) {
+        const banner = document.getElementById('neon-alert-banner');
+        if (!banner) return;
+
+        const iconEl = document.getElementById('banner-icon');
+        const titleEl = document.getElementById('banner-title');
+        const subtitleEl = document.getElementById('banner-subtitle');
+        const innerEl = banner.querySelector('.banner-inner');
+
+        if (iconEl) iconEl.textContent = icon;
+        if (titleEl) titleEl.textContent = title;
+        if (subtitleEl) {
+            subtitleEl.textContent = subtitle;
+            subtitleEl.style.display = subtitle ? 'block' : 'none';
+        }
+
+        if (innerEl) {
+            innerEl.style.setProperty('--banner-color', color);
+            let alphaGlow = color;
+            if (color.startsWith('#')) {
+                let r = parseInt(color.slice(1, 3), 16);
+                let g = parseInt(color.slice(3, 5), 16);
+                let b = parseInt(color.slice(5, 7), 16);
+                alphaGlow = `rgba(${r}, ${g}, ${b}, 0.45)`;
+            }
+            innerEl.style.setProperty('--banner-glow', alphaGlow);
+        }
+
+        if (this._bannerTimer) clearTimeout(this._bannerTimer);
+        banner.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            banner.classList.add('active');
+        });
+
+        this._bannerTimer = setTimeout(() => {
+            banner.classList.remove('active');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 350);
+        }, durationMs);
+    }
+
     // 몬스터 처치 성공
     killMonster(m, index) {
         if (m.dead) return; // [신규] 중복 정산 및 사망 처리 방지
         m.dead = true; // [신규] 지연 삭제 마킹
+
+        // [신규 기획] 몬스터 군집 연쇄 폭파 카운터 (Chain Reaction Combo System)
+        if (m.type === 'exploder' || m.type === 'chaser' || m.isElite || (m.type && m.type.includes('leader'))) {
+            let chainRadius = 120;
+            let chainDmg = (this.player ? this.player.atk : 10) * 1.5;
+            let hitAny = false;
+
+            this.monsters.forEach(otherM => {
+                if (otherM !== m && otherM.hp > 0 && !otherM.dead) {
+                    let dist = Math.hypot(otherM.x - m.x, otherM.y - m.y);
+                    if (dist < chainRadius + otherM.radius) {
+                        hitAny = true;
+                        otherM.statusEffects.shock = Math.max(otherM.statusEffects.shock || 0, 90); // 1.5초 스턴
+                        otherM.hp -= chainDmg;
+                        otherM.flashTimer = 8;
+
+                        // 넉백 연쇄
+                        let pushAngle = Math.atan2(otherM.y - m.y, otherM.x - m.x);
+                        otherM.knockbackX += Math.cos(pushAngle) * 4;
+                        otherM.knockbackY += Math.sin(pushAngle) * 4;
+                    }
+                }
+            });
+
+            if (hitAny) {
+                this.showFloatingText("💥 CHAIN EXPLOSION COMBO!", m.x, m.y - 40, '#00f5d4');
+                Sound.play('explosion');
+                if (this.particles) {
+                    this.particles.push(new Particle(m.x, m.y, '#00f5d4', chainRadius, 0, 0, 20, 'explosionRing'));
+                }
+            }
+        }
 
         // [신규 기획] splitter 몬스터 사망 시 mini 슬라임 2마리 분열 스폰
         if (m.type === 'splitter') {
@@ -8600,56 +8708,82 @@ class GameEngine {
                 bossNameStr = `웨이브 ${this.bossWave}/4 - ${bossNameStr}`;
             }
 
-            // HUD 바 위치: 너비 400, 높이 15, x좌표 동적 중앙 정렬 (캔버스 해상도 기준)
-            const bw = 400, bh = 14;
+            // [개선] 2배 초대형 보스 HP HUD 바 (너비 680px, 높이 26px, y좌표 36px)
+            const bw = Math.min(680, this.canvas.width * 0.78);
+            const bh = 26;
             const bx = (this.canvas.width - bw) / 2;
-            const by = 48;
+            const by = 36;
 
-            // 보스 체력바 뒷배경 어두운 네온 컨테이너
-            this.ctx.fillStyle = 'rgba(10, 5, 5, 0.7)';
+            // 보스 체력바 웅장한 다크 글래스 패널 배경
+            this.ctx.fillStyle = 'rgba(7, 9, 21, 0.9)';
+            this.ctx.beginPath();
+            this.ctx.roundRect(bx - 10, by - 24, bw + 20, bh + 32, 10);
+            this.ctx.fill();
+            this.ctx.strokeStyle = 'rgba(255, 0, 85, 0.4)';
+            this.ctx.lineWidth = 2.0;
+            this.ctx.stroke();
+
+            // 체력바 슬롯 배경
+            this.ctx.fillStyle = 'rgba(20, 10, 15, 0.9)';
             this.ctx.fillRect(bx, by, bw, bh);
 
-            this.ctx.strokeStyle = 'rgba(255, 0, 85, 0.3)';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.strokeRect(bx, by, bw, bh);
-
-            // 보스 체력바 붉은 네온 그라데이션 게이지
+            // 붉은 네온 그라데이션 게이지
             if (hpPct > 0) {
                 let hpGrd = this.ctx.createLinearGradient(bx, by, bx + bw, by);
                 hpGrd.addColorStop(0, '#ff0055');
+                hpGrd.addColorStop(0.5, '#ff007f');
                 hpGrd.addColorStop(1, '#ff3300');
                 this.ctx.fillStyle = hpGrd;
-                this.ctx.fillRect(bx + 1, by + 1, (bw - 2) * hpPct, bh - 2);
+                this.ctx.shadowBlur = 12;
+                this.ctx.shadowColor = '#ff0055';
+                this.ctx.fillRect(bx, by, bw * hpPct, bh);
             }
 
-            // 쉴드가 있으면 체력바 위에 얇은 하늘색 바 추가
+            // 4단계 페이즈 전환 지점 (60%, 40%, 30%) 구분 눈금선 3개 (Tick Marks)
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            this.ctx.lineWidth = 2.0;
+            this.ctx.beginPath();
+            this.ctx.moveTo(bx + bw * 0.60, by); this.ctx.lineTo(bx + bw * 0.60, by + bh); // P2 60%
+            this.ctx.moveTo(bx + bw * 0.40, by); this.ctx.lineTo(bx + bw * 0.40, by + bh); // P3 40%
+            this.ctx.moveTo(bx + bw * 0.30, by); this.ctx.lineTo(bx + bw * 0.30, by + bh); // P4 30%
+            this.ctx.stroke();
+
+            // 쉴드 게이지
             if (shieldPct > 0) {
                 this.ctx.fillStyle = '#00f0ff';
-                this.ctx.fillRect(bx + 1, by + 1, (bw - 2) * shieldPct, 3);
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowColor = '#00f0ff';
+                this.ctx.fillRect(bx, by, bw * shieldPct, 5);
             }
 
-            // 네온 글로우 효과 외곽선
+            // 보스 HP 바 테두리 네온 글로우
             this.ctx.shadowBlur = 15;
             this.ctx.shadowColor = '#ff0055';
             this.ctx.strokeStyle = '#ff0055';
-            this.ctx.lineWidth = 1.0;
+            this.ctx.lineWidth = 2.5;
             this.ctx.strokeRect(bx, by, bw, bh);
 
-            // 보스 텍스트 정보 렌더링
-            this.ctx.shadowBlur = 8;
-            this.ctx.font = '800 11px "Outfit"';
+            // 1. 보스 대형 이름 라벨 (15px Orbitron / Outfit)
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowColor = '#ff0055';
+            this.ctx.font = '900 15px "Outfit", "Orbitron", sans-serif';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bossNameStr, this.canvas.width / 2, by - 6);
+            this.ctx.fillText(`👑 ${bossNameStr}`, this.canvas.width / 2, by - 7);
 
-            // 보스 수치 정보 (HP / MAX HP)
-            this.ctx.font = '600 10px "Outfit"';
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-            let hpText = `${Math.ceil(currentHpSum)} / ${maxHpSum}`;
+            // 2. 보스 수치 정보 (HP / MAX HP - 중앙 선명 배치)
+            this.ctx.font = '800 12px "Outfit", "Orbitron", sans-serif';
+            this.ctx.lineWidth = 3.0;
+            this.ctx.strokeStyle = '#000000';
+
+            let hpText = `${Math.ceil(currentHpSum).toLocaleString()} / ${maxHpSum.toLocaleString()} (${(hpPct * 100).toFixed(1)}%)`;
             if (shieldHpSum > 0) {
-                hpText += ` (🛡️ ${Math.ceil(shieldHpSum)})`;
+                hpText += ` (🛡️ ${Math.ceil(shieldHpSum).toLocaleString()})`;
             }
-            this.ctx.fillText(hpText, this.canvas.width / 2, by + bh - 3);
+
+            this.ctx.strokeText(hpText, this.canvas.width / 2, by + bh / 2 + 4);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillText(hpText, this.canvas.width / 2, by + bh / 2 + 4);
 
             this.ctx.restore();
         }
