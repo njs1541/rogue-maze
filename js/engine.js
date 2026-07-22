@@ -10403,6 +10403,8 @@ class GameEngine {
                     active: p.active
                 })),
                 player: {
+                    x: this.player.x,
+                    y: this.player.y,
                     maxHp: this.player.maxHp,
                     hp: this.player.hp,
                     maxStamina: this.player.maxStamina,
@@ -10552,9 +10554,10 @@ class GameEngine {
             document.getElementById('start-overlay').classList.add('hidden');
             const storyOverlay = document.getElementById('story-dialogue-overlay');
             if (storyOverlay) {
-                storyOverlay.classList.remove('hidden');
+                storyOverlay.classList.add('hidden');
                 storyOverlay.classList.remove('dimmed');
             }
+            this.isDialogueActive = false; // [신규] 활성 대화 플래그 초기화
             const hudHeader = document.getElementById('hud-header');
             const hudFooter = document.getElementById('hud-footer');
             if (hudHeader) hudHeader.classList.remove('hidden');
@@ -10681,8 +10684,11 @@ class GameEngine {
                 this.spawnSecretWall();
             }
 
-            // 플레이어 리스폰 위치 복구 (가변 맵 크기에 비례하여 복구)
-            if (this.lastEnteredPortalDir === 'center') {
+            // 플레이어 리스폰 위치 복구 (세이브 위치 보존, 없을 경우 입구 좌표 비례 복구)
+            if (savedData.player && typeof savedData.player.x === 'number' && typeof savedData.player.y === 'number') {
+                this.player.x = savedData.player.x;
+                this.player.y = savedData.player.y;
+            } else if (this.lastEnteredPortalDir === 'center') {
                 this.player.x = this.mapWidth / 2;
                 this.player.y = this.mapHeight / 2 + 150;
             } else if (this.lastEnteredPortalDir === 'top') {

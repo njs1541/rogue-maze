@@ -137,7 +137,7 @@ const SpawnManager = {
     trigger4DoorAmbush(gameEngine) {
         if (!gameEngine || !gameEngine.monsters) return;
         this.isAmbushArmed = false; // 대기 해제
-        let doors = this.getAllDoors(gameEngine);
+        let doors = this.getSpawnDoors(gameEngine);
         let curRoom = (gameEngine && gameEngine.roomNum) || 1;
         let tier = Math.min(10, Math.floor((curRoom - 1) / 10) + 1);
 
@@ -206,10 +206,17 @@ const SpawnManager = {
         }
     },
 
-    // 헬퍼: 맵 문 포털 위치 가져오기
+    // 헬퍼: 맵 문 포털 위치 가져오기 (플레이어가 진입한 입구 문은 몬스터 스폰 대상에서 필터링)
     getSpawnDoors(gameEngine) {
         let all = this.getAllDoors(gameEngine);
         if (all.length <= 1) return all;
+
+        let lastDir = gameEngine && gameEngine.lastEnteredPortalDir;
+        if (lastDir) {
+            let filtered = all.filter(door => door.dir !== lastDir);
+            if (filtered.length > 0) return filtered;
+        }
+
         return all.slice(1);
     },
 
@@ -221,7 +228,7 @@ const SpawnManager = {
             let infos = PORTAL_SPAWN_INFOS[presetName];
             for (let dir in infos) {
                 if (infos[dir] && typeof infos[dir].x === 'number') {
-                    doors.push({ x: infos[dir].x, y: infos[dir].y });
+                    doors.push({ dir: dir, x: infos[dir].x, y: infos[dir].y });
                 }
             }
         }
@@ -230,10 +237,10 @@ const SpawnManager = {
             let mapW = (gameEngine && gameEngine.mapWidth) || 2200;
             let mapH = (gameEngine && gameEngine.mapHeight) || 1500;
             doors = [
-                { x: mapW / 2, y: 120 },        // top
-                { x: mapW / 2, y: mapH - 120 }, // bottom
-                { x: 120, y: mapH / 2 },        // left
-                { x: mapW - 120, y: mapH / 2 }  // right
+                { dir: 'top', x: mapW / 2, y: 120 },        // top
+                { dir: 'bottom', x: mapW / 2, y: mapH - 120 }, // bottom
+                { dir: 'left', x: 120, y: mapH / 2 },        // left
+                { dir: 'right', x: mapW - 120, y: mapH / 2 }  // right
             ];
         }
 

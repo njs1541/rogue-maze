@@ -770,51 +770,52 @@ class Monster {
                 case 'boss_chaser': // 20층 하이퍼 체이서
                     {
                         if (this.boss_speedBuffCount === undefined) this.boss_speedBuffCount = 0;
-                        let chaserSpeed = activeSpeed * (1.0 + this.boss_speedBuffCount * 0.06);
-                        let isFrenzy = this.hp <= this.maxHp * 0.5;
+                        let chaserSpeed = activeSpeed * (1.0 + this.boss_speedBuffCount * 0.05);
+                        let isFrenzy = (this.hp <= this.maxHp * 0.5) || (this.phase && this.phase >= 3);
 
                         if (this.dashCooldown > 0) {
-                            // 50% 이하 분노 시 돌진 쿨타임 2배 속도로 차감
-                            this.dashCooldown -= timeScale * (isFrenzy ? 2.0 : 1.0);
+                            this.dashCooldown -= timeScale;
                         }
 
                         // 타이머 및 가이드 텍스트 갱신
                         if (this.isDashing > 0) {
                             this.isDashing -= timeScale;
-                            this.x += Math.cos(this.dashAngle) * chaserSpeed * 2.8;
-                            this.y += Math.sin(this.dashAngle) * chaserSpeed * 2.8;
+                            let dashSpeed = chaserSpeed * 3.8;
+                            this.x += Math.cos(this.dashAngle) * dashSpeed;
+                            this.y += Math.sin(this.dashAngle) * dashSpeed;
 
                             this.boss_warningText = isFrenzy ? "⚡ OVERHEAT DASH! ⚡" : "DASHING! 🔥";
                             this.boss_timerText = (this.isDashing / 60).toFixed(1) + "s";
                             this.boss_castProgress = this.isDashing;
-                            this.boss_castMax = 30;
+                            this.boss_castMax = 25;
 
                             // 돌진 경로 장판 스폰
-                            if (window.gameEngine && Math.floor(Date.now() / 83) % 2 === 0) {
+                            if (window.gameEngine && Math.floor(Date.now() / 70) % 2 === 0) {
                                 let trailType = (isFrenzy && Math.random() < 0.5) ? 'chaser_lightning_trail' : 'chaser_fire_trail';
                                 let trailColor = trailType === 'chaser_lightning_trail' ? '#00e1ff' : '#ff6a00';
                                 let trail = new Particle(this.x, this.y, trailColor, 16, 0, 0, 180, trailType);
                                 trail.atk = this.atk * 0.4;
                                 window.gameEngine.particles.push(trail);
                             }
+                            return;
                         } else {
                             this.x += Math.cos(angle) * chaserSpeed;
                             this.y += Math.sin(angle) * chaserSpeed;
-                            this.dashAngle = angle;
 
-                            if (this.dashCooldown <= 20 && this.dashCooldown > 0) {
-                                this.boss_warningText = "DASH READY";
-                                this.boss_castProgress = 20 - this.dashCooldown;
-                                this.boss_castMax = 20;
+                            if (this.dashCooldown <= 35 && this.dashCooldown > 0) {
+                                this.dashAngle = angle; // 조준 고정
+                                this.boss_warningText = "⚡ DASH CHARGE";
+                                this.boss_castProgress = 35 - this.dashCooldown;
+                                this.boss_castMax = 35;
                                 this.boss_timerText = (this.dashCooldown / 60).toFixed(1) + "s";
                             } else {
                                 this.boss_warningText = "";
                                 this.boss_timerText = "";
                             }
 
-                            if (this.dashCooldown <= 0 && dist < 280) {
-                                this.isDashing = 30;
-                                this.dashCooldown = 100 + Math.random() * 50;
+                            if (this.dashCooldown <= 0 && dist < 320) {
+                                this.isDashing = 25;
+                                this.dashCooldown = 180; // 3초 쿨타임
                                 this.boss_speedBuffCount = Math.min(5, this.boss_speedBuffCount + 1);
                                 if (window.gameEngine) {
                                     window.gameEngine.showFloatingText("OVERDRIVE x" + this.boss_speedBuffCount + " ⚡", this.x, this.y - 35, '#ffaa00');
@@ -2776,6 +2777,14 @@ class Monster {
                     break;
 
                 case 'boss_chaser': // 20층 하이퍼 체이서 (화살촉 비행체형)
+                    // [신규 연출] 20층 보스 체이서 대시 차징 청록 조준 레이저선 (Telegraph Laser Aim Line)
+                    if (this.dashCooldown !== undefined && this.dashCooldown <= 35 && this.dashCooldown > 0 && window.TelegraphVFX) {
+                        let aimAngle = this.dashAngle !== undefined ? this.dashAngle : 0;
+                        let targetX = Math.cos(aimAngle) * 400;
+                        let targetY = Math.sin(aimAngle) * 400;
+                        window.TelegraphVFX.drawLaserAimLine(ctx, 0, 0, targetX, targetY, 0.9, '#00e1ff');
+                    }
+
                     ctx.save();
                     ctx.rotate(this.angle || 0);
 
@@ -2857,6 +2866,12 @@ class Monster {
                     ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : strokeColor;
                     ctx.fill();
 
+                    // [신규] 둠 스피커 음파 폭사 전조 경고 링
+                    if (this.gridLaserActive !== undefined && this.gridLaserActive > 35 && window.TelegraphVFX) {
+                        let prog = (100 - this.gridLaserActive) / 65;
+                        window.TelegraphVFX.drawPulseWarningRing(ctx, 0, 0, this.radius * 2.8, prog, '#ff00aa');
+                    }
+
                     // [둠 스피커 격자 레이저 렌더러]
                     if (this.gridLaserActive > 0) {
                         ctx.save();
@@ -2933,6 +2948,12 @@ class Monster {
                     ctx.arc(0, 0, 6, 0, Math.PI * 2);
                     ctx.fillStyle = '#ffffff';
                     ctx.fill();
+
+                    // [신규] 보이드 워퍼 블랙홀 전조 펄스 링
+                    if (this.blackholeTimer !== undefined && this.blackholeTimer <= 30 && this.blackholeTimer > 0 && window.TelegraphVFX) {
+                        let prog = (30 - this.blackholeTimer) / 30;
+                        window.TelegraphVFX.drawPulseWarningRing(ctx, 0, 0, 85, prog, '#00ffcc');
+                    }
 
                     // [보이드 워퍼 탄 흡수 블랙홀 구역 그리기]
                     if (this.blackholeActiveTimer > 0) {
