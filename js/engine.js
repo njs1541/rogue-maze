@@ -1952,27 +1952,6 @@ class GameEngine {
                             }
                         }
                         this.triggerSpearInstantAttack(spearAngles);
-
-                        let synergyMult = this.checkBuildSynergy('spear');
-                        let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                        let baseMult = 0.7;
-                        let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
-                        let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
-
-                        for (let angle of spearAngles) {
-                            let speed = 10.0;
-                            let vx = Math.cos(angle) * speed;
-                            let vy = Math.sin(angle) * speed;
-                            this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, spearDmg, true, {
-                                pierce: Math.min(5, this.player.pierceCount + 2),
-                                homing: this.player.homing,
-                                homingSpeed: this.player.homingAngleSpeed,
-                                splash: this.player.splashRadius,
-                                color: '#00f0ff',
-                                radius: 6,
-                                isSpear: true
-                            }));
-                        }
                     }
 
                     // 2. 채찍 즉발 융합
@@ -5094,6 +5073,11 @@ class GameEngine {
     shootWeapon() {
         let mainWeapon = this.player.equippedWeapons[0] || 'gun';
 
+        // [방어 가드] 메인 장착 무기가 근접 무기(melee)인 경우 원거리 투사체 사격 로직을 실행하지 않고 즉시 리턴
+        if (WEAPON_CATEGORIES[mainWeapon] === 'melee') {
+            return;
+        }
+
         if (mainWeapon === 'crude_shock' || mainWeapon === 'chain_emp_shock') {
             let isAdvanced = (mainWeapon === 'chain_emp_shock');
 
@@ -5430,7 +5414,8 @@ class GameEngine {
             let baseDmg = this.player.atk * (isAdvanced ? 1.5 : 0.7); // 대미지 계수 억제: 조잡 0.7x, 진화 1.5x
             let finalDamage = baseDmg * levelMult * synergyMult * helmDmgBonus * speedRingDmgBonus * hybridDmgFactor;
 
-            this.triggerRailCannonBeam(this.player.angle, finalDamage, isAdvanced);
+            // [수정] 조준/차징 시점에는 가이드 선 및 차징 이펙트만 시작하고 즉시 빔 데미지를 입히지 않음
+            // 18프레임 차징 만료 시점(update 루틴)에서 triggerRailCannonBeam이 단 1회 발사됨
 
             this.triggerThirdSlotWeapon();
             return;
@@ -6285,29 +6270,6 @@ class GameEngine {
 
                 // 즉발 찌르기 물리 타격
                 this.triggerSpearInstantAttack(spAngles);
-
-                // 관통 투사체 날리기
-                let synergyMult = this.checkBuildSynergy('spear');
-                let speedRingDmgBonus = this.player.windScarActive ? 1.10 : 1.0;
-                let baseMult = 0.7; // 창 대미지 비율
-                let hybridDmgFactor = this.player.weaponType === 'dual' ? 0.75 : 1.0;
-                let spearDmg = this.player.atk * baseMult * synergyMult * this.player.swordDmgUpgrade * speedRingDmgBonus * hybridDmgFactor;
-
-                for (let angle of spAngles) {
-                    let speed = 10.0;
-                    let vx = Math.cos(angle) * speed;
-                    let vy = Math.sin(angle) * speed;
-                    this.bullets.push(new Bullet(this.player.x, this.player.y, vx, vy, spearDmg, true, {
-                        closeCritical: true,
-                        pierce: Math.min(5, this.player.pierceCount + 2),
-                        homing: this.player.homing,
-                        homingSpeed: this.player.homingAngleSpeed,
-                        splash: this.player.splashRadius,
-                        color: '#00f0ff',
-                        radius: 6,
-                        isSpear: true
-                    }));
-                }
             }
 
             // [채찍 즉발 견인 및 그랩 융합 격발]
