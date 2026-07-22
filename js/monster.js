@@ -1430,7 +1430,11 @@ class Monster {
                             this.boss_mineTimer -= timeScale;
                             if (this.boss_mineTimer <= 0 && window.gameEngine) {
                                 this.boss_mineTimer = 200 + Math.random() * 60; // 3.3~4.3초 주기
-                                let mineCount = window.gameEngine.particles.filter(p => p.type === 'boss_nano_mine' && p.life > 0).length;
+                                let mineCount = 0;
+                                const pts = window.gameEngine.particles;
+                                for (let i = 0; i < pts.length; i++) {
+                                    if (pts[i].type === 'boss_nano_mine' && pts[i].life > 0) mineCount++;
+                                }
                                 if (mineCount < 4) {
                                     // 보스 현재 위치에 나노 지뢰 설치
                                     let mine = new Particle(this.x, this.y, '#ff6666', 12, 0, 0, 600, 'boss_nano_mine');
@@ -1445,10 +1449,14 @@ class Monster {
                             // 나노 지뢰 근접 폭발 판정
                             if (window.gameEngine) {
                                 let pl = window.gameEngine.player;
-                                window.gameEngine.particles.forEach(p => {
+                                const pts = window.gameEngine.particles;
+                                for (let i = 0; i < pts.length; i++) {
+                                    const p = pts[i];
                                     if (p.type === 'boss_nano_mine' && p.life > 0) {
-                                        let md = Math.hypot(pl.x - p.x, pl.y - p.y);
-                                        if (md < p.mineRadius + pl.radius) {
+                                        let mdx = pl.x - p.x;
+                                        let mdy = pl.y - p.y;
+                                        let maxDist = p.mineRadius + pl.radius;
+                                        if (mdx * mdx + mdy * mdy < maxDist * maxDist) {
                                             // 폭발!
                                             window.gameEngine.damagePlayer(p.atk, p.x, p.y);
                                             // 감속 디버프 3초
@@ -1461,7 +1469,7 @@ class Monster {
                                             p.life = 0; // 지뢰 소멸
                                         }
                                     }
-                                });
+                                }
                             }
                         }
 

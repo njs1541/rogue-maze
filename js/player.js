@@ -648,6 +648,11 @@ class Player {
         this.perfectClearFlag = true;
         this.lastHitTimer = 300; // 피격 무사고 프레임 트래킹 (기본 300프레임 = 5초 상태로 시작)
         
+        // [신규 5단계] 리롤 시스템 트래킹 변수
+        this.cardRerollCount = 0;   // 이번 런 내 카드 소모 리롤 횟수
+        this.freeRerollsLeft = 0;   // 매 방/런 부여되는 무료 리롤 횟수
+        this.shopRerollCount = 0;   // 상점 리롤 횟수
+        
         // [패시브 아이템 시스템] 영구 획득한 설계도 리스트 및 이번 회차 활성화된 패시브 리스트
         this.acquiredBlueprints = [];
         this.craftedPassives = [];

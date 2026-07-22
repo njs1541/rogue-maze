@@ -50,6 +50,8 @@ class Particle {
     }
 
     draw(ctx) {
+        const isLowSpec = window.gameEngine && window.gameEngine.lowSpecMode;
+
         ctx.save();
         ctx.globalAlpha = this.alpha;
         
@@ -58,8 +60,10 @@ class Particle {
             ctx.beginPath();
             ctx.strokeStyle = this.color;
             ctx.lineWidth = 1.8;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+            }
             // 가로선
             ctx.moveTo(this.x - this.size * 1.5, this.y);
             ctx.lineTo(this.x + this.size * 1.5, this.y);
@@ -72,8 +76,10 @@ class Particle {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 2;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = this.color;
+            }
             ctx.fill();
         } else if (this.type === 'explosionRing') {
             // 폭발 충격파 링
@@ -81,8 +87,10 @@ class Particle {
             ctx.arc(this.x, this.y, this.size * (1 - this.alpha * 0.8), 0, Math.PI * 2);
             ctx.strokeStyle = this.color;
             ctx.lineWidth = 3.5 * this.alpha;
-            ctx.shadowBlur = 18;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = this.color;
+            }
             ctx.stroke();
         } else if (this.type === 'slashWave') {
             // [개선] 단순 원 대신 베기 각도에 맞춘 날카로운 초승달 형태 검기
@@ -98,8 +106,10 @@ class Particle {
             ctx.closePath();
             
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = this.color;
+            }
             ctx.fill();
             ctx.restore();
         } else if (this.type === 'trail') {
@@ -107,16 +117,20 @@ class Particle {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size * this.alpha, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+            }
             ctx.fill();
         } else if (this.type === 'text') {
             // [신규] 텍스트 파편 렌더링 (그림자 및 테두리 효과 가미)
             ctx.font = "bold 13px 'Orbit', 'Inter', sans-serif";
             ctx.fillStyle = this.color;
             ctx.textAlign = 'center';
-            ctx.shadowBlur = 4;
-            ctx.shadowColor = '#000000';
+            if (!isLowSpec) {
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#000000';
+            }
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 3;
             ctx.strokeText(this.text, this.x, this.y);
@@ -128,8 +142,10 @@ class Particle {
             ctx.fillStyle = `rgba(10, 5, 20, ${0.85 * this.alpha})`; // 검은 보랏빛 진한 중앙
             ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
             ctx.lineWidth = 2.0;
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#8b5cf6'; // 외곽 보라색 네온 글로우
+            if (!isLowSpec) {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#8b5cf6'; // 외곽 보라색 네온 글로우
+            }
             ctx.fill();
             ctx.stroke();
 
@@ -157,8 +173,10 @@ class Particle {
             grad.addColorStop(0, this.color);
             grad.addColorStop(1, 'rgba(139, 92, 246, 0)');
             ctx.fillStyle = grad;
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = this.color;
+            if (!isLowSpec) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = this.color;
+            }
             ctx.fill();
         } else if (this.type === 'rift_warning_ring') {
             // [신규] 바닥 네온 소환진 1.5초 예고 룬 렌더링
@@ -170,8 +188,10 @@ class Particle {
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.strokeStyle = this.color;
                 ctx.lineWidth = 2.5;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
+                if (!isLowSpec) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.color;
+                }
                 ctx.stroke();
 
                 let currentR = this.size * (1 - progress);

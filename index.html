@@ -173,9 +173,13 @@
                 </div>
             </div>
             <!-- [개선] 카드 보상 리롤 및 건너뛰기 액션 홀더 -->
-            <div class="reward-actions">
+            <div class="reward-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 15px;">
+                <button id="reroll-coin-btn" class="neon-btn"
+                    style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🪙 코인 리롤 (50)</button>
+                <button id="reroll-fragment-btn" class="neon-btn"
+                    style="border-color: #00f0ff; color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.25); display: none;">🧩 기억 리롤 (1)</button>
                 <button id="reroll-btn" class="neon-btn"
-                    style="border-color: #ffdf00; color: #ffdf00; box-shadow: 0 0 15px rgba(255, 223, 0, 0.25); display: none;">🎲 다시 굴리기 (0)</button>
+                    style="border-color: #39ff14; color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.25); display: none;">🎲 무료 리롤 (1)</button>
                 <button id="skip-btn" class="neon-btn"
                     style="border-color: #cbd5e1; color: #cbd5e1; box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); display: none;">⏭️ 건너뛰기 (0)</button>
             </div>
@@ -505,6 +509,42 @@
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span id="lbl-upgrade-mp" style="font-weight:bold; color:#00f0ff;">0 / 5</span>
                             <button class="neon-btn small upgrade-btn" data-stat="mp" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 1)</button>
+                        </div>
+                    </div>
+
+                    <!-- [신규 5단계] 운명의 재구성 (무료 리롤 횟수) -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:#ffdf00; margin:0;">🎲 운명의 재구성 (Free Reroll +1)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">런 시작 시 방당/회차당 무료 카드 리롤 횟수를 +1회 추가합니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-reroll_free" style="font-weight:bold; color:#00f0ff;">0 / 3</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="reroll_free" style="padding:4px 12px; font-size:0.8rem; border-color:#ffdf00; color:#ffdf00; margin:0;">개조 (🧩 2)</button>
+                        </div>
+                    </div>
+
+                    <!-- [신규 5단계] 알뜰한 교환 (코인 리롤 할인) -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:#39ff14; margin:0;">🪙 알뜰한 교환 (Reroll Discount -20%)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">네온 코인을 사용한 카드/상점 리롤 비용을 20% 할인합니다. (최대 60%)</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-reroll_discount" style="font-weight:bold; color:#00f0ff;">0 / 3</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="reroll_discount" style="padding:4px 12px; font-size:0.8rem; border-color:#39ff14; color:#39ff14; margin:0;">개조 (🧩 2)</button>
+                        </div>
+                    </div>
+
+                    <!-- [신규 5단계] 기억의 잔상 (기억 리롤 품질 증대) -->
+                    <div class="option-group" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 12px; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div style="text-align: left;">
+                            <h3 style="font-size:1.0rem; color:#00f0ff; margin:0;">🔮 기억의 잔상 (Fragment Quality Boost)</h3>
+                            <p style="font-size:0.78rem; color:#a0aec0; margin:0;">기억의 조각으로 리롤 시 에픽(Epic) 이상 고급 카드 등급 출현율이 대폭 상승합니다.</p>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="lbl-upgrade-reroll_quality" style="font-weight:bold; color:#00f0ff;">0 / 2</span>
+                            <button class="neon-btn small upgrade-btn" data-stat="reroll_quality" style="padding:4px 12px; font-size:0.8rem; border-color:#00f0ff; color:#00f0ff; margin:0;">개조 (🧩 3)</button>
                         </div>
                     </div>
                 </div>

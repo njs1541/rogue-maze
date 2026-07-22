@@ -134,8 +134,8 @@ class Bullet {
             this.y += this.vy * timeScale;
         }
 
-        // 플레이어의 탄환일 때 이동 방향 뒤로 잔상 trail 파티클 생성
-        if (this.isPlayerBullet && window.gameEngine) {
+        // 플레이어의 탄환일 때 이동 방향 뒤로 잔상 trail 파티클 생성 (저사양 모드시 스킵)
+        if (this.isPlayerBullet && window.gameEngine && !window.gameEngine.lowSpecMode) {
             let trailProb = this.isAdvanced ? 0.75 : 0.25; // 진화 무기는 75% 확률, 조잡한 무기는 25% 확률로 트레일 생성
             if (Math.random() < trailProb) {
                 window.gameEngine.particles.push(new Particle(

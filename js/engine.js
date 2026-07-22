@@ -1140,6 +1140,8 @@ class GameEngine {
         this.materialsList = []; // 드롭된 재료 청소
         this.player.perfectClearFlag = true; // [추가] 새 방에 진입 시 퍼펙트 플래그 리셋!
         this.hasRerolledThisRoom = false;   // [신규 기획] 새 방 진입 시 리롤 사용 플래그 리셋!
+        const freeLvl = parseInt(localStorage.getItem('neon_upgrade_reroll_free')) || 0;
+        this.player.freeRerollsLeft = freeLvl; // 매 방 무료 리롤 횟수 재충전
         this.player.burstRemaining = 0;     // [신규] 방 이동 시 비동기 잔상 사격 완전 차단 리셋!
         // [신규] 이전 방 장애물 청소는 generateGridMap 내부에서 처리되므로 이곳의 중복 리셋 및 구식 장애물 스폰은 삭제합니다.
 
@@ -1667,13 +1669,18 @@ class GameEngine {
         const currentTime = performance.now();
         let deltaTime = currentTime - this.lastTime;
 
-        // 브라우저 백그라운드 탭 전환 등으로 인한 과도한 시간 누적 방지 (최대 100ms 가드)
+        // 브라우저 백그라운드 탭 전환 등으로 인한 과도한 시간 누적 방지 (최대 50ms 가드 및 accumulatedTime 캡핑)
         if (deltaTime > 100) {
             deltaTime = this.timestep;
         }
 
         this.lastTime = currentTime;
         this.accumulatedTime += deltaTime;
+
+        // accumulatedTime 과다 누적으로 인한 Spiral of death 랙 차단 (최대 50ms = 약 3프레임 캡)
+        if (this.accumulatedTime > 50) {
+            this.accumulatedTime = this.timestep;
+        }
 
         // 누적 시간이 60FPS 타임스텝보다 크면 그만큼만 update 실행 (고주사율에서도 60FPS 속도 보장)
         while (this.accumulatedTime >= this.timestep) {
@@ -7024,6 +7031,11 @@ class GameEngine {
                 const data = dataList[idx];
                 if (!data) return; // 예외 방지
 
+                // 애니메이션 재트리거 (리롤 / 오픈 시 등장 효과 리셋)
+                cardEl.style.animation = 'none';
+                void cardEl.offsetHeight; // reflow 강제
+                cardEl.style.animation = '';
+
                 cardEl.className = `reward-card card-${data.rarity.toLowerCase()}`;
 
                 // 카드 엘리먼트 데이터 채우기
@@ -7255,33 +7267,100 @@ class GameEngine {
         };
 
         // 렌더링 시작
+        // 렌더링 시작
         renderCards(cardsData);
 
-        // [신규 기획] Luck Amulet 10레벨 초월: 보상 카드 방당 1회 무상 리롤 기회 개방
-        const rerollBtn = document.getElementById('reroll-btn');
-        if (rerollBtn) {
-            if (this.player.equipLevels.necklace === 10 && !this.hasRerolledThisRoom) {
-                rerollBtn.classList.remove('hidden');
+        // [신규 5단계] 영구 개조 및 목걸이 기반 무료/코인/기억의 조각 3종 리롤 버튼 바인딩
+        const rerollCoinBtn = document.getElementById('reroll-coin-btn');
+        const rerollFragmentBtn = document.getElementById('reroll-fragment-btn');
+        const rerollFreeBtn = document.getElementById('reroll-btn');
 
-                // 리롤 클릭 이벤트
-                rerollBtn.onclick = (e) => {
+        const freeRerollLvl = parseInt(localStorage.getItem('neon_upgrade_reroll_free')) || 0;
+        const discountLvl = parseInt(localStorage.getItem('neon_upgrade_reroll_discount')) || 0;
+        const qualityLvl = parseInt(localStorage.getItem('neon_upgrade_reroll_quality')) || 0;
+
+        const updateRerollButtons = () => {
+            // 1) 무료 리롤 계산 (방당 목걸이 10레벨 무상 1회 + 영구 업그레이드 잔여)
+            const hasNecklaceFree = (this.player.equipLevels.necklace === 10 && !this.hasRerolledThisRoom);
+            const freeCountTotal = (hasNecklaceFree ? 1 : 0) + (this.player.freeRerollsLeft || 0);
+
+            if (rerollFreeBtn) {
+                if (freeCountTotal > 0) {
+                    rerollFreeBtn.style.display = 'inline-block';
+                    rerollFreeBtn.innerText = `🎲 무료 리롤 (${freeCountTotal})`;
+                    rerollFreeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (hasNecklaceFree && !this.hasRerolledThisRoom) {
+                            this.hasRerolledThisRoom = true;
+                        } else if ((this.player.freeRerollsLeft || 0) > 0) {
+                            this.player.freeRerollsLeft--;
+                        }
+                        Sound.play('powerup');
+                        this.showFloatingText("DESTINY RE-ROLLED! 🎲", this.player.x, this.player.y - 35, '#39ff14');
+                        cardsData = this.generateRewardCardsData(this.currentSpawnTotal, isFromHiddenChest, isSpecialReward);
+                        renderCards(cardsData);
+                        updateRerollButtons();
+                    };
+                } else {
+                    rerollFreeBtn.style.display = 'none';
+                }
+            }
+
+            // 2) 네온 코인 소모 리롤 버튼 (50 * (1 + cardRerollCount), 할인율 적용)
+            if (rerollCoinBtn) {
+                let baseCost = 50 + (this.player.cardRerollCount || 0) * 50;
+                let discountPct = discountLvl * 0.20; // 레벨당 20%
+                let finalCoinCost = Math.max(10, Math.floor(baseCost * (1 - discountPct)));
+
+                rerollCoinBtn.style.display = 'inline-block';
+                rerollCoinBtn.innerText = `🪙 코인 리롤 (${finalCoinCost}🪙)`;
+
+                rerollCoinBtn.onclick = (e) => {
                     e.stopPropagation();
-                    this.hasRerolledThisRoom = true;
-
-                    // 리롤 성공 오디오
+                    if ((this.player.coins || 0) < finalCoinCost) {
+                        this.showFloatingText("네온 코인이 부족합니다! 🪙", this.player.x, this.player.y - 35, '#ff0055');
+                        Sound.play('powerup');
+                        return;
+                    }
+                    this.player.coins -= finalCoinCost;
+                    this.player.cardRerollCount = (this.player.cardRerollCount || 0) + 1;
                     Sound.play('powerup');
-                    this.showFloatingText("DESTINY RE-ROLLED!", this.player.x, this.player.y - 35, '#ffdf00');
-
+                    this.showFloatingText(`COIN REROLL! (-${finalCoinCost}🪙)`, this.player.x, this.player.y - 35, '#ffdf00');
                     cardsData = this.generateRewardCardsData(this.currentSpawnTotal, isFromHiddenChest, isSpecialReward);
                     renderCards(cardsData);
-
-                    // 리롤 사용했으므로 버튼 소멸
-                    rerollBtn.classList.add('hidden');
+                    this.updateHUD();
+                    updateRerollButtons();
                 };
-            } else {
-                rerollBtn.classList.add('hidden');
             }
-        }
+
+            // 3) 기억의 조각 소모 프리미엄 리롤 버튼 (기억의 조각 1개 소모, Rare/Epic 보장)
+            if (rerollFragmentBtn) {
+                let currentMem = (this.memoryFragments !== undefined) ? this.memoryFragments : (this.player.memoryFragments || 0);
+                rerollFragmentBtn.style.display = 'inline-block';
+                rerollFragmentBtn.innerText = `🧩 기억 리롤 (1 / 보유:${currentMem})`;
+
+                rerollFragmentBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    let currentMemCheck = (this.memoryFragments !== undefined) ? this.memoryFragments : (this.player.memoryFragments || 0);
+                    if (currentMemCheck < 1) {
+                        this.showFloatingText("기억의 조각이 부족합니다! 🧩", this.player.x, this.player.y - 35, '#ff0055');
+                        Sound.play('powerup');
+                        return;
+                    }
+                    if (this.memoryFragments !== undefined && this.memoryFragments > 0) this.memoryFragments--;
+                    if (this.player.memoryFragments !== undefined && this.player.memoryFragments > 0) this.player.memoryFragments--;
+                    this.saveMemoryFragments();
+
+                    Sound.play('powerup');
+                    this.showFloatingText("MEMORY RE-ROLLED! 🧩✨", this.player.x, this.player.y - 35, '#00f0ff');
+                    cardsData = this.generateRewardCardsData(this.currentSpawnTotal, isFromHiddenChest, isSpecialReward, true, qualityLvl);
+                    renderCards(cardsData);
+                    updateRerollButtons();
+                };
+            }
+        };
+
+        updateRerollButtons();
     }
 
     triggerBlueprintRewardSelection() {
@@ -7369,7 +7448,7 @@ class GameEngine {
     }
 
     // 몬스터 처치량 비례하여 등급 가중치 보정이 연동되는 랜덤 카드 데이터 3종 조각 생성
-    generateRewardCardsData(monsterBonus, isFromHiddenChest = false, isSpecialReward = false) {
+    generateRewardCardsData(monsterBonus, isFromHiddenChest = false, isSpecialReward = false, forceRareOrHigher = false, qualityLvl = 0) {
         // 기본 8대 캐릭터 스탯 보상 카드 풀
         const statusCards = [
             { id: 'atk', title: '힘 (ATK) 강화', icon: '⚔️', desc: '공격 피해량을 미세 증가시킵니다.' },
@@ -7499,6 +7578,13 @@ class GameEngine {
         // [신규 기획] 행운 목걸이 10레벨 초월: 리롤 성공 시 최소 Rare 등급 확정 추첨 보장 보정치 추가
         if (this.player.equipLevels.necklace === 10 && this.hasRerolledThisRoom) {
             portalLuckBonus += 0.8;
+        }
+        // [신규 5단계] 기억의 조각 리롤 및 영구 패시브 보정
+        if (forceRareOrHigher) {
+            portalLuckBonus += 0.85; // Rare 이상 강력 보장
+        }
+        if (qualityLvl > 0) {
+            portalLuckBonus += qualityLvl * 0.45; // 에픽/레전더리 출현율 극대화
         }
 
         for (let i = 0; i < cardsToSelect; i++) {
@@ -10330,44 +10416,52 @@ class GameEngine {
         if (spentEl) spentEl.innerText = this.spentFragments;
         if (unusedEl) unusedEl.innerText = this.unusedFragments;
 
-        const stats = ['atk', 'ms', 'aspd', 'hp', 'mp'];
-        stats.forEach(stat => {
+        const statsConfig = {
+            atk: { max: 5 }, ms: { max: 5 }, aspd: { max: 5 }, hp: { max: 5 }, mp: { max: 5 },
+            reroll_free: { max: 3 }, reroll_discount: { max: 3 }, reroll_quality: { max: 2 }
+        };
+        Object.keys(statsConfig).forEach(stat => {
             const lvl = parseInt(localStorage.getItem(`neon_upgrade_${stat}`)) || 0;
             const lbl = document.getElementById(`lbl-upgrade-${stat}`);
             if (lbl) {
-                lbl.innerText = `${lvl} / 5`;
+                lbl.innerText = `${lvl} / ${statsConfig[stat].max}`;
             }
         });
     }
 
     buyBitesUpgrade(stat) {
         this.loadMemoryFragments();
+        const statsConfig = {
+            atk: { max: 5, cost: 1 }, ms: { max: 5, cost: 1 }, aspd: { max: 5, cost: 1 }, hp: { max: 5, cost: 1 }, mp: { max: 5, cost: 1 },
+            reroll_free: { max: 3, cost: 2 }, reroll_discount: { max: 3, cost: 2 }, reroll_quality: { max: 2, cost: 3 }
+        };
+        const config = statsConfig[stat] || { max: 5, cost: 1 };
         const lvlKey = `neon_upgrade_${stat}`;
         const currentLvl = parseInt(localStorage.getItem(lvlKey)) || 0;
 
-        if (currentLvl >= 5) {
+        if (currentLvl >= config.max) {
             this.showFloatingText("이미 최대 개조 단계입니다! 🚫", this.player.x, this.player.y - 20, '#ff0055');
             return;
         }
 
-        if (this.unusedFragments < 1) {
-            this.showFloatingText("미사용 기억의 조각이 부족합니다! 🧩", this.player.x, this.player.y - 20, '#ff0055');
+        if (this.unusedFragments < config.cost) {
+            this.showFloatingText(`기억의 조각이 부족합니다! (필요: 🧩 ${config.cost})`, this.player.x, this.player.y - 20, '#ff0055');
             return;
         }
 
         localStorage.setItem(lvlKey, currentLvl + 1);
-        this.spentFragments += 1;
+        this.spentFragments += config.cost;
         this.unusedFragments = Math.max(0, this.totalFragments - this.spentFragments);
         this.saveMemoryFragments();
 
         this.updateUpgradeShopUI();
         Sound.play('powerup');
         this.showFloatingText("개조 성공! ⚡", this.player.x, this.player.y - 30, '#39ff14');
-        this.player.loadBitesUpgrades();
+        if (typeof this.player.loadBitesUpgrades === 'function') this.player.loadBitesUpgrades();
     }
 
     resetBitesUpgrades() {
-        const stats = ['atk', 'ms', 'aspd', 'hp', 'mp'];
+        const stats = ['atk', 'ms', 'aspd', 'hp', 'mp', 'reroll_free', 'reroll_discount', 'reroll_quality'];
         stats.forEach(stat => {
             localStorage.setItem(`neon_upgrade_${stat}`, 0);
         });
@@ -10379,7 +10473,7 @@ class GameEngine {
         this.updateUpgradeShopUI();
         Sound.play('explosion');
         this.showFloatingText("기억 복원 완료! 🔄", this.player.x, this.player.y - 30, '#ffdf00');
-        this.player.loadBitesUpgrades();
+        if (typeof this.player.loadBitesUpgrades === 'function') this.player.loadBitesUpgrades();
     }
 
     // [신규 추가] 시스템 옵션 모달 조작 이벤트 리스너 바인딩
@@ -10459,6 +10553,7 @@ class GameEngine {
         if (perfCheckbox) {
             perfCheckbox.addEventListener('change', () => {
                 this.lowSpecMode = perfCheckbox.checked;
+                if (document.body) document.body.classList.toggle('low-spec', !!this.lowSpecMode);
                 this.saveOptions();
             });
         }
@@ -10847,10 +10942,12 @@ class GameEngine {
         if (perfCheckbox) {
             perfCheckbox.checked = this.lowSpecMode;
         }
+        if (document.body) document.body.classList.toggle('low-spec', !!this.lowSpecMode);
     }
 
     saveOptions() {
         try {
+            if (document.body) document.body.classList.toggle('low-spec', !!this.lowSpecMode);
             const options = {
                 sfxVolume: Sound.sfxVolume,
                 bgmVolume: Sound.bgmVolume,
@@ -10872,6 +10969,7 @@ class GameEngine {
                 Sound.setSFXVolume(savedOptions.sfxVolume !== undefined ? savedOptions.sfxVolume : 1.0);
                 Sound.setBGMVolume(savedOptions.bgmVolume !== undefined ? savedOptions.bgmVolume : 0.5);
             }
+            if (document.body) document.body.classList.toggle('low-spec', !!this.lowSpecMode);
         } catch (e) {
             console.error("옵션 로드 실패:", e);
         }

@@ -754,10 +754,9 @@ body {
     position: relative;
     border-radius: 16px;
     cursor: pointer;
-    transform-style: preserve-3d;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s ease;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
     animation: cardReveal 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) both;
-    transform: translateZ(0);
+    transform: translate3d(0, 0, 0);
     will-change: transform;
     backface-visibility: hidden;
 }
@@ -778,7 +777,7 @@ body {
     position: absolute;
     width: 100%;
     height: 100%;
-    background: rgba(18, 20, 36, 0.6);
+    background: rgba(18, 20, 36, 0.65);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     padding: 24px 16px;
@@ -793,6 +792,7 @@ body {
     overflow: hidden;
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
+    transition: border-color 0.3s ease;
 }
 
 /* 카드 등급 딱지 */
@@ -805,7 +805,8 @@ body {
     margin-bottom: 12px;
 }
 
-.card-rarity.normal {
+.card-rarity.normal,
+.card-rarity.common {
     background: rgba(200, 200, 200, 0.1);
     color: #a0aec0;
     border: 1px solid rgba(200, 200, 200, 0.3);
@@ -870,14 +871,14 @@ body {
     border-radius: 16px;
     background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 70%);
     z-index: 1;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
     opacity: 0.5;
 }
 
-/* 카드 호버 연출 (3D 틸트 및 솟구침, 글로우 극대화) */
+/* 카드 호버 연출 (하드웨어 가속 솟구침, 떨림 방지 및 글로우 극대화) */
 .reward-card:hover {
-    transform: translateY(-12px) scale(1.05) rotateY(5deg);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    transform: translate3d(0, -10px, 0) scale(1.03);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
 
 .reward-card:hover .card-glow {
@@ -885,10 +886,12 @@ body {
 }
 
 /* 카드 등급별 호버 테두리 & 발광 광원 */
+.reward-card.card-common:hover,
 .reward-card.card-normal:hover {
     box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
 }
 
+.reward-card.card-common:hover .card-inner,
 .reward-card.card-normal:hover .card-inner {
     border-color: rgba(255, 255, 255, 0.3);
 }
