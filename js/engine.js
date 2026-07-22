@@ -50,13 +50,13 @@ class GameEngine {
         this.monsters = [];
         this.bullets = [];
 
-        // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
+        // [최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 하드 캡핑(Capping) 데코레이터 주입 (Max 250)
         this.particles = [];
         this.particles.push = (function (originalPush) {
             return function (item) {
-                // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
-                if (this.length >= 350 && item && item.type !== 'text') {
-                    return this.length;
+                if (this.length >= 250) {
+                    // 250개 도달 시 오래된 요소 하나 소멸시켜 선환 수용
+                    this.shift();
                 }
                 return originalPush.apply(this, arguments);
             };
@@ -185,7 +185,19 @@ class GameEngine {
     // 입력 장치 이벤트 바인딩
     initInputEvents() {
         window.addEventListener('keydown', (e) => {
-            this.keys[e.key.toLowerCase()] = true;
+            const rawKey = e.key ? e.key.toLowerCase() : '';
+            this.keys[rawKey] = true;
+
+            // [결함 완치] e.code 및 한글 자판(ㅈ,ㅁ,ㄴ,ㅇ) 키 입력을 WASD 이동으로 자동 바인딩
+            if (e.code === 'KeyW' || rawKey === 'ㅈ') this.keys['w'] = true;
+            if (e.code === 'KeyA' || rawKey === 'ㅁ') this.keys['a'] = true;
+            if (e.code === 'KeyS' || rawKey === 'ㄴ') this.keys['s'] = true;
+            if (e.code === 'KeyD' || rawKey === 'ㅇ') this.keys['d'] = true;
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys['shift'] = true;
+            if (e.code === 'ArrowUp') this.keys['arrowup'] = true;
+            if (e.code === 'ArrowDown') this.keys['arrowdown'] = true;
+            if (e.code === 'ArrowLeft') this.keys['arrowleft'] = true;
+            if (e.code === 'ArrowRight') this.keys['arrowright'] = true;
 
             // Spacebar를 누르면 마력 특수기 가동 (오버레이가 없고 실제 게임 실행 중일 때만 허용)
             if (e.key === ' ' || e.code === 'Space') {
@@ -196,7 +208,7 @@ class GameEngine {
             }
 
             // [테스트용 치트 핫키] P키: 디버그/치트 메뉴 토글
-            if (e.key === 'p' || e.key === 'P') {
+            if (e.key === 'p' || e.key === 'P' || e.code === 'KeyP') {
                 const activeEl = document.activeElement;
                 if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
                     return;
@@ -240,7 +252,7 @@ class GameEngine {
             }
 
             // [테스트용 치트 핫키] O키: 99스테이지 즉시 도달 워프 (100스테이지 보스 직전)
-            if (e.key === 'o' || e.key === 'O') {
+            if (e.key === 'o' || e.key === 'O' || e.code === 'KeyO') {
                 const activeEl = document.activeElement;
                 if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
                     return;
@@ -256,7 +268,7 @@ class GameEngine {
             }
 
             // [신규 기획] C키: 충전소 제작소 토글
-            if (e.key === 'c' || e.key === 'C') {
+            if (e.key === 'c' || e.key === 'C' || e.code === 'KeyC') {
                 const activeEl = document.activeElement;
                 if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
                     return;
@@ -281,7 +293,19 @@ class GameEngine {
         });
 
         window.addEventListener('keyup', (e) => {
-            this.keys[e.key.toLowerCase()] = false;
+            const rawKey = e.key ? e.key.toLowerCase() : '';
+            this.keys[rawKey] = false;
+
+            // [결함 완치] e.code 및 한글 자판 해제 정규화
+            if (e.code === 'KeyW' || rawKey === 'ㅈ') this.keys['w'] = false;
+            if (e.code === 'KeyA' || rawKey === 'ㅁ') this.keys['a'] = false;
+            if (e.code === 'KeyS' || rawKey === 'ㄴ') this.keys['s'] = false;
+            if (e.code === 'KeyD' || rawKey === 'ㅇ') this.keys['d'] = false;
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys['shift'] = false;
+            if (e.code === 'ArrowUp') this.keys['arrowup'] = false;
+            if (e.code === 'ArrowDown') this.keys['arrowdown'] = false;
+            if (e.code === 'ArrowLeft') this.keys['arrowleft'] = false;
+            if (e.code === 'ArrowRight') this.keys['arrowright'] = false;
         });
 
         // [수정] 마우스가 캔버스 바깥 영역으로 나가도 조준이 끊김 없이 부드럽게 갱신되도록 window 전체에 바인딩
@@ -323,6 +347,7 @@ class GameEngine {
 
         // 게임 오버 혹은 재시작 버튼 연결
         document.getElementById('start-btn').addEventListener('click', () => {
+            if (document.activeElement) document.activeElement.blur();
             document.getElementById('start-overlay').classList.add('hidden');
 
             // [튜토리얼 기믹] 최초 방문 시 튜토리얼 팝업, 이후에는 바로 시작
@@ -343,6 +368,7 @@ class GameEngine {
         const tutorialCloseBtn = document.getElementById('tutorial-close-btn');
         if (tutorialCloseBtn) {
             tutorialCloseBtn.addEventListener('click', () => {
+                if (document.activeElement) document.activeElement.blur();
                 const tutorialOverlay = document.getElementById('tutorial-overlay');
                 if (tutorialOverlay) {
                     tutorialOverlay.classList.add('hidden');
@@ -615,13 +641,12 @@ class GameEngine {
         this.monsters = [];
         this.bullets = [];
 
-        // [신규 최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 캡핑(Capping) 데코레이터 주입
+        // [최적화] 파티클 폭주로 인한 렌더링 렉을 완벽히 방지하는 하드 캡핑(Capping) 데코레이터 주입 (Max 250)
         this.particles = [];
         this.particles.push = (function (originalPush) {
             return function (item) {
-                // 화면 내 활성 파티클이 350개에 도달했을 때, 중요 텍스트 데미지 팝업을 제외한 일반 이펙트는 등록 스킵
-                if (this.length >= 350 && item && item.type !== 'text') {
-                    return this.length;
+                if (this.length >= 250) {
+                    this.shift();
                 }
                 return originalPush.apply(this, arguments);
             };
@@ -3691,15 +3716,26 @@ class GameEngine {
         // 게이지 바 텍스트 실시간 출력 동기화
         this.updateHUD();
 
-        // [신규] 카메라 위치 업데이트 (부드러운 Lerp + 맵 경계 150px 마진 Clamp 적용)
-        // [신규] 카메라 위치 업데이트 (항상 플레이어 중앙 정렬 및 부드러운 스무딩)
+        // [058ee9d 복원] 카메라 위치 업데이트 (부드러운 Lerp 0.08 + 캔버스 크기 비례 스마트 Clamp 적용)
         if (this.player && this.canvas) {
             let targetCamX = this.player.x - this.canvas.width / 2;
             let targetCamY = this.player.y - this.canvas.height / 2;
 
-            // 카메라 선형 보간 스무딩 (Lerp)
-            this.camera.x += (targetCamX - this.camera.x) * 0.1;
-            this.camera.y += (targetCamY - this.camera.y) * 0.1;
+            if (this.canvas.width >= this.mapWidth + 300) {
+                targetCamX = (this.mapWidth - this.canvas.width) / 2;
+            } else {
+                targetCamX = Math.max(-150, Math.min(targetCamX, this.mapWidth + 150 - this.canvas.width));
+            }
+
+            if (this.canvas.height >= this.mapHeight + 300) {
+                targetCamY = (this.mapHeight - this.canvas.height) / 2;
+            } else {
+                targetCamY = Math.max(-150, Math.min(targetCamY, this.mapHeight + 150 - this.canvas.height));
+            }
+
+            // 카메라 선형 보간 스무딩 (Lerp 0.08)
+            this.camera.x += (targetCamX - this.camera.x) * 0.08;
+            this.camera.y += (targetCamY - this.camera.y) * 0.08;
         }
 
         // [신규] 스마트 투명도 (Smart Transparency) 체크
@@ -4928,16 +4964,29 @@ class GameEngine {
         }
     }
 
-    // 데미지 텍스트 팝업 띄우기용 헬퍼
+    // 데미지 텍스트 팝업 띄우기용 헬퍼 (최적화 캡핑 적용)
     showFloatingText(text, x, y, color) {
         if (this.visualsSuspended) {
-            this.suspendedFloatingTexts.push({ text, x, y, color });
+            if (!this.suspendedFloatingTexts) this.suspendedFloatingTexts = [];
+            if (this.suspendedFloatingTexts.length < 30) {
+                this.suspendedFloatingTexts.push({ text, x, y, color });
+            }
             return;
         }
+        // [최적화] 화면에 존재하는 텍스트 파티클 개수 과다(25개 이상) 시 오래된 텍스트 즉시 제거하여 폰트 렌더링 과부하 차단
+        let textParticles = this.particles.filter(p => p.type === 'text');
+        if (textParticles.length >= 25) {
+            let oldestText = textParticles[0];
+            let idx = this.particles.indexOf(oldestText);
+            if (idx !== -1) {
+                this.particles.splice(idx, 1);
+            }
+        }
+
         // [개선] 텍스트가 단순히 수직 상승하지 않고, 사방으로 포물선 튕김 물리가 작동하도록 vx, vy 랜덤 및 점프력 부여
         let rx = (Math.random() - 0.5) * 1.6;
         let ry = -2.5 - Math.random() * 1.0;
-        let txtPart = new Particle(x, y, color, 12, rx, ry, 48);
+        let txtPart = new Particle(x, y, color, 12, rx, ry, 40);
         txtPart.type = 'text';
         txtPart.text = text;
         this.particles.push(txtPart);
@@ -8228,6 +8277,149 @@ class GameEngine {
         }, 1500);
     }
 
+    // 모달창 최종 통계 수치 및 장비 현황 기입 메서드
+    populateResultOverlay() {
+        const resRoom = document.getElementById('res-room');
+        const resScore = document.getElementById('res-score');
+        const resKills = document.getElementById('res-kills');
+        const resWpn = document.getElementById('res-wpn');
+        const resGainedFrag = document.getElementById('res-gained-fragments');
+        const resUnusedFrag = document.getElementById('res-unused-fragments');
+
+        if (resRoom) resRoom.innerText = `${Math.min(100, this.roomNum)} / 100`;
+        if (resScore) resScore.innerText = (this.score || 0).toLocaleString();
+        if (resKills) resKills.innerText = (this.kills || 0).toLocaleString();
+        
+        let wpnStr = "에너지볼 (Energy Ball)";
+        if (this.player && this.player.equippedWeapons && this.player.equippedWeapons.length > 0) {
+            let primary = this.player.equippedWeapons[0];
+            if (typeof CRAFTING_RECIPES !== 'undefined' && CRAFTING_RECIPES[primary]) {
+                wpnStr = CRAFTING_RECIPES[primary].name || primary;
+            } else {
+                wpnStr = primary;
+            }
+            if (this.player.equippedWeapons.length > 1) {
+                wpnStr += ` 외 ${this.player.equippedWeapons.length - 1}종`;
+            }
+        }
+        if (resWpn) resWpn.innerText = wpnStr;
+
+        // 기억의 조각 수치 바인딩
+        if (resGainedFrag) resGainedFrag.innerText = (this.gainedFragmentsThisRun || 0).toLocaleString();
+        if (resUnusedFrag) resUnusedFrag.innerText = (this.unusedFragments || 0).toLocaleString();
+
+        // [신규] 랭킹 등록 영역 상태 초기화
+        const rankSubmitArea = document.getElementById('rank-submit-area');
+        const nicknameInput = document.getElementById('rank-nickname');
+        const submitBtn = document.getElementById('submit-rank-btn');
+        const feedbackMsg = document.getElementById('rank-feedback-msg');
+
+        if (rankSubmitArea && nicknameInput && submitBtn && feedbackMsg) {
+            rankSubmitArea.classList.add('hidden');
+            nicknameInput.value = "";
+            nicknameInput.disabled = false;
+            submitBtn.disabled = false;
+            feedbackMsg.classList.add('hidden');
+            feedbackMsg.innerText = "";
+            feedbackMsg.className = "rank-feedback-text hidden";
+        }
+
+        // 최종 습득 장비 현황 그리드 바인딩
+        const resultGrid = document.getElementById('result-equipments-grid');
+        if (resultGrid) {
+            resultGrid.innerHTML = '';
+            
+            // 1. 활성화된 무기 탐색
+            const CRAFT_NAMES = {
+                crude_sword: { name: '조잡한 검', icon: '🪓' },
+                crude_spear: { name: '조잡한 창', icon: '🔱' },
+                crude_whip: { name: '조잡한 채찍', icon: '🧣' },
+                crude_shock: { name: '조잡한 전기 shock', icon: '🔌' },
+                crude_flamethrower: { name: '조잡한 화염방사기', icon: '🔥' },
+                crude_cryo: { name: '조잡한 냉각총', icon: '❄️' },
+                crude_thorns: { name: '조잡한 가시갑옷', icon: '🌵' },
+                crude_trap: { name: '조잡한 덫', icon: '⚙️' },
+                crude_scythe: { name: '조잡한 낫', icon: '⛏️' },
+                crude_rail: { name: '조잡한 레일건', icon: '📡' },
+                plasma_saber: { name: '플라즈마 세이버', icon: '🗡️' },
+                energy_pilebunker: { name: '에너지 파일벙커', icon: '⚡' },
+                nano_laser_wire: { name: '나노 레이저 와이어', icon: '🧬' },
+                chain_emp_shock: { name: '체인 EMP 쇼크', icon: '🔋' },
+                fusion_plasma_cannon: { name: '퓨전 플라즈마 캐논', icon: '💥' },
+                cryo_freezer: { name: '크라이오 프리저', icon: '🧊' },
+                gravity_singularity_field: { name: '중력 특이점 필드', icon: '🧲' },
+                proximity_cyber_mine: { name: '사이버 마인', icon: '🛰️' },
+                void_destroyer: { name: '보이드 디스트로이어', icon: '🌌' },
+                tachyon_railgun: { name: '태키온 레일건', icon: '⚡' }
+            };
+
+            let wpnCount = 0;
+            if (this.player && this.player.equippedWeapons) {
+                this.player.equippedWeapons.forEach(wKey => {
+                    wpnCount++;
+                    const info = CRAFT_NAMES[wKey] || { name: wKey, icon: '⚔️' };
+                    const card = document.createElement('div');
+                    card.className = 'status-card active-weapon';
+                    card.innerHTML = `
+                        <span class="icon">${info.icon}</span>
+                        <div class="info">
+                            <span class="name">${info.name}</span>
+                            <span class="level">장착 중</span>
+                        </div>
+                    `;
+                    resultGrid.appendChild(card);
+                });
+            }
+            
+            if (wpnCount === 0) {
+                const card = document.createElement('div');
+                card.className = 'status-card active-weapon';
+                card.innerHTML = `
+                    <span class="icon">🔮</span>
+                    <div class="info">
+                        <span class="name">에너지볼</span>
+                        <span class="level">기본 장착</span>
+                    </div>
+                `;
+                resultGrid.appendChild(card);
+            }
+            
+            // 2. 활성화된 보조 장비 10종 탐색
+            const equips = [
+                { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
+                { key: 'boots', name: '신속 부츠', icon: '🥾' },
+                { key: 'gloves', name: '공격 장갑', icon: '🧤' },
+                { key: 'helm', name: '지혜 투구', icon: '🪖' },
+                { key: 'necklace', name: '행운 목걸이', icon: '📿' },
+                { key: 'ring_mp', name: '마력 반지', icon: '💍' },
+                { key: 'ring_hp', name: '생명 반지', icon: '💍' },
+                { key: 'ring_speed', name: '신속 반지', icon: '💍' },
+                { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
+                { key: 'ring_evd', name: '회피 반지', icon: '💍' }
+            ];
+            equips.forEach(eq => {
+                const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
+                if (lvl > 0) {
+                    const card = document.createElement('div');
+                    card.className = 'status-card active-equip';
+                    card.innerHTML = `
+                        <span class="icon">${eq.icon}</span>
+                        <div class="info">
+                            <span class="name">${eq.name}</span>
+                            <span class="level">Lv.${lvl}</span>
+                        </div>
+                    `;
+                    resultGrid.appendChild(card);
+                }
+            });
+        }
+
+        const resultOverlay = document.getElementById('result-overlay');
+        if (resultOverlay) {
+            resultOverlay.classList.remove('hidden');
+        }
+    }
+
     // 플레이어 스탯 및 상태를 치트 UI에 적용
     syncCheatUIFromPlayer() {
         const p = this.player;
@@ -8645,15 +8837,19 @@ class GameEngine {
     }
 
     render() {
-        // 캔버스 전체 영역 클리어 (여백 찌꺼기 방지)
-        if (this.canvas) {
-            this.ctx.fillStyle = '#05060b';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        }
+        if (!this.canvas || !this.ctx) return;
+
+        // [결함 완치] 렌더링 프레임 시작 시 카메라 변환 행렬(Transform Matrix)을 최우선 원천 초기화하여 캔버스 잔상 쌓임 현상 박멸
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.fillStyle = '#05060b';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
         this.ctx.save();
 
-        // [신규] 카메라 오프셋 translate 적용
-        this.ctx.translate(-this.camera.x, -this.camera.y);
+        // [신규] 카메라 오프셋 translate 적용 (소수점 서브픽셀 1px 렌더링 지터링 방지 Math.floor 적용)
+        const camX = Math.floor(this.camera ? this.camera.x : 0);
+        const camY = Math.floor(this.camera ? this.camera.y : 0);
+        this.ctx.translate(-camX, -camY);
 
         // 화면 진동(Screen Shake) 효과 번역
         if (this.shakeTimer > 0) {
@@ -8683,9 +8879,9 @@ class GameEngine {
             this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
         }
 
-        // 방 벽 테두리 네온 사각형 그리기 (50px wallMargin 경계선에 정렬)
+        // 방 벽 테두리 네온 사각형 그리기 (외벽 1타일 경계선: 가로 55px, 세로 50px 정렬)
         this.ctx.beginPath();
-        this.ctx.rect(48, 48, this.mapWidth - 96, this.mapHeight - 96);
+        this.ctx.rect(53, 48, this.mapWidth - 106, this.mapHeight - 96);
         let borderOuterStroke = theme.outerBorder;
         if (this.roomNum === 101) {
             borderOuterStroke = `rgba(255, 0, 255, ${0.15 + Math.random() * 0.15})`;
@@ -8697,7 +8893,7 @@ class GameEngine {
         this.ctx.stroke();
 
         this.ctx.beginPath();
-        this.ctx.rect(50, 50, this.mapWidth - 100, this.mapHeight - 100);
+        this.ctx.rect(55, 50, this.mapWidth - 110, this.mapHeight - 100);
         this.ctx.fillStyle = theme.innerBgColor;
         this.ctx.fill();
 
@@ -8713,7 +8909,7 @@ class GameEngine {
             if (Math.random() < 0.3) {
                 this.ctx.save();
                 this.ctx.beginPath();
-                this.ctx.rect(48 + glitchOffset, 48 + glitchOffset, this.mapWidth - 96, this.mapHeight - 96);
+                this.ctx.rect(53 + glitchOffset, 48 + glitchOffset, this.mapWidth - 106, this.mapHeight - 96);
                 this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
                 this.ctx.lineWidth = 1.5;
                 this.ctx.stroke();
@@ -8726,10 +8922,10 @@ class GameEngine {
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
-        // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (그리드 타일 크기 50px에 동기화)
+        // 1. 네온 격자무늬 백그라운드 디자인 드로잉 (타일 규격: 가로 55px, 세로 50px 정밀 동기화)
         this.ctx.strokeStyle = theme.gridColor;
         this.ctx.lineWidth = 1;
-        for (let x = 50; x < this.mapWidth - 50; x += 50) {
+        for (let x = 55; x < this.mapWidth - 55; x += 55) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 50);
             this.ctx.lineTo(x, this.mapHeight - 50);
@@ -8737,8 +8933,8 @@ class GameEngine {
         }
         for (let y = 50; y < this.mapHeight - 50; y += 50) {
             this.ctx.beginPath();
-            this.ctx.moveTo(50, y);
-            this.ctx.lineTo(this.mapWidth - 50, y);
+            this.ctx.moveTo(55, y);
+            this.ctx.lineTo(this.mapWidth - 55, y);
             this.ctx.stroke();
         }
 
