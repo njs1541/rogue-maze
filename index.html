@@ -188,6 +188,57 @@
             </div>
         </div>
 
+        <!-- [신규] 정비/휴식 룸 모달 (나노 치료기 / 무기 오버클럭 벤치) -->
+        <div id="rest-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(5, 6, 12, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; font-family: 'Outfit', 'Noto Sans KR', sans-serif;">
+            <div style="background: rgba(12, 24, 36, 0.95); border: 2px solid #39ff14; box-shadow: 0 0 30px rgba(57, 255, 20, 0.3); border-radius: 12px; padding: 25px; max-width: 520px; width: 90%; text-align: center;">
+                <h2 style="color: #39ff14; text-shadow: 0 0 10px #39ff14; margin-bottom: 10px; font-size: 1.6rem;">💉 신체 정비실 (Rest Station)</h2>
+                <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px;">원하는 고성능 정비 단말기를 선택하세요.</p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <div id="rest-heal-btn" style="background: rgba(0, 50, 20, 0.6); border: 1.5px solid #39ff14; border-radius: 10px; padding: 15px; flex: 1; min-width: 200px; cursor: pointer; transition: all 0.2s;">
+                        <div style="font-size: 2rem;">🩺</div>
+                        <h3 style="color: #39ff14; margin: 8px 0 5px 0;">나노 치료 단말기</h3>
+                        <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px;">체력 50% 회복 & 최대 HP +20</p>
+                        <span id="rest-heal-cost" style="color: #ffdf00; font-weight: bold; font-size: 0.9rem;">비용: 📀 50 코인</span>
+                    </div>
+                    <div id="rest-overclock-btn" style="background: rgba(40, 20, 0, 0.6); border: 1.5px solid #ff9900; border-radius: 10px; padding: 15px; flex: 1; min-width: 200px; cursor: pointer; transition: all 0.2s;">
+                        <div style="font-size: 2rem;">🛠️</div>
+                        <h3 style="color: #ff9900; margin: 8px 0 5px 0;">무기 오버클럭 벤치</h3>
+                        <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 10px;">장착 무기 1종 레벨 +1 증가</p>
+                        <span id="rest-overclock-cost" style="color: #00f0ff; font-weight: bold; font-size: 0.9rem;">비용: 🧩 기억의 조각 1개</span>
+                    </div>
+                </div>
+                <button id="rest-close-btn" style="margin-top: 20px; background: transparent; border: 1px solid #64748b; color: #94a3b8; padding: 8px 20px; border-radius: 6px; cursor: pointer;">닫기 (그냥 이동)</button>
+            </div>
+        </div>
+
+        <!-- [신규] 룰렛/도박 룸 모달 (혈액 베팅) -->
+        <div id="casino-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(5, 6, 12, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; font-family: 'Outfit', 'Noto Sans KR', sans-serif;">
+            <div style="background: rgba(30, 6, 24, 0.95); border: 2px solid #ff00aa; box-shadow: 0 0 30px rgba(255, 0, 170, 0.35); border-radius: 12px; padding: 25px; max-width: 480px; width: 90%; text-align: center;">
+                <h2 style="color: #ff00aa; text-shadow: 0 0 10px #ff00aa; margin-bottom: 10px; font-size: 1.6rem;">🎰 글리치 카지노 (Blood Gamble)</h2>
+                <p style="color: #e2e8f0; font-size: 0.95rem; margin-bottom: 15px;">신체 생체 에너지를 바쳐 대박 상자를 노리시겠습니까?</p>
+                <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 12px; margin-bottom: 20px; text-align: left; font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;">
+                    <p>🟢 <b style="color: #39ff14;">85% 확률 성공 보상풀</b>: 40% 확률 상위 부품 재료 / 60% 확률 일반 재료</p>
+                    <p>🔴 <b style="color: #ff0055;">15% 확률 실패 보상풀</b>: 페이크 상자 스폰 (미믹 몬스터 기습 공격)</p>
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="casino-gamble-btn" style="background: #ff0055; color: #fff; border: none; border-radius: 8px; padding: 12px 24px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);">🩸 혈액 베팅 (체력 20% 소모)</button>
+                    <button id="casino-close-btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8; padding: 12px 20px; border-radius: 8px; cursor: pointer;">포기하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [신규] 보스 룸 무기 특수 강화소 모달 -->
+        <div id="evolution-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(5, 6, 12, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; font-family: 'Outfit', 'Noto Sans KR', sans-serif;">
+            <div style="background: rgba(15, 12, 30, 0.95); border: 2px solid #b026ff; box-shadow: 0 0 35px rgba(176, 38, 255, 0.4); border-radius: 12px; padding: 25px; max-width: 540px; width: 90%; text-align: center;">
+                <h2 style="color: #b026ff; text-shadow: 0 0 12px #b026ff; margin-bottom: 8px; font-size: 1.6rem;">⚡ 무기 특수 강화소 (Evolution Lab)</h2>
+                <p style="color: #e2e8f0; font-size: 0.9rem; margin-bottom: 15px;">보스 토벌 기념 특수 강화! 무상으로 무기를 진화 또는 레벨업합니다.</p>
+                <div id="evolution-weapon-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; margin-bottom: 15px; padding: 5px;">
+                    <!-- JS에서 동적으로 보유 무기 목록 생성 -->
+                </div>
+                <button id="evolution-close-btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8; padding: 8px 20px; border-radius: 6px; cursor: pointer;">닫기</button>
+            </div>
+        </div>
+
         <!-- 게임 오버 및 최종 클리어 모달 오버레이 -->
         <div id="result-overlay" class="hidden">
             <div class="result-box" style="max-width: 580px; width: 95%;">
@@ -536,17 +587,16 @@
                     <button class="cheat-close" id="cheat-close-btn" aria-label="디버그 메뉴 닫기">&times;</button>
                 </div>
 
-                <!-- 탭 버튼 헤더 -->
+                <!-- 탭 버튼 헤더 (4개 탭으로 개편) -->
                 <div class="cheat-tabs">
-                    <button class="cheat-tab-btn active" data-tab="cheat-tab-stats">스탯 조절</button>
-                    <button class="cheat-tab-btn" data-tab="cheat-tab-weapons">무기/투사체</button>
-                    <button class="cheat-tab-btn" data-tab="cheat-tab-equipments">패시브 치트</button>
-                    <button class="cheat-tab-btn" data-tab="cheat-tab-utils">치트 유틸</button>
-                    <button class="cheat-tab-btn" data-tab="cheat-tab-monster-spec">👾 Phase 2 몬스터/스폰/보스 검증</button>
+                    <button class="cheat-tab-btn active" data-tab="cheat-tab-stats">🎮 스탯 & 무기/빌드</button>
+                    <button class="cheat-tab-btn" data-tab="cheat-tab-scenario">🔮 층 워프 & 시나리오/대화</button>
+                    <button class="cheat-tab-btn" data-tab="cheat-tab-monster-spec">👾 몬스터 & 보스 검증</button>
+                    <button class="cheat-tab-btn" data-tab="cheat-tab-utils">🛠️ 맵 & 시스템 유틸</button>
                 </div>
 
                 <div class="cheat-content-container">
-                    <!-- 탭 1: 스탯 조절 -->
+                    <!-- 탭 1: 🎮 스탯 & 무기/빌드 -->
                     <div id="cheat-tab-stats" class="cheat-tab-content active">
                         <div class="cheat-grid">
                             <div class="cheat-field-group">
@@ -554,7 +604,7 @@
                                 <input type="number" id="cheat-atk" min="1" max="999" step="1">
                             </div>
                             <div class="cheat-field-group">
-                                <label for="cheat-aspd">지능/공속 (ASPD)</label>
+                                <label for="cheat-aspd">공속 (ASPD)</label>
                                 <input type="number" id="cheat-aspd" min="0.1" max="50" step="0.1">
                             </div>
                             <div class="cheat-field-group">
@@ -562,7 +612,7 @@
                                 <input type="number" id="cheat-ms" min="0.5" max="20" step="0.1">
                             </div>
                             <div class="cheat-field-group">
-                                <label for="cheat-evd">민첩/회피 (EVD)</label>
+                                <label for="cheat-evd">회피율 (EVD)</label>
                                 <input type="number" id="cheat-evd" min="0" max="1" step="0.01">
                             </div>
                             <div class="cheat-field-group">
@@ -574,11 +624,7 @@
                                 <input type="number" id="cheat-luk" min="0.1" max="100" step="0.1">
                             </div>
                             <div class="cheat-field-group">
-                                <label for="cheat-regen">재생 (REG)</label>
-                                <input type="number" id="cheat-regen" min="0" max="100" step="0.1">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-hp">현재 HP / 최대 HP</label>
+                                <label for="cheat-hp">HP (현재 / 최대)</label>
                                 <div class="cheat-input-pair">
                                     <input type="number" id="cheat-hp" min="0" max="9999" step="1">
                                     <span>/</span>
@@ -586,346 +632,212 @@
                                 </div>
                             </div>
                             <div class="cheat-field-group">
-                                <label for="cheat-mp">현재 MP / 최대 MP</label>
+                                <label for="cheat-mp">MP (현재 / 최대)</label>
                                 <div class="cheat-input-pair">
                                     <input type="number" id="cheat-mp" min="0" max="9999" step="1">
                                     <span>/</span>
                                     <input type="number" id="cheat-max-mp" min="10" max="9999" step="1">
                                 </div>
                             </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-stamina">현재 STM / 최대 STM</label>
-                                <div class="cheat-input-pair">
-                                    <input type="number" id="cheat-stamina" min="0" max="9999" step="1">
-                                    <span>/</span>
-                                    <input type="number" id="cheat-max-stamina" min="10" max="9999" step="1">
+                        </div>
+                        <button id="cheat-apply-stats" class="neon-btn font-small" style="margin-top: 10px; border-color: #00f0ff; color: #00f0ff; width: 100%;">⚡ 플레이어 스탯 적용</button>
+
+                        <div style="margin-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 10px; text-align: left;">
+                            <label style="color: #ffdf00; font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 6px;">🧩 기억의 조각 (Memory Fragment) 조작</label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button id="cheat-add-fragment-10" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 5px 10px;">+10개 획득</button>
+                                <button id="cheat-add-fragment-100" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 5px 10px;">+100개 획득</button>
+                                <button id="cheat-set-fragment-7" class="neon-btn font-small" style="margin: 0; border-color: #00f0ff; color: #00f0ff; padding: 5px 10px;">7개 세팅 (3단계 선명)</button>
+                                <button id="cheat-reset-fragment" class="neon-btn font-small danger" style="margin: 0; border-color: #ff0055; color: #ff0055; padding: 5px 10px;">조각 초기화 (0개)</button>
+                            </div>
+                        </div>
+
+                        <div class="cheat-weapon-section" style="margin-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span class="section-title" style="margin: 0; color: #00f0ff;">🔫 무기 장착 치트</span>
+                                <div style="display: flex; gap: 6px;">
+                                    <button id="cheat-unlock-3slot-btn" class="cheat-action-btn small" style="border-color:#b026ff; color:#b026ff; background:rgba(176,38,255,0.08);">3슬롯 해금</button>
+                                    <button id="cheat-reset-weapons-tab-btn" class="cheat-action-btn danger small" style="border-color: #ff0055; color: #ff0055;">🔄 무기 리셋</button>
                                 </div>
                             </div>
-                        </div>
-                        <button id="cheat-apply-stats" class="neon-btn font-small"
-                            style="margin-top: 15px; border-color: #00f0ff; color: #00f0ff;">스탯 일괄 적용</button>
-                        <div style="margin-top: 15px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 12px; text-align: left;">
-                            <label style="color: var(--neon-cyan); font-weight: bold; font-size: 0.85rem; display: block; margin-bottom: 8px;">🧩 기억의 조각 치트</label>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="cheat-add-fragment-10" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 6px 12px;">+10개 획득</button>
-                                <button id="cheat-add-fragment-100" class="neon-btn font-small" style="margin: 0; border-color: #ffdf00; color: #ffdf00; padding: 6px 12px;">+100개 획득</button>
-                                <button id="cheat-reset-fragment" class="neon-btn font-small danger" style="margin: 0; border-color: #ff0055; color: #ff0055; padding: 6px 12px;">조각 초기화 (0)</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 탭 2: 무기/투사체 -->
-                    <div id="cheat-tab-weapons" class="cheat-tab-content">
-                        <div class="cheat-weapon-section">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span class="section-title" style="margin: 0;">조잡한 무기군 획득 (누를 때마다 레벨업)</span>
-                                <button id="cheat-reset-weapons-tab-btn" class="cheat-action-btn danger" style="margin: 0; padding: 4px 10px; font-size: 0.78rem; border-color: #ff0055; color: #ff0055; background: rgba(255, 0, 85, 0.08);">🔄 무기 전체 초기화</button>
-                            </div>
-                            <div class="cheat-btn-group" style="margin-bottom: 12px;">
-                                <button class="cheat-wpn-btn" data-wpn="energy_ball">🔵 에너지볼 (기본)</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_sword">🪓 조잡한 진동검</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_spear">🔱 조잡한 창</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_whip">🧣 조잡한 채찍</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_shock">🔌 조잡 전격기</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_flamethrower">🔥 조잡 화방</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_cryo">❄️ 조잡 냉각총</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_thorns">🌵 조잡 가시갑옷</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_trap">⚙️ 조잡한 덫</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_scythe">⛏️ 조잡한 낫</button>
-                                <button class="cheat-wpn-btn" data-wpn="crude_rail">📡 조잡 레일건</button>
-                            </div>
-                            <div style="margin-bottom: 8px;">
-                                <span class="section-title" style="margin: 0;">하이테크 진화 무기군 획득</span>
-                            </div>
-                            <div class="cheat-btn-group" style="margin-bottom: 12px;">
+                            <div class="cheat-btn-group" style="margin-bottom: 8px;">
+                                <button class="cheat-wpn-btn" data-wpn="energy_ball">🔵 에너지볼</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_sword">🪓 진동검</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_spear">🔱 조잡 창</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_whip">🧣 채찍</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_shock">🔌 전격기</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_flamethrower">🔥 화방</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_cryo">❄️ 냉각총</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_scythe">⛏️ 낫</button>
+                                <button class="cheat-wpn-btn" data-wpn="crude_rail">📡 레일건</button>
                                 <button class="cheat-wpn-btn" data-wpn="plasma_saber" style="border-color: #00f0ff; color: #00f0ff;">🗡️ 플라즈마 세이버</button>
-                                <button class="cheat-wpn-btn" data-wpn="energy_pilebunker" style="border-color: #00f0ff; color: #00f0ff;">⚡ 에너지 파일벙커</button>
-                                <button class="cheat-wpn-btn" data-wpn="nano_laser_wire" style="border-color: #00f0ff; color: #00f0ff;">🧬 나노 레이저선</button>
-                                <button class="cheat-wpn-btn" data-wpn="chain_emp_shock" style="border-color: #00f0ff; color: #00f0ff;">🔋 체인 EMP</button>
-                                <button class="cheat-wpn-btn" data-wpn="fusion_plasma_cannon" style="border-color: #00f0ff; color: #00f0ff;">💥 퓨전 플라즈마</button>
-                                <button class="cheat-wpn-btn" data-wpn="cryo_freezer" style="border-color: #00f0ff; color: #00f0ff;">🧊 크라이오 프리저</button>
-                                <button class="cheat-wpn-btn" data-wpn="gravity_singularity_field" style="border-color: #00f0ff; color: #00f0ff;">🧲 중력 특이점</button>
-                                <button class="cheat-wpn-btn" data-wpn="proximity_cyber_mine" style="border-color: #00f0ff; color: #00f0ff;">🛰️ 사이버 지뢰</button>
-                                <button class="cheat-wpn-btn" data-wpn="void_destroyer" style="border-color: #b026ff; color: #b026ff;">🌌 보이드 디스트로이어</button>
                                 <button class="cheat-wpn-btn" data-wpn="tachyon_railgun" style="border-color: #00f0ff; color: #00f0ff;">⚡ 태키온 레일건</button>
-                                
-                                <button class="cheat-wpn-btn" data-wpn="supercritical_plasma_fusion" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer;">🌀 플라즈마 초융합 (초월)</button>
+                                <button class="cheat-wpn-btn" data-wpn="supercritical_plasma_fusion" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #ff00aa; color: white;">🌀 플라즈마 초융합</button>
                             </div>
-                            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                                <button id="cheat-prep-evo" style="background: linear-gradient(135deg, #ff0055, #00f0ff); color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);">🧬 플라즈마 초융합 조건 즉시 충전</button>
-                                <button class="cheat-wpn-btn" data-wpn="time">🔮 시간 (Time)</button>
-                            </div>
+                        </div>
 
-                            <div style="border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 12px; margin-top: 10px;">
-                                <span class="section-title" style="margin: 0; color: #39ff14;">🧩 안드로이드 제작 부품 획득 치트</span>
-                            </div>
-                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+                        <div style="margin-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.15); padding-top: 10px;">
+                            <span class="section-title" style="margin: 0; color: #39ff14;">🔧 안드로이드 제작 부품 & 패시브/설계도</span>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
                                 <button id="cheat-add-all-materials" class="neon-btn font-small" style="border-color: #39ff14; color: #39ff14; padding: 4px 8px; margin: 0; font-size: 0.78rem;">모든 부품 +5개</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="short_rod" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">짧은 막대기</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="long_rod" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">긴 막대기</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="metal_plate" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">넓은 판</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="blade" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">칼날</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="wire" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">전선</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="battery" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">배터리</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="broken_flamethrower" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">고장난 화방</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="cryo_cooler" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">과냉각기</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="sensor_lens" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">광학 렌즈</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="nanite_jar" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">나노머신 병</button>
-                                <button class="cheat-mat-btn neon-btn font-small" data-mat="hydraulic_cylinder" style="padding: 4px 8px; margin: 0; font-size: 0.78rem;">유압 실린더</button>
-                            </div>
-                        </div>
-
-                        <div class="cheat-grid" style="margin-top: 15px;">
-                            <div class="cheat-field-group">
-                                <label for="cheat-multishot">탄환 동시 발사 (Multishot)</label>
-                                <input type="number" id="cheat-multishot" min="1" max="20" step="1">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-burst">점사 연속 발수 (Burst)</label>
-                                <input type="number" id="cheat-burst" min="1" max="20" step="1">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-pierce">탄환 관통수 (Pierce)</label>
-                                <input type="number" id="cheat-pierce" min="0" max="20" step="1">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-range">사거리 및 검 반경 (RNG)</label>
-                                <input type="number" id="cheat-range" min="50" max="2000" step="10">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-splash">스플래시 반경 (0=없음)</label>
-                                <input type="number" id="cheat-splash" min="0" max="300" step="5">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-wall-bounce">벽 튕기기 (Wall Bounce)</label>
-                                <input type="number" id="cheat-wall-bounce" min="0" max="20" step="1">
-                            </div>
-                            <div class="cheat-field-group">
-                                <label for="cheat-monster-bounce">몬스터 튕기기 (M-Bounce)</label>
-                                <input type="number" id="cheat-monster-bounce" min="0" max="20" step="1">
-                            </div>
-                            <div class="cheat-field-group"
-                                style="flex-direction: row; align-items: center; justify-content: space-between;">
-                                <label for="cheat-homing" style="margin-bottom: 0;">유도 추적탄 (Homing)</label>
-                                <input type="checkbox" id="cheat-homing" class="cheat-toggle-checkbox">
-                            </div>
-                        </div>
-
-                        <div class="cheat-weapon-section"
-                            style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
-                            <span class="section-title">특수 보조 장착</span>
-                            <div class="cheat-btn-group">
-                                <button id="cheat-pet-btn" class="cheat-action-btn">🤖 디펜더 펫 추가 소환</button>
-                                <button id="cheat-whip-btn" class="cheat-action-btn">🧣 채찍 속성 즉시 부여</button>
-                                <button id="cheat-trap-btn" class="cheat-action-btn">💣 지뢰/레이저 함정 활성화</button>
-                                <button id="cheat-thorns-btn" class="cheat-action-btn">🌵 가시 피해 반사 오라 부여</button>
-                                <button id="cheat-unlock-3slot-btn" class="cheat-action-btn" style="border-color:#b026ff; color:#b026ff; background:rgba(176,38,255,0.08);">3슬롯 강제 계약 해금</button>
-                                <button id="cheat-reset-weapons-btn" class="cheat-action-btn" style="border-color:#ff0055; color:#ff0055; background:rgba(255,0,85,0.08);">무기 목록 전체 리셋</button>
-                            </div>
-                        </div>
-                        <button id="cheat-apply-weapons" class="neon-btn font-small"
-                            style="margin-top: 15px; border-color: #b026ff; color: #b026ff;">투사체 스탯 적용</button>
-                    </div>
-
-                    <!-- 탭 3: 패시브 치트 -->
-                    <div id="cheat-tab-equipments" class="cheat-tab-content">
-                        <p class="cheat-tab-desc">패시브 설계도 및 인게임 부품 재료 관련 디버그 명령을 조작합니다.</p>
-                        <div class="cheat-equip-list" style="display: flex; flex-direction: column; gap: 15px; padding: 10px 0;">
-                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
-                                <span style="font-size: 0.85rem; color: #ffdf00; font-weight: bold;">🔮 설계도 해금 컨트롤</span>
-                                <div class="cheat-btn-pair" style="display: flex; gap: 10px;">
-                                    <button id="cheat-unlock-all-blueprints" class="cheat-action-btn" style="border-color: #ffdf00; color: #ffdf00; background: rgba(255,223,0,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">모든 설계도 잠금 해금</button>
-                                    <button id="cheat-reset-blueprints" class="cheat-action-btn" style="border-color: #ff0055; color: #ff0055; background: rgba(255,0,85,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">영구 설계도 전면 초기화</button>
-                                </div>
-                            </div>
-                            
-                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
-                                <span style="font-size: 0.85rem; color: #39ff14; font-weight: bold;">🔧 조합대 재료 부품 조작</span>
-                                <div class="cheat-btn-pair" style="display: flex; gap: 10px;">
-                                    <button id="cheat-add-materials-20" class="cheat-action-btn" style="border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.08); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">모든 부품 20개씩 충전</button>
-                                    <button id="cheat-clear-materials" class="cheat-action-btn" style="border-color: #94a3b8; color: #94a3b8; background: rgba(255,255,255,0.04); font-size: 0.8rem; padding: 8px; flex: 1; cursor: pointer;">인벤토리 부품 전량 삭제</button>
-                                </div>
-                            </div>
-
-                            <div class="cheat-util-card" style="display: flex; flex-direction: column; gap: 8px;">
-                                <span style="font-size: 0.85rem; color: #00f0ff; font-weight: bold;">🧪 패시브 강제 장착 치트</span>
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    <select id="cheat-passive-select" style="background: #0f172a; border: 1px solid #00f0ff; color: #fff; padding: 6px; border-radius: 4px; font-size: 0.8rem; flex: 1.5; outline: none;"></select>
-                                    <button id="cheat-equip-passive-btn" class="cheat-action-btn" style="border-color: #00f0ff; color: #00f0ff; background: rgba(0,240,255,0.08); font-size: 0.8rem; padding: 6px; margin: 0; flex: 1; cursor: pointer;">장착 실행</button>
-                                </div>
+                                <button id="cheat-add-materials-20" class="neon-btn font-small" style="border-color: #39ff14; color: #39ff14; padding: 4px 8px; margin: 0; font-size: 0.78rem;">모든 부품 +20개</button>
+                                <button id="cheat-unlock-all-blueprints" class="neon-btn font-small" style="border-color: #ffdf00; color: #ffdf00; padding: 4px 8px; margin: 0; font-size: 0.78rem;">설계도 전원 해금</button>
+                                <button id="cheat-reset-blueprints" class="neon-btn font-small danger" style="border-color: #ff0055; color: #ff0055; padding: 4px 8px; margin: 0; font-size: 0.78rem;">설계도 초기화</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 탭 4: 치트 유틸 -->
+                    <!-- 탭 2: 🔮 층 워프 & 시나리오/대화 -->
+                    <div id="cheat-tab-scenario" class="cheat-tab-content">
+                        <div class="cheat-util-card full-width">
+                            <span class="card-label">🌀 주요 층 & 보스방 직관적 워프</span>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px;">
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="1" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">1F (프롤로그)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="10" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">10F (1보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="20" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">20F (과열보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="30" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">30F (슬라임보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="40" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">40F (동결보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="50" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">50F (트리오보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="60" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">60F (폐기장보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="70" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">70F (워퍼보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="80" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">80F (챔피언보스)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="90" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">90F (연속웨이브)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="100" style="background: rgba(255,223,0,0.2); border-color: #ffdf00; color: #ffdf00; font-weight: bold;">100F (마더보드)</button>
+                                <button class="cheat-action-btn small cheat-btn-warp-target" data-floor="101" style="background: rgba(176,38,255,0.2); border-color: #b026ff; color: #b026ff; font-weight: bold;">101F (진보스)</button>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                                <label style="color: #cbd5e1; font-size: 0.8rem;">직접 입력 워프:</label>
+                                <input type="number" id="cheat-warp-stage-input" min="1" max="101" value="1" style="width: 60px; text-align: center;">
+                                <button id="cheat-warp-stage-btn" class="cheat-action-btn small" style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0;">🌀 이동</button>
+                            </div>
+                        </div>
+
+                        <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                            <span class="card-label">🗣️ 시나리오 대화창 연출 시뮬레이터</span>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px;">
+                                <button id="cheat-dialogue-prologue" class="cheat-action-btn small" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff;">🎬 1F 프롤로그</button>
+                                <button id="cheat-dialogue-secret" class="cheat-action-btn small" style="background: rgba(176, 38, 255, 0.15); border-color: #b026ff; color: #b026ff;">🔮 비밀방 독백</button>
+                                <button id="cheat-dialogue-boss10" class="cheat-action-btn small" style="background: rgba(255, 0, 85, 0.15); border-color: #ff0055; color: #ff0055;">🐲 10F 보스 대화</button>
+                                <button id="cheat-dialogue-boss20" class="cheat-action-btn small" style="background: rgba(255, 0, 85, 0.15); border-color: #ff0055; color: #ff0055;">🐲 20F 보스 대화</button>
+                                <button id="cheat-dialogue-boss100" class="cheat-action-btn small" style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00;">👑 100F 마더보드</button>
+                                <button id="cheat-dialogue-boss101" class="cheat-action-btn small" style="background: rgba(176, 38, 255, 0.15); border-color: #b026ff; color: #b026ff;">⚡ 101F 진보스</button>
+                                <button id="cheat-dialogue-ending-normal" class="cheat-action-btn small" style="background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: #fff;">🔄 노말 엔딩</button>
+                                <button id="cheat-dialogue-ending-true" class="cheat-action-btn small" style="background: linear-gradient(90deg, #ff0055, #00f0ff); border-color: #00f0ff; color: white;">🎉 진 엔딩 (해방)</button>
+                            </div>
+                        </div>
+
+                        <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                            <span class="card-label">🕹️ 히든 아이템 3종 & 해방의 컨트롤러</span>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+                                <button id="cheat-hidden-joystick" class="cheat-action-btn small" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🕹️ Broken Joystick</button>
+                                <button id="cheat-hidden-repairkit" class="cheat-action-btn small" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #10b981; flex: 1;">🔧 Repair Kit</button>
+                                <button id="cheat-hidden-manual" class="cheat-action-btn small" style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; flex: 1;">📖 Manual</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 3: 👾 몬스터 & 보스 검증 -->
+                    <div id="cheat-tab-monster-spec" class="cheat-tab-content">
+                        <div class="cheat-util-row">
+                            <div class="cheat-util-card">
+                                <span class="card-label">🛡️ 전투 유틸 & 방 소탕</span>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 0.82rem; color: #ffdf00;">무적 모드 (God Mode)</span>
+                                        <label class="cheat-switch">
+                                            <input type="checkbox" id="cheat-godmode">
+                                            <span class="cheat-switch-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button id="cheat-clear-room" class="cheat-action-btn small" style="background: rgba(255, 0, 108, 0.15); border-color: #ff006c; color: #ff006c; flex: 1;">💥 방 즉시 소탕</button>
+                                        <button id="cheat-spawn-reward" class="cheat-action-btn small" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁 보상 즉시 소환</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="cheat-util-card">
+                                <span class="card-label">⚡ 5대 스폰 시스템 수동 테스트</span>
+                                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px;">
+                                    <button id="cheat-btn-spawn-portal" class="cheat-action-btn small" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">1. 입구 문 팩 스폰</button>
+                                    <button id="cheat-btn-spawn-rift" class="cheat-action-btn small" style="background: rgba(255,0,127,0.15); border-color: #ff007f; color: #ff007f;">2. 네온 소환진 기습</button>
+                                    <button id="cheat-btn-spawn-preshow" class="cheat-action-btn small" style="background: rgba(0,245,212,0.15); border-color: #00f5d4; color: #00f5d4;">3. 필드 배치 스폰</button>
+                                    <button id="cheat-btn-spawn-relay" class="cheat-action-btn small" style="background: rgba(255,183,3,0.15); border-color: #ffb703; color: #ffb703;">4. 3문 릴레이 쇄도</button>
+                                    <button id="cheat-btn-spawn-4door" class="cheat-action-btn small" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">5. 4문 일제 소환</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cheat-util-row" style="margin-top: 10px;">
+                            <div class="cheat-util-card full-width">
+                                <span class="card-label">🐲 보스 상태 조작 & 탄환 소멸 / QTE 검증</span>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                                    <button id="cheat-btn-boss-hp60" class="cheat-action-btn small" style="background: rgba(255,0,127,0.2); border-color: #ff007f; color: #ff007f;">보스 HP 60% 차감 (P2 무적)</button>
+                                    <button id="cheat-btn-boss-hp30" class="cheat-action-btn small" style="background: rgba(255,0,85,0.2); border-color: #ff0055; color: #ff0055;">보스 HP 30% 차감 (P4 궁극)</button>
+                                    <button id="cheat-btn-clear-bullets" class="cheat-action-btn small" style="background: rgba(0,240,255,0.2); border-color: #00f0ff; color: #00f0ff;">✨ 적 탄환 전면 소멸</button>
+                                    <button id="cheat-btn-boss-qte" class="cheat-action-btn small" style="background: rgba(255,183,3,0.2); border-color: #ffb703; color: #ffb703;">🎯 보스 QTE 3초 스턴</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 탭 4: 🛠️ 맵 & 시스템 유틸 -->
                     <div id="cheat-tab-utils" class="cheat-tab-content">
                         <div class="cheat-util-row">
                             <div class="cheat-util-card">
-                                <span class="card-label">무적 모드 (God Mode)</span>
-                                <label class="cheat-switch">
-                                    <input type="checkbox" id="cheat-godmode">
-                                    <span class="cheat-switch-slider"></span>
-                                </label>
-                            </div>
-                            <div class="cheat-util-card">
-                                <span class="card-label">다음 층 비밀방 강제 (Force Secret)</span>
-                                <label class="cheat-switch">
-                                    <input type="checkbox" id="cheat-forcesecret">
-                                    <span class="cheat-switch-slider"></span>
-                                </label>
-                            </div>
-                            <div class="cheat-util-card">
-                                <span class="card-label">네온 코인 획득</span>
-                                <div class="cheat-btn-pair">
-                                    <button id="cheat-add-coin-100" class="cheat-action-btn small">📀 +100</button>
-                                    <button id="cheat-add-coin-1000" class="cheat-action-btn small">📀 +1000</button>
+                                <span class="card-label">🔮 비밀방 강제 & 재화</span>
+                                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 0.8rem; color: #b026ff;">다음 층 비밀방 강제</span>
+                                        <label class="cheat-switch">
+                                            <input type="checkbox" id="cheat-forcesecret">
+                                            <span class="cheat-switch-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button id="cheat-add-coin-100" class="cheat-action-btn small" style="flex: 1;">📀 +100 코인</button>
+                                        <button id="cheat-add-coin-1000" class="cheat-action-btn small" style="flex: 1;">📀 +1000 코인</button>
+                                    </div>
                                 </div>
                             </div>
-                            <!-- [신규 추가] 리롤 & 건너뛰기 횟수 치트 세팅 -->
+
                             <div class="cheat-util-card">
-                                <span class="card-label">리롤 & 건너뛰기 횟수</span>
-                                <div
-                                    style="display: flex; gap: 5px; align-items: center; justify-content: center; margin-top: 5px;">
-                                    <input type="number" id="cheat-reroll-count" min="0" max="99" value="0"
-                                        style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;"
-                                        title="리롤 횟수">
+                                <span class="card-label">🎲 리롤 / 건너뛰기 횟수</span>
+                                <div style="display: flex; gap: 6px; align-items: center; justify-content: center; margin-top: 10px;">
+                                    <input type="number" id="cheat-reroll-count" min="0" max="99" value="0" style="width: 45px; text-align: center;" title="리롤 횟수">
                                     <span style="color: #64748b;">/</span>
-                                    <input type="number" id="cheat-skip-count" min="0" max="99" value="0"
-                                        style="width: 45px; text-align: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff;"
-                                        title="건너뛰기 횟수">
-                                    <button id="cheat-apply-rolls" class="cheat-action-btn small"
-                                        style="margin: 0; padding: 4px 8px; border-color: #ffdf00; color: #ffdf00;">적용</button>
+                                    <input type="number" id="cheat-skip-count" min="0" max="99" value="0" style="width: 45px; text-align: center;" title="건너뛰기 횟수">
+                                    <button id="cheat-apply-rolls" class="cheat-action-btn small" style="margin: 0; padding: 4px 8px; border-color: #ffdf00; color: #ffdf00;">적용</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="cheat-util-row" style="margin-top: 15px;">
-                            <div class="cheat-util-card full-width">
-                                <span class="card-label">방 클리어 & 보상 시스템 통제</span>
-                                <div class="cheat-action-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                    <button id="cheat-clear-room" class="cheat-action-btn"
-                                        style="background: rgba(255, 0, 108, 0.15); border-color: #ff006c; color: #ff006c; flex: 1;">💥
-                                        현재 방 즉시 소탕 (Clear Room)</button>
-                                    <button id="cheat-spawn-reward" class="cheat-action-btn"
-                                        style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1;">🎁
-                                        보상 선택 즉시 소환</button>
-                                    <div class="cheat-warp-group" style="flex: 1.2; display: flex; gap: 5px;">
-                                        <input type="number" id="cheat-warp-stage-input" min="1" max="100" value="1"
-                                            style="width: 60px; text-align: center;">
-                                        <button id="cheat-warp-stage-btn" class="cheat-action-btn"
-                                            style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; margin: 0; flex: 1;">🌀
-                                            스테이지 워프</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- [신규] 히든 아이템 획득 치트 버튼 -->
-                            <div class="cheat-util-card full-width" style="margin-top: 10px;">
-                                <span class="card-label">🕹️ 히든 아이템 (해방의 컨트롤러)</span>
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
-                                    <button id="cheat-hidden-joystick" class="cheat-action-btn"
-                                        style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; flex: 1; font-size: 0.8rem;">🕹️
-                                        Broken Joystick</button>
-                                    <button id="cheat-hidden-repairkit" class="cheat-action-btn"
-                                        style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #10b981; flex: 1; font-size: 0.8rem;">🔧
-                                        Repair Kit</button>
-                                    <button id="cheat-hidden-manual" class="cheat-action-btn"
-                                        style="background: rgba(255, 223, 0, 0.15); border-color: #ffdf00; color: #ffdf00; flex: 1; font-size: 0.8rem;">📖
-                                        Manual</button>
-                                </div>
-                            </div>
-                            <!-- [신규] 대화창 테스트 치트 버튼 -->
-                            <div class="cheat-util-card full-width" style="margin-top: 10px;">
-                                <span class="card-label">🗣️ 대화창 시뮬레이터</span>
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
-                                    <button id="cheat-test-dialogue" class="cheat-action-btn"
-                                        style="background: rgba(21, 128, 61, 0.15); border-color: #15803d; color: #15803d; flex: 1; font-size: 0.8rem; cursor: pointer;">🗣️
-                                        임시 대화창 테스트</button>
-                                </div>
-                            </div>
-                            <!-- [신규] 맵 테마 시뮬레이터 치트 버튼 -->
-                            <div class="cheat-util-card full-width" style="margin-top: 10px;">
-                                <span class="card-label">🎨 맵 테마 시뮬레이터 (실시간 변경 검증)</span>
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 5px;">
-                                    <button id="cheat-theme-cyber" class="cheat-action-btn" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff; font-size: 0.72rem; cursor: pointer;">Cyber (1F)</button>
-                                    <button id="cheat-theme-volcanic" class="cheat-action-btn" style="background: rgba(255, 51, 0, 0.15); border-color: #ff3300; color: #ff3300; font-size: 0.72rem; cursor: pointer;">Volcanic (15F)</button>
-                                    <button id="cheat-theme-frozen" class="cheat-action-btn" style="background: rgba(0, 191, 255, 0.15); border-color: #00bfff; color: #00bfff; font-size: 0.72rem; cursor: pointer;">Frozen (25F)</button>
-                                    <button id="cheat-theme-overgrown" class="cheat-action-btn" style="background: rgba(57, 255, 20, 0.15); border-color: #39ff14; color: #39ff14; font-size: 0.72rem; cursor: pointer;">Overgrown (35F)</button>
-                                    <button id="cheat-theme-abyssal" class="cheat-action-btn" style="background: rgba(176, 38, 255, 0.15); border-color: #b026ff; color: #b026ff; font-size: 0.72rem; cursor: pointer;">Abyssal (45F)</button>
-                                    <button id="cheat-theme-singularity" class="cheat-action-btn" style="background: rgba(255, 215, 0, 0.15); border-color: #ffd700; color: #ffd700; font-size: 0.72rem; cursor: pointer;">Singularity (55F)</button>
-                                    <button id="cheat-theme-boss" class="cheat-action-btn" style="background: rgba(255, 0, 55, 0.15); border-color: #ff0037; color: #ff0037; font-size: 0.72rem; cursor: pointer;">Boss Warning (10F)</button>
-                                    <button id="cheat-theme-secret" class="cheat-action-btn" style="background: rgba(255, 0, 127, 0.15); border-color: #ff007f; color: #ff007f; font-size: 0.72rem; cursor: pointer;">Void Market (Sec)</button>
-                                    <button id="cheat-theme-reset" class="cheat-action-btn" style="background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: #cbd5e1; font-size: 0.72rem; cursor: pointer;">Reset Normal</button>
-                                </div>
+                        <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                            <span class="card-label">🎨 맵 테마 시뮬레이터 (실시간 변경)</span>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px;">
+                                <button id="cheat-theme-cyber" class="cheat-action-btn small" style="background: rgba(0, 240, 255, 0.15); border-color: #00f0ff; color: #00f0ff;">Cyber (1F)</button>
+                                <button id="cheat-theme-volcanic" class="cheat-action-btn small" style="background: rgba(255, 51, 0, 0.15); border-color: #ff3300; color: #ff3300;">Volcanic (15F)</button>
+                                <button id="cheat-theme-frozen" class="cheat-action-btn small" style="background: rgba(0, 191, 255, 0.15); border-color: #00bfff; color: #00bfff;">Frozen (25F)</button>
+                                <button id="cheat-theme-overgrown" class="cheat-action-btn small" style="background: rgba(57, 255, 20, 0.15); border-color: #39ff14; color: #39ff14;">Overgrown (35F)</button>
+                                <button id="cheat-theme-abyssal" class="cheat-action-btn small" style="background: rgba(176, 38, 255, 0.15); border-color: #b026ff; color: #b026ff;">Abyssal (45F)</button>
+                                <button id="cheat-theme-singularity" class="cheat-action-btn small" style="background: rgba(255, 215, 0, 0.15); border-color: #ffd700; color: #ffd700;">Singularity (55F)</button>
+                                <button id="cheat-theme-boss" class="cheat-action-btn small" style="background: rgba(255, 0, 55, 0.15); border-color: #ff0037; color: #ff0037;">Boss Warning (10F)</button>
+                                <button id="cheat-theme-secret" class="cheat-action-btn small" style="background: rgba(255, 0, 127, 0.15); border-color: #ff007f; color: #ff007f;">Void Market (Sec)</button>
+                                <button id="cheat-theme-reset" class="cheat-action-btn small" style="background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: #cbd5e1;">Reset Normal</button>
                             </div>
                         </div>
 
-                        <div class="cheat-util-row" style="margin-top: 15px;">
-                            <div class="cheat-util-card full-width">
-                                <span class="card-label">📥 커스텀 맵 프리셋 불러오기</span>
-                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                                    <p style="color: #a0aec0; font-size: 0.78rem; margin: 0; line-height: 1.4;">
-                                        맵 에디터(<a href="map_editor.html" target="_blank" style="color: #00f0ff; text-shadow: 0 0 5px rgba(0,240,255,0.3); font-weight: bold; text-decoration: none;">map_editor.html 🔗</a>)에서 디자인하여 내보낸 JSON 파일을 로드하거나 JSON 텍스트를 직접 붙여넣으세요.
-                                    </p>
-                                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                                        <input type="file" id="cheat-map-file-input" accept=".json" style="display: none;">
-                                        <button id="cheat-map-file-btn" class="cheat-action-btn small" style="margin: 0; padding: 6px 12px; font-size: 0.82rem; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #cbd5e1; border-radius: 4px; cursor: pointer;">📁 JSON 파일 선택</button>
-                                        <span id="cheat-map-file-name" style="color: #cbd5e1; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">선택된 파일 없음</span>
-                                    </div>
-                                    <textarea id="cheat-map-json-input" placeholder='여기에 JSON 텍스트를 직접 입력(붙여넣기)할 수도 있습니다...' style="width: 100%; height: 70px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 6px; font-family: monospace; font-size: 0.75rem; resize: vertical; outline: none; transition: border-color 0.25s;"></textarea>
-                                    <button id="cheat-map-load-btn" class="cheat-action-btn" style="width: 100%; border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.1); font-weight: bold; box-shadow: 0 0 10px rgba(57,255,20,0.15); margin: 0; padding: 8px;">📥 프리셋 등록 및 즉시 갱신</button>
-                                    <p id="cheat-map-status-msg" style="font-size: 0.8rem; font-weight: bold; margin: 0; text-align: center;" class="hidden"></p>
+                        <div class="cheat-util-card full-width" style="margin-top: 10px;">
+                            <span class="card-label">📥 커스텀 맵 JSON 불러오기</span>
+                            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="file" id="cheat-map-file-input" accept=".json" style="display: none;">
+                                    <button id="cheat-map-file-btn" class="cheat-action-btn small" style="margin: 0; padding: 5px 10px; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: #cbd5e1;">📁 파일 선택</button>
+                                    <span id="cheat-map-file-name" style="color: #cbd5e1; font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">선택된 파일 없음</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 탭 5: Phase 2 몬스터/스폰/보스 검증 -->
-                    <div id="cheat-tab-monster-spec" class="cheat-tab-content">
-                        <div class="cheat-util-row">
-                            <!-- 1. 방 선택 & 이동 -->
-                            <div class="cheat-util-card">
-                                <span class="card-label">🚪 방 선택 워프 & 유형 지정 진입</span>
-                                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                                    <div style="display: flex; gap: 8px; align-items: center;">
-                                        <label style="color: #cbd5e1; font-size: 0.8rem; width: 60px;">목표 층:</label>
-                                        <input type="number" id="cheat-warp-room-num" min="1" max="101" value="1" style="width: 70px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(0,240,255,0.4); border-radius: 4px; padding: 4px 8px;">
-                                        <button id="cheat-btn-warp-room" class="cheat-action-btn small" style="margin: 0; background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">이동 (Warp)</button>
-                                    </div>
-                                    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
-                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="normal" style="background: rgba(255,255,255,0.08); border-color: #cbd5e1; color: #fff;">일반방 (1F)</button>
-                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="weapon" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">무기방 (5F)</button>
-                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="elite" style="background: rgba(255,183,3,0.15); border-color: #ffb703; color: #ffb703;">엘리트방 (8F)</button>
-                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="boss" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">보스방 (10F)</button>
-                                        <button class="cheat-action-btn small cheat-btn-room-type" data-type="charging" style="background: rgba(0,245,212,0.15); border-color: #00f5d4; color: #00f5d4;">충전소방</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 2. 5대 스폰 모드 수동 트리거 -->
-                            <div class="cheat-util-card">
-                                <span class="card-label">⚡ 5대 스폰 시스템 (5-Spawn System) 테스트</span>
-                                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
-                                    <button id="cheat-btn-spawn-portal" class="cheat-action-btn small" style="background: rgba(0,240,255,0.15); border-color: #00f0ff; color: #00f0ff;">1. 입구 문 팩 스폰 (3마리)</button>
-                                    <button id="cheat-btn-spawn-rift" class="cheat-action-btn small" style="background: rgba(255,0,127,0.15); border-color: #ff007f; color: #ff007f;">2. 바닥 네온 소환진 기습 (1.5초 예고)</button>
-                                    <button id="cheat-btn-spawn-preshow" class="cheat-action-btn small" style="background: rgba(0,245,212,0.15); border-color: #00f5d4; color: #00f5d4;">3. 필드 미리 배치 스폰 (4마리)</button>
-                                    <button id="cheat-btn-spawn-relay" class="cheat-action-btn small" style="background: rgba(255,183,3,0.15); border-color: #ffb703; color: #ffb703;">4. 3문 릴레이 쇄도 (5마리)</button>
-                                    <button id="cheat-btn-spawn-4door" class="cheat-action-btn small" style="background: rgba(255,0,85,0.15); border-color: #ff0055; color: #ff0055;">5. 트리거 기습 4문 일제 소환</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 3. 보스 페이즈 & 무적/탄환소멸 테스트 -->
-                        <div class="cheat-util-row" style="margin-top: 10px;">
-                            <div class="cheat-util-card full-width">
-                                <span class="card-label">🐲 보스 4단계 페이즈 & 탄환소멸 / QTE 브레이크 검증</span>
-                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                                    <button id="cheat-btn-boss-hp60" class="cheat-action-btn small" style="background: rgba(255,0,127,0.2); border-color: #ff007f; color: #ff007f;">보스 HP 60% 차감 (P2 무적+탄환소멸)</button>
-                                    <button id="cheat-btn-boss-hp30" class="cheat-action-btn small" style="background: rgba(255,0,85,0.2); border-color: #ff0055; color: #ff0055;">보스 HP 30% 차감 (P4 궁극+탄환소멸)</button>
-                                    <button id="cheat-btn-clear-bullets" class="cheat-action-btn small" style="background: rgba(0,240,255,0.2); border-color: #00f0ff; color: #00f0ff;">✨ 적 탄환/장판 강제 전면 소멸</button>
-                                    <button id="cheat-btn-boss-qte" class="cheat-action-btn small" style="background: rgba(255,183,3,0.2); border-color: #ffb703; color: #ffb703;">🎯 보스 QTE 3초 스턴 카운터 발동</button>
-                                    <button id="cheat-btn-chain-combo" class="cheat-action-btn small" style="background: rgba(0,245,212,0.2); border-color: #00f5d4; color: #00f5d4;">💥 몬스터 연쇄 폭발 콤보 시연</button>
-                                </div>
+                                <textarea id="cheat-map-json-input" placeholder='JSON 텍스트 직접 입력...' style="width: 100%; height: 50px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px; font-family: monospace; font-size: 0.75rem; resize: vertical; outline: none;"></textarea>
+                                <button id="cheat-map-load-btn" class="cheat-action-btn small" style="border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.1); font-weight: bold; margin: 0;">📥 프리셋 등록 및 로드</button>
+                                <p id="cheat-map-status-msg" style="font-size: 0.78rem; font-weight: bold; margin: 0; text-align: center;" class="hidden"></p>
                             </div>
                         </div>
                     </div>
@@ -1414,8 +1326,8 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/sound.js"></script>
     <script src="js/particle.js"></script>
-    <script src="js/map.js"></script>
     <script src="js/environment.js"></script>
+    <script src="js/map.js"></script>
     <script src="js/bullet.js"></script>
     <script src="js/pet.js"></script>
     <script src="js/player.js"></script>
@@ -1424,6 +1336,7 @@
     <script src="js/monster.js"></script>
     <script src="js/bossEngine.js"></script>
     <script src="js/spawnManager.js"></script>
+    <script src="js/scenarioDialogue.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/walkCharacter.js"></script>
     <script src="js/main.js"></script>

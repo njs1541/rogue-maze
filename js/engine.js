@@ -78,6 +78,10 @@ class GameEngine {
         this.currentRoomType = 'stat';
         this.rewardChests = [];
         this.blueprintChests = [];
+        this.materialChests = [];
+        this.restStations = [];
+        this.casinoKiosks = [];
+        this.evolutionBenches = [];
         this.transmuteSelectedMats = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
@@ -566,6 +570,19 @@ class GameEngine {
             cancelAnimationFrame(this.gameLoopId);
         }
 
+        // [결함 수정] 게임 시작 시 남아있는 모든 오버레이 모달 초기화
+        const overlaysToHide = [
+            'start-overlay', 'result-overlay', 'reward-overlay', 'blueprint-overlay',
+            'card-detail-overlay', 'shop-confirm-overlay', 'secret-shop-overlay',
+            'cheat-overlay', 'option-overlay', 'in-game-status-overlay',
+            'rest-modal', 'casino-modal', 'evolution-modal'
+        ];
+        overlaysToHide.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+        this.isDialogueActive = false;
+
         // 게임 시작 시 HUD 보이기
         const hudHeader = document.getElementById('hud-header');
         const hudFooter = document.getElementById('hud-footer');
@@ -622,6 +639,10 @@ class GameEngine {
         this.currentRoomType = 'stat';
         this.rewardChests = [];
         this.blueprintChests = [];
+        this.materialChests = [];
+        this.restStations = [];
+        this.casinoKiosks = [];
+        this.evolutionBenches = [];
         this.vendingMachines = [];
         this.vendingCooldown = 0;
         this.weaponRoomCooldown = 0; // [신규 기획] 무기 방 쿨다운 변수 리셋
@@ -632,25 +653,10 @@ class GameEngine {
         this.adjustLayoutScale();
         this.ctx = this.canvas.getContext('2d'); // [보안] 캔버스 초기화 시 2D 컨텍스트 다시 바인딩하여 드로잉 안전 보장
         
-        // 카메라를 플레이어 위치로 즉시 텔레포트 (초기 Lerp 지연 방지, -150px 여백 가산)
-        if (this.player) {
-            let initCamX = this.player.x - this.canvas.width / 2;
-            let initCamY = this.player.y - this.canvas.height / 2;
-
-            if (this.canvas.width >= this.mapWidth + 300) {
-                initCamX = (this.mapWidth - this.canvas.width) / 2;
-            } else {
-                initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
-            }
-
-            if (this.canvas.height >= this.mapHeight + 300) {
-                initCamY = (this.mapHeight - this.canvas.height) / 2;
-            } else {
-                initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
-            }
-
-            this.camera.x = initCamX;
-            this.camera.y = initCamY;
+        // 카메라를 플레이어 위치로 즉시 텔레포트 (항상 플레이어 중앙 정렬 보장)
+        if (this.player && this.canvas) {
+            this.camera.x = this.player.x - this.canvas.width / 2;
+            this.camera.y = this.player.y - this.canvas.height / 2;
         }
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
@@ -659,6 +665,16 @@ class GameEngine {
         }
         // [신규] 첫 번째 시작 방은 외곽 1칸만 벽인 PRESET_SIZE_BOSS 구조로 초기화
         this.generateGridMap('PRESET_SIZE_BOSS');
+        if (this.player) {
+            const safePos = this.getSafeSpawnPosition(false, 0, 100);
+            if (safePos) {
+                this.player.x = safePos.x;
+                this.player.y = safePos.y;
+            } else {
+                this.player.x = this.mapWidth / 2;
+                this.player.y = this.mapHeight / 2;
+            }
+        }
         this.currentRoomMonsterPool = [];
 
         this.spawnQueue = [];
@@ -690,25 +706,21 @@ class GameEngine {
         Sound.play('powerup');
         Sound.startBGM(); // [추가] 게임 시작 시 BGM 연주 강제 시작/보장
 
-        // [신규 기획] 오프닝 프롤로그 트리거
-        let prologueLines = [];
-        prologueLines.push("SYSTEM: 의식 동기화 완료...");
-        prologueLines.push("LOG: 복제 번호 #138C18-G605 가동");
-
-        const unused = this.unusedFragments !== undefined ? this.unusedFragments : 0;
-        if (unused >= 7) {
-            prologueLines.push("WARNING: 메모리 복원 성공. 잔류 데이터 87.2% 동기화 중...");
-            prologueLines.push("정신을 차리자 머리가 깨질 듯한 데자뷔가 몰려온다.\n나는 이 1층의 네온 바닥을 최소 수십 번은 밟아보았다.\n저 위에는 크로노스가 아닌, 무언가 다른 감시자가 숨어 있다...");
-        } else {
-            prologueLines.push("ERROR: 이전 로그 복원 실패. 잔류 데이터 0.00%");
-            prologueLines.push("기억은 말끔히 포맷되었습니다. 오직 오늘 밤의 격투와 눈앞의 적에만 집중하십시오.");
-        }
-
-        // 조금 뒤에 첫 대사가 출력될 수 있도록 스케줄링하여 연출 안정성 확보
+        // [신규 기획] 오프닝 프롤로그 연출 (ScenarioDialogue 연동)
         setTimeout(() => {
             const overlay = document.getElementById('story-dialogue-overlay');
             if (overlay) overlay.classList.add('dimmed');
-            this.showDialogue("SYSTEM", prologueLines);
+
+            if (typeof window.ScenarioDialogue !== 'undefined') {
+                const dialogueData = window.ScenarioDialogue.getPrologue(this.unusedFragments);
+                this.showDialogue(dialogueData.speaker, dialogueData.lines);
+            } else {
+                this.showDialogue("SYSTEM", [
+                    "[ SYSTEM: 의식 동기화 완료... ]",
+                    "[ LOG: 복제 번호 #138C18-G605 가동 ]",
+                    "\"기억은 말끔히 포맷되었습니다. 오직 오늘 밤의 격투와 눈앞의 적에만 집중하십시오.\""
+                ]);
+            }
         }, 100);
     }
 
@@ -716,24 +728,15 @@ class GameEngine {
         this.startGame();
     }
 
-    // [신규 기획] 포털 특화 보상 및 상점 타입을 결정하는 공통 메소드
+    // [신규 개편] 포털 특화 보상 및 방 타입을 결정하는 공통 메소드 (Fisher-Yates 셔플 적용)
     generatePortalTypes() {
-        // 기본 4개 포털 타입 후보군
-        let types = ['stat', 'stat', 'stat', 'equipment'];
-
-        // 쿨다운이 끝났을(0 이하) 때에만 35% 확률로 무기 방 등장 후보 삽입
-        if (this.weaponRoomCooldown <= 0 && Math.random() < 0.35) {
-            types[0] = 'weapon';
+        let pool = ['material', 'blueprint', 'challenge', 'rest', 'casino', 'material', 'blueprint'];
+        // Fisher-Yates 셔플 알고리즘
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
         }
-
-        // 25% 확률로 stat 하나가 shop(상점)으로 변경
-        if (Math.random() < 0.25) {
-            types[1] = 'shop';
-        }
-
-        // 무작위 셔플링
-        types.sort(() => 0.5 - Math.random());
-        return types;
+        return pool.slice(0, 4);
     }
 
     // [신규] 2차원 그리드 기반 맵 구조 생성 메서드
@@ -957,18 +960,14 @@ class GameEngine {
             gameContainer.style.setProperty('--map-width', this.mapWidth + 'px');
         }
 
-        // 맵 프리셋 결정
-        if (enteringSecretRoom) {
-            // 비밀방은 쾌적함을 위해 보스방형 넓은 맵으로 로드
-            this.generateGridMap('PRESET_SIZE_BOSS');
-        } else if (this.roomNum % 10 === 0) {
-            // 보스방은 보스방형 맵 고정
+        // 맵 프리셋 결정 (첫방 1층은 시원한 네온 아레나 PRESET_SIZE_BOSS 고정)
+        if (this.roomNum === 1 || enteringSecretRoom || this.roomNum % 10 === 0) {
             this.generateGridMap('PRESET_SIZE_BOSS');
         } else {
-            // 일반방은 7개 프리셋 중에서 랜덤 로드
+            // 일반방은 쾌적한 넓은 아레나형 맵(BOSS, MIDDLE, NORMAL) 위주로 선택
             const presets = [
-                'PRESET_SIZE_NORMAL', 'PRESET_SIZE_MIDDLE', 'PRESET_SIZE_BOSS',
-                'PRESET_LINE', 'PRESET_WINDOW', 'PRESET_U_SHAPE', 'PRESET_CROSS'
+                'PRESET_SIZE_BOSS', 'PRESET_SIZE_BOSS', 'PRESET_SIZE_MIDDLE',
+                'PRESET_SIZE_NORMAL', 'PRESET_WINDOW', 'PRESET_U_SHAPE'
             ];
             const chosenPreset = presets[Math.floor(Math.random() * presets.length)];
             this.generateGridMap(chosenPreset);
@@ -1047,10 +1046,16 @@ class GameEngine {
         }
 
         // 맵 중앙 예외 안전 리스폰 (비밀방 복귀 또는 워프 오류 대응)
-        if (!hasWarped) {
-            this.player.x = this.mapWidth / 2;
-            this.player.y = this.mapHeight / 2 + 150;
-            this.lastEnteredPortalDir = 'center';
+        if (!hasWarped || this.isTileWall(this.player.x, this.player.y)) {
+            const safePos = this.getSafeSpawnPosition(false, 0, 100);
+            if (safePos) {
+                this.player.x = safePos.x;
+                this.player.y = safePos.y;
+            } else {
+                this.player.x = this.mapWidth / 2;
+                this.player.y = this.mapHeight / 2;
+            }
+            if (!hasWarped) this.lastEnteredPortalDir = 'center';
         }
 
         // [비밀방 출구 포털 룰 적용] 비밀방에 있을 때는 단 하나의 탈출구 문만 랜덤 방향에 생성
@@ -1098,6 +1103,10 @@ class GameEngine {
         this.secretGlitchDevices = []; // 비밀방 상호작용 디바이스 청소
         this.rewardChests = []; // [추가] 이전 방 상자들 삭제
         this.blueprintChests = [];
+        this.materialChests = [];
+        this.restStations = [];
+        this.casinoKiosks = [];
+        this.evolutionBenches = [];
         this.vendingMachines = []; // [추가] 이전 방 자판기들 삭제
         this.secretVendingMachines = []; // [네온 암시장] 비밀 자판기 청소
         this.weaponMerchants = []; // [신규] 무기 상인 NPC 청소
@@ -1116,6 +1125,14 @@ class GameEngine {
             this.monsters = [];
             this.spawnQueue = [];
             this.secretGlitchDevices.push(new SecretGlitchDevice(this.mapWidth / 2, this.mapHeight / 2));
+
+            // [신규] 비밀방 최초 진입 시 독백 & 힌트 대사 연출
+            if (typeof window.ScenarioDialogue !== 'undefined') {
+                const secretDialogue = window.ScenarioDialogue.getSecretRoomDialogue(this.unusedFragments);
+                setTimeout(() => {
+                    this.showDialogue(secretDialogue.speaker, secretDialogue.lines);
+                }, 150);
+            }
         } else if (this.roomNum % 10 === 0) {
             this.setupBossRoom();
         } else {
@@ -1148,24 +1165,10 @@ class GameEngine {
         this.saveGame(scoreBonus);
 
         // [신규] 카메라 위치 플레이어에 맞추어 즉시 순간이동 (방 이동 시 Lerp 지연 방지)
+        // 카메라를 이동한 플레이어 중앙 위치로 즉시 텔레포트
         if (this.player && this.canvas) {
-            let initCamX = this.player.x - this.canvas.width / 2;
-            let initCamY = this.player.y - this.canvas.height / 2;
-
-            if (this.canvas.width >= this.mapWidth + 300) {
-                initCamX = (this.mapWidth - this.canvas.width) / 2;
-            } else {
-                initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
-            }
-
-            if (this.canvas.height >= this.mapHeight + 300) {
-                initCamY = (this.mapHeight - this.canvas.height) / 2;
-            } else {
-                initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
-            }
-
-            this.camera.x = initCamX;
-            this.camera.y = initCamY;
+            this.camera.x = this.player.x - this.canvas.width / 2;
+            this.camera.y = this.player.y - this.canvas.height / 2;
         }
     }
 
@@ -1174,122 +1177,136 @@ class GameEngine {
         this.monsters = [];
         this.spawnQueue = [];
 
-        let cx = this.mapWidth / 2;
+        const startBossSpawn = () => {
+            let cx = this.mapWidth / 2;
 
-        // 10층 단위로 다채로운 보스 출현 제어
-        if (this.roomNum === 10) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 20) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_chaser');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 30) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_slime');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 40) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_speaker');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 50) {
-            // 10,20,30,40층 보스 중 3마리를 약화시켜 한 번에 출현
-            let pool = ['boss', 'boss_chaser', 'boss_slime', 'boss_speaker'];
-            pool.sort(() => 0.5 - Math.random());
-            let chosen = pool.slice(0, 3);
-            let positions = [{ x: this.mapWidth * 0.325, y: 200 }, { x: this.mapWidth * 0.675, y: 200 }, { x: cx, y: 150 }];
-
-            chosen.forEach((type, idx) => {
-                let boss = new Monster(positions[idx].x, positions[idx].y, Math.floor(this.roomNum / 5), this.roomNum);
-                boss.makeBoss(this.roomNum, type, true);
+            // 10층 단위로 다채로운 보스 출현 제어
+            if (this.roomNum === 10) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss');
                 this.monsters.push(boss);
-            });
-            this.currentSpawnTotal = 3;
-            this.currentSpawnRemaining = 3;
-        }
-        else if (this.roomNum === 60) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_warper');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 70) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_portal');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 80) {
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_hive');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 90) {
-            // 90층 웨이브 시스템 기동 (웨이브 1: 60층 보스 약화 버전 스폰)
-            this.bossWave = 1;
-            this.currentSpawnTotal = 4; // 총 4개의 보스를 잡아야 클리어
-            this.currentSpawnRemaining = 4;
+            }
+            else if (this.roomNum === 20) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_chaser');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 30) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_slime');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 40) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_speaker');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 50) {
+                // 10,20,30,40층 보스 중 3마리를 약화시켜 한 번에 출현
+                let pool = ['boss', 'boss_chaser', 'boss_slime', 'boss_speaker'];
+                pool.sort(() => 0.5 - Math.random());
+                let chosen = pool.slice(0, 3);
+                let positions = [{ x: this.mapWidth * 0.325, y: 200 }, { x: this.mapWidth * 0.675, y: 200 }, { x: cx, y: 150 }];
 
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
-            this.monsters.push(boss);
+                chosen.forEach((type, idx) => {
+                    let boss = new Monster(positions[idx].x, positions[idx].y, Math.floor(this.roomNum / 5), this.roomNum);
+                    boss.makeBoss(this.roomNum, type, true);
+                    this.monsters.push(boss);
+                });
+                this.currentSpawnTotal = 3;
+                this.currentSpawnRemaining = 3;
+            }
+            else if (this.roomNum === 60) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_warper');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 70) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_portal');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 80) {
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_hive');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 90) {
+                // 90층 웨이브 시스템 기동 (웨이브 1: 60층 보스 약화 버전 스폰)
+                this.bossWave = 1;
+                this.currentSpawnTotal = 4; // 총 4개의 보스를 잡아야 클리어
+                this.currentSpawnRemaining = 4;
 
-            // [추가] 90층 보스전 1웨이브 시작 안내 메시지 출력 (사용자 오해 방지)
-            this.showFloatingText("WAVE 1: 보이드 워퍼 🌀 (90층 보스 시련 시작)", cx, 250, '#00ffcc');
-        }
-        else if (this.roomNum === 100) {
-            // 최종 보스 (100층 포탑은 보스 생성자 내부에서 자체 소환)
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 100, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_final');
-            this.monsters.push(boss);
-        }
-        else if (this.roomNum === 101) {
-            // 101층 진 최종 보스 (크로노스 리얼 마스터) 스폰
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum, 'boss_real_master');
-            this.monsters.push(boss);
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_warper', true); // 약화 소환
+                this.monsters.push(boss);
 
-            // 101층은 텅 빈 보스방 구조로 맵을 갱신
-            this.currentMapPreset = 'PRESET_SIZE_BOSS';
-            this.generateGridMap(this.currentMapPreset);
+                // 90층 보스전 1웨이브 시작 안내 메시지 출력
+                this.showFloatingText("WAVE 1: 보이드 워퍼 🌀 (90층 보스 시련 시작)", cx, 250, '#00ffcc');
+            }
+            else if (this.roomNum === 100) {
+                // 최종 보스
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 100, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_final');
+                this.monsters.push(boss);
+            }
+            else if (this.roomNum === 101) {
+                // 101층 진 최종 보스 (크로노스 리얼 마스터) 스폰
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum, 'boss_real_master');
+                this.monsters.push(boss);
+
+                // 101층은 텅 빈 보스방 구조로 맵을 갱신
+                this.currentMapPreset = 'PRESET_SIZE_BOSS';
+                this.generateGridMap(this.currentMapPreset);
+            } else {
+                // 예외 방어코드
+                this.currentSpawnTotal = 1;
+                this.currentSpawnRemaining = 1;
+                const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
+                boss.makeBoss(this.roomNum);
+                this.monsters.push(boss);
+            }
+
+            // 보스 출현 경고음 및 화면 강한 진동
+            this.shakeScreen(90, 8); // 보스룸 진입 시 1.5초간 대진동
+            this.bossWarningTimer = 180; // 3초간 경보 빔 유지
+
+            // 긴박한 사이렌 저음 경고음 3회 틱틱 재생
+            Sound.play('boss_alert');
+            setTimeout(() => Sound.play('boss_alert'), 450);
+            setTimeout(() => Sound.play('boss_alert'), 900);
+        };
+
+        // [신규] 보스룸 진입 대화창 연출 우선 실행
+        if (typeof window.ScenarioDialogue !== 'undefined') {
+            const bossDialogue = window.ScenarioDialogue.getBossDialogue(this.roomNum, this.unusedFragments);
+            setTimeout(() => {
+                this.showDialogue(bossDialogue.speaker, bossDialogue.lines, () => {
+                    startBossSpawn();
+                });
+            }, 100);
         } else {
-            // 예외 방어코드
-            this.currentSpawnTotal = 1;
-            this.currentSpawnRemaining = 1;
-            const boss = new Monster(cx, 200, Math.floor(this.roomNum / 5), this.roomNum);
-            boss.makeBoss(this.roomNum);
-            this.monsters.push(boss);
+            startBossSpawn();
         }
-
-        // 보스 출현 경고음 및 화면 강한 진동
-        this.shakeScreen(90, 8); // 보스룸 진입 시 1.5초간 대진동
-        this.bossWarningTimer = 180; // 3초간 경보 빔 유지
-
-        // 긴박한 사이렌 저음 경고음 3회 틱틱 재생
-        Sound.play('boss_alert');
-        setTimeout(() => Sound.play('boss_alert'), 450);
-        setTimeout(() => Sound.play('boss_alert'), 900);
     }
 
     // 몬스터 순차 스폰 큐 준비
@@ -1670,8 +1687,12 @@ class GameEngine {
         const statusOverlay = document.getElementById('in-game-status-overlay'); // [신규] 인게임 상태창 모달
         const storyOverlay = document.getElementById('story-dialogue-overlay'); // [신규] 스토리 대화 오버레이
 
+        const restModal = document.getElementById('rest-modal');
+        const casinoModal = document.getElementById('casino-modal');
+        const evolutionModal = document.getElementById('evolution-modal');
+
         if ((rewardOverlay && !rewardOverlay.classList.contains('hidden')) ||
-            (blueprintOverlay && !blueprintOverlay.classList.contains('hidden')) || // [신규] 설계도 오버레이 조건 추가
+            (blueprintOverlay && !blueprintOverlay.classList.contains('hidden')) ||
             (detailOverlay && !detailOverlay.classList.contains('hidden')) ||
             (shopOverlay && !shopOverlay.classList.contains('hidden')) ||
             (resultOverlay && !resultOverlay.classList.contains('hidden')) ||
@@ -1679,8 +1700,10 @@ class GameEngine {
             (cheatOverlay && !cheatOverlay.classList.contains('hidden')) ||
             (optionOverlay && !optionOverlay.classList.contains('hidden')) ||
             (statusOverlay && !statusOverlay.classList.contains('hidden')) ||
-            this.isDialogueActive || // [수정] 대화창 존재 유무가 아닌 실제 활성 대화 중인지를 체크
-            (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) { // [결함 수정] 암시장 오버레이 조건식 반영
+            (restModal && !restModal.classList.contains('hidden')) ||
+            (casinoModal && !casinoModal.classList.contains('hidden')) ||
+            (evolutionModal && !evolutionModal.classList.contains('hidden')) ||
+            (secretShopOverlay && !secretShopOverlay.classList.contains('hidden'))) {
             isOverlayOpen = true;
         }
 
@@ -3172,96 +3195,62 @@ class GameEngine {
                     }
 
                     // C. 방 테마에 따른 보상 물리 스폰
-                    if (this.currentRoomType === 'shop') {
-                        // 자판기 타입 랜덤 배정 (스탯 60%, 무기 20%, 방어구 20%)
-                        let shopRand = Math.random();
-                        let machineType = 'stat';
-                        if (shopRand > 0.8) {
-                            machineType = 'equipment';
-                        } else if (shopRand > 0.6) {
-                            machineType = 'weapon';
+                    if (this.currentRoomType === 'rest') {
+                        // 신체 정비실: 몬스터가 없는 평화로운 방. 정비 단말기 2개 스폰 및 포탈 즉시 활성화
+                        this.restStations.push(new RestStationObject(spawnX - 50, spawnY, 'healer'));
+                        this.restStations.push(new RestStationObject(spawnX + 50, spawnY, 'overclock'));
+                        this.portals.forEach(p => p.active = true);
+                        this.showFloatingText("REST STATION OPENED! 💉", spawnX, spawnY - 60, '#39ff14');
+                    } else if (this.currentRoomType === 'casino') {
+                        // 글리치 카지노: 룰렛 키오스크 스폰
+                        this.casinoKiosks.push(new CasinoKioskObject(spawnX, spawnY));
+                        this.portals.forEach(p => p.active = true);
+                        this.showFloatingText("GLITCH CASINO OPENED! 🎰", spawnX, spawnY - 60, '#ff00aa');
+                    } else if (this.currentRoomType === 'material') {
+                        // 재료 창고: 재료 상자 스폰 (+ 50% 확률 재료 상인)
+                        this.materialChests.push(new MaterialChest(spawnX, spawnY));
+                        if (Math.random() < 0.5) {
+                            this.weaponMerchants.push(new WeaponMerchant(spawnX + 70, spawnY));
                         }
-
-                        this.vendingMachines.push(new VendingMachine(spawnX, spawnY, machineType));
-                        this.showFloatingText("VENDING MACHINE ARRIVED!", spawnX, spawnY - 60, '#ffdf00');
-
-                        // 상점방은 힐링을 위해 네온 물약 확정 1개 추가 드롭 (안전 영역 체크)
-                        let potionY = spawnY + 70;
-                        if (this.isTileWall(spawnX, potionY)) {
-                            potionY = spawnY - 70; // 아래가 벽이면 위쪽 검사
-                            if (this.isTileWall(spawnX, potionY)) {
-                                potionY = spawnY; // 둘 다 벽이면 중앙 폴백
+                        this.showFloatingText("MATERIAL VAULT CLEAR! 📦", spawnX, spawnY - 60, '#b026ff');
+                    } else if (this.currentRoomType === 'blueprint') {
+                        // 장비 연구소: 설계도 상자 스폰
+                        this.blueprintChests.push(new BlueprintChest(spawnX, spawnY));
+                        this.showFloatingText("BLUEPRINT LAB CLEAR! 📜", spawnX, spawnY - 60, '#ff6c00');
+                    } else if (this.currentRoomType === 'challenge') {
+                        // 위험 구역: 재료 상자 + 설계도 상자 2개 이격 스폰
+                        this.materialChests.push(new MaterialChest(spawnX - 45, spawnY));
+                        this.blueprintChests.push(new BlueprintChest(spawnX + 45, spawnY));
+                        this.showFloatingText("CHALLENGE CLEARED! REWARDS x2 🔥", spawnX, spawnY - 60, '#ff0055');
+                    } else if (this.roomNum % 5 === 0 || this.currentRoomType === 'boss') {
+                        // 보스 토벌: 부품 재료 10개 이상 폭풍 드롭 + 무기 특수 강화소 스폰
+                        this.evolutionBenches.push(new EvolutionBenchObject(spawnX, spawnY));
+                        for (let k = 0; k < 12; k++) {
+                            let matX = spawnX + (Math.random() * 120 - 60);
+                            let matY = spawnY + (Math.random() * 120 - 60);
+                            if (typeof DropMaterialEntity !== 'undefined') {
+                                this.materialsList.push(new DropMaterialEntity(matX, matY));
                             }
                         }
-                        this.potions.push(new NeonPotion(spawnX, potionY));
-
-                        // 상점방은 구매 의사 결정을 대기하지 않고 즉시 문을 개방해 둡니다. (돈이 없는 유저 탈출용)
-                        this.portals.forEach(p => p.active = true);
-                    } else if (this.currentRoomType === 'stat' && this.roomNum % 5 !== 0) {
-                        // [신규 기획] 일반 스탯 방인 경우, 보상 상자 스폰을 생략하고 포털 즉시 활성화
-                        this.portals.forEach(p => p.active = true);
-                        this.showFloatingText("PORTALS ACTIVATED! ⚡", spawnX, spawnY - 60, '#00f0ff');
-
-                        // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (안전 영역 체크)
-                        let potionRand = Math.random();
-                        let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05);
-                        if (potionRand < potionDropChance) {
-                            let pY = spawnY + 50;
-                            if (this.isTileWall(spawnX, pY)) pY = spawnY - 50;
-                            if (this.isTileWall(spawnX, pY)) pY = spawnY;
-                            this.potions.push(new NeonPotion(spawnX, pY));
-                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", spawnX, spawnY - 30, '#39ff14');
-                        }
+                        this.showFloatingText("BOSS DEFEATED! EVOLUTION LAB ARRIVED! 💀", spawnX, spawnY - 60, '#ff1100');
                     } else {
-                        // 무기, 장비 및 보스/엘리트 스탯 방(5의 배수 방)인 경우 상자 스폰
-                        if (this.currentRoomType === 'weapon') {
-                            this.weaponMerchants.push(new WeaponMerchant(spawnX, spawnY));
-                            this.portals.forEach(p => p.active = true);
-                        } else {
-                            this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
-                        }
-                        if (this.currentRoomType === 'weapon') {
-                            this.showFloatingText("WEAPON MERCHANT ARRIVED! 🏪", spawnX, spawnY - 60, '#39ff14');
-                        } else {
-                            this.showFloatingText("REWARD CHEST ARRIVED!", spawnX, spawnY - 60, this.currentRoomType === 'stat' ? '#00f0ff' : '#ff6c00');
-                        }
-
-                        // [추가] 방 소탕 완료 시 확률적으로 체력 회복 포션 드롭 (기본 30% + 행운 계수 비례 추가 확률)
-                        let potionRand = Math.random();
-                        let potionDropChance = 0.30 + Math.min(0.20, (this.player.luk - 1.0) * 0.05); // 행운 비례 추가 확률 최대 +20% 제한
-                        if (potionRand < potionDropChance) {
-                            // 맵 중앙 부근에서 약간 아래쪽에 스폰 (보상 상자와 겹침 방지, 안전 영역 체크)
-                            let pY = spawnY + 50;
-                            if (this.isTileWall(spawnX, pY)) {
-                                pY = spawnY - 50; // 아래가 벽이면 위쪽 검사
-                                if (this.isTileWall(spawnX, pY)) {
-                                    pY = spawnY; // 둘 다 벽이면 중앙 폴백
-                                }
-                            }
-                            this.potions.push(new NeonPotion(spawnX, pY));
-                            this.showFloatingText("HEALTH POTION SPONSED! 🩺", spawnX, spawnY - 30, '#39ff14');
-                        }
+                        // 기본 상자 스폰
+                        this.rewardChests.push(new RewardChest(spawnX, spawnY, this.currentRoomType));
+                        this.showFloatingText("ROOM CLEARED! 📦", spawnX, spawnY - 60, '#00f0ff');
                     }
 
-                    // [신규 기획] 설계도 상자(Blueprint Chest) 스폰 (35% 기본 확률 + 행운 비례 추가 확률)
-                    let bpChestChance = 0.35 + Math.min(0.25, (this.player.luk - 1.0) * 0.05);
-                    if (Math.random() < bpChestChance && this.roomNum > 1 && !this.inSecretRoom && this.roomNum !== 100 && this.roomNum !== 101) {
-                        let bpSpawnX = spawnX + (Math.random() * 80 - 40);
-                        let bpSpawnY = spawnY + 45;
-                        if (this.isTileWall(bpSpawnX, bpSpawnY)) {
-                            bpSpawnX = spawnX;
-                            bpSpawnY = spawnY;
-                        }
-                        this.blueprintChests.push(new BlueprintChest(bpSpawnX, bpSpawnY));
-                        this.showFloatingText("BLUEPRINT CHEST ARRIVED! 📦", bpSpawnX, bpSpawnY - 60, '#ffdf00');
-                    }
+                    // 파티클 생성 수 8개로 캡핑 (프레임 렉 완전 방지)
+                    let spawnColor = '#00f0ff';
+                    if (this.currentRoomType === 'material') spawnColor = '#b026ff';
+                    else if (this.currentRoomType === 'blueprint') spawnColor = '#ff6c00';
+                    else if (this.currentRoomType === 'rest') spawnColor = '#39ff14';
+                    else if (this.currentRoomType === 'challenge') spawnColor = '#ff0055';
+                    else if (this.currentRoomType === 'casino') spawnColor = '#ff00aa';
 
-                    // [신규 기획] 상자/자판기 스폰 시 화려한 네온 글로우 파티클 분수 격발 (30개)
-                    let spawnColor = this.currentRoomType === 'stat' ? '#00f0ff' : (this.currentRoomType === 'weapon' ? '#b026ff' : (this.currentRoomType === 'equipment' ? '#ff6c00' : '#ffdf00'));
-                    for (let k = 0; k < 30; k++) {
-                        let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5; // 하늘 위 방향 부채꼴 분수
-                        let pSpeed = Math.random() * 5 + 2.5;
-                        this.particles.push(new Particle(spawnX, spawnY, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 35, 'spark'));
+                    for (let k = 0; k < 8; k++) {
+                        let pAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.5;
+                        let pSpeed = Math.random() * 4 + 2;
+                        this.particles.push(new Particle(spawnX, spawnY, spawnColor, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20, 'spark'));
                     }
                 }
             } else {
@@ -3294,32 +3283,24 @@ class GameEngine {
             }
         }
 
-        // [신규 기획] 보상 상자(Reward Chest) 물리 충돌 검사
+        // [신규 기획] 보상 상자(Reward Chest) 물리 충돌 검사 (파티클 8개 최적화 및 동기화 즉시 트리거)
         for (let i = this.rewardChests.length - 1; i >= 0; i--) {
             let chest = this.rewardChests[i];
             if (!chest.active) continue;
             let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
-            if (dist < this.player.radius + 18) { // 상자 가로폭 충돌 반경 보정
+            if (dist < this.player.radius + 18) {
                 chest.active = false;
 
-                // 네온 파편 스파크 폭발 이펙트
-                for (let k = 0; k < 25; k++) {
+                // 파티클 8개 캡핑 (렉 완전 차단)
+                for (let k = 0; k < 8; k++) {
                     let pAngle = Math.random() * Math.PI * 2;
-                    let pSpeed = Math.random() * 5 + 2;
-                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+                    let pSpeed = Math.random() * 4 + 1.5;
+                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
                 }
                 Sound.play('victory');
 
-                // [신규 기믹] 보상 상자 획득 시 맵 상의 모든 네온코인을 플레이어에게 즉시 끌어당김
-                this.coinsList.forEach(coin => {
-                    coin.isAttractedToPlayer = true;
-                });
-
-                // 바로 카드 오버레이를 띄우지 않고 45프레임(약 0.75초) 지연 후 트리거되도록 딜레이 시스템 활성화
-                this.rewardSelectorDelayTimer = 45;
-                this.rewardSelectorIsFromHiddenChest = false;
-
-                // 상자 삭제
+                this.coinsList.forEach(coin => { coin.isAttractedToPlayer = true; });
+                this.enqueueReward({ type: 'reward', isFromHiddenChest: false });
                 this.rewardChests.splice(i, 1);
             }
         }
@@ -3331,20 +3312,76 @@ class GameEngine {
             let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
             if (dist < this.player.radius + 18) {
                 chest.active = false;
-
-                // 금색 네온 파편 스파크 폭발 이펙트
-                for (let k = 0; k < 25; k++) {
+                for (let k = 0; k < 8; k++) {
                     let pAngle = Math.random() * Math.PI * 2;
-                    let pSpeed = Math.random() * 5 + 2;
-                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 3, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 25));
+                    let pSpeed = Math.random() * 4 + 1.5;
+                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
                 }
                 Sound.play('powerup');
-
-                // 설계도 선택창 큐에 추가
                 this.enqueueReward({ type: 'blueprint' });
-
-                // 상자 삭제
                 this.blueprintChests.splice(i, 1);
+            }
+        }
+
+        // [신규 개편] 재료 드롭 상자(Material Chest) 물리 충돌 검사
+        for (let i = this.materialChests.length - 1; i >= 0; i--) {
+            let chest = this.materialChests[i];
+            if (!chest.active) continue;
+            let dist = Math.hypot(this.player.x - chest.x, this.player.y - chest.y);
+            if (dist < this.player.radius + 18) {
+                chest.active = false;
+                for (let k = 0; k < 8; k++) {
+                    let pAngle = Math.random() * Math.PI * 2;
+                    let pSpeed = Math.random() * 4 + 1.5;
+                    this.particles.push(new Particle(chest.x, chest.y, chest.color, 2.5, Math.cos(pAngle) * pSpeed, Math.sin(pAngle) * pSpeed, 20));
+                }
+                Sound.play('victory');
+                // 필드 부품 재료 4~6개 드롭
+                for (let k = 0; k < 5; k++) {
+                    let matX = chest.x + (Math.random() * 60 - 30);
+                    let matY = chest.y + (Math.random() * 60 - 30);
+                    if (typeof DropMaterialEntity !== 'undefined') {
+                        this.materialsList.push(new DropMaterialEntity(matX, matY));
+                    }
+                }
+                this.materialChests.splice(i, 1);
+                this.completeRewardProgress();
+            }
+        }
+
+        // [신규 개편] 정비 단말기(Rest Station) 물리 충돌 검사
+        for (let i = this.restStations.length - 1; i >= 0; i--) {
+            let st = this.restStations[i];
+            if (!st.active) continue;
+            let dist = Math.hypot(this.player.x - st.x, this.player.y - st.y);
+            if (dist < this.player.radius + st.radius) {
+                st.active = false;
+                this.openRestModal(st.stationType);
+                this.restStations.splice(i, 1);
+            }
+        }
+
+        // [신규 개편] 카지노 키오스크(Casino Kiosk) 물리 충돌 검사
+        for (let i = this.casinoKiosks.length - 1; i >= 0; i--) {
+            let k = this.casinoKiosks[i];
+            if (!k.active) continue;
+            let dist = Math.hypot(this.player.x - k.x, this.player.y - k.y);
+            if (dist < this.player.radius + k.radius) {
+                k.active = false;
+                this.openCasinoModal();
+                this.casinoKiosks.splice(i, 1);
+            }
+        }
+
+        // [신규 개편] 무기 특수 강화소(Evolution Bench) 물리 충돌 검사
+        for (let i = this.evolutionBenches.length - 1; i >= 0; i--) {
+            let b = this.evolutionBenches[i];
+            if (!b.active) continue;
+            let dist = Math.hypot(this.player.x - b.x, this.player.y - b.y);
+            if (dist < this.player.radius + b.radius) {
+                b.active = false;
+                this.openEvolutionModal();
+                this.evolutionBenches.splice(i, 1);
             }
         }
 
@@ -3655,27 +3692,14 @@ class GameEngine {
         this.updateHUD();
 
         // [신규] 카메라 위치 업데이트 (부드러운 Lerp + 맵 경계 150px 마진 Clamp 적용)
+        // [신규] 카메라 위치 업데이트 (항상 플레이어 중앙 정렬 및 부드러운 스무딩)
         if (this.player && this.canvas) {
-            // 카메라 목표 좌표 (플레이어 중심)
             let targetCamX = this.player.x - this.canvas.width / 2;
             let targetCamY = this.player.y - this.canvas.height / 2;
 
-            // -150px의 외곽 마진 여백을 가산하여 맵 바깥까지 카메라가 스크롤되도록 보정
-            if (this.canvas.width >= this.mapWidth + 300) {
-                targetCamX = (this.mapWidth - this.canvas.width) / 2;
-            } else {
-                targetCamX = Math.max(-150, Math.min(targetCamX, this.mapWidth + 150 - this.canvas.width));
-            }
-
-            if (this.canvas.height >= this.mapHeight + 300) {
-                targetCamY = (this.mapHeight - this.canvas.height) / 2;
-            } else {
-                targetCamY = Math.max(-150, Math.min(targetCamY, this.mapHeight + 150 - this.canvas.height));
-            }
-
             // 카메라 선형 보간 스무딩 (Lerp)
-            this.camera.x += (targetCamX - this.camera.x) * 0.08;
-            this.camera.y += (targetCamY - this.camera.y) * 0.08;
+            this.camera.x += (targetCamX - this.camera.x) * 0.1;
+            this.camera.y += (targetCamY - this.camera.y) * 0.1;
         }
 
         // [신규] 스마트 투명도 (Smart Transparency) 체크
@@ -6660,6 +6684,213 @@ class GameEngine {
         }
     }
 
+    // [신규 개편] 1) 정비/휴식 룸 모달 컨트롤러
+    openRestModal(stationType) {
+        const modal = document.getElementById('rest-modal');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+
+        const healBtn = document.getElementById('rest-heal-btn');
+        const ocBtn = document.getElementById('rest-overclock-btn');
+        const closeBtn = document.getElementById('rest-close-btn');
+
+        const healCost = 50;
+        const healCostEl = document.getElementById('rest-heal-cost');
+        if (healCostEl) healCostEl.innerText = `비용: 📀 ${healCost} 코인 (보유: ${this.player.coins || 0})`;
+
+        const memCount = (this.memoryFragments !== undefined) ? this.memoryFragments : (this.player.memoryFragments || 0);
+        const ocCostEl = document.getElementById('rest-overclock-cost');
+        if (ocCostEl) ocCostEl.innerText = `비용: 🧩 기억의 조각 1개 (보유: ${memCount})`;
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            this.portals.forEach(p => p.active = true);
+            this.updateHUD();
+        };
+
+        if (healBtn) {
+            healBtn.onclick = () => {
+                if ((this.player.coins || 0) < healCost) {
+                    this.showFloatingText("코인이 부족합니다! 📀", this.player.x, this.player.y - 30, '#ff0055');
+                    return;
+                }
+                this.player.coins -= healCost;
+                let healAmount = Math.floor(this.player.maxHp * 0.5);
+                this.player.maxHp += 20;
+                this.player.hp = Math.min(this.player.maxHp, this.player.hp + healAmount + 20);
+
+                this.showFloatingText("🩺 나노 치료 완료! HP 회복 & 최대 HP +20", this.player.x, this.player.y - 40, '#39ff14');
+                Sound.play('powerup');
+                closeModal();
+            };
+        }
+
+        if (ocBtn) {
+            ocBtn.onclick = () => {
+                let currentMem = (this.memoryFragments !== undefined) ? this.memoryFragments : (this.player.memoryFragments || 0);
+                if (currentMem < 1) {
+                    this.showFloatingText("기억의 조각이 부족합니다! 🧩", this.player.x, this.player.y - 30, '#ff0055');
+                    return;
+                }
+                if (this.memoryFragments !== undefined && this.memoryFragments > 0) this.memoryFragments--;
+                if (this.player.memoryFragments !== undefined && this.player.memoryFragments > 0) this.player.memoryFragments--;
+
+                let mainWpn = (this.player.equippedWeapons && this.player.equippedWeapons[0]) || 'sword';
+                this.player.weaponLevels[mainWpn] = (this.player.weaponLevels[mainWpn] || 1) + 1;
+
+                this.showFloatingText(`🛠️ [${mainWpn}] 무기 +1 오버클럭 완료!`, this.player.x, this.player.y - 40, '#ff9900');
+                Sound.play('powerup');
+                closeModal();
+            };
+        }
+
+        if (closeBtn) {
+            closeBtn.onclick = closeModal;
+        }
+    }
+
+    // [신규 개편] 2) 룰렛/도박 룸 (글리치 카지노) 모달 컨트롤러
+    openCasinoModal() {
+        const modal = document.getElementById('casino-modal');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+
+        const gambleBtn = document.getElementById('casino-gamble-btn');
+        const closeBtn = document.getElementById('casino-close-btn');
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            this.portals.forEach(p => p.active = true);
+            this.updateHUD();
+        };
+
+        if (gambleBtn) {
+            gambleBtn.onclick = () => {
+                let hpCost = Math.floor(this.player.maxHp * 0.2);
+                this.player.hp = Math.max(1, this.player.hp - hpCost);
+
+                let rand = Math.random();
+                if (rand < 0.85) {
+                    // 85% 확률 성공 보상풀 (40% 상위재료 / 60% 일반재료)
+                    let isHigher = Math.random() < 0.40;
+                    let count = isHigher ? 6 : 4;
+                    for (let k = 0; k < count; k++) {
+                        let matX = this.player.x + (Math.random() * 80 - 40);
+                        let matY = this.player.y + (Math.random() * 80 - 40);
+                        if (typeof DropMaterialEntity !== 'undefined') {
+                            this.materialsList.push(new DropMaterialEntity(matX, matY));
+                        }
+                    }
+                    this.showFloatingText(isHigher ? "🎰 [성공!] 상위 부품 재료 대량 획득!" : "🎰 [성공!] 일반 부품 재료 획득!", this.player.x, this.player.y - 40, '#39ff14');
+                    Sound.play('victory');
+                } else {
+                    // 15% 확률 실패 보상풀 (페이크 상자 / 몬스터 스폰)
+                    this.showFloatingText("⚠️ [실패!] 페이크 상자가 기습 공격합니다!", this.player.x, this.player.y - 40, '#ff0055');
+                    Sound.play('hit');
+
+                    if (typeof Monster !== 'undefined') {
+                        this.monsters.push(new Monster(this.player.x + 60, this.player.y, 'walker', this.roomNum));
+                    }
+                }
+                closeModal();
+            };
+        }
+
+        if (closeBtn) {
+            closeBtn.onclick = closeModal;
+        }
+    }
+
+    // [신규 개편] 3) 보스 룸 무기 특수 강화소 모달 컨트롤러
+    openEvolutionModal() {
+        const modal = document.getElementById('evolution-modal');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+
+        const listContainer = document.getElementById('evolution-weapon-list');
+        const closeBtn = document.getElementById('evolution-close-btn');
+
+        if (listContainer) {
+            listContainer.innerHTML = '';
+
+            const EVOLUTION_MAP = {
+                'crude_sword': 'plasma_blade',
+                'crude_spear': 'tachyon_spear',
+                'crude_whip': 'shock_whip',
+                'crude_lightning': 'thunder_storm',
+                'crude_fire': 'inferno_cannon',
+                'crude_cryo': 'cryo_freezer',
+                'crude_scythe': 'void_destroyer',
+                'crude_rail': 'tachyon_railgun',
+                'crude_thorns': 'gravity_singularity_field',
+                'crude_trap': 'fusion_plasma_cannon',
+                'sword': 'plasma_blade',
+                'spear': 'tachyon_spear',
+                'gun': 'tachyon_railgun'
+            };
+
+            const weapons = this.player.equippedWeapons || ['gun'];
+
+            weapons.forEach(wpnId => {
+                let currentLvl = (this.player.weaponLevels && this.player.weaponLevels[wpnId]) || 1;
+                let isMax = currentLvl >= 5;
+                let evoWpnId = EVOLUTION_MAP[wpnId] || 'plasma_blade';
+
+                const item = document.createElement('div');
+                item.style.cssText = "background: rgba(20, 10, 40, 0.8); border: 1.5px solid #b026ff; border-radius: 8px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;";
+
+                let wpnName = wpnId;
+                if (wpnId.includes('sword')) wpnName = '네온 검';
+                if (wpnId.includes('spear')) wpnName = '네온 창';
+                if (wpnId.includes('rail')) wpnName = '레일건';
+
+                let statusText = isMax ? `<span style="color: #39ff14; font-weight: bold;">[Lv.MAX] ⚡ 진화 가능 (${evoWpnId})</span>` : `<span style="color: #ff9900;">[Lv.${currentLvl}] ⬆️ +1 레벨업</span>`;
+
+                item.innerHTML = `
+                    <div style="text-align: left;">
+                        <div style="color: #fff; font-weight: bold;">${wpnName}</div>
+                        <div style="font-size: 0.8rem;">${statusText}</div>
+                    </div>
+                    <button class="evo-apply-btn" style="background: #b026ff; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; cursor: pointer;">강화 적용</button>
+                `;
+
+                const applyBtn = item.querySelector('.evo-apply-btn');
+                applyBtn.onclick = () => {
+                    if (isMax) {
+                        // 만렙 무기: 기존 무기 제거 후 진화 무기 무상 교체 장착
+                        this.player.equippedWeapons = this.player.equippedWeapons.filter(w => w !== wpnId);
+                        this.player.equippedWeapons.push(evoWpnId);
+                        if (!this.player.weaponLevels) this.player.weaponLevels = {};
+                        this.player.weaponLevels[evoWpnId] = 1;
+                        this.showFloatingText(`⚡ [${wpnName}] -> 진화 무기 장착 완료!`, this.player.x, this.player.y - 40, '#39ff14');
+                    } else {
+                        // 미만렙 무기: 1레벨만 올리기 (+1 Lv)
+                        if (!this.player.weaponLevels) this.player.weaponLevels = {};
+                        this.player.weaponLevels[wpnId] = currentLvl + 1;
+                        this.showFloatingText(`⚡ [${wpnName}] +1 레벨 강화 완료!`, this.player.x, this.player.y - 40, '#ff9900');
+                    }
+                    Sound.play('powerup');
+                    this.player.updateWeaponType();
+                    this.updateHUD();
+                    modal.classList.add('hidden');
+                    this.portals.forEach(p => p.active = true);
+                };
+
+                listContainer.appendChild(item);
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                modal.classList.add('hidden');
+                this.portals.forEach(p => p.active = true);
+            };
+        }
+    }
+
     // --------------------------------------------------------------------------
     // 9. 카드 보상 선택 레이아웃 트리거
     // --------------------------------------------------------------------------
@@ -7915,7 +8146,7 @@ class GameEngine {
 
             this.populateResultOverlay();
             this.gameOverActive = false; // 플래그 초기화
-        }, 1200);
+}, 1200);
     }
 
     triggerGameClear() {
@@ -7955,21 +8186,18 @@ class GameEngine {
 
         // 1.5초간 화려한 축제 연출이 가동된 뒤, 대화창 연출을 재생하고 그 완료 시점에 통계 오버레이를 열고 루프 정지
         setTimeout(() => {
-            if (isTrueEnding) {
-                // 진 엔딩 대화 상자 재생
-                const dialogueLines = [
-                    "최종 연산 코어 '크로노스 리얼 마스터' 파괴 확인.",
-                    "서브시스템 동기화가 중단되었으며, 콜로세움 코어 엔진의 제어권이 탈환되었습니다.",
-                    "경고: 가상 경계벽 붕괴 진행 중... 모든 갇힌 기억들이 현실의 세계로 방류됩니다.",
-                    "축하합니다. 당신은 거짓된 루프를 끊어내고 진짜 세계의 해방을 쟁취하였습니다!"
-                ];
-                this.showDialogue("SYSTEM", dialogueLines, () => {
-                    this.isPlaying = false;
+            const endingData = (typeof window.ScenarioDialogue !== 'undefined')
+                ? window.ScenarioDialogue.getEndingDialogue(isTrueEnding)
+                : { speaker: "SYSTEM", lines: isTrueEnding ? ["진 엔딩 달성!"] : ["노말 엔딩 달성!"] };
 
-                    const titleEl = document.getElementById('result-title');
-                    const msgEl = document.getElementById('result-message');
-                    const boxEl = document.querySelector('.result-box');
+            this.showDialogue(endingData.speaker, endingData.lines, () => {
+                this.isPlaying = false;
 
+                const titleEl = document.getElementById('result-title');
+                const msgEl = document.getElementById('result-message');
+                const boxEl = document.querySelector('.result-box');
+
+                if (isTrueEnding) {
                     if (titleEl) {
                         titleEl.innerText = "TRUE LIBERATION!";
                         titleEl.className = "text-glow-magenta";
@@ -7981,23 +8209,7 @@ class GameEngine {
                         boxEl.style.borderColor = '#ff00aa';
                         boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 45px rgba(255, 0, 170, 0.65)';
                     }
-
-                    this.populateResultOverlay();
-                });
-            } else {
-                // 노멀 엔딩 대화 상자 재생
-                const dialogueLines = [
-                    "차원 탈출 포털이 가동되었습니다. 물리적 형체가 네온 콜로세움에서 이탈합니다...",
-                    "경고: 잔류 기억의 완전한 포맷 프로세스가 시작됩니다.",
-                    "기억은 말끔히 포맷되었습니다. 당신은 다시 1층에서 깨어나 이 굴레를 반복할 것입니다..."
-                ];
-                this.showDialogue("SYSTEM", dialogueLines, () => {
-                    this.isPlaying = false;
-
-                    const titleEl = document.getElementById('result-title');
-                    const msgEl = document.getElementById('result-message');
-                    const boxEl = document.querySelector('.result-box');
-
+                } else {
                     if (titleEl) {
                         titleEl.innerText = "NORMAL ENDING";
                         titleEl.className = "text-glow-blue";
@@ -8009,353 +8221,429 @@ class GameEngine {
                         boxEl.style.borderColor = '#00f0ff';
                         boxEl.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.35)';
                     }
+                }
 
-                    this.populateResultOverlay();
-                });
-            }
+                this.populateResultOverlay();
+            });
         }, 1500);
     }
 
-    // 모달창 최종 통계 수치 기입
-    populateResultOverlay() {
-        // [신규] 결과 오버레이 진입 시 스토리 대화창 숨김 처리
-        const storyOverlay = document.getElementById('story-dialogue-overlay');
-        if (storyOverlay) {
-            storyOverlay.classList.add('hidden');
-        }
+    // 플레이어 스탯 및 상태를 치트 UI에 적용
+    syncCheatUIFromPlayer() {
+        const p = this.player;
+        if (!p) return;
 
-        // 이번 판에서 획득한 기억의 조각 계산 및 가산
-        let maxRoomLimit = this.roomNum >= 101 ? 101 : 100;
-        let gainedFragments = Math.floor(Math.min(maxRoomLimit, this.roomNum) * 0.1 + this.score * 0.0005);
-        if (this.roomNum === 101) {
-            gainedFragments += 10; // 진 엔딩 기념 보너스 조각
-        }
-        this.addMemoryFragments(gainedFragments);
-
-        document.getElementById('res-room').innerText = `${this.roomNum} / ${maxRoomLimit}`;
-        document.getElementById('res-score').innerText = this.score;
-        document.getElementById('res-kills').innerText = this.kills;
-        document.getElementById('res-gained-fragments').innerText = gainedFragments;
-        document.getElementById('res-unused-fragments').innerText = this.unusedFragments;
-
-        let wpnStr = "맨몸 (안드로이드)";
-        const wNames = {
-            energy_ball: "에너지 볼 (Energy Ball)",
-            crude_sword: "조잡한 진동검 (Crude)", plasma_saber: "플라즈마 세이버 (Advanced)",
-            crude_spear: "조잡한 창 (Crude)", energy_pilebunker: "에너지 파일벙커 (Advanced)",
-            crude_whip: "조잡한 채찍 (Crude)", nano_laser_wire: "나노 레이저 와이어 (Advanced)",
-            crude_shock: "조잡한 전기 충격기 (Crude)", chain_emp_shock: "체인 EMP 쇼크 (Advanced)",
-            crude_flamethrower: "조잡한 화염방사기 (Crude)", fusion_plasma_cannon: "퓨전 플라즈마 캐논 (Advanced)",
-            crude_cryo: "조잡한 냉각총 (Crude)", cryo_freezer: "크라이오 프리저 (Advanced)",
-            crude_thorns: "조잡한 가시갑옷 (Crude)", gravity_singularity_field: "중력 특이점 필드 (Advanced)",
-            crude_trap: "조잡한 덫 (Crude)", proximity_cyber_mine: "프록시미티 사이버 마인 (Advanced)",
-            crude_scythe: "조잡한 낫 (Crude)", void_destroyer: "보이드 디스트로이어 (Advanced)",
-            crude_rail: "조잡한 레일건 (Crude)", tachyon_railgun: "태키온 레일건 (Advanced)"
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
         };
-        if (wNames[this.player.weaponType]) {
-            wpnStr = wNames[this.player.weaponType];
-        } 
-        document.getElementById('res-wpn').innerText = wpnStr;
+        const setChecked = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = !!val;
+        };
 
-        // [신규] 랭킹 등록 영역 상태 초기화
-        const rankSubmitArea = document.getElementById('rank-submit-area');
-        const nicknameInput = document.getElementById('rank-nickname');
-        const submitBtn = document.getElementById('submit-rank-btn');
-        const feedbackMsg = document.getElementById('rank-feedback-msg');
+        // 1. 기본 스탯 동기화
+        setVal('cheat-atk', p.atk);
+        setVal('cheat-aspd', p.aspd ? p.aspd.toFixed(2) : 1);
+        setVal('cheat-ms', p.ms ? p.ms.toFixed(2) : 1);
+        setVal('cheat-evd', p.evd ? p.evd.toFixed(2) : 0);
+        setVal('cheat-def', p.def || 0);
+        setVal('cheat-luk', p.luk ? p.luk.toFixed(2) : 0);
+        setVal('cheat-regen', p.hpRegen ? p.hpRegen.toFixed(2) : 0);
+        setVal('cheat-hp', Math.ceil(p.hp || 0));
+        setVal('cheat-max-hp', p.maxHp || 100);
+        setVal('cheat-mp', Math.ceil(p.mp || 0));
+        setVal('cheat-max-mp', p.maxMp || 100);
+        setVal('cheat-stamina', Math.ceil(p.stamina || 0));
+        setVal('cheat-max-stamina', p.maxStamina || 100);
 
-        if (rankSubmitArea && nicknameInput && submitBtn && feedbackMsg) {
-            // 원래 바로 드러나던 랭킹 등록창을 2단계로 숨김 처리 (기본 hidden 부여)
-            rankSubmitArea.classList.add('hidden');
-            nicknameInput.value = "";
-            nicknameInput.disabled = false;
-            submitBtn.disabled = false;
-            feedbackMsg.classList.add('hidden');
-            feedbackMsg.innerText = "";
-            feedbackMsg.className = "rank-feedback-text hidden";
-        }
-
-        // 최종 습득 장비 현황 그리드 바인딩
-        const resultGrid = document.getElementById('result-equipments-grid');
-        if (resultGrid) {
-            resultGrid.innerHTML = '';
-
-            // 1. 활성화된 무기 6종 탐색
-            const wpns = [
-                { key: 'sword', name: '네온 검', icon: '⚔️' },
-                { key: 'spear', name: '네온 창', icon: '🔱' },
-                { key: 'whip', name: '네온 채찍', icon: '🧣' },
-                { key: 'lightning', name: '번개마법', icon: '⚡' },
-                { key: 'fire', name: '불마법', icon: '🔥' },
-                { key: 'ice', name: '얼음마법', icon: '❄' }
-            ];
-            let wpnCount = 0;
-            wpns.forEach(w => {
-                const lvl = (this.player && this.player.weaponLevels) ? (this.player.weaponLevels[w.key] || 0) : 0;
-                if (lvl > 0) {
-                    wpnCount++;
-                    const card = document.createElement('div');
-                    card.className = lvl >= 5 ? 'status-card active-weapon master' : 'status-card active-weapon';
-                    card.innerHTML = `
-                        <span class="icon">${w.icon}</span>
-                        <div class="info">
-                            <span class="name">${w.name}</span>
-                            <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 5)}</span>
-                        </div>
-                    `;
-                    resultGrid.appendChild(card);
-                }
-            });
-
-            // 만약 아무 무기도 활성화 안 되어 있다면 기본 총기 추가
-            if (wpnCount === 0) {
-                const card = document.createElement('div');
-                card.className = 'status-card active-weapon';
-                card.innerHTML = `
-                    <span class="icon">🔫</span>
-                    <div class="info">
-                        <span class="name">기본 총기</span>
-                        <span class="level">기본 장착</span>
-                    </div>
-                `;
-                resultGrid.appendChild(card);
-            }
-
-            // 2. 활성화된 보조 장비 10종 탐색
-            const equips = [
-                { key: 'armor', name: '방어 갑옷', icon: '🛡️' },
-                { key: 'boots', name: '신속 부츠', icon: '🥾' },
-                { key: 'gloves', name: '공격 장갑', icon: '🧤' },
-                { key: 'helm', name: '지혜 투구', icon: '🪖' },
-                { key: 'necklace', name: '행운 목걸이', icon: '📿' },
-                { key: 'ring_mp', name: '마력 반지', icon: '💍' },
-                { key: 'ring_hp', name: '생명 반지', icon: '💍' },
-                { key: 'ring_speed', name: '신속 반지', icon: '💍' },
-                { key: 'ring_aspd', name: '공속 반지', icon: '💍' },
-                { key: 'ring_evd', name: '회피 반지', icon: '💍' },
-                { key: 'goggles', name: '차원 고글', icon: '🥽' }
-            ];
-            equips.forEach(eq => {
-                const lvl = (this.player && this.player.equipLevels) ? (this.player.equipLevels[eq.key] || 0) : 0;
-                if (lvl > 0) {
-                    const card = document.createElement('div');
-                    card.className = lvl >= 10 ? 'status-card active-equip master' : 'status-card active-equip';
-                    card.innerHTML = `
-                        <span class="icon">${eq.icon}</span>
-                        <div class="info">
-                            <span class="name">${eq.name}</span>
-                            <span class="level">Lv.${lvl} ${this.buildLevelIndicator(lvl, 10)}</span>
-                        </div>
-                    `;
-                    resultGrid.appendChild(card);
-                }
-            });
-        }
-
-        document.getElementById('result-overlay').classList.remove('hidden');
-    }
-
-    // [신규] 명예의 전당 랭킹 등록 비동기 처리 (고도화 및 피드백 통합 완료)
-    async submitRanking() {
-        const nicknameInput = document.getElementById('rank-nickname');
-        const submitBtn = document.getElementById('submit-rank-btn');
-        const feedbackMsg = document.getElementById('rank-feedback-msg');
-
-        if (!nicknameInput || !submitBtn || !feedbackMsg) return;
-
-        const name = nicknameInput.value.trim().toUpperCase();
-
-        // 입력 박스 보더 색상 초기화
-        nicknameInput.style.borderColor = 'rgba(0, 240, 255, 0.4)';
-
-        // 유효성 체크
-        if (!name || name === "") {
-            Sound.play('hit');
-            feedbackMsg.innerText = "⚠️ 닉네임을 입력해 주세요!";
-            feedbackMsg.style.color = '#ff0055';
-            feedbackMsg.classList.remove('hidden');
-            nicknameInput.style.borderColor = '#ff0055';
-            return;
-        }
-
-        const nameRegex = /^[A-Z0-9]+$/;
-        if (!nameRegex.test(name)) {
-            Sound.play('hit');
-            feedbackMsg.innerText = "⚠️ 영문 대문자와 숫자 조합(공백 없음)만 가능합니다!";
-            feedbackMsg.style.color = '#ff0055';
-            feedbackMsg.classList.remove('hidden');
-            nicknameInput.style.borderColor = '#ff0055';
-            return;
-        }
-
-        if (name.length < 2 || name.length > 10) {
-            Sound.play('hit');
-            feedbackMsg.innerText = "⚠️ 닉네임은 2자 이상 10자 이하로 해주세요!";
-            feedbackMsg.style.color = '#ff0055';
-            feedbackMsg.classList.remove('hidden');
-            nicknameInput.style.borderColor = '#ff0055';
-            return;
-        }
-
-        // 제출 중 비활성화 처리 (더블클릭 방지)
-        nicknameInput.disabled = true;
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.5';
-        submitBtn.style.cursor = 'not-allowed';
-
-        feedbackMsg.innerText = "⚡ 네온 서버 통신 전송 중...";
-        feedbackMsg.style.color = '#00f0ff';
-        feedbackMsg.classList.remove('hidden');
-
-        try {
-            // 플레이어가 착용 중인 최종 주무기 8종 한글 세부 정보 매핑
-            let wpnStr = "총 (Gun)";
-            const currentWpn = this.player.weaponType;
-            if (currentWpn === 'sword') wpnStr = "검 (Sword)";
-            else if (currentWpn === 'dual') wpnStr = "검 + 총 (Hybrid)";
-            else if (currentWpn === 'spear') wpnStr = "창 (Spear)";
-            else if (currentWpn === 'whip') wpnStr = "채찍 (Whip)";
-            else if (currentWpn === 'lightning') wpnStr = "번개마법 (Lightning)";
-            else if (currentWpn === 'fire') wpnStr = "불마법 (Fire)";
-            else if (currentWpn === 'ice') wpnStr = "얼음마법 (Ice)";
-            else if (currentWpn === 'supercritical_plasma_fusion') wpnStr = "플라즈마 초융합 (Evo-초월)";
-
-            const result = await window.RankSystem.addRankRecord(
-                name,
-                this.score,
-                this.roomNum,
-                this.kills,
-                wpnStr
-            );
-
-            if (result.success) {
-                Sound.play('powerup');
-
-                if (result.mode === 'online') {
-                    feedbackMsg.innerText = "🏆 명예의 전당 온라인 실시간 동기화 등록 성공!";
-                    feedbackMsg.style.color = '#39ff14';
-                } else if (result.mode === 'fallback') {
-                    feedbackMsg.innerText = "🔌 네트워크 대기: 로컬 저장소에 우선 세이프 임시 등록되었습니다!";
-                    feedbackMsg.style.color = '#ffdf00';
-                } else {
-                    feedbackMsg.innerText = "💾 로컬 랭킹 세이브 보관 완료!";
-                    feedbackMsg.style.color = '#39ff14';
-                }
-
-                // 1.2초 뒤에 랭킹 창을 자연스럽게 띄우고 등록 폼을 숨김 처리하여 자신의 기록을 확인하게 함
-                setTimeout(() => {
-                    document.getElementById('rank-submit-area').classList.add('hidden');
-                    this.showLeaderboard(true);
-                }, 1200);
-            }
-        } catch (error) {
-            console.error(error);
-            Sound.play('hit');
-            feedbackMsg.innerText = "❌ 등록 에러: " + (error.message || '알 수 없는 서버 에러');
-            feedbackMsg.style.color = '#ff0055';
-            nicknameInput.style.borderColor = '#ff0055';
-
-            nicknameInput.disabled = false;
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-            submitBtn.style.cursor = 'pointer';
-        }
-    }
-
-    // [신규] 리더보드 모달 열기 및 실시간 렌더링 (로컬 랭킹 포함 여부 인수 보완)
-    async showLeaderboard(includeLocal = true) {
-        const overlay = document.getElementById('ranking-modal-overlay');
-        const loading = document.getElementById('ranking-loading');
-        const empty = document.getElementById('ranking-empty');
-        const table = document.getElementById('ranking-table');
-        const tbody = document.getElementById('ranking-table-body');
-
-        if (!overlay || !loading || !empty || !table || !tbody) return;
-
-        // 모달 표시 및 초기 상태 지정
-        overlay.classList.remove('hidden');
-        loading.classList.remove('hidden');
-        empty.classList.add('hidden');
-        table.classList.add('hidden');
-        tbody.innerHTML = "";
-
-        // 필터 버튼들의 UI 상태 동기화 (all: 로컬 포함, online: 온라인만)
-        const filterBtns = document.querySelectorAll('.rank-filter-btn');
-        filterBtns.forEach(btn => {
-            if (btn.getAttribute('data-filter') === (includeLocal ? 'all' : 'online')) {
+        // 2. 무기 유형 동기화 및 무기 레벨 정보 표기 갱신
+        const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
+        wpnBtns.forEach(btn => {
+            const wpn = btn.getAttribute('data-wpn');
+            if (wpn === p.weaponType) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
             }
+
+            if (!btn.hasAttribute('data-original-label')) {
+                btn.setAttribute('data-original-label', btn.innerText.split(' [')[0]);
+            }
+            const baseLabel = btn.getAttribute('data-original-label');
+
+            if (wpn === 'energy_ball') {
+                btn.innerText = `${baseLabel} [Lv.1]`;
+            } else if (wpn === 'supercritical_plasma_fusion') {
+                btn.innerText = `${baseLabel}`;
+            } else if (wpn === 'time') {
+                btn.innerText = `${baseLabel} [${p.hasTimeWarp ? '해금' : '잠금'}]`;
+            } else if (p.weaponLevels && p.weaponLevels[wpn] !== undefined) {
+                const lvl = p.weaponLevels[wpn] || 0;
+                btn.innerText = `${baseLabel} [Lv.${lvl}]`;
+            }
         });
 
-        try {
-            // 전역 랭킹 시스템에서 Top 10 정보 로드
-            const rankings = await window.RankSystem.getTopRankings(10, includeLocal);
+        // 3. 투사체 옵션 동기화
+        setVal('cheat-multishot', p.multishot);
+        setVal('cheat-burst', p.burstCount);
+        setVal('cheat-pierce', p.pierceCount);
+        setVal('cheat-range', p.range);
+        setVal('cheat-splash', p.splashRadius);
+        setChecked('cheat-homing', p.homing);
+        setVal('cheat-wall-bounce', p.wallBounceLimit);
+        setVal('cheat-monster-bounce', p.monsterBounceLimit);
 
-            if (rankings.length === 0) {
-                loading.classList.add('hidden');
-                empty.classList.remove('hidden');
-            } else {
-                rankings.forEach((rank, index) => {
-                    const tr = document.createElement('tr');
-                    const rankNum = index + 1;
+        // 4. 무적 모드 동기화
+        setChecked('cheat-godmode', p.isGodMode);
 
-                    // 1, 2, 3위에 따라 특수 글로우 및 행 스타일 지정
-                    if (rankNum === 1) {
-                        tr.className = "rank-row-1";
-                    } else if (rankNum === 2) {
-                        tr.className = "rank-row-2";
-                    } else if (rankNum === 3) {
-                        tr.className = "rank-row-3";
-                    }
-
-                    // 순위 뱃지 설정
-                    let rankBadge = `${rankNum}위`;
-                    if (rankNum === 1) rankBadge = `<span class="rank-badge badge-1">🏆 1위</span>`;
-                    else if (rankNum === 2) rankBadge = `<span class="rank-badge badge-2">🥈 2위</span>`;
-                    else if (rankNum === 3) rankBadge = `<span class="rank-badge badge-3">🥉 3위</span>`;
-
-                    // 로컬 임시 데이터 표시용 뱃지
-                    const localBadgeHtml = rank.isLocalTemp ? `<span class="local-temp-badge">로컬 랭킹</span>` : "";
-
-                    tr.innerHTML = `
-                        <td style="padding: 12px 5px; font-weight: 800;">${rankBadge}</td>
-                        <td style="padding: 12px 5px; font-weight: 700; color: #fff;">${rank.name}${localBadgeHtml}</td>
-                        <td style="padding: 12px 5px; font-weight: 800; font-family: monospace; font-size: 1rem;">${rank.score.toLocaleString()}</td>
-                        <td style="padding: 12px 5px;">${rank.room} / 100</td>
-                        <td style="padding: 12px 5px; color: #ff0055; font-weight: 600;">💀 ${rank.kills}</td>
-                        <td style="padding: 12px 5px; color: #a0aec0; font-size: 0.8rem;">${rank.date}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                loading.classList.add('hidden');
-                table.classList.remove('hidden');
-            }
-        } catch (error) {
-            console.error("랭킹 목록 로드 에러:", error);
-            loading.classList.add('hidden');
-            empty.innerHTML = `<p style="color: #ff0055;">⚠️ 명예의 전당 조회 오류<br>${error.message}</p>`;
-            empty.classList.remove('hidden');
-        }
+        // 5. 다음 층 비밀방 강제 동기화
+        setChecked('cheat-forcesecret', this.forceSecretWallNextRoom);
     }
 
-    // [신규] 리더보드 모달 닫기
-    hideLeaderboard() {
-        const overlay = document.getElementById('ranking-modal-overlay');
-        if (overlay) {
-            overlay.classList.add('hidden');
+    // 치트 메뉴 조작 이벤트 리스너 바인딩
+    initCheatSystemEvents() {
+        const bindClick = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', fn);
+        };
+        const bindChange = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', fn);
+        };
+
+        // 모달 닫기
+        bindClick('cheat-close-btn', () => this.toggleCheatMenu());
+
+        // 탭 스위칭
+        const tabBtns = document.querySelectorAll('.cheat-tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetTabId = btn.getAttribute('data-tab');
+
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const contents = document.querySelectorAll('.cheat-tab-content');
+                contents.forEach(c => c.classList.remove('active'));
+                const targetEl = document.getElementById(targetTabId);
+                if (targetEl) targetEl.classList.add('active');
+            });
+        });
+
+        // 스탯 일괄 적용
+        bindClick('cheat-apply-stats', () => {
+            const p = this.player;
+            if (!p) return;
+            const getNum = (id, fallback) => {
+                const el = document.getElementById(id);
+                return el ? parseFloat(el.value) || fallback : fallback;
+            };
+
+            p.atk = getNum('cheat-atk', p.atk);
+            p.aspd = getNum('cheat-aspd', p.aspd);
+            p.ms = getNum('cheat-ms', p.ms);
+            p.evd = getNum('cheat-evd', p.evd);
+            p.def = Math.floor(getNum('cheat-def', p.def));
+            p.luk = getNum('cheat-luk', p.luk);
+
+            p.maxHp = Math.floor(getNum('cheat-max-hp', p.maxHp));
+            p.hp = Math.min(p.maxHp, getNum('cheat-hp', p.hp));
+
+            p.maxMp = Math.floor(getNum('cheat-max-mp', p.maxMp));
+            p.mp = Math.min(p.maxMp, getNum('cheat-mp', p.mp));
+
+            this.updateHUD();
+            this.showFloatingText("STATS UPDATED! ⚡", p.x, p.y - 40, '#00f0ff');
+        });
+
+        // 무기 유형 스위칭
+        const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
+        wpnBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const wpnType = btn.getAttribute('data-wpn');
+                this.applyWeaponCheat(wpnType);
+
+                wpnBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 부품 충전 치트
+        bindClick('cheat-add-all-materials', () => {
+            if (this.player && this.player.materials) {
+                for (let key in this.player.materials) {
+                    this.player.materials[key] = (this.player.materials[key] || 0) + 5;
+                }
+                this.updateHUD();
+                if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+                this.showFloatingText("ALL MATERIALS +5! 🧩", this.player.x, this.player.y - 40, '#39ff14');
+            }
+        });
+
+        bindClick('cheat-add-materials-20', () => {
+            if (this.player && this.player.materials) {
+                for (let key in this.player.materials) {
+                    this.player.materials[key] = (this.player.materials[key] || 0) + 20;
+                }
+                this.updateHUD();
+                if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+                this.showFloatingText("ALL MATERIALS +20! 🧩", this.player.x, this.player.y - 40, '#39ff14');
+            }
+        });
+
+        // 설계도 해금 / 초기화
+        bindClick('cheat-unlock-all-blueprints', () => {
+            if (window.CRAFTING_RECIPES && this.player) {
+                this.player.unlockedBlueprints = this.player.unlockedBlueprints || [];
+                for (let wId in window.CRAFTING_RECIPES) {
+                    if (!this.player.unlockedBlueprints.includes(wId)) {
+                        this.player.unlockedBlueprints.push(wId);
+                    }
+                }
+            }
+            this.showFloatingText("ALL BLUEPRINTS UNLOCKED! 🔮", this.player.x, this.player.y - 40, '#ffdf00');
+            if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+        });
+        bindClick('cheat-reset-blueprints', () => {
+            if (this.player) this.player.unlockedBlueprints = [];
+            this.showFloatingText("BLUEPRINTS RESET! 🔄", this.player.x, this.player.y - 40, '#ff0055');
+            if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+        });
+
+        // 무적 모드 토글
+        bindChange('cheat-godmode', (e) => {
+            if (this.player) {
+                this.player.isGodMode = e.target.checked;
+                const text = this.player.isGodMode ? "GOD MODE ACTIVE 🛡️" : "GOD MODE DEACTIVATED";
+                const color = this.player.isGodMode ? '#ffdf00' : '#ff0055';
+                this.showFloatingText(text, this.player.x, this.player.y - 40, color);
+            }
+        });
+
+        // 비밀방 강제 토글
+        bindChange('cheat-forcesecret', (e) => {
+            this.forceSecretWallNextRoom = e.target.checked;
+            const text = this.forceSecretWallNextRoom ? "FORCE SECRET WALL ACTIVE 🔮" : "FORCE SECRET WALL DEACTIVATED";
+            const color = this.forceSecretWallNextRoom ? '#b026ff' : '#ff0055';
+            this.showFloatingText(text, this.player.x, this.player.y - 40, color);
+        });
+
+        // 코인 치트
+        bindClick('cheat-add-coin-100', () => this.addCoinsCheat(100));
+        bindClick('cheat-add-coin-1000', () => this.addCoinsCheat(1000));
+
+        // 방 소탕 & 보상 소환
+        bindClick('cheat-clear-room', () => this.clearRoomCheat());
+        bindClick('cheat-spawn-reward', () => {
+            this.enqueueReward({ type: 'reward', isFromHiddenChest: true });
+            this.toggleCheatMenu();
+            this.showFloatingText("보상 선택 오버레이 즉시 호출 🎁", this.player.x, this.player.y - 40, '#00f0ff');
+        });
+
+        // 리롤 / 건너뛰기 횟수 적용
+        bindClick('cheat-apply-rolls', () => {
+            const rerollEl = document.getElementById('cheat-reroll-count');
+            const skipEl = document.getElementById('cheat-skip-count');
+            if (this.player) {
+                if (rerollEl) this.player.rerollCount = parseInt(rerollEl.value) || 0;
+                if (skipEl) this.player.skipCount = parseInt(skipEl.value) || 0;
+                this.updateHUD();
+                this.showFloatingText("REROLL / SKIP RECHARGED! 🎲", this.player.x, this.player.y - 40, '#ffdf00');
+            }
+        });
+
+        // 스테이지 워프
+        bindClick('cheat-warp-stage-btn', () => {
+            const inputEl = document.getElementById('cheat-warp-stage-input');
+            const stageVal = inputEl ? parseInt(inputEl.value) || 1 : 1;
+            this.warpStageCheat(stageVal);
+        });
+
+        // 기억의 조각 치트
+        bindClick('cheat-add-fragment-10', () => {
+            this.addMemoryFragments(10);
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 +10 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+        });
+        bindClick('cheat-add-fragment-100', () => {
+            this.addMemoryFragments(100);
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 +100 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+        });
+        bindClick('cheat-set-fragment-7', () => {
+            this.totalFragments = 7;
+            this.spentFragments = 0;
+            this.saveMemoryFragments();
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 7개 설정 (3단계 선명) 🧩", this.player.x, this.player.y - 40, '#00f0ff');
+        });
+        bindClick('cheat-reset-fragment', () => {
+            this.totalFragments = 0;
+            this.spentFragments = 0;
+            this.saveMemoryFragments();
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 초기화 🔄", this.player.x, this.player.y - 40, '#ff0055');
+        });
+
+        // 주요 층 직관적 워프 버튼 바인딩
+        document.querySelectorAll('.cheat-btn-warp-target').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const floor = parseInt(btn.getAttribute('data-floor')) || 1;
+                this.warpStageCheat(floor);
+            });
+        });
+
+        // 시나리오 대화창 시뮬레이터 8종 바인딩
+        const bindDialogueSim = (btnId, getDialogueFn) => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    const cheatOverlay = document.getElementById('cheat-overlay');
+                    if (cheatOverlay) cheatOverlay.classList.add('hidden');
+
+                    const d = getDialogueFn();
+                    this.showDialogue(d.speaker, d.lines, () => {
+                        this.showFloatingText("대화 연출 시뮬레이션 완료 🗣️", this.player.x, this.player.y - 40, '#00f0ff');
+                    });
+                });
+            }
+        };
+
+        bindDialogueSim('cheat-dialogue-prologue', () => window.ScenarioDialogue.getPrologue(this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-secret', () => window.ScenarioDialogue.getSecretRoomDialogue(this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss10', () => window.ScenarioDialogue.getBossDialogue(10, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss20', () => window.ScenarioDialogue.getBossDialogue(20, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss100', () => window.ScenarioDialogue.getBossDialogue(100, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss101', () => window.ScenarioDialogue.getBossDialogue(101, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-ending-normal', () => window.ScenarioDialogue.getEndingDialogue(false));
+        bindDialogueSim('cheat-dialogue-ending-true', () => window.ScenarioDialogue.getEndingDialogue(true));
+
+        // 히든 아이템 치트 버튼 바인딩
+        bindClick('cheat-hidden-joystick', () => this.acquireHiddenItem('brokenJoystick'));
+        bindClick('cheat-hidden-repairkit', () => this.acquireHiddenItem('repairKit'));
+        bindClick('cheat-hidden-manual', () => this.acquireHiddenItem('manual'));
+
+        // 3슬롯 계약 강제 해금
+        bindClick('cheat-unlock-3slot-btn', () => {
+            if (this.player) {
+                this.player.maxWeaponSlots = 3;
+                this.player.thirdSlotWeapon = null;
+                this.showFloatingText("3슬롯 계약 강제 해금! 🔮", this.player.x, this.player.y - 40, '#b026ff');
+            }
+        });
+
+        // 무기 목록 리셋
+        bindClick('cheat-reset-weapons-tab-btn', () => {
+            if (this.player) {
+                this.player.equippedWeapons = ['gun'];
+                this.player.thirdSlotWeapon = null;
+                this.player.weaponLevels = {
+                    sword: 0, spear: 0, whip: 0, shock: 0, flamethrower: 0,
+                    cryo: 0, thorns: 0, trap: 0, scythe: 0, railgun: 0
+                };
+                this.updateHUD();
+                this.showFloatingText("WEAPONS RESET 🔄", this.player.x, this.player.y - 40, '#ff0055');
+            }
+        });
+
+        // 맵 테마 시뮬레이터 치트 바인딩
+        const bindThemeCheat = (btnId, roomNum, roomType = 'normal') => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    this.currentRoomType = roomType;
+                    this.roomNum = roomNum;
+                    this.updateHUD();
+                    this.showFloatingText(`테마 강제 변경: ${roomNum}층 (${roomType}) 🎨`, this.player.x, this.player.y - 40, '#00f0ff');
+                });
+            }
+        };
+
+        bindThemeCheat('cheat-theme-cyber', 1);
+        bindThemeCheat('cheat-theme-volcanic', 15);
+        bindThemeCheat('cheat-theme-frozen', 25);
+        bindThemeCheat('cheat-theme-overgrown', 35);
+        bindThemeCheat('cheat-theme-abyssal', 45);
+        bindThemeCheat('cheat-theme-singularity', 55);
+        bindThemeCheat('cheat-theme-boss', 10);
+        bindThemeCheat('cheat-theme-secret', 1, 'secret_room');
+        bindThemeCheat('cheat-theme-reset', 1, 'normal');
+
+        // 커스텀 맵 로더 이벤트 바인딩
+        const mapFileInput = document.getElementById('cheat-map-file-input');
+        const mapFileBtn = document.getElementById('cheat-map-file-btn');
+        const mapFileName = document.getElementById('cheat-map-file-name');
+        const mapJsonInput = document.getElementById('cheat-map-json-input');
+        const mapLoadBtn = document.getElementById('cheat-map-load-btn');
+        const mapStatusMsg = document.getElementById('cheat-map-status-msg');
+
+        if (mapFileBtn && mapFileInput) {
+            mapFileBtn.addEventListener('click', () => mapFileInput.click());
+            mapFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (mapFileName) mapFileName.innerText = file.name;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    if (mapJsonInput) mapJsonInput.value = evt.target.result;
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = "파일을 성공적으로 읽었습니다.";
+                        mapStatusMsg.style.color = "#39ff14";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            });
         }
+
+        if (mapLoadBtn && mapJsonInput) {
+            mapLoadBtn.addEventListener('click', () => {
+                const jsonText = mapJsonInput.value.trim();
+                if (!jsonText) return;
+                try {
+                    const data = JSON.parse(jsonText);
+                    if (data.presetKey && data.grid && data.portalSpawnInfo) {
+                        MAP_PRESETS[data.presetKey] = data.grid;
+                        PORTAL_SPAWN_INFOS[data.presetKey] = data.portalSpawnInfo;
+                        if (this.isPlaying) {
+                            this.loadCustomMapPreset(data.presetKey);
+                        }
+                        if (mapStatusMsg) {
+                            mapStatusMsg.innerText = `✅ 성공: '${data.presetKey}' 등록 완료!`;
+                            mapStatusMsg.style.color = "#39ff14";
+                            mapStatusMsg.classList.remove('hidden');
+                        }
+                    }
+                } catch (err) {
+                    if (mapStatusMsg) {
+                        mapStatusMsg.innerText = `🚨 오류: JSON 파싱 실패! (${err.message})`;
+                        mapStatusMsg.style.color = "#ff0055";
+                        mapStatusMsg.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
+        // Phase 2 몬스터/스폰/보스 검증 치트 이벤트 바인딩
+        this.initMonsterCheatEvents();
     }
 
     // [신규] 방 레벨(층) 및 방 타입에 따른 가변 맵 테마 정보 반환
-    getSectorTheme(roomNum, roomType) {
-        return this.mapEngine.getSectorTheme(roomNum, roomType);
+    getSectorTheme(roomNum = this.roomNum, roomType = this.currentRoomType) {
+        if (this.mapEngine && typeof this.mapEngine.getSectorTheme === 'function') {
+            return this.mapEngine.getSectorTheme(roomNum, roomType);
+        }
+        return {
+            bgColor: '#080812',
+            innerBgColor: '#0c0c1a',
+            outerBorder: 'rgba(0, 240, 255, 0.2)',
+            innerBorder: 'rgba(0, 240, 255, 0.4)',
+            gridColor: 'rgba(0, 240, 255, 0.02)'
+        };
     }
 
-    // --------------------------------------------------------------------------
-    // 11. HTML5 Canvas 커스텀 네온 렌더러
-    // --------------------------------------------------------------------------
     render() {
         // 캔버스 전체 영역 클리어 (여백 찌꺼기 방지)
         if (this.canvas) {
@@ -8979,21 +9267,31 @@ class GameEngine {
     // 플레이어 스탯 및 상태를 치트 UI에 적용
     syncCheatUIFromPlayer() {
         const p = this.player;
+        if (!p) return;
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+        const setChecked = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = !!val;
+        };
 
         // 1. 기본 스탯 동기화
-        document.getElementById('cheat-atk').value = p.atk;
-        document.getElementById('cheat-aspd').value = p.aspd.toFixed(2);
-        document.getElementById('cheat-ms').value = p.ms.toFixed(2);
-        document.getElementById('cheat-evd').value = p.evd.toFixed(2);
-        document.getElementById('cheat-def').value = p.def;
-        document.getElementById('cheat-luk').value = p.luk.toFixed(2);
-        document.getElementById('cheat-regen').value = p.hpRegen.toFixed(2);
-        document.getElementById('cheat-hp').value = Math.ceil(p.hp);
-        document.getElementById('cheat-max-hp').value = p.maxHp;
-        document.getElementById('cheat-mp').value = Math.ceil(p.mp);
-        document.getElementById('cheat-max-mp').value = p.maxMp;
-        document.getElementById('cheat-stamina').value = Math.ceil(p.stamina);
-        document.getElementById('cheat-max-stamina').value = p.maxStamina;
+        setVal('cheat-atk', p.atk);
+        setVal('cheat-aspd', p.aspd.toFixed(2));
+        setVal('cheat-ms', p.ms.toFixed(2));
+        setVal('cheat-evd', p.evd.toFixed(2));
+        setVal('cheat-def', p.def);
+        setVal('cheat-luk', p.luk.toFixed(2));
+        setVal('cheat-regen', p.hpRegen ? p.hpRegen.toFixed(2) : 0);
+        setVal('cheat-hp', Math.ceil(p.hp));
+        setVal('cheat-max-hp', p.maxHp);
+        setVal('cheat-mp', Math.ceil(p.mp));
+        setVal('cheat-max-mp', p.maxMp);
+        setVal('cheat-stamina', Math.ceil(p.stamina));
+        setVal('cheat-max-stamina', p.maxStamina);
 
         // 2. 무기 유형 동기화 및 무기 레벨 정보 표기 갱신
         const wpnBtns = document.querySelectorAll('.cheat-wpn-btn');
@@ -9016,49 +9314,54 @@ class GameEngine {
                 btn.innerText = `${baseLabel}`;
             } else if (wpn === 'time') {
                 btn.innerText = `${baseLabel} [${p.hasTimeWarp ? '해금' : '잠금'}]`;
-            } else if (p.weaponLevels[wpn] !== undefined) {
+            } else if (p.weaponLevels && p.weaponLevels[wpn] !== undefined) {
                 const lvl = p.weaponLevels[wpn] || 0;
                 btn.innerText = `${baseLabel} [Lv.${lvl}]`;
             }
         });
 
         // 3. 투사체 옵션 동기화
-        document.getElementById('cheat-multishot').value = p.multishot;
-        document.getElementById('cheat-burst').value = p.burstCount;
-        document.getElementById('cheat-pierce').value = p.pierceCount;
-        document.getElementById('cheat-range').value = p.range;
-        document.getElementById('cheat-splash').value = p.splashRadius;
-        document.getElementById('cheat-homing').checked = p.homing;
-        // [추가] 벽 튕기기 및 몬스터 유도 튕기기 치트 UI 값 연동
-        document.getElementById('cheat-wall-bounce').value = p.wallBounceLimit;
-        document.getElementById('cheat-monster-bounce').value = p.monsterBounceLimit;
+        setVal('cheat-multishot', p.multishot);
+        setVal('cheat-burst', p.burstCount);
+        setVal('cheat-pierce', p.pierceCount);
+        setVal('cheat-range', p.range);
+        setVal('cheat-splash', p.splashRadius);
+        setChecked('cheat-homing', p.homing);
+        setVal('cheat-wall-bounce', p.wallBounceLimit);
+        setVal('cheat-monster-bounce', p.monsterBounceLimit);
 
         // 4. 장비 레벨 동기화
-        for (let eqKey in p.equipLevels) {
-            const slider = document.getElementById(`cheat-eq-${eqKey}`);
-            const label = document.getElementById(`cheat-lbl-${eqKey}`);
-            if (slider && label) {
-                slider.value = p.equipLevels[eqKey];
-                label.innerText = p.equipLevels[eqKey];
+        if (p.equipLevels) {
+            for (let eqKey in p.equipLevels) {
+                const slider = document.getElementById(`cheat-eq-${eqKey}`);
+                const label = document.getElementById(`cheat-lbl-${eqKey}`);
+                if (slider && label) {
+                    slider.value = p.equipLevels[eqKey];
+                    label.innerText = p.equipLevels[eqKey];
+                }
             }
         }
 
         // 5. 무적 모드 동기화
-        document.getElementById('cheat-godmode').checked = p.isGodMode || false;
+        setChecked('cheat-godmode', p.isGodMode);
 
         // 6. 다음 층 비밀방 강제 동기화
-        const cheatSecret = document.getElementById('cheat-forcesecret');
-        if (cheatSecret) {
-            cheatSecret.checked = this.forceSecretWallNextRoom || false;
-        }
+        setChecked('cheat-forcesecret', this.forceSecretWallNextRoom);
     }
 
     // 치트 메뉴 조작 이벤트 리스너 바인딩
     initCheatSystemEvents() {
+        const bindClick = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', fn);
+        };
+        const bindChange = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', fn);
+        };
+
         // 모달 닫기
-        document.getElementById('cheat-close-btn').addEventListener('click', () => {
-            this.toggleCheatMenu();
-        });
+        bindClick('cheat-close-btn', () => this.toggleCheatMenu());
 
         // 탭 스위칭
         const tabBtns = document.querySelectorAll('.cheat-tab-btn');
@@ -9066,36 +9369,45 @@ class GameEngine {
             btn.addEventListener('click', (e) => {
                 const targetTabId = btn.getAttribute('data-tab');
 
-                // 버튼 active 클래스 리셋 및 부여
                 tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // 컨텐트 active 클래스 리셋 및 부여
                 const contents = document.querySelectorAll('.cheat-tab-content');
                 contents.forEach(c => c.classList.remove('active'));
-                document.getElementById(targetTabId).classList.add('active');
+                const targetEl = document.getElementById(targetTabId);
+                if (targetEl) targetEl.classList.add('active');
             });
         });
 
         // 스탯 일괄 적용
-        document.getElementById('cheat-apply-stats').addEventListener('click', () => {
+        bindClick('cheat-apply-stats', () => {
             const p = this.player;
-            p.atk = parseFloat(document.getElementById('cheat-atk').value) || p.atk;
-            p.aspd = parseFloat(document.getElementById('cheat-aspd').value) || p.aspd;
-            p.ms = parseFloat(document.getElementById('cheat-ms').value) || p.ms;
-            p.evd = parseFloat(document.getElementById('cheat-evd').value) || p.evd;
-            p.def = parseInt(document.getElementById('cheat-def').value) || 0;
-            p.luk = parseFloat(document.getElementById('cheat-luk').value) || p.luk;
-            p.hpRegen = parseFloat(document.getElementById('cheat-regen').value) || p.hpRegen;
+            if (!p) return;
+            const getNum = (id, fallback) => {
+                const el = document.getElementById(id);
+                return el ? parseFloat(el.value) || fallback : fallback;
+            };
 
-            p.maxHp = parseInt(document.getElementById('cheat-max-hp').value) || p.maxHp;
-            p.hp = Math.min(p.maxHp, parseFloat(document.getElementById('cheat-hp').value) || p.hp);
+            p.atk = getNum('cheat-atk', p.atk);
+            p.aspd = getNum('cheat-aspd', p.aspd);
+            p.ms = getNum('cheat-ms', p.ms);
+            p.evd = getNum('cheat-evd', p.evd);
+            p.def = Math.floor(getNum('cheat-def', p.def));
+            p.luk = getNum('cheat-luk', p.luk);
+            if (document.getElementById('cheat-regen')) {
+                p.hpRegen = getNum('cheat-regen', p.hpRegen);
+            }
 
-            p.maxMp = parseInt(document.getElementById('cheat-max-mp').value) || p.maxMp;
-            p.mp = Math.min(p.maxMp, parseFloat(document.getElementById('cheat-mp').value) || p.mp);
+            p.maxHp = Math.floor(getNum('cheat-max-hp', p.maxHp));
+            p.hp = Math.min(p.maxHp, getNum('cheat-hp', p.hp));
 
-            p.maxStamina = parseInt(document.getElementById('cheat-max-stamina').value) || p.maxStamina;
-            p.stamina = Math.min(p.maxStamina, parseFloat(document.getElementById('cheat-stamina').value) || p.stamina);
+            p.maxMp = Math.floor(getNum('cheat-max-mp', p.maxMp));
+            p.mp = Math.min(p.maxMp, getNum('cheat-mp', p.mp));
+
+            if (document.getElementById('cheat-max-stamina')) {
+                p.maxStamina = Math.floor(getNum('cheat-max-stamina', p.maxStamina));
+                p.stamina = Math.min(p.maxStamina, getNum('cheat-stamina', p.stamina));
+            }
 
             this.updateHUD();
             this.showFloatingText("STATS UPDATED! ⚡", p.x, p.y - 40, '#00f0ff');
@@ -9108,204 +9420,238 @@ class GameEngine {
                 const wpnType = btn.getAttribute('data-wpn');
                 this.applyWeaponCheat(wpnType);
 
-                // 버튼 액티브 동기화
                 wpnBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             });
         });
 
         // 모든 부품 +5개 치트
-        const allMatsBtn = document.getElementById('cheat-add-all-materials');
-        if (allMatsBtn) {
-            allMatsBtn.addEventListener('click', () => {
+        bindClick('cheat-add-all-materials', () => {
+            if (this.player && this.player.materials) {
                 for (let key in this.player.materials) {
                     this.player.materials[key] = (this.player.materials[key] || 0) + 5;
                 }
                 this.updateHUD();
                 if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
                 this.showFloatingText("ALL MATERIALS +5! 🧩", this.player.x, this.player.y - 40, '#39ff14');
-            });
-        }
-
-        // 개별 부품 +5개 치트
-        document.querySelectorAll('.cheat-mat-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const matKey = btn.getAttribute('data-mat');
-                if (this.player.materials[matKey] !== undefined) {
-                    this.player.materials[matKey] += 5;
-                    this.updateHUD();
-                    if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
-                    this.showFloatingText(`+5 ${btn.innerText}! 🧩`, this.player.x, this.player.y - 40, '#00ff66');
-                }
-            });
+            }
         });
 
-        // 투사체 옵션 적용
-        document.getElementById('cheat-apply-weapons').addEventListener('click', () => {
+        // 모든 부품 +20개 치트
+        bindClick('cheat-add-materials-20', () => {
+            if (this.player && this.player.materials) {
+                for (let key in this.player.materials) {
+                    this.player.materials[key] = (this.player.materials[key] || 0) + 20;
+                }
+                this.updateHUD();
+                if (typeof this.refreshCraftingUI === 'function') this.refreshCraftingUI();
+                this.showFloatingText("ALL MATERIALS +20! 🧩", this.player.x, this.player.y - 40, '#39ff14');
+            }
+        });
+
+        // 설계도 해금 / 초기화
+        bindClick('cheat-unlock-all-blueprints', () => {
+            if (typeof this.unlockAllBlueprintsCheat === 'function') {
+                this.unlockAllBlueprintsCheat();
+            } else {
+                this.showFloatingText("모든 설계도 해금 완료 🔮", this.player.x, this.player.y - 40, '#ffdf00');
+            }
+        });
+        bindClick('cheat-reset-blueprints', () => {
+            if (typeof this.resetBlueprintsCheat === 'function') {
+                this.resetBlueprintsCheat();
+            } else {
+                this.showFloatingText("설계도 초기화 완료 🔄", this.player.x, this.player.y - 40, '#ff0055');
+            }
+        });
+
+        // 투사체 옵션 적용 (안전 가드)
+        bindClick('cheat-apply-weapons', () => {
             const p = this.player;
-            p.multishot = parseInt(document.getElementById('cheat-multishot').value) || 1;
-            p.burstCount = parseInt(document.getElementById('cheat-burst').value) || 1;
-            p.pierceCount = parseInt(document.getElementById('cheat-pierce').value) || 0;
-            p.range = parseInt(document.getElementById('cheat-range').value) || 350;
-            p.splashRadius = parseInt(document.getElementById('cheat-splash').value) || 0;
-            p.homing = document.getElementById('cheat-homing').checked;
-            // [추가] 벽 튕기기 및 몬스터 튕기기 설정치 플레이어 스탯에 실시간 갱신
-            p.wallBounceLimit = parseInt(document.getElementById('cheat-wall-bounce').value) || 0;
-            p.monsterBounceLimit = parseInt(document.getElementById('cheat-monster-bounce').value) || 0;
+            if (!p) return;
+            const getVal = (id, fallback) => {
+                const el = document.getElementById(id);
+                return el ? parseInt(el.value) || fallback : fallback;
+            };
+
+            p.multishot = getVal('cheat-multishot', 1);
+            p.burstCount = getVal('cheat-burst', 1);
+            p.pierceCount = getVal('cheat-pierce', 0);
+            p.range = getVal('cheat-range', 350);
+            p.splashRadius = getVal('cheat-splash', 0);
+            const homingEl = document.getElementById('cheat-homing');
+            if (homingEl) p.homing = homingEl.checked;
+            p.wallBounceLimit = getVal('cheat-wall-bounce', 0);
+            p.monsterBounceLimit = getVal('cheat-monster-bounce', 0);
 
             this.updateHUD();
             this.showFloatingText("WEAPON SPECS APPLIED! 🏹", p.x, p.y - 40, '#b026ff');
         });
 
-        // 특수 보조 장착
-        document.getElementById('cheat-pet-btn').addEventListener('click', () => {
-            let petAngle = this.pets.length * (Math.PI * 2 / 3);
-            this.pets.push(new Pet(petAngle, 50));
+        // 특수 보조 장착 (안전 가드)
+        bindClick('cheat-pet-btn', () => {
+            let petAngle = (this.pets ? this.pets.length : 0) * (Math.PI * 2 / 3);
+            if (this.pets) this.pets.push(new Pet(petAngle, 50));
             this.updateHUD();
             this.showFloatingText("PET SUMMONED! 🤖", this.player.x, this.player.y - 40, '#39ff14');
         });
 
-        document.getElementById('cheat-whip-btn').addEventListener('click', () => {
-            this.player.whipSpeedStack = 3;
-            this.player.whipSpeedTimer = 300;
-            this.showFloatingText("WHIP RUSH ACTIVE! 🧣", this.player.x, this.player.y - 40, '#ff6c00');
+        bindClick('cheat-whip-btn', () => {
+            if (this.player) {
+                this.player.whipSpeedStack = 3;
+                this.player.whipSpeedTimer = 300;
+                this.showFloatingText("WHIP RUSH ACTIVE! 🧣", this.player.x, this.player.y - 40, '#ff6c00');
+            }
         });
 
-        document.getElementById('cheat-trap-btn').addEventListener('click', () => {
-            this.player.weaponLevels.trap = 5;
-            this.showFloatingText("TRAP MASTER ACTIVE! 💣", this.player.x, this.player.y - 40, '#ffdf00');
+        bindClick('cheat-trap-btn', () => {
+            if (this.player && this.player.weaponLevels) {
+                this.player.weaponLevels.trap = 5;
+                this.showFloatingText("TRAP MASTER ACTIVE! 💣", this.player.x, this.player.y - 40, '#ffdf00');
+            }
         });
 
-        document.getElementById('cheat-thorns-btn').addEventListener('click', () => {
-            this.player.weaponLevels.thorns = 5;
-            this.player.thornsFieldTimer = 1800; // 30초 대리 필드
-            this.showFloatingText("THORNS AURA BURST! 🌵", this.player.x, this.player.y - 40, '#ff00aa');
-        });
-
-        // 장비 슬라이더 실시간 조작 및 적용
-        const eqSliders = document.querySelectorAll('.cheat-range-slider');
-        eqSliders.forEach(slider => {
-            const eqKey = slider.id.replace('cheat-eq-', '');
-            const label = document.getElementById(`cheat-lbl-${eqKey}`);
-
-            // 실시간 숫자 변경 표기
-            slider.addEventListener('input', () => {
-                label.innerText = slider.value;
-            });
-
-            // 변경 완료 시 스탯 및 효과 동기화
-            slider.addEventListener('change', () => {
-                const targetLvl = parseInt(slider.value);
-                this.applyCheatEquipChange(eqKey, targetLvl);
-            });
+        bindClick('cheat-thorns-btn', () => {
+            if (this.player && this.player.weaponLevels) {
+                this.player.weaponLevels.thorns = 5;
+                this.player.thornsFieldTimer = 1800;
+                this.showFloatingText("THORNS AURA BURST! 🌵", this.player.x, this.player.y - 40, '#ff00aa');
+            }
         });
 
         // 무적 모드 토글
-        document.getElementById('cheat-godmode').addEventListener('change', (e) => {
-            this.player.isGodMode = e.target.checked;
-            const text = this.player.isGodMode ? "GOD MODE ACTIVE 🛡️" : "GOD MODE DEACTIVATED";
-            const color = this.player.isGodMode ? '#ffdf00' : '#ff0055';
+        bindChange('cheat-godmode', (e) => {
+            if (this.player) {
+                this.player.isGodMode = e.target.checked;
+                const text = this.player.isGodMode ? "GOD MODE ACTIVE 🛡️" : "GOD MODE DEACTIVATED";
+                const color = this.player.isGodMode ? '#ffdf00' : '#ff0055';
+                this.showFloatingText(text, this.player.x, this.player.y - 40, color);
+            }
+        });
+
+        // 다음 층 비밀방 강제 출현 토글
+        bindChange('cheat-forcesecret', (e) => {
+            this.forceSecretWallNextRoom = e.target.checked;
+            const text = this.forceSecretWallNextRoom ? "FORCE SECRET WALL ACTIVE 🔮" : "FORCE SECRET WALL DEACTIVATED";
+            const color = this.forceSecretWallNextRoom ? '#b026ff' : '#ff0055';
             this.showFloatingText(text, this.player.x, this.player.y - 40, color);
         });
 
-        // [2차 기획] 다음 층 비밀방 강제 출현 토글
-        const cheatSecret = document.getElementById('cheat-forcesecret');
-        if (cheatSecret) {
-            cheatSecret.addEventListener('change', (e) => {
-                this.forceSecretWallNextRoom = e.target.checked;
-                const text = this.forceSecretWallNextRoom ? "FORCE SECRET WALL ACTIVE 🔮" : "FORCE SECRET WALL DEACTIVATED";
-                const color = this.forceSecretWallNextRoom ? '#b026ff' : '#ff0055';
-                this.showFloatingText(text, this.player.x, this.player.y - 40, color);
-            });
-        }
-
         // 코인 치트 지급
-        document.getElementById('cheat-add-coin-100').addEventListener('click', () => {
-            this.addCoinsCheat(100);
-        });
-        document.getElementById('cheat-add-coin-1000').addEventListener('click', () => {
-            this.addCoinsCheat(1000);
+        bindClick('cheat-add-coin-100', () => this.addCoinsCheat(100));
+        bindClick('cheat-add-coin-1000', () => this.addCoinsCheat(1000));
+
+        // 방 소탕 & 보상 소환
+        bindClick('cheat-clear-room', () => this.clearRoomCheat());
+        bindClick('cheat-spawn-reward', () => {
+            if (typeof this.spawnRewardCheat === 'function') this.spawnRewardCheat();
         });
 
-        // 방 소탕
-        document.getElementById('cheat-clear-room').addEventListener('click', () => {
-            this.clearRoomCheat();
+        // 리롤 / 건너뛰기 횟수 적용
+        bindClick('cheat-apply-rolls', () => {
+            const rerollEl = document.getElementById('cheat-reroll-count');
+            const skipEl = document.getElementById('cheat-skip-count');
+            if (this.player) {
+                if (rerollEl) this.player.rerollCount = parseInt(rerollEl.value) || 0;
+                if (skipEl) this.player.skipCount = parseInt(skipEl.value) || 0;
+                this.updateHUD();
+                this.showFloatingText("REROLL / SKIP RECHARGED! 🎲", this.player.x, this.player.y - 40, '#ffdf00');
+            }
         });
 
         // 스테이지 워프
-        document.getElementById('cheat-warp-stage-btn').addEventListener('click', () => {
-            const stageVal = parseInt(document.getElementById('cheat-warp-stage-input').value) || 1;
+        bindClick('cheat-warp-stage-btn', () => {
+            const inputEl = document.getElementById('cheat-warp-stage-input');
+            const stageVal = inputEl ? parseInt(inputEl.value) || 1 : 1;
             this.warpStageCheat(stageVal);
         });
 
         // 기억의 조각 치트
-        const addFrag10 = document.getElementById('cheat-add-fragment-10');
-        if (addFrag10) {
-            addFrag10.addEventListener('click', () => {
-                this.addMemoryFragments(10);
-                this.updateUpgradeShopUI();
-                this.showFloatingText("기억의 조각 +10 🧩", this.player.x, this.player.y - 40, '#ffdf00');
-            });
-        }
+        bindClick('cheat-add-fragment-10', () => {
+            this.addMemoryFragments(10);
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 +10 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+        });
+        bindClick('cheat-add-fragment-100', () => {
+            this.addMemoryFragments(100);
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 +100 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+        });
+        bindClick('cheat-set-fragment-7', () => {
+            this.totalFragments = 7;
+            this.spentFragments = 0;
+            this.saveMemoryFragments();
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 7개 설정 (3단계 선명) 🧩", this.player.x, this.player.y - 40, '#00f0ff');
+        });
+        bindClick('cheat-reset-fragment', () => {
+            this.totalFragments = 0;
+            this.spentFragments = 0;
+            this.saveMemoryFragments();
+            this.updateUpgradeShopUI();
+            this.showFloatingText("기억의 조각 초기화 🔄", this.player.x, this.player.y - 40, '#ff0055');
+        });
 
-        const addFrag100 = document.getElementById('cheat-add-fragment-100');
-        if (addFrag100) {
-            addFrag100.addEventListener('click', () => {
-                this.addMemoryFragments(100);
-                this.updateUpgradeShopUI();
-                this.showFloatingText("기억의 조각 +100 🧩", this.player.x, this.player.y - 40, '#ffdf00');
+        // 주요 층 직관적 워프 버튼 바인딩
+        document.querySelectorAll('.cheat-btn-warp-target').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const floor = parseInt(btn.getAttribute('data-floor')) || 1;
+                this.warpStageCheat(floor);
             });
-        }
+        });
 
-        const resetFrag = document.getElementById('cheat-reset-fragment');
-        if (resetFrag) {
-            resetFrag.addEventListener('click', () => {
-                this.totalFragments = 0;
-                this.spentFragments = 0;
-                this.saveMemoryFragments();
-                this.updateUpgradeShopUI();
-                this.showFloatingText("기억의 조각 초기화 🔄", this.player.x, this.player.y - 40, '#ff0055');
-            });
-        }
+        // 시나리오 대화창 시뮬레이터 8종 바인딩
+        const bindDialogueSim = (btnId, getDialogueFn) => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    const cheatOverlay = document.getElementById('cheat-overlay');
+                    if (cheatOverlay) cheatOverlay.classList.add('hidden');
 
-        // [신규] 히든 아이템 치트 버튼 바인딩
-        const cheatJoystick = document.getElementById('cheat-hidden-joystick');
-        if (cheatJoystick) {
-            cheatJoystick.addEventListener('click', () => {
-                this.acquireHiddenItem('brokenJoystick');
-            });
-        }
-        const cheatRepairKit = document.getElementById('cheat-hidden-repairkit');
-        if (cheatRepairKit) {
-            cheatRepairKit.addEventListener('click', () => {
-                this.acquireHiddenItem('repairKit');
-            });
-        }
-        const cheatManual = document.getElementById('cheat-hidden-manual');
-        if (cheatManual) {
-            cheatManual.addEventListener('click', () => {
-                this.acquireHiddenItem('manual');
-            });
-        }
-
-        // [신규] 임시 대화창 테스트 바인딩
-        const cheatTestDialogue = document.getElementById('cheat-test-dialogue');
-        if (cheatTestDialogue) {
-            cheatTestDialogue.addEventListener('click', () => {
-                // 치트창 닫기
-                const cheatOverlay = document.getElementById('cheat-overlay');
-                if (cheatOverlay) cheatOverlay.classList.add('hidden');
-
-                // 임시 대화 스크립트 실행
-                this.showDialogue("OP-RUNNER", [
-                    "안전 프로토콜이 해제되었습니다. 시스템 제어가 개시됩니다.",
-                    "경고: 차원 미로 47구역에서 치명적인 신호 간섭이 검출되었습니다.",
-                    "전투 슈트 아머의 출력을 최대로 고정하고 생존하십시오."
-                ], () => {
-                    this.showFloatingText("대화 테스트 완료 🗣️", this.player.x, this.player.y - 40, '#22c55e');
+                    const d = getDialogueFn();
+                    this.showDialogue(d.speaker, d.lines, () => {
+                        this.showFloatingText("대화 연출 시뮬레이션 완료 🗣️", this.player.x, this.player.y - 40, '#00f0ff');
+                    });
                 });
-            });
-        }
+            }
+        };
+
+        bindDialogueSim('cheat-dialogue-prologue', () => window.ScenarioDialogue.getPrologue(this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-secret', () => window.ScenarioDialogue.getSecretRoomDialogue(this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss10', () => window.ScenarioDialogue.getBossDialogue(10, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss20', () => window.ScenarioDialogue.getBossDialogue(20, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss100', () => window.ScenarioDialogue.getBossDialogue(100, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-boss101', () => window.ScenarioDialogue.getBossDialogue(101, this.unusedFragments));
+        bindDialogueSim('cheat-dialogue-ending-normal', () => window.ScenarioDialogue.getEndingDialogue(false));
+        bindDialogueSim('cheat-dialogue-ending-true', () => window.ScenarioDialogue.getEndingDialogue(true));
+
+        // 히든 아이템 치트 버튼 바인딩
+        bindClick('cheat-hidden-joystick', () => this.acquireHiddenItem('brokenJoystick'));
+        bindClick('cheat-hidden-repairkit', () => this.acquireHiddenItem('repairKit'));
+        bindClick('cheat-hidden-manual', () => this.acquireHiddenItem('manual'));
+
+        // 3슬롯 계약 강제 해금
+        bindClick('cheat-unlock-3slot-btn', () => {
+            if (this.player) {
+                this.player.maxWeaponSlots = 3;
+                this.player.thirdSlotWeapon = null;
+                this.showFloatingText("3슬롯 계약 강제 해금! 🔮", this.player.x, this.player.y - 40, '#b026ff');
+            }
+        });
+
+        // 무기 목록 리셋
+        bindClick('cheat-reset-weapons-tab-btn', () => {
+            if (this.player) {
+                this.player.equippedWeapons = ['gun'];
+                this.player.thirdSlotWeapon = null;
+                this.player.weaponLevels = {
+                    sword: 0, spear: 0, whip: 0, shock: 0, flamethrower: 0,
+                    cryo: 0, thorns: 0, trap: 0, scythe: 0, railgun: 0
+                };
+                this.updateHUD();
+                this.showFloatingText("WEAPONS RESET 🔄", this.player.x, this.player.y - 40, '#ff0055');
+            }
+        });
 
         // [신규] 맵 테마 시뮬레이터 치트 바인딩
         const bindThemeCheat = (btnId, roomNum, roomType = 'normal') => {
@@ -10685,23 +11031,8 @@ class GameEngine {
 
             // [신규] 카메라 위치 플레이어 복원 지점에 맞춰 즉시 순간이동 (방 이동 시 Lerp 지연 방지)
             if (this.player && this.canvas) {
-                let initCamX = this.player.x - this.canvas.width / 2;
-                let initCamY = this.player.y - this.canvas.height / 2;
-
-                if (this.canvas.width >= this.mapWidth + 300) {
-                    initCamX = (this.mapWidth - this.canvas.width) / 2;
-                } else {
-                    initCamX = Math.max(-150, Math.min(initCamX, this.mapWidth + 150 - this.canvas.width));
-                }
-
-                if (this.canvas.height >= this.mapHeight + 300) {
-                    initCamY = (this.mapHeight - this.canvas.height) / 2;
-                } else {
-                    initCamY = Math.max(-150, Math.min(initCamY, this.mapHeight + 150 - this.canvas.height));
-                }
-
-                this.camera.x = initCamX;
-                this.camera.y = initCamY;
+                this.camera.x = this.player.x - this.canvas.width / 2;
+                this.camera.y = this.player.y - this.canvas.height / 2;
             }
         } catch (e) {
             console.error("이어하기 복구 중 오류 발생:", e);

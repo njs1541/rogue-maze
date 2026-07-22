@@ -489,23 +489,35 @@ class RoomPortal {
         // [수정] 차원문(RoomPortal) UI/UX 전면 개편 렌더링 시작
         // ---------------------------------------------------------
         
-        // 포털 타입별 전용 네온 광채 컬러 정의 (잠김 상태는 일괄 붉은색)
+        // 포털 타입별 전용 네온 광채 컬러 및 라벨 정의 (잠김 상태는 일괄 붉은색)
         let color = '#ff0055'; 
         let bgStyle = 'rgba(255, 0, 85, 0.12)';
         
         if (this.active) {
-            if (this.portalType === 'stat') {
-                color = '#00f0ff'; // 청록색
-                bgStyle = 'rgba(0, 240, 255, 0.12)';
-            } else if (this.portalType === 'weapon') {
-                color = '#b026ff'; // 보라색
+            if (this.portalType === 'material') {
+                color = '#b026ff'; // 퍼플 (재료 창고)
+                bgStyle = 'rgba(176, 38, 255, 0.14)';
+            } else if (this.portalType === 'blueprint') {
+                color = '#ff6c00'; // 주황 (장비 연구소)
+                bgStyle = 'rgba(255, 108, 0, 0.14)';
+            } else if (this.portalType === 'rest') {
+                color = '#39ff14'; // 연두 (신체 정비실)
+                bgStyle = 'rgba(57, 255, 20, 0.14)';
+            } else if (this.portalType === 'challenge') {
+                color = '#ff0055'; // 빨강 (위험 구역)
+                bgStyle = 'rgba(255, 0, 85, 0.14)';
+            } else if (this.portalType === 'casino') {
+                color = '#ff00aa'; // 핑크 (글리치 카지노)
+                bgStyle = 'rgba(255, 0, 170, 0.14)';
+            } else if (this.portalType === 'boss') {
+                color = '#ff1100'; // 진한 빨강 (보스 토벌)
+                bgStyle = 'rgba(255, 17, 0, 0.18)';
+            } else if (this.portalType === 'secret_room') {
+                color = '#00f0ff'; // 청록 (에러 구역)
+                bgStyle = 'rgba(0, 240, 255, 0.14)';
+            } else {
+                color = '#b026ff';
                 bgStyle = 'rgba(176, 38, 255, 0.12)';
-            } else if (this.portalType === 'equipment') {
-                color = '#ff6c00'; // 주황색
-                bgStyle = 'rgba(255, 108, 0, 0.12)';
-            } else if (this.portalType === 'shop') {
-                color = '#ffdf00'; // 노란색
-                bgStyle = 'rgba(255, 223, 0, 0.12)';
             }
         }
 
@@ -528,62 +540,17 @@ class RoomPortal {
             } else {
                 ctx.strokeRect(this.x - 2, this.y - 4, this.width + 4, 4);
                 ctx.strokeRect(this.x - 2, this.y + this.height, this.width + 4, 4);
-                ctx.fillStyle = color;
-                ctx.fillRect(this.x + this.width / 2 - 2, this.y - 3, 4, 2);
-                ctx.fillRect(this.x + this.width / 2 - 2, this.y + this.height + 1, 4, 2);
-            }
-        } else {
-            // [내부 격벽 문]: 자홍색 격벽 도킹 프레임 & 회로 어댑터
-            let wallColor = 'rgba(255, 0, 170, 0.8)';
-            let wallGlow = 'rgba(255, 102, 204, 0.9)';
-            
-            // 바닥 게이트 패드 (은은한 아우라)
-            ctx.save();
-            ctx.fillStyle = 'rgba(255, 0, 170, 0.035)';
-            ctx.fillRect(this.x - 4, this.y - 4, this.width + 8, this.height + 8);
-            ctx.restore();
-            
-            ctx.strokeStyle = wallColor;
-            ctx.lineWidth = 2;
-            
-            if (this.direction === 'top' || this.direction === 'bottom') {
-                // 가로 문: 좌우 앵커 브래킷
-                ctx.strokeRect(this.x - 4, this.y - 2, 4, this.height + 4);
-                ctx.strokeRect(this.x + this.width, this.y - 2, 4, this.height + 4);
                 
-                // 가로형 격벽 연결 회로선 (좌우로 18px 뻗어나감)
                 ctx.strokeStyle = 'rgba(255, 0, 170, 0.45)';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.moveTo(this.x - 4, this.y + this.height / 2);
-                ctx.lineTo(this.x - 22, this.y + this.height / 2);
                 ctx.moveTo(this.x + this.width + 4, this.y + this.height / 2);
                 ctx.lineTo(this.x + this.width + 22, this.y + this.height / 2);
                 ctx.stroke();
                 
-                // 도킹 노드 포인트
-                ctx.fillStyle = wallGlow;
+                ctx.fillStyle = color;
                 ctx.fillRect(this.x - 3, this.y + this.height / 2 - 1.5, 2, 3);
                 ctx.fillRect(this.x + this.width + 1, this.y + this.height / 2 - 1.5, 2, 3);
-            } else {
-                // 세로 문: 상하 앵커 브래킷
-                ctx.strokeRect(this.x - 2, this.y - 4, this.width + 4, 4);
-                ctx.strokeRect(this.x - 2, this.y + this.height, this.width + 4, 4);
-                
-                // 세로형 격벽 연결 회로선 (상하로 18px 뻗어나감)
-                ctx.strokeStyle = 'rgba(255, 0, 170, 0.45)';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(this.x + this.width / 2, this.y - 4);
-                ctx.lineTo(this.x + this.width / 2, this.y - 22);
-                ctx.moveTo(this.x + this.width / 2, this.y + this.height + 4);
-                ctx.lineTo(this.x + this.width / 2, this.y + this.height + 22);
-                ctx.stroke();
-                
-                // 도킹 노드 포인트
-                ctx.fillStyle = wallGlow;
-                ctx.fillRect(this.x + this.width / 2 - 1.5, this.y - 3, 3, 2);
-                ctx.fillRect(this.x + this.width / 2 - 1.5, this.y + this.height + 1, 3, 2);
             }
         }
         ctx.restore();
@@ -615,7 +582,6 @@ class RoomPortal {
         ctx.fill();
         ctx.stroke();
         
-        // 코어선 드로잉
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 1.0;
         ctx.strokeRect(this.x + 0.5, this.y + 0.5, this.width - 1, this.height - 1);
@@ -623,7 +589,6 @@ class RoomPortal {
 
         // 4. 에너지 흐름 효과 또는 잠김 상태 빗금 렌더링
         if (this.active) {
-            // 활성화 상태: 흐르는 에너지 효과 및 스캔라인
             ctx.save();
             ctx.beginPath();
             ctx.rect(this.x, this.y, this.width, this.height);
@@ -635,55 +600,20 @@ class RoomPortal {
             ctx.lineWidth = 1.5;
             
             if (this.direction === 'top' || this.direction === 'bottom') {
-                // 가로 주사선
                 let lineX1 = this.x + (this.width * (timeOffset / 100));
                 ctx.beginPath();
                 ctx.moveTo(lineX1, this.y);
                 ctx.lineTo(lineX1, this.y + this.height);
                 ctx.stroke();
-                
-                let lineX2 = this.x + (this.width * (((timeOffset + 50) % 100) / 100));
-                ctx.beginPath();
-                ctx.moveTo(lineX2, this.y);
-                ctx.lineTo(lineX2, this.y + this.height);
-                ctx.stroke();
             } else {
-                // 세로 주사선
                 let lineY1 = this.y + (this.height * (timeOffset / 100));
                 ctx.beginPath();
                 ctx.moveTo(this.x, lineY1);
                 ctx.lineTo(this.x + this.width, lineY1);
                 ctx.stroke();
-                
-                let lineY2 = this.y + (this.height * (((timeOffset + 50) % 100) / 100));
-                ctx.beginPath();
-                ctx.moveTo(this.x, lineY2);
-                ctx.lineTo(this.x + this.width, lineY2);
-                ctx.stroke();
-            }
-            
-            // 내부 도트 격자선 데코레이션
-            ctx.strokeStyle = color;
-            ctx.globalAlpha = 0.05;
-            ctx.lineWidth = 1;
-            if (this.direction === 'top' || this.direction === 'bottom') {
-                for (let j = this.x + 8; j < this.x + this.width; j += 8) {
-                    ctx.beginPath();
-                    ctx.moveTo(j, this.y);
-                    ctx.lineTo(j, this.y + this.height);
-                    ctx.stroke();
-                }
-            } else {
-                for (let j = this.y + 8; j < this.y + this.height; j += 8) {
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, j);
-                    ctx.lineTo(this.x + this.width, j);
-                    ctx.stroke();
-                }
             }
             ctx.restore();
         } else {
-            // 잠김 상태: 홀로그램 빗금선
             ctx.save();
             ctx.beginPath();
             ctx.rect(this.x, this.y, this.width, this.height);
@@ -700,12 +630,11 @@ class RoomPortal {
             } else {
                 for (let k = -this.width; k < this.height; k += 10) {
                     ctx.moveTo(this.x, this.y + k);
-                    ctx.lineTo(this.x + this.width, this.y + k + this.width);
+                    ctx.lineTo(this.x + this.width, this.y + this.width);
                 }
             }
             ctx.stroke();
             
-            // LOCKED 텍스트 연출
             ctx.fillStyle = 'rgba(255, 0, 85, 0.45)';
             ctx.font = '900 8px "Outfit"';
             ctx.textAlign = 'center';
@@ -763,16 +692,19 @@ class RoomPortal {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.scoreValue, textX, textY);
-        ctx.restore();
-
-        // 6. 활성화 시 전용 네온 아이콘 부유 홀로그램 배지 렌더링
+        // 6. 활성화 시 전용 네온 아이콘 부유 홀로그램 배지 및 직관적 텍스트 라벨 렌더링
         if (this.active) {
             ctx.save();
             
-            let icon = '📊';
-            if (this.portalType === 'weapon') icon = '⚔️';
-            if (this.portalType === 'equipment') icon = '🛡️';
-            if (this.portalType === 'shop') icon = '🎰';
+            let icon = '📦';
+            let labelText = '재료 창고';
+            if (this.portalType === 'material') { icon = '📦'; labelText = '재료 창고'; }
+            else if (this.portalType === 'blueprint') { icon = '📜'; labelText = '장비 연구소'; }
+            else if (this.portalType === 'rest') { icon = '💉'; labelText = '신체 정비실'; }
+            else if (this.portalType === 'challenge') { icon = '🔥'; labelText = '위험 구역'; }
+            else if (this.portalType === 'casino') { icon = '🎰'; labelText = '글리치 카지노'; }
+            else if (this.portalType === 'boss') { icon = '💀'; labelText = '보스 토벌'; }
+            else if (this.portalType === 'secret_room') { icon = '🌀'; labelText = 'ERROR'; }
 
             let iconX = this.x + this.width / 2;
             let iconY = this.y + this.height / 2;
@@ -803,6 +735,21 @@ class RoomPortal {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(icon, iconX, iconY);
+
+            // [신규] 문 상단/하단 직관적 네온 홀로그램 텍스트 라벨 렌더링
+            let labelX = this.x + this.width / 2;
+            let labelY = this.y + this.height / 2;
+            if (this.direction === 'top') labelY -= 32;
+            else if (this.direction === 'bottom') labelY += 32;
+            else if (this.direction === 'left') labelY -= 20;
+            else if (this.direction === 'right') labelY -= 20;
+
+            ctx.font = 'bold 11px "Outfit", "Noto Sans KR"';
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            ctx.fillText(`[${labelText}]`, labelX, labelY);
+
             ctx.restore();
         }
 
@@ -1988,3 +1935,172 @@ class NeonTrap {
         ctx.restore();
     }
 }
+
+// --------------------------------------------------------------------------
+// 6.7. 신규 개편 룸 전용 인터랙티브 오브젝트 클래스
+// --------------------------------------------------------------------------
+
+// 1) 정비/휴식 룸 단말기 (나노 치료기 / 무기 오버클럭 벤치)
+class RestStationObject {
+    constructor(x, y, stationType = 'healer') {
+        this.x = x;
+        this.y = y;
+        this.stationType = stationType; // 'healer' 또는 'overclock'
+        this.radius = 22;
+        this.active = true;
+        this.pulse = 0;
+        this.color = stationType === 'healer' ? '#39ff14' : '#ff9900';
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        this.pulse += 0.04;
+        let glowR = this.radius + Math.sin(this.pulse) * 3;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
+        ctx.fillStyle = this.stationType === 'healer' ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255, 153, 0, 0.15)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.stroke();
+
+        ctx.font = '16px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        let icon = this.stationType === 'healer' ? '🩺' : '🛠️';
+        ctx.fillText(icon, this.x, this.y);
+
+        ctx.font = 'bold 11px "Outfit", "Noto Sans KR"';
+        ctx.fillStyle = this.color;
+        let title = this.stationType === 'healer' ? '나노 치료기' : '오버클럭 벤치';
+        ctx.fillText(title, this.x, this.y - 30);
+        ctx.restore();
+    }
+}
+
+// 2) 룰렛/도박 룸 카지노 키오스크
+class CasinoKioskObject {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 24;
+        this.active = true;
+        this.pulse = 0;
+        this.color = '#ff00aa';
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        this.pulse += 0.05;
+        let glowR = this.radius + Math.sin(this.pulse) * 3.5;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 170, 0.18)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = this.color;
+        ctx.stroke();
+
+        ctx.font = '18px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎰', this.x, this.y);
+
+        ctx.font = 'bold 11px "Outfit", "Noto Sans KR"';
+        ctx.fillStyle = '#ff00aa';
+        ctx.fillText('글리치 카지노', this.x, this.y - 32);
+        ctx.restore();
+    }
+}
+
+// 3) 보스 룸 무기 특수 강화소 단말기
+class EvolutionBenchObject {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 25;
+        this.active = true;
+        this.pulse = 0;
+        this.color = '#b026ff';
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        this.pulse += 0.04;
+        let glowR = this.radius + Math.sin(this.pulse) * 4;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(176, 38, 255, 0.2)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.stroke();
+
+        ctx.font = '18px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', this.x, this.y);
+
+        ctx.font = 'bold 11px "Outfit", "Noto Sans KR"';
+        ctx.fillStyle = '#b026ff';
+        ctx.fillText('무기 특수 강화소', this.x, this.y - 34);
+        ctx.restore();
+    }
+}
+
+// 4) 재료 드롭 상자 (MaterialChest)
+class MaterialChest {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 18;
+        this.active = true;
+        this.color = '#b026ff';
+        this.pulse = 0;
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+        ctx.save();
+        this.pulse += 0.04;
+        let floatY = Math.sin(this.pulse) * 3;
+
+        ctx.translate(this.x, this.y + floatY);
+        ctx.fillStyle = 'rgba(176, 38, 255, 0.2)';
+        ctx.fillRect(-15, -12, 30, 24);
+
+        ctx.strokeStyle = '#b026ff';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#b026ff';
+        ctx.strokeRect(-15, -12, 30, 24);
+
+        ctx.font = '12px "Outfit"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('📦', 0, 0);
+        ctx.restore();
+    }
+}
+

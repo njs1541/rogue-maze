@@ -333,14 +333,19 @@ class MapEngine {
         this.game = gameEngine; // GameEngine 코어 참조 바인딩
         this.cols = 40;
         this.rows = 30;
-        this.mapRenderer = new MapOffscreenRenderer();
+        this.mapRenderer = (typeof MapOffscreenRenderer !== 'undefined') ? new MapOffscreenRenderer() : null;
     }
 
     // 현재 맵 그리드 및 섹터 테마 기반으로 오프스크린 캔버스 재생성(Bake)
     bakeCurrentMap() {
         if (!this.game.grid) return;
+        if (!this.mapRenderer && typeof MapOffscreenRenderer !== 'undefined') {
+            this.mapRenderer = new MapOffscreenRenderer();
+        }
         const theme = this.getSectorTheme(this.game.currentRoomNumber || 1, this.game.currentRoomType);
-        this.mapRenderer.bakeMap(this.game.grid, theme);
+        if (this.mapRenderer) {
+            this.mapRenderer.bakeMap(this.game.grid, theme);
+        }
     }
 
     // 2차원 그리드 기반 맵 구조 생성 메서드
