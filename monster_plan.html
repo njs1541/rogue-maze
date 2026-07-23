@@ -735,7 +735,7 @@
                 <i class="fa-solid fa-magnifying-glass"></i> 1. 현재 몬스터 분석 (Current)
             </button>
             <button class="tab-btn" onclick="switchTab('tab-principles')">
-                <i class="fa-solid fa-compass-drafting"></i> 2. 6대 행동 AI 원칙 (Principles)
+                <i class="fa-solid fa-compass-drafting"></i> 2. 7대 행동 AI 원칙 (Principles)
             </button>
             <button class="tab-btn" onclick="switchTab('tab-newmonsters')">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> 3. 46종 몬스터 기획 (New Types)
@@ -1388,7 +1388,7 @@
             <div class="section-header">
                 <div class="section-title">
                     <i class="fa-solid fa-compass-drafting" style="color: var(--secondary);"></i>
-                    다양한 몬스터 개별 행동 AI 6대 원칙 설계
+                    다양한 몬스터 개별 행동 AI 7대 원칙 설계
                 </div>
                 <div class="section-subtitle">단순 추적을 넘어 전술적 깊이를 부여하는 몬스터 의사결정 알고리즘 원칙</div>
             </div>
@@ -1633,6 +1633,106 @@
                                 <li><strong>관통/레이저 예외 처리</strong>: 관통 및 범위 폭발탄 연속 충돌로 인한 무한 반사 렉 및 스틱 현상 예외 가드.</li>
                             </ul>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Principle 7 (New User Requirement) -->
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: linear-gradient(135deg, #00f0ff, #7928ca); color:#fff;">
+                                <i class="fa-solid fa-route"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">7. 격벽 및 동료 막힘 자연스러운 우회 (Smart Steering & Crowd Avoidance)</div>
+                                <div class="card-subtitle">Obstacle Steering / Crowd Push AI</div>
+                            </div>
+                        </div>
+                        <span class="tag cyan">지능형 우회</span>
+                    </div>
+                    <div class="card-body">
+                        미로의 격벽(벽) 모서리나 앞을 막아선 동료 몬스터들로 인해 진로가 막힐 경우, 제자리에 비비거나 끼이지 않고 
+                        <strong>벽 미끄러짐(Tangential Slide) 및 동료 몬스터 척력 밀침(Separation Vector)</strong>으로 자연스럽게 우회하여 플레이어에게 접근합니다.
+
+                        <div class="behavior-box">
+                            <div class="behavior-title">
+                                <i class="fa-solid fa-microchip"></i> 핵심 알고리즘 원칙
+                            </div>
+                            <div class="behavior-desc">
+                                - Wall Sliding Vector: 이동 방향 벡터가 벽 충돌 시 법선 벡터(Normal Vector)를 제외한 접선 벡터(Tangential Component)로 유연하게 보정 슬라이딩.<br>
+                                - Crowd Avoidance & Soft Push: 몬스터 상호 간 겹침 방지 반경 검사 후 밀어내는 soft repulsion 힘을 적용하여 좁은 미로 통로 병목 현상 해소.
+                            </div>
+                        </div>
+
+                        <div class="limit-box" style="margin-top: 10px; margin-bottom: 0; padding: 12px; background: rgba(0, 240, 255, 0.08); border-color: rgba(0, 240, 255, 0.3);">
+                            <div class="limit-title" style="color: var(--primary); font-size: 12.5px;">
+                                <i class="fa-solid fa-shield-halved"></i> ⚠️ 기술적 예외 처리 & 검증 가이드
+                            </div>
+                            <ul class="limit-list" style="font-size: 12px;">
+                                <li><strong>코너 교착(Corner Lock) 방지</strong>: 'L'자 모서리 구석에서 벽 2개가 동시에 막힐 때 45도 회전 방사형 레이(Ray) 검사로 빈 통로 방향 탈출 벡터 생성.</li>
+                                <li><strong>Zero-Lag 최적화</strong>: 몬스터 간 이웃 거리 검사 시 그리드 체이닝 또는 5프레임 분산 틱(Staggered Separation)을 적용하여 프레임 드롭을 완전 예방.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🚀 3대 선택 고도화 AI 시스템 (Advanced AI Enhancements) -->
+            <h3 style="color:#fff; font-size:16px; margin:32px 0 16px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-rocket" style="color:var(--primary);"></i> 3대 선택 고도화 AI 엔진 (Advanced Tactical AI Engine)
+            </h3>
+
+            <div class="grid-3">
+                <!-- Advanced 1: Predictive Aiming -->
+                <div class="card" style="border-left: 4px solid var(--secondary);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(255,0,127,0.2); color:var(--secondary);"><i class="fa-solid fa-crosshair"></i></div>
+                            <div>
+                                <div class="card-title">1. 예측 사격 AI</div>
+                                <div class="card-subtitle">Predictive Lead Shooting</div>
+                            </div>
+                        </div>
+                        <span class="tag pink">조준 유도</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.6;">
+                        스나이퍼, 원거리 사격수, 보스가 플레이어의 현재 좌표가 아닌 <strong>이동 속도 벡터($v_x, v_y$)를 계산하여 0.5초 뒤 예상 도착 위치로 리드 사격</strong>을 가하여 대각선 무빙의 재미 극대화.
+                    </div>
+                </div>
+
+                <!-- Advanced 2: Synergy Formations -->
+                <div class="card" style="border-left: 4px solid var(--success);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(0,245,212,0.2); color:var(--success);"><i class="fa-solid fa-shield-cat"></i></div>
+                            <div>
+                                <div class="card-title">2. 상호 시너지 포메이션</div>
+                                <div class="card-subtitle">Synergy Combo Formations</div>
+                            </div>
+                        </div>
+                        <span class="tag green">협동 연계</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.6;">
+                        방패 가디언 뒤로 스나이퍼/치유사가 집결하여 에스코트 진격하는 <strong>[방패 진형]</strong> 및 프로스트 바인더 결빙 지대와 차지 스트라이커 폭격을 조합하는 <strong>[디버프-강타 콤보]</strong> 연동.
+                    </div>
+                </div>
+
+                <!-- Advanced 3: Floor AI Scaling -->
+                <div class="card" style="border-left: 4px solid var(--warning);">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="monster-avatar" style="background: rgba(255,183,3,0.2); color:var(--warning);"><i class="fa-solid fa-chart-line"></i></div>
+                            <div>
+                                <div class="card-title">3. 층수별 AI 스케일링</div>
+                                <div class="card-subtitle">Adaptive AI Skill Scaling</div>
+                            </div>
+                        </div>
+                        <span class="tag amber">난이도 적응</span>
+                    </div>
+                    <div class="card-body" style="font-size:13px; line-height:1.6;">
+                        • <strong>1~20층</strong>: 기본 직선 추적 & 단순 회피<br>
+                        • <strong>21~50층</strong>: 스마트 격벽 우회 Steering & Separation 가동<br>
+                        • <strong>51~100층</strong>: 예측 사격, 시너지 포메이션, 무적 탄환소멸 전면 개방!
                     </div>
                 </div>
             </div>
@@ -2105,17 +2205,17 @@ Monster (Class)
                 </div>
 
                 <!-- Phase 2 -->
-                <div class="roadmap-step">
-                    <div class="step-node">2</div>
+                <div class="roadmap-step completed">
+                    <div class="step-node"><i class="fa-solid fa-check"></i></div>
                     <div class="step-content">
                         <div class="step-title">
                             <span>PHASE 2: 5대 스폰 엔진, 하이브리드 보스 모듈(js/bossEngine.js) 구조 리팩토링</span>
-                            <span class="step-period">예상: Phase 2</span>
+                            <span class="step-period">완료 (Current)</span>
                         </div>
                         <ul class="step-checklist">
-                            <li><i class="fa-regular fa-square"></i> <code>js/monsterAI.js</code>, <code>SpawnManager</code> 및 <code>js/bossEngine.js</code> 점진적 순차 모듈 작성</li>
-                            <li><i class="fa-regular fa-square"></i> 보스 4단계 페이즈 전환(HP 60%, 30% 무적 & <code>clearBullets()</code> 탄환 소멸 및 P3 광폭화 오라) 구현</li>
-                            <li><i class="fa-regular fa-square"></i> <strong>[검수 공정]</strong> `개발 ➔ 사용자 직접 시연/테스트 ➔ 소스코드/콘솔 정밀 검수 ➔ 다음 진행` 4단계 의무 적용</li>
+                            <li><i class="fa-solid fa-square-check"></i> <code>js/monsterAI.js</code>, <code>SpawnManager</code> 및 <code>js/bossEngine.js</code> 점진적 순차 모듈 작성 완료</li>
+                            <li><i class="fa-solid fa-square-check"></i> 보스 4단계 페이즈 전환(HP 60%, 30% 무적 & <code>clearBullets()</code> 탄환 소멸 및 P3 광폭화 오라) 인프라 구축 완료</li>
+                            <li><i class="fa-solid fa-square-check"></i> <strong>[검수 공정]</strong> `개발 ➔ 사용자 직접 시연/테스트 ➔ 소스코드/콘솔 정밀 검수 ➔ 다음 진행` 4단계 의무 적용 완료</li>
                         </ul>
                     </div>
                 </div>

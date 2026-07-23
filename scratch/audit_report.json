@@ -1,0 +1,513 @@
+[
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8586,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8590,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8599,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8641,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8769,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8779,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8832,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8860,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8861,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 8880,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'update() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9368,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9638,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9642,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9651,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9701,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9879,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9889,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9942,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9964,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9995,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10000,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10018,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10041,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10057,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10066,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10078,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10091,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10107,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10111,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10138,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10206,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10217,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10235,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10241,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10247,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10253,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10259,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10273,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10286,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10299,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10306,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10323,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10377,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10386,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10395,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10402,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10484,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10498,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10507,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10513,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10522,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10533,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10544,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10554,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10684,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10685,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10728,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10735,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'render() {'. Memory leak risk!"
+  },
+  {
+    "severity": "HIGH",
+    "file": "walkCharacter.js",
+    "line": 208,
+    "type": "EVENT_LISTENER_IN_LOOP",
+    "description": "addEventListener called inside update/render/draw loop 'draw() {'. Memory leak risk!"
+  },
+  {
+    "severity": "MEDIUM",
+    "file": "weapon_combinations.html",
+    "line": 1009,
+    "type": "DUPLICATE_HTML_ID",
+    "description": "ID 'toast' is defined multiple times (also in cards_list.html:1165)"
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9679,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-regen') but element 'cheat-regen' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9689,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-max-stamina') but element 'cheat-max-stamina' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9764,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-homing') but element 'cheat-homing' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 9993,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-reset-weapons-btn') but element 'cheat-reset-weapons-btn' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10004,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-passive-select') but element 'cheat-passive-select' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10016,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-equip-passive-btn') but element 'cheat-equip-passive-btn' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10019,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-passive-select') but element 'cheat-passive-select' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10076,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-clear-materials') but element 'cheat-clear-materials' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10204,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-btn-warp-room') but element 'cheat-btn-warp-room' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10207,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-warp-room-num') but element 'cheat-warp-room-num' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10219,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-warp-room-num') but element 'cheat-warp-room-num' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 10321,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('cheat-btn-chain-combo') but element 'cheat-btn-chain-combo' is missing in HTML files."
+  },
+  {
+    "severity": "HIGH",
+    "file": "engine.js",
+    "line": 12140,
+    "type": "MISSING_HTML_ELEMENT",
+    "description": "getElementById('transmute-output-select') but element 'transmute-output-select' is missing in HTML files."
+  }
+]

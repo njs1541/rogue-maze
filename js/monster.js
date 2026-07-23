@@ -254,6 +254,60 @@ class Monster {
         return false;
     }
 
+    // [신규] 몬스터 AI 7대 원칙 및 3대 고도화 AI 프레임 업데이트 연동 메서드
+    updateAI(player, engine) {
+        if (!player || this.dead) return;
+
+        // FSM 상태 업데이트
+        if (!this.fsm && window.MonsterFSM) {
+            this.fsm = new window.MonsterFSM(this);
+        }
+        if (this.fsm) {
+            this.fsm.update(player, engine);
+        }
+
+        let state = this.fsm ? this.fsm.currentState : 'CHASE';
+
+        // 1. MovementStrategy 실행
+        if (window.MovementStrategy) {
+            switch (state) {
+                case 'KITING':
+                    window.MovementStrategy.kiting.move(this, player, engine);
+                    break;
+                case 'AMBUSH':
+                    window.MovementStrategy.stealth.move(this, player, engine);
+                    break;
+                case 'FLOCKING':
+                    window.MovementStrategy.flocking.move(this, player, engine);
+                    break;
+                case 'CHASE':
+                default:
+                    if (this.type === 'phase_crawler' || this.type === 'wall_walker') {
+                        window.MovementStrategy.wallPhase.move(this, player, engine);
+                    } else {
+                        window.MovementStrategy.chase.move(this, player, engine);
+                    }
+                    break;
+            }
+        }
+
+        // 2. AttackStrategy 사격 쿨다운 체크 및 실행
+        if (window.AttackStrategy && !this.isStunned) {
+            let curRoom = (engine && engine.roomNum) || 1;
+            if (this.shootCooldown > 0) {
+                this.shootCooldown--;
+            } else if (this.type === 'shooter' || this.type === 'plasma_sniper') {
+                this.shootCooldown = 90;
+                // 51층 이상이거나 스나이퍼 타입이면 고도화 1: 예측 사격 실행
+                if (curRoom >= 51 || this.type === 'plasma_sniper') {
+                    window.AttackStrategy.predictiveLeadShot.attack(this, player, engine);
+                } else {
+                    window.AttackStrategy.singleShot.attack(this, player, engine);
+                }
+            }
+        }
+    }
+
     // 엘리트 속성 주입 메서드
     makeElite() {
         this.isElite = true;

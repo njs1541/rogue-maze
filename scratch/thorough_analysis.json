@@ -1,0 +1,134 @@
+[
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 9679,
+    "msg": "getElementById('cheat-regen') - 'cheat-regen' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 9689,
+    "msg": "getElementById('cheat-max-stamina') - 'cheat-max-stamina' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 9764,
+    "msg": "getElementById('cheat-homing') - 'cheat-homing' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 9993,
+    "msg": "getElementById('cheat-reset-weapons-btn') - 'cheat-reset-weapons-btn' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10004,
+    "msg": "getElementById('cheat-passive-select') - 'cheat-passive-select' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10016,
+    "msg": "getElementById('cheat-equip-passive-btn') - 'cheat-equip-passive-btn' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10019,
+    "msg": "getElementById('cheat-passive-select') - 'cheat-passive-select' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10076,
+    "msg": "getElementById('cheat-clear-materials') - 'cheat-clear-materials' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10204,
+    "msg": "getElementById('cheat-btn-warp-room') - 'cheat-btn-warp-room' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10207,
+    "msg": "getElementById('cheat-warp-room-num') - 'cheat-warp-room-num' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10219,
+    "msg": "getElementById('cheat-warp-room-num') - 'cheat-warp-room-num' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 10321,
+    "msg": "getElementById('cheat-btn-chain-combo') - 'cheat-btn-chain-combo' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "MISSING_DOM_ID",
+    "file": "engine.js",
+    "line": 12140,
+    "msg": "getElementById('transmute-output-select') - 'transmute-output-select' does NOT exist in any HTML file."
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "engine.js",
+    "line": 5067,
+    "msg": "Method 'triggerChainLightning' in class 'GameEngine' was previously defined at line 3753 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "engine.js",
+    "line": 9550,
+    "msg": "Method 'syncCheatUIFromPlayer' in class 'GameEngine' was previously defined at line 8510 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "engine.js",
+    "line": 9635,
+    "msg": "Method 'initCheatSystemEvents' in class 'GameEngine' was previously defined at line 8583 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "monsterAI.js",
+    "line": 86,
+    "msg": "Method 'move' in class 'MonsterFSM' was previously defined at line 61 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "monsterAI.js",
+    "line": 106,
+    "msg": "Method 'move' in class 'MonsterFSM' was previously defined at line 61 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "monsterAI.js",
+    "line": 123,
+    "msg": "Method 'move' in class 'MonsterFSM' was previously defined at line 61 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "monsterAI.js",
+    "line": 160,
+    "msg": "Method 'attack' in class 'MonsterFSM' was previously defined at line 141 in the same class!"
+  },
+  {
+    "cat": "DUPLICATE_CLASS_METHOD",
+    "file": "monsterAI.js",
+    "line": 182,
+    "msg": "Method 'attack' in class 'MonsterFSM' was previously defined at line 141 in the same class!"
+  },
+  {
+    "cat": "PROPERTY_INCONSISTENCY",
+    "file": "monster.js",
+    "line": 1371,
+    "msg": "Reference to '.isEnemyBullet' (Bullet class uses '.isPlayerBullet')"
+  }
+]

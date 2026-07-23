@@ -1,0 +1,50 @@
+[
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "engine.js",
+    "line": 5067,
+    "message": "Method 'triggerChainLightning' in class 'GameEngine' is defined again (previous line 3753)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "engine.js",
+    "line": 9550,
+    "message": "Method 'syncCheatUIFromPlayer' in class 'GameEngine' is defined again (previous line 8510)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "engine.js",
+    "line": 9635,
+    "message": "Method 'initCheatSystemEvents' in class 'GameEngine' is defined again (previous line 8583)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "monsterAI.js",
+    "line": 86,
+    "message": "Method 'move' in class 'MonsterFSM' is defined again (previous line 61)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "monsterAI.js",
+    "line": 106,
+    "message": "Method 'move' in class 'MonsterFSM' is defined again (previous line 61)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "monsterAI.js",
+    "line": 123,
+    "message": "Method 'move' in class 'MonsterFSM' is defined again (previous line 61)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "monsterAI.js",
+    "line": 160,
+    "message": "Method 'attack' in class 'MonsterFSM' is defined again (previous line 141)"
+  },
+  {
+    "category": "DUPLICATE_METHOD",
+    "file": "monsterAI.js",
+    "line": 182,
+    "message": "Method 'attack' in class 'MonsterFSM' is defined again (previous line 141)"
+  }
+]
